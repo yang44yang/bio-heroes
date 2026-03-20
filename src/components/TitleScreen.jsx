@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exportSave, importSave, resetSave } from '../utils/saveManager'
 
-export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, economy }) {
+export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, economy }) {
   const [showSettings, setShowSettings] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
   const fileRef = useRef(null)
@@ -107,12 +107,24 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         </motion.button>
 
         <motion.button
+          className="w-full py-3 bg-yellow-700 hover:bg-yellow-600 rounded-2xl text-yellow-100 text-lg font-bold shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.55 }}
+          onClick={onOpenTutorial}
+        >
+          📚 教学
+        </motion.button>
+
+        <motion.button
           className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 rounded-2xl text-gray-400 text-sm font-bold"
           whileHover={{ scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.6 }}
+          transition={{ delay: 0.65 }}
           onClick={() => setShowSettings(!showSettings)}
         >
           ⚙️ 存档管理
