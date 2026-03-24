@@ -1,4 +1,5 @@
-import React, { useState, Suspense, lazy, useCallback, useEffect } from 'react'
+import React, { useState, Suspense, lazy, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import TitleScreen from './components/TitleScreen'
 import { playerTestDeck, enemyTestDeck } from './data/testDecks'
 import { useEconomy } from './hooks/useEconomy'
@@ -60,8 +61,51 @@ export default function App() {
     economy.addCoins(900)
   }, [economy])
 
+  // 新玩家欢迎提示
+  const [showWelcome, setShowWelcome] = useState(economy.isNewPlayer)
+  const handleDismissWelcome = useCallback(() => {
+    setShowWelcome(false)
+    economy.dismissNewPlayer()
+  }, [economy])
+
   return (
     <div className="min-h-screen bg-gray-900 text-white">
+      {/* 新玩家欢迎提示 */}
+      <AnimatePresence>
+        {showWelcome && screen === 'tutorial' && (
+          <motion.div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleDismissWelcome}
+          >
+            <motion.div
+              className="bg-gray-800 border-2 border-yellow-500 rounded-2xl p-6 max-w-sm mx-4 text-center"
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.7, opacity: 0 }}
+              transition={{ type: 'spring', damping: 12 }}
+              onClick={e => e.stopPropagation()}
+            >
+              <div className="text-4xl mb-3">🎁</div>
+              <h2 className="text-xl font-black text-yellow-400 mb-2">欢迎新战士！</h2>
+              <p className="text-gray-300 text-sm mb-4 leading-relaxed">
+                你获得了<span className="text-yellow-400 font-bold">初始卡牌礼包</span>和
+                <span className="text-yellow-400 font-bold"> 3000 金币</span>！
+                <br />先去教学关卡学习怎么玩吧！
+              </p>
+              <button
+                className="px-6 py-2 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400 transition"
+                onClick={handleDismissWelcome}
+              >
+                知道了！
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {screen === 'title' && (
         <TitleScreen
           onStartBattle={() => setScreen('battle')}

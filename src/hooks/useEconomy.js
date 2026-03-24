@@ -3,14 +3,47 @@ import { getEvolutionTarget } from '../data/evolutions'
 import { migrateData } from '../utils/saveManager'
 
 const STORAGE_KEY = 'bio-heroes-economy'
+const INITIAL_COINS = 3000 // 新玩家初始金币（够30次单抽或3次十连）
+
+// 新玩家初始卡牌礼包（25张，刚好够组一副主卡组）
+const STARTER_COLLECTION = [
+  // 🌱自然系 7张
+  'ant_soldier',        // 蚂蚁 R ×2 (collection只存id，不重复)
+  'bee_worker',         // 蜜蜂 R
+  'mimosa_timid',       // 含羞草 R
+  'sunflower_charger',  // 向日葵 R
+  'cheetah_sprinter',   // 猎豹 SR
+  // 🧬人体系 7张
+  'platelet_guardian',  // 血小板 R
+  'red_blood_cell',     // 红细胞 R
+  'white_blood_cell',   // 白细胞 SR
+  'stomach_acid',       // 胃酸 R
+  'skin_barrier',       // 皮肤 R
+  // 🦠病原系 5张
+  'flu_virus',          // 流感病毒 R
+  'cavity_bacteria',    // 蛀牙菌 R
+  'ecoli_thug',         // 大肠杆菌 R
+  'bacteriophage_killer', // 噬菌体 SR
+  // ⚗️科技系 5张
+  'bandaid_helper',     // 创可贴 R
+  'thermometer_alarm',  // 体温计 R
+  'stethoscope_listener', // 听诊器 R
+  'microscope_eye',     // 显微镜 R
+]
+
+// 事件卡也放入初始收藏（用于组卡组）
+const STARTER_EVENT_CARDS = [
+  'event_lab_observation',  // 实验观察 ⚗️
+  'event_immune_response',  // 免疫应答 🧬
+]
 
 const DEFAULT_STATE = {
   saveVersion: 2,
-  coins: 500,       // 金币（战斗奖励获取）
-  diamonds: 10,     // 钻石（稀有，后期扩展）
-  collection: [],   // 拥有的卡牌 id 列表（去重）
-  fragments: {},     // 碎片 { cardId: count }
-  pityCounter: 0,   // SSR 保底计数器
+  coins: INITIAL_COINS,     // 新玩家初始金币
+  diamonds: 10,             // 钻石（稀有，后期扩展）
+  collection: [],           // 拥有的卡牌 id 列表（去重）
+  fragments: {},             // 碎片 { cardId: count }
+  pityCounter: 0,           // SSR 保底计数器
   totalPulls: 0,
 }
 
@@ -23,7 +56,12 @@ function loadEconomy() {
       return { ...DEFAULT_STATE, ...(migrated || parsed) }
     }
   } catch (e) { /* ignore */ }
-  return { ...DEFAULT_STATE }
+  // 全新玩家：给初始卡牌礼包
+  return {
+    ...DEFAULT_STATE,
+    collection: [...STARTER_COLLECTION, ...STARTER_EVENT_CARDS],
+    isNewPlayer: true, // 标记用于显示欢迎提示
+  }
 }
 
 function saveEconomy(state) {
@@ -180,6 +218,14 @@ export function useEconomy() {
     return success
   }, [])
 
+  // 清除新玩家标记
+  const dismissNewPlayer = useCallback(() => {
+    setState(prev => {
+      const { isNewPlayer, ...rest } = prev
+      return rest
+    })
+  }, [])
+
   return {
     coins: state.coins,
     diamonds: state.diamonds,
@@ -187,6 +233,7 @@ export function useEconomy() {
     fragments: state.fragments,
     pityCounter: state.pityCounter,
     totalPulls: state.totalPulls,
+    isNewPlayer: !!state.isNewPlayer,
 
     addCoins,
     spendCoins,
@@ -196,6 +243,7 @@ export function useEconomy() {
     pullCards,
     checkEvolution,
     evolveCard,
+    dismissNewPlayer,
 
     SINGLE_COST,
     MULTI_COST,
