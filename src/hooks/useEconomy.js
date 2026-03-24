@@ -38,7 +38,7 @@ const STARTER_EVENT_CARDS = [
 ]
 
 const DEFAULT_STATE = {
-  saveVersion: 2,
+  saveVersion: 3,
   coins: INITIAL_COINS,     // 新玩家初始金币
   diamonds: 10,             // 钻石（稀有，后期扩展）
   collection: [],           // 拥有的卡牌 id 列表（去重）

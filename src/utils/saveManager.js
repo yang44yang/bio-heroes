@@ -2,19 +2,36 @@
  * 存档管理器 — 版本迁移 + 导入/导出
  */
 
-const SAVE_VERSION = 2  // 当前存档版本
+const SAVE_VERSION = 3  // 当前存档版本
+
+// 新玩家初始卡牌（与 useEconomy 同步）
+const STARTER_CARDS = [
+  'ant_soldier','bee_worker','mimosa_timid','sunflower_charger','cheetah_sprinter',
+  'platelet_guardian','red_blood_cell','white_blood_cell','stomach_acid','skin_barrier',
+  'flu_virus','cavity_bacteria','ecoli_thug','bacteriophage_killer',
+  'bandaid_helper','thermometer_alarm','stethoscope_listener','microscope_eye',
+  'event_lab_observation','event_immune_response',
+]
 
 /**
  * 版本迁移函数
  * 每次数据结构变更时添加新的迁移步骤
  */
 const MIGRATIONS = {
-  // v1 → v2: 添加 saveVersion 字段 + evolution 相关字段
+  // v1 → v2: 添加 saveVersion 字段
   1: (data) => {
-    return {
-      ...data,
-      saveVersion: 2,
+    return { ...data, saveVersion: 2 }
+  },
+  // v2 → v3: 初始金币3000 + 初始卡牌礼包（补发给旧空收藏玩家）
+  2: (data) => {
+    const d = { ...data, saveVersion: 3 }
+    // 如果收藏为空（从未抽过卡的旧玩家），补发初始卡牌
+    if (!d.collection || d.collection.length === 0) {
+      d.collection = [...STARTER_CARDS]
+      d.coins = (d.coins || 0) + 2500 // 补差额（旧默认500 + 2500 = 3000）
+      d.isNewPlayer = true
     }
+    return d
   },
 }
 
