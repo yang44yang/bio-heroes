@@ -59,7 +59,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '你知道吗？你的口腔里住着超过700种细菌！蛀牙菌会把糖变成酸来腐蚀牙齿，所以每天刷牙2次很重要！' },
             ],
           },
-          rewards: { firstClear: { coins: 80 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 300 }, threeStars: { coins: 150 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -84,7 +84,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '流感病毒的表面蛋白质一直在变化，就像不断换衣服的小偷。这就是为什么每年都需要打新的流感疫苗！' },
             ],
           },
-          rewards: { firstClear: { coins: 100 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 400 }, threeStars: { coins: 200 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -109,7 +109,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '狂犬病毒不走血液，沿着神经一路"爬"到大脑。感染后让宿主变得暴躁爱咬人。一旦发病致死率几乎100%，但及时打疫苗就能预防！' },
             ],
           },
-          rewards: { firstClear: { coins: 120 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 500 }, threeStars: { coins: 250 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -139,7 +139,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: 'SARS-CoV-2用刺突蛋白打开人体细胞的"门锁"。科学家用创纪录的速度研发出mRNA疫苗——这是人类历史上最快的疫苗研发！' },
             ],
           },
-          rewards: { firstClear: { coins: 200, diamonds: 10 }, threeStars: { coins: 100 } },
+          rewards: { firstClear: { coins: 600, diamonds: 10 }, threeStars: { coins: 300 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
       ],
@@ -177,7 +177,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '电鳗的身体80%都是发电器官，能释放高达860伏特的电击。它不是鳗鱼，而是南美洲的裸背电鱼！' },
             ],
           },
-          rewards: { firstClear: { coins: 100 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 500 }, threeStars: { coins: 250 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -202,7 +202,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '水母没有大脑、心脏、骨头，身体95%是水——却在海洋中生存了6亿多年！箱形水母的毒液是世界上最毒的之一。' },
             ],
           },
-          rewards: { firstClear: { coins: 120 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 600 }, threeStars: { coins: 300 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -227,7 +227,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '虎鲸是海豚科中体型最大的成员（不是鲸！），大脑非常发达。不同家族有自己独特的"方言"！' },
             ],
           },
-          rewards: { firstClear: { coins: 150 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 700 }, threeStars: { coins: 350 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -257,7 +257,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '蓝鲸心脏像一辆汽车那么大，舌头上能站50个人！蓝鲸主要吃磷虾——最大的动物吃最小的食物，这就是生态系统的奇妙之处。' },
             ],
           },
-          rewards: { firstClear: { coins: 200, diamonds: 10 }, threeStars: { coins: 100 } },
+          rewards: { firstClear: { coins: 800, diamonds: 10 }, threeStars: { coins: 400 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
       ],
@@ -295,7 +295,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '过度使用抗生素让细菌"学会了"抵抗。记住：感冒是病毒引起的，吃抗生素完全没用！不要随便吃抗生素。' },
             ],
           },
-          rewards: { firstClear: { coins: 150 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 1000 }, threeStars: { coins: 500 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -320,7 +320,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: 'HIV专门攻击辅助T细胞——免疫系统的"总指挥"。虽然还没有疫苗能完全消灭HIV，但现代药物已经能让感染者正常生活。' },
             ],
           },
-          rewards: { firstClear: { coins: 180 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 1200 }, threeStars: { coins: 600 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -345,7 +345,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '2014年科学家从3万年前的永久冻土中复活了一种巨型病毒。随着全球变暖，被冰封数万年的远古病毒可能重见天日——气候变化的威胁远比我们想象的深远。' },
             ],
           },
-          rewards: { firstClear: { coins: 200 }, threeStars: { coins: 50 } },
+          rewards: { firstClear: { coins: 1400 }, threeStars: { coins: 700 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -376,7 +376,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '超级细菌是21世纪最严峻的公共卫生危机之一。科学家正在研究噬菌体疗法、CRISPR基因编辑来对抗它。保护抗生素的有效性需要每个人的努力！' },
             ],
           },
-          rewards: { firstClear: { coins: 300, diamonds: 20 }, threeStars: { coins: 100 } },
+          rewards: { firstClear: { coins: 1600, diamonds: 20 }, threeStars: { coins: 800 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
       ],
