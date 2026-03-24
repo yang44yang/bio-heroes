@@ -9,6 +9,7 @@ import { FACTIONS, MAX_FIELD_SLOTS } from '../data/deckRules'
 import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
+import DialogueBox from './DialogueBox'
 
 /**
  * BattleScreen — Sprint 2 完全重写
@@ -17,7 +18,7 @@ import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
  *   敌方主人HP → 敌方战场(5位) → VS → 玩家战场(5位) → 玩家主人HP
  *   → 手牌区 → 操作按钮 → 日志
  */
-export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, onExit }) {
+export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, onExit }) {
   const battle = useBattle()
   const playerHand = useHand(playerDeckCards)
   const enemyHand = useHand(enemyDeckCards)
@@ -146,12 +147,51 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     initialized.current = true
     playerHand.initHand()
     enemyHand.initHand()
-    battle.startBattle({ player: playerSpDeckCards || playerTestSpDeck, enemy: enemyTestSpDeck })
+    const enemySp = enemySpDeckCards || campaignConfig?.spDeck || enemyTestSpDeck
+    battle.startBattle({
+      player: playerSpDeckCards || playerTestSpDeck,
+      enemy: enemySp,
+      enemyLeaderHP: campaignConfig?.leaderHP,
+    })
   }, [])
+
+  // === 闯关对话 ===
+  const [dialoguePhase, setDialoguePhase] = useState(campaignConfig?.dialogue?.before ? 'before' : null)
+  const [dialogueIdx, setDialogueIdx] = useState(0)
+  const currentDialogues = dialoguePhase === 'before' ? campaignConfig?.dialogue?.before
+    : dialoguePhase === 'after' ? campaignConfig?.dialogue?.after
+    : null
+
+  const handleDialogueNext = useCallback(() => {
+    if (!currentDialogues) return
+    if (dialogueIdx + 1 < currentDialogues.length) {
+      setDialogueIdx(i => i + 1)
+    } else {
+      setDialoguePhase(null)
+      setDialogueIdx(0)
+    }
+  }, [currentDialogues, dialogueIdx])
+
+  const handleDialogueSkip = useCallback(() => {
+    setDialoguePhase(null)
+    setDialogueIdx(0)
+  }, [])
+
+  // 战后对话触发
+  const postDialogueTriggered = useRef(false)
+  useEffect(() => {
+    if (battle.winner && !postDialogueTriggered.current && campaignConfig?.dialogue?.after) {
+      postDialogueTriggered.current = true
+      // 延迟一下让胜利画面先渲染
+      setTimeout(() => {
+        setDialoguePhase('after')
+        setDialogueIdx(0)
+      }, 1500)
+    }
+  }, [battle.winner, campaignConfig])
 
   // === 重新开始 ===
   const handleRestart = useCallback(() => {
-    // 重置所有局部状态
     setSelectedHandIdx(null)
     setSelectedAtkSlot(null)
     setAwakenOpts({})
@@ -160,10 +200,19 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     setAwakenText(null)
     floatIdRef.current = 0
     enemyPlaced.current = false
-    // 重新初始化手牌和战斗
+    postDialogueTriggered.current = false
     playerHand.initHand()
     enemyHand.initHand()
-    battle.startBattle({ player: playerSpDeckCards || playerTestSpDeck, enemy: enemyTestSpDeck })
+    const enemySp = enemySpDeckCards || campaignConfig?.spDeck || enemyTestSpDeck
+    battle.startBattle({
+      player: playerSpDeckCards || playerTestSpDeck,
+      enemy: enemySp,
+      enemyLeaderHP: campaignConfig?.leaderHP,
+    })
+    if (campaignConfig?.dialogue?.before) {
+      setDialoguePhase('before')
+      setDialogueIdx(0)
+    }
   }, [playerHand, enemyHand, battle])
 
   // 初始化后敌方放起手卡（遵守能量=1限制）
@@ -1277,9 +1326,14 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-bold text-sm"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  onClick={() => onExit({ won, quizCorrect: stats.quizCorrect })}
+                  onClick={() => onExit({
+                    won,
+                    quizCorrect: stats.quizCorrect,
+                    turnsPlayed: battle.turn,
+                    leaderHPPercent: Math.round((battle.playerLeaderHp / 30000) * 100),
+                  })}
                 >
-                  返回主菜单
+                  {campaignConfig ? '返回闯关' : '返回主菜单'}
                 </motion.button>
               </div>
             </motion.div>
@@ -1287,6 +1341,18 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           document.body
         )
       })()}
+
+      {/* 闯关对话框 */}
+      <AnimatePresence>
+        {dialoguePhase && currentDialogues && (
+          <DialogueBox
+            dialogues={currentDialogues}
+            currentIdx={dialogueIdx}
+            onNext={handleDialogueNext}
+            onSkip={handleDialogueSkip}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

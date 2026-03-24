@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exportSave, importSave, resetSave } from '../utils/saveManager'
 
-export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, economy }) {
+export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, economy }) {
   const [showSettings, setShowSettings] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
   const fileRef = useRef(null)
@@ -59,15 +59,27 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
       {/* 菜单按钮 */}
       <div className="space-y-3 w-64">
         <motion.button
+          className="w-full py-4 bg-amber-700 hover:bg-amber-600 rounded-2xl text-white text-xl font-black shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+          onClick={onOpenCampaign}
+        >
+          🏆 闯关战役
+        </motion.button>
+
+        <motion.button
           className="w-full py-4 bg-red-600 hover:bg-red-500 rounded-2xl text-white text-xl font-black shadow-lg"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.25 }}
           onClick={onStartBattle}
         >
-          ⚔️ 开始战斗
+          ⚔️ 自由对战
         </motion.button>
 
         <motion.button

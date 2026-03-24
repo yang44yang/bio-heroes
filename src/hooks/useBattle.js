@@ -1054,7 +1054,7 @@ export function useBattle() {
     setPlayerEnergy(1)
     setEnemyEnergy(1)
     setPlayerLeaderHp(LEADER_HP)
-    setEnemyLeaderHp(LEADER_HP)
+    setEnemyLeaderHp(spDecks.enemyLeaderHP || LEADER_HP)
     setPlayerField(emptyField())
     setEnemyField(emptyField())
     setBattleLog(['⚔️ 战斗开始！'])

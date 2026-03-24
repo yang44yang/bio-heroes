@@ -1,9 +1,15 @@
-import React, { useState, Suspense, lazy, useCallback } from 'react'
+import React, { useState, Suspense, lazy, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TitleScreen from './components/TitleScreen'
 import { playerTestDeck, enemyTestDeck } from './data/testDecks'
 import { useEconomy } from './hooks/useEconomy'
 import { loadTutorialProgress } from './data/tutorialData'
+import {
+  loadCampaignProgress, saveCampaignProgress, calculateStars,
+} from './data/campaignData'
+import cards from './data/cards'
+import eventCards from './data/eventCards'
+import spCards from './data/spCards'
 
 // 懒加载重型组件 — 代码分割
 const BattleScreen = lazy(() => import('./components/BattleScreen'))
@@ -11,6 +17,7 @@ const GachaScreen = lazy(() => import('./components/GachaScreen'))
 const DeckBuilder = lazy(() => import('./components/DeckBuilder'))
 const Collection = lazy(() => import('./components/Collection'))
 const TutorialScreen = lazy(() => import('./components/TutorialScreen'))
+const CampaignScreen = lazy(() => import('./components/CampaignScreen'))
 
 // 加载占位
 function LoadingFallback() {
@@ -24,17 +31,35 @@ function LoadingFallback() {
   )
 }
 
+// 根据 cardId 从数据中找到卡牌
+const allCards = [...cards, ...eventCards, ...spCards]
+function findCard(id) {
+  return allCards.find(c => c.id === id)
+}
+
+// 从 enemyConfig.deck 中实例化敌方卡组
+function buildEnemyDeck(deckIds) {
+  return deckIds.map(id => {
+    const card = findCard(id)
+    if (!card) return null
+    return { ...card }
+  }).filter(Boolean)
+}
+
 export default function App() {
   // 首次进入：检查是否需要自动开始教学
   const [screen, setScreen] = useState(() => {
     const tut = loadTutorialProgress()
     if (!tut.graduated && tut.completedLevels.length === 0) {
-      return 'tutorial' // 首次进入自动开始教学
+      return 'tutorial'
     }
     return 'title'
   })
   const [selectedDeck, setSelectedDeck] = useState(null)
   const economy = useEconomy()
+
+  // === 闯关战役状态 ===
+  const campaignStageRef = useRef(null) // 当前战斗的关卡配置
 
   const handleSelectDeck = useCallback((deck) => {
     if (deck) {
@@ -46,18 +71,87 @@ export default function App() {
   }, [])
 
   const handleExitBattle = useCallback((battleResult) => {
+    // 检查是否是闯关战斗
+    const stageConfig = campaignStageRef.current
+    if (stageConfig && battleResult) {
+      // 计算星数
+      const stars = calculateStars({
+        won: battleResult.won,
+        leaderHPPercent: battleResult.leaderHPPercent || 0,
+        turnCount: battleResult.turnsPlayed || 99,
+      })
+
+      // 更新闯关进度
+      const prog = loadCampaignProgress()
+      const prevStars = prog.stageStars[stageConfig.stageId] || 0
+      if (stars > prevStars) {
+        prog.stageStars[stageConfig.stageId] = stars
+      }
+
+      // 发放奖励
+      if (battleResult.won && stageConfig.rewards) {
+        const rewardKey = `${stageConfig.stageId}_first`
+        if (!prog.claimedRewards[rewardKey]) {
+          prog.claimedRewards[rewardKey] = true
+          const r = stageConfig.rewards.firstClear
+          if (r?.coins) economy.addCoins(r.coins)
+          if (r?.diamonds) economy.addCoins(r.diamonds) // 暂用coins代替
+        }
+        if (stars >= 3) {
+          const threeKey = `${stageConfig.stageId}_three`
+          if (!prog.claimedRewards[threeKey]) {
+            prog.claimedRewards[threeKey] = true
+            const r = stageConfig.rewards.threeStars
+            if (r?.coins) economy.addCoins(r.coins)
+          }
+        }
+      }
+
+      saveCampaignProgress(prog)
+      campaignStageRef.current = null
+      setScreen('campaign')
+      return
+    }
+
+    // 普通战斗
     if (battleResult) {
       const reward = economy.calculateBattleReward(battleResult)
       economy.claimBattleReward(reward)
     }
+    campaignStageRef.current = null
     setScreen('title')
   }, [economy])
 
-  // 教学毕业奖励：500金币 + 免费十连抽（通过给900金币实现）
+  // === 闯关战役：开始战斗 ===
+  const handleCampaignBattle = useCallback((stageConfig) => {
+    campaignStageRef.current = stageConfig
+    // 构建敌方卡组
+    const enemyDeck = buildEnemyDeck(stageConfig.enemyConfig.deck)
+    const enemySpDeck = stageConfig.enemyConfig.spDeck
+      ? buildEnemyDeck(stageConfig.enemyConfig.spDeck)
+      : []
+
+    setSelectedDeck(prev => ({
+      ...prev,
+      // 保留玩家自己的卡组
+      _campaignEnemy: {
+        deck: enemyDeck,
+        spDeck: enemySpDeck,
+        leaderHP: stageConfig.enemyConfig.leaderHP,
+        aiStrength: stageConfig.enemyConfig.aiStrength,
+        bossMechanic: stageConfig.enemyConfig.bossMechanic,
+        bossPreplaced: stageConfig.enemyConfig.bossPreplaced,
+        dialogue: stageConfig.dialogue,
+        stageType: stageConfig.stageType,
+        stageName: stageConfig.stageName,
+      },
+    }))
+    setScreen('battle')
+  }, [])
+
+  // 教学毕业奖励
   const handleTutorialGraduate = useCallback(() => {
     economy.addCoins(500)
-    // 免费十连：给足够金币让玩家去抽卡界面自己抽
-    // 或者直接加900金币（十连的价格）
     economy.addCoins(900)
   }, [economy])
 
@@ -67,6 +161,9 @@ export default function App() {
     setShowWelcome(false)
     economy.dismissNewPlayer()
   }, [economy])
+
+  // 提取闯关配置
+  const campaignEnemy = selectedDeck?._campaignEnemy
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -113,6 +210,7 @@ export default function App() {
           onOpenDeckBuilder={() => setScreen('deckBuilder')}
           onOpenCollection={() => setScreen('collection')}
           onOpenTutorial={() => setScreen('tutorial')}
+          onOpenCampaign={() => setScreen('campaign')}
           economy={economy}
         />
       )}
@@ -120,8 +218,10 @@ export default function App() {
         {screen === 'battle' && (
           <BattleScreen
             playerDeckCards={selectedDeck?.mainCards || playerTestDeck}
-            enemyDeckCards={enemyTestDeck}
+            enemyDeckCards={campaignEnemy?.deck || enemyTestDeck}
             playerSpDeckCards={selectedDeck?.spCards}
+            enemySpDeckCards={campaignEnemy?.spDeck}
+            campaignConfig={campaignEnemy}
             onExit={handleExitBattle}
           />
         )}
@@ -141,6 +241,17 @@ export default function App() {
           <TutorialScreen
             onExit={() => setScreen('title')}
             onGraduate={handleTutorialGraduate}
+            economy={economy}
+          />
+        )}
+        {screen === 'campaign' && (
+          <CampaignScreen
+            onBack={() => setScreen('title')}
+            onStartBattle={handleCampaignBattle}
+            onStartTutorial={(lvl) => {
+              // 跳转到教学模式
+              setScreen('tutorial')
+            }}
             economy={economy}
           />
         )}
