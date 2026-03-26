@@ -40,7 +40,7 @@ export default function QuizModal({ quiz, onAnswer }) {
             {quiz.options.map((opt, i) => (
               <motion.button
                 key={i}
-                className="w-full py-2 sm:py-3 px-3 sm:px-4 bg-gray-700 hover:bg-yellow-600 rounded-lg sm:rounded-xl text-white font-medium text-left text-xs sm:text-base transition-colors min-h-[36px]"
+                className="w-full py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-700 hover:bg-yellow-600 rounded-lg sm:rounded-xl text-white font-medium text-left text-xs sm:text-base transition-colors min-h-[44px]"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => onAnswer(i)}

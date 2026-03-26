@@ -1073,7 +1073,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           animate={{ opacity: 1 }}
         >
           <motion.div
-            className="bg-gray-900 rounded-2xl p-6 mx-4 max-w-lg w-full border border-yellow-500/50"
+            className="bg-gray-900 rounded-2xl p-3 sm:p-6 mx-2 sm:mx-4 max-w-lg w-[95%] sm:w-full border border-yellow-500/50"
             initial={{ scale: 0.8, y: 40 }}
             animate={{ scale: 1, y: 0 }}
             transition={{ type: 'spring', damping: 15 }}
