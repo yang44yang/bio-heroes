@@ -1,1 +1,37 @@
 @import "tailwindcss";
+
+/* === 响应式适配：dvh + 触摸优化 === */
+
+/* dvh 工具类（动态视口高度，解决移动端地址栏伸缩问题） */
+@utility h-screen-d {
+  height: 100dvh;
+}
+@utility min-h-screen-d {
+  min-height: 100dvh;
+}
+
+/* 战斗界面触摸优化 */
+.battle-container {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation; /* 禁止双击缩放 */
+}
+
+/* 滚动吸附 */
+.snap-x {
+  scroll-snap-type: x mandatory;
+}
+.snap-start {
+  scroll-snap-align: start;
+}
+
+/* 手机竖屏横屏提示 — 仅在窄屏竖屏时显示 */
+.landscape-prompt {
+  display: none !important;
+}
+@media (max-width: 639px) and (orientation: portrait) {
+  .landscape-prompt {
+    display: flex !important;
+  }
+}

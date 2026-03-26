@@ -634,11 +634,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     const shouldPulse = intact && stored >= 15
 
     return (
-      <div className="flex items-center gap-2 my-1">
-        <span className="text-[10px] text-gray-500 w-16">
-          {side === 'player' ? '⚡储蓄罐' : '⚡敌方储蓄'}
+      <div className="flex items-center gap-1 sm:gap-2">
+        <span className="text-[8px] sm:text-[10px] text-gray-500 w-10 sm:w-16 shrink-0">
+          {side === 'player' ? '⚡PB' : '⚡敌PB'}
         </span>
-        <div className="flex-1 h-4 rounded-full overflow-hidden relative"
+        <div className="flex-1 h-3 sm:h-4 rounded-full overflow-hidden relative"
           style={{ background: '#222', border: '1px solid #444' }}>
           <div
             className={shouldPulse ? 'animate-pulse' : ''}
@@ -650,14 +650,14 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               transition: 'width 0.5s ease, background 0.3s ease',
             }}
           />
-          <span className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white"
+          <span className="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[10px] font-black text-white"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-            {intact ? (stored > 0 ? `⚡ ${stored}` : '') : '已打破'}
+            {intact ? (stored > 0 ? `⚡${stored}` : '') : '破'}
           </span>
         </div>
         {canBreak && intact && stored > 0 && (
           <motion.button
-            className="px-2 py-0.5 text-[11px] font-black text-black rounded-lg"
+            className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-black rounded-lg min-h-[28px] sm:min-h-0"
             style={{
               background: stored >= 20 ? '#FFD700' : '#FF8C00',
             }}
@@ -672,7 +672,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               }
             }}
           >
-            💥 打破!
+            💥打破
           </motion.button>
         )}
       </div>
@@ -683,9 +683,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const HpBar = ({ current, max, label, color }) => {
     const pct = Math.max(0, (current / max) * 100)
     return (
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400 w-8">{label}</span>
-        <div className="flex-1 h-4 bg-gray-800 rounded-full overflow-hidden">
+      <div className="flex items-center gap-1 sm:gap-2">
+        <span className="text-[10px] sm:text-xs text-gray-400 w-6 sm:w-8 shrink-0">{label}</span>
+        <div className="flex-1 h-3 sm:h-4 bg-gray-800 rounded-full overflow-hidden">
           <motion.div
             className={`h-full ${color} rounded-full`}
             initial={false}
@@ -693,13 +693,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             transition={{ duration: 0.5 }}
           />
         </div>
-        <span className="text-xs text-white w-16 text-right">{current}/{max}</span>
+        <span className="text-[10px] sm:text-xs text-white w-12 sm:w-16 text-right font-mono">{current.toLocaleString()}</span>
       </div>
     )
   }
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4 py-4 min-h-screen flex flex-col">
+    <div className="h-screen-d max-w-3xl mx-auto px-2 sm:px-4 flex flex-col overflow-hidden battle-container">
 
       {/* 觉醒文字 */}
       {createPortal(
@@ -722,18 +722,18 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         document.body
       )}
 
-      {/* 回合 & 能量 */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-gray-400">回合 {battle.turn}</span>
+      {/* 回合 & 能量 — 顶部信息栏 */}
+      <div className="flex-none flex items-center justify-between py-1 sm:py-1.5">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <span className="text-[10px] sm:text-sm text-gray-400">R{battle.turn}</span>
           <button
-            className="text-xs px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded"
+            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
             onClick={handleRestart}
           >
-            🔄 重开
+            🔄
           </button>
           <button
-            className="text-xs px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded"
+            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
             onClick={() => {
               ensureAudio()
               const m = toggleMute()
@@ -743,15 +743,15 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             {soundMuted ? '🔇' : '🔊'}
           </button>
         </div>
-        <div className="flex gap-3 text-sm">
-          <span className="text-blue-400">⚡ {battle.playerEnergy}/10</span>
+        <div className="flex gap-1.5 sm:gap-3 text-[10px] sm:text-sm items-center">
+          <span className="text-blue-400">⚡{battle.playerEnergy}</span>
           {battle.quizStreak > 0 && (
             <span className="text-yellow-300 font-bold">🧠×{battle.quizStreak}</span>
           )}
-          <span className="text-red-400/60">🔴 手牌{enemyHand.hand.length} 卡组{enemyHand.drawPileCount}</span>
-          {isMainPhase && <span className="text-green-400 font-bold animate-pulse">出牌阶段</span>}
-          {isBattlePhase && <span className="text-red-400 font-bold animate-pulse">战斗阶段</span>}
-          {battle.phase === 'enemyTurn' && <span className="text-orange-400 font-bold animate-pulse">敌方行动中...</span>}
+          <span className="text-red-400/60 hidden sm:inline">🔴 手牌{enemyHand.hand.length}</span>
+          {isMainPhase && <span className="text-green-400 font-bold animate-pulse text-[10px] sm:text-sm">出牌</span>}
+          {isBattlePhase && <span className="text-red-400 font-bold animate-pulse text-[10px] sm:text-sm">战斗</span>}
+          {battle.phase === 'enemyTurn' && <span className="text-orange-400 font-bold animate-pulse text-[10px] sm:text-sm">敌方...</span>}
         </div>
       </div>
 
@@ -759,7 +759,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       <AnimatePresence>
         {battle.scientistMode.active && (
           <motion.div
-            className="mb-2 px-3 py-1.5 rounded-xl text-center text-sm font-bold"
+            className="flex-none mb-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-center text-[10px] sm:text-sm font-bold"
             style={{
               background: 'linear-gradient(90deg, rgba(59,130,246,0.3), rgba(168,85,247,0.3), rgba(59,130,246,0.3))',
               backgroundSize: '200% 100%',
@@ -785,7 +785,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       <AnimatePresence>
         {battle.activeEnvEvent && (
           <motion.div
-            className="mb-2 px-3 py-1 rounded-lg text-center text-xs"
+            className="flex-none mb-1 px-2 py-0.5 sm:px-3 sm:py-1 rounded-lg text-center text-[10px] sm:text-xs"
             style={{ background: 'rgba(217, 119, 6, 0.15)', border: '1px solid rgba(217, 119, 6, 0.3)' }}
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -800,7 +800,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </AnimatePresence>
 
       {/* 敌方主人 HP */}
-      <div className="relative">
+      <div className="flex-none relative">
         <HpBar current={battle.enemyLeaderHp} max={30000} label="敌方" color="bg-red-500" />
         <AnimatePresence>
           {floatingDmgs.filter(f => f.side === 'enemy' && f.slot === -1).map(f => (
@@ -820,14 +820,14 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </div>
 
       {/* 敌方 Power Bank */}
-      <PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} />
+      <div className="flex-none"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
 
       {/* 敌方战场 */}
-      <div className="flex justify-center gap-3 my-3">
+      <div className="flex-1 basis-[22%] flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1">
         {battle.enemyField.map((card, i) => (
           <div
             key={i}
-            className={`relative w-20 sm:w-24 min-h-[100px] rounded-xl border-2 border-dashed flex items-center justify-center
+            className={`relative w-[calc((100%-1rem)/5)] h-full rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center
               ${card && card.currentHp > 0
                 ? (isBattlePhase && selectedAtkSlot !== null ? 'border-red-400 cursor-pointer hover:border-red-300' : 'border-gray-600')
                 : 'border-gray-700'
@@ -837,16 +837,16 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             {card && card.currentHp > 0 ? (
               <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={false} isActive={false} />
             ) : (
-              <span className="text-gray-700 text-xs">空位</span>
+              <span className="text-gray-700 text-[9px] sm:text-xs">空</span>
             )}
             <AnimatePresence>
               {floatingDmgs.filter(f => f.side === 'enemy' && f.slot === i).map(f => (
                 <motion.div
                   key={f.id}
-                  className={`absolute top-0 left-1/2 -translate-x-1/2 text-2xl font-black pointer-events-none z-50 ${f.color || 'text-red-400'}`}
+                  className={`absolute top-0 left-1/2 -translate-x-1/2 text-lg sm:text-2xl font-black pointer-events-none z-50 ${f.color || 'text-red-400'}`}
                   style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
                   initial={{ opacity: 1, y: 0, scale: 1.2 }}
-                  animate={{ opacity: 0, y: -50, scale: 0.8 }}
+                  animate={{ opacity: 0, y: -30, scale: 0.8 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 1 }}
                 >
@@ -860,9 +860,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
       {/* 直攻主人按钮 */}
       {isBattlePhase && selectedAtkSlot !== null && (
-        <div className="text-center mb-2">
+        <div className="flex-none text-center">
           <button
-            className="text-xs px-4 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg"
+            className="text-[10px] sm:text-xs px-3 sm:px-4 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg min-h-[28px]"
             onClick={handleAttackLeader}
           >
             直攻主人
@@ -871,14 +871,14 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       )}
 
       {/* VS 分隔 */}
-      <div className="text-center text-2xl font-black text-red-500 my-1">⚔️ VS</div>
+      <div className="flex-none text-center text-sm sm:text-2xl font-black text-red-500 py-0.5">⚔️</div>
 
       {/* 玩家战场 */}
-      <div className="flex justify-center gap-3 my-3">
+      <div className="flex-1 basis-[22%] flex items-start justify-center gap-1 sm:gap-2 px-1 pt-1">
         {battle.playerField.map((card, i) => (
           <div
             key={i}
-            className={`relative w-20 sm:w-24 min-h-[100px] rounded-xl border-2 border-dashed flex items-center justify-center
+            className={`relative w-[calc((100%-1rem)/5)] aspect-[5/7] rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center
               ${isMainPhase && selectedHandIdx !== null
                 ? 'border-green-400 cursor-pointer hover:border-green-300'
                 : isBattlePhase && card && card.currentHp > 0 && battle.canAttack(i)
@@ -896,16 +896,16 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             {card && card.currentHp > 0 ? (
               <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={true} isActive={selectedAtkSlot === i} />
             ) : (
-              <span className="text-gray-700 text-xs">空位 {i + 1}</span>
+              <span className="text-gray-700 text-[9px] sm:text-xs">{i + 1}</span>
             )}
             <AnimatePresence>
               {floatingDmgs.filter(f => f.side === 'player' && f.slot === i).map(f => (
                 <motion.div
                   key={f.id}
-                  className={`absolute top-0 left-1/2 -translate-x-1/2 text-2xl font-black pointer-events-none z-50 ${f.color || 'text-red-400'}`}
+                  className={`absolute top-0 left-1/2 -translate-x-1/2 text-lg sm:text-2xl font-black pointer-events-none z-50 ${f.color || 'text-red-400'}`}
                   style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
                   initial={{ opacity: 1, y: 0, scale: 1.2 }}
-                  animate={{ opacity: 0, y: -50, scale: 0.8 }}
+                  animate={{ opacity: 0, y: -30, scale: 0.8 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 1 }}
                 >
@@ -918,7 +918,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </div>
 
       {/* 玩家 Power Bank */}
-      <PowerBankBar powerBank={battle.playerPowerBank} side="player" canBreak={isMainPhase} />
+      <div className="flex-none"><PowerBankBar powerBank={battle.playerPowerBank} side="player" canBreak={isMainPhase} /></div>
 
       {/* 弃牌堆阵营标记 */}
       {(() => {
@@ -926,18 +926,18 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         const total = battle.playerDiscard.length
         if (total === 0) return null
         return (
-          <div className="flex items-center gap-2 text-[10px] text-gray-500 px-1">
-            <span>弃牌堆({total}):</span>
-            {markers.nature > 0 && <span>🌱×{markers.nature}</span>}
-            {markers.body > 0 && <span>🧬×{markers.body}</span>}
-            {markers.pathogen > 0 && <span>🦠×{markers.pathogen}</span>}
-            {markers.tech > 0 && <span>⚗️×{markers.tech}</span>}
+          <div className="flex-none flex items-center gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-gray-500 px-1">
+            <span>弃牌({total}):</span>
+            {markers.nature > 0 && <span>🌱{markers.nature}</span>}
+            {markers.body > 0 && <span>🧬{markers.body}</span>}
+            {markers.pathogen > 0 && <span>🦠{markers.pathogen}</span>}
+            {markers.tech > 0 && <span>⚗️{markers.tech}</span>}
           </div>
         )
       })()}
 
       {/* 玩家主人 HP */}
-      <div className="relative">
+      <div className="flex-none relative">
         <HpBar current={battle.playerLeaderHp} max={30000} label="我方" color="bg-green-500" />
         <AnimatePresence>
           {floatingDmgs.filter(f => f.side === 'player' && f.slot === -1).map(f => (
@@ -958,43 +958,36 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
       {/* SP 卡区域 */}
       {(battle.playerSpDeck.length > 0 || battle.enemySpDeck.length > 0) && (
-        <div className="flex justify-between items-center text-[10px] text-gray-500 px-1 my-1">
-          <span>🌟 我方SP: {battle.playerSpDeck.length}张
-            {battle.playerSpDeck.length > 0 && (
-              <span className="text-yellow-400 ml-1">
-                ({battle.playerSpDeck.map(c => c.name.split('·')[1] || c.name).join(', ')})
-              </span>
-            )}
-          </span>
-          <span>🌟 敌方SP: {battle.enemySpDeck.length}张</span>
+        <div className="flex-none flex justify-between items-center text-[8px] sm:text-[10px] text-gray-500 px-1">
+          <span>🌟SP:{battle.playerSpDeck.length}</span>
+          <span>🌟敌SP:{battle.enemySpDeck.length}</span>
         </div>
       )}
 
       {/* 手牌区 */}
-      <div className="mt-3 mb-2">
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs text-gray-400">手牌 ({playerHand.hand.length})</span>
-          <span className="text-xs text-gray-600">| 卡组 {playerHand.drawPileCount}</span>
-          {/* Event card play hint */}
+      <div className="flex-none h-[28%] sm:h-[26%] flex flex-col">
+        <div className="flex items-center gap-1 sm:gap-2 px-1">
+          <span className="text-[10px] sm:text-xs text-gray-400">手牌({playerHand.hand.length})</span>
+          <span className="text-[10px] sm:text-xs text-gray-600">卡组{playerHand.drawPileCount}</span>
           {isMainPhase && selectedHandIdx !== null && playerHand.hand[selectedHandIdx]?.type === 'event' && (
             <motion.button
-              className="px-3 py-0.5 text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg"
+              className="px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg min-h-[28px] sm:min-h-0"
               whileTap={{ scale: 0.9 }}
               onClick={() => handlePlayCard(-1)}
             >
-              📜 使用事件卡
+              📜 使用事件
             </motion.button>
           )}
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-2">
+        <div className="flex-1 flex gap-1 sm:gap-2 overflow-x-auto items-center px-1 snap-x">
           {playerHand.hand.map((card, i) => {
             const canAfford = card.cost <= battle.playerEnergy
             const markerOk = card.type === 'event' || canPlayWithMarkers(card, battle.playerDiscard)
             return (
               <div
                 key={card.uid}
-                className={`relative flex-shrink-0 cursor-pointer transition-transform ${
-                  selectedHandIdx === i ? 'scale-105 ring-2 ring-green-400 rounded-xl' : ''
+                className={`relative flex-none w-[22%] sm:w-[15%] lg:w-[13%] aspect-[5/7] cursor-pointer transition-transform snap-start ${
+                  selectedHandIdx === i ? 'scale-105 ring-2 ring-green-400 rounded-lg sm:rounded-xl' : ''
                 } ${isMainPhase && canAfford && markerOk ? 'opacity-100' : 'opacity-50'}`}
                 onClick={() => {
                   if (!isMainPhase) return
@@ -1014,52 +1007,56 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             )
           })}
           {playerHand.hand.length === 0 && (
-            <div className="text-gray-600 text-xs py-4">手牌为空</div>
+            <div className="text-gray-600 text-[10px] sm:text-xs py-2">手牌为空</div>
           )}
         </div>
       </div>
 
-      {/* 操作按钮 */}
-      <div className="flex justify-center gap-3 mb-3">
-        {isMainPhase && (
-          <motion.button
-            className="px-6 py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-sm"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => {
-              setSelectedHandIdx(null)
-              battle.endMainPhase()
-              playSound('phaseChange')
-            }}
-          >
-            结束出牌 → 战斗
-          </motion.button>
-        )}
-        {isBattlePhase && (
-          <>
-            {selectedAtkSlot !== null && (
-              <span className="text-xs text-yellow-300 self-center">选择攻击目标（点敌方卡或直攻主人）</span>
-            )}
+      {/* 底部控制栏 */}
+      <div className="flex-none py-1 sm:py-2 flex flex-col gap-1">
+        {/* 操作按钮 */}
+        <div className="flex justify-center items-center gap-2 sm:gap-3">
+          {isMainPhase && (
             <motion.button
-              className="px-6 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold text-sm"
+              className="px-3 sm:px-6 py-1.5 sm:py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-xs sm:text-sm min-h-[36px]"
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setSelectedAtkSlot(null)
-                battle.endBattlePhase()
+                setSelectedHandIdx(null)
+                battle.endMainPhase()
+                playSound('phaseChange')
               }}
             >
-              结束回合
+              <span className="sm:hidden">结束出牌 →</span>
+              <span className="hidden sm:inline">结束出牌 → 战斗</span>
             </motion.button>
-          </>
-        )}
-      </div>
+          )}
+          {isBattlePhase && (
+            <>
+              {selectedAtkSlot !== null && (
+                <span className="text-[10px] sm:text-xs text-yellow-300">选目标</span>
+              )}
+              <motion.button
+                className="px-3 sm:px-6 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold text-xs sm:text-sm min-h-[36px]"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSelectedAtkSlot(null)
+                  battle.endBattlePhase()
+                }}
+              >
+                结束回合
+              </motion.button>
+            </>
+          )}
+        </div>
 
-      {/* 战斗日志 */}
-      <div ref={logRef} className="bg-gray-800/60 rounded-xl p-3 max-h-32 overflow-y-auto text-xs space-y-0.5 flex-1">
-        {battle.battleLog.map((log, i) => (
-          <div key={i} className="text-gray-300">{log}</div>
-        ))}
+        {/* 战斗日志 — 紧凑 */}
+        <div ref={logRef} className="bg-gray-800/60 rounded-lg sm:rounded-xl p-1.5 sm:p-2 max-h-16 sm:max-h-24 overflow-y-auto text-[9px] sm:text-xs space-y-0.5">
+          {battle.battleLog.slice(-8).map((log, i) => (
+            <div key={i} className="text-gray-300 truncate">{log}</div>
+          ))}
+        </div>
       </div>
 
       {/* 问答弹窗 — 用 Portal 避免 z-index 问题 */}
@@ -1353,6 +1350,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           />
         )}
       </AnimatePresence>
+
+      {/* 手机竖屏横屏提示 */}
+      <div className="landscape-prompt fixed inset-0 z-[999] bg-gray-900/95 flex-col items-center justify-center gap-4">
+        <div className="text-6xl animate-bounce">📱</div>
+        <p className="text-white text-lg font-bold">请横过来玩！</p>
+        <p className="text-gray-400 text-sm">横屏体验更佳</p>
+      </div>
     </div>
   )
 }

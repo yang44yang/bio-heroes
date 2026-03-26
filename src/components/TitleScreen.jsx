@@ -27,15 +27,15 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4">
+    <div className="min-h-screen-d flex flex-col items-center justify-center px-4 py-4 overflow-y-auto">
       {/* 标题 */}
       <motion.div
-        className="text-center mb-10"
+        className="text-center mb-4 sm:mb-10"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
       >
-        <h1 className="text-5xl font-black mb-2">
+        <h1 className="text-3xl sm:text-5xl font-black mb-1 sm:mb-2">
           <span className="text-red-500">生物</span>
           <span className="text-yellow-400">英雄传</span>
         </h1>
@@ -45,7 +45,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
       {/* 货币显示 */}
       {economy && (
         <motion.div
-          className="flex gap-4 mb-6 text-sm"
+          className="flex gap-4 mb-3 sm:mb-6 text-xs sm:text-sm"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -57,9 +57,9 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
       )}
 
       {/* 菜单按钮 */}
-      <div className="space-y-3 w-64">
+      <div className="space-y-2 sm:space-y-3 w-56 sm:w-64">
         <motion.button
-          className="w-full py-4 bg-amber-700 hover:bg-amber-600 rounded-2xl text-white text-xl font-black shadow-lg"
+          className="w-full py-2.5 sm:py-4 bg-amber-700 hover:bg-amber-600 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, x: -30 }}
@@ -71,7 +71,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         </motion.button>
 
         <motion.button
-          className="w-full py-4 bg-red-600 hover:bg-red-500 rounded-2xl text-white text-xl font-black shadow-lg"
+          className="w-full py-2.5 sm:py-4 bg-red-600 hover:bg-red-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, x: -30 }}
@@ -83,7 +83,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         </motion.button>
 
         <motion.button
-          className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl text-white text-xl font-black shadow-lg"
+          className="w-full py-2.5 sm:py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, x: -30 }}
@@ -95,7 +95,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         </motion.button>
 
         <motion.button
-          className="w-full py-4 bg-purple-600 hover:bg-purple-500 rounded-2xl text-white text-xl font-black shadow-lg"
+          className="w-full py-2.5 sm:py-4 bg-purple-600 hover:bg-purple-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           initial={{ opacity: 0, x: -30 }}
@@ -199,7 +199,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
 
       {/* 底部信息 */}
       <motion.div
-        className="mt-12 text-gray-600 text-xs text-center"
+        className="mt-4 sm:mt-12 text-gray-600 text-xs text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}

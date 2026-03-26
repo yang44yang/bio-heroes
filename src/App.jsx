@@ -166,7 +166,7 @@ export default function App() {
   const campaignEnemy = selectedDeck?._campaignEnemy
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen-d bg-gray-900 text-white">
       {/* 新玩家欢迎提示 */}
       <AnimatePresence>
         {showWelcome && screen === 'tutorial' && (

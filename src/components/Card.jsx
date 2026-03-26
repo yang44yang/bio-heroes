@@ -53,10 +53,10 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
     <div
       ref={ref}
       className={`
-        relative w-32 sm:w-36 rounded-xl border-2 p-2 select-none
+        relative w-full h-full rounded-lg sm:rounded-xl border-2 p-1 sm:p-2 select-none
         ${borderClass} ${glowClass}
         ${isDead ? 'opacity-30 grayscale' : ''}
-        ${isActive && !isDead ? 'ring-2 ring-white ring-offset-2 ring-offset-gray-900' : ''}
+        ${isActive && !isDead ? 'ring-2 ring-white ring-offset-1 ring-offset-gray-900' : ''}
         ${!isDead && onClick ? 'cursor-pointer hover:scale-105' : ''}
         bg-gradient-to-b ${bgClass}
       `}
@@ -127,14 +127,14 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
       )}
 
       {/* 费用（左上） */}
-      <div className={`absolute -top-2 -left-2 w-6 h-6 rounded-full border flex items-center justify-center text-xs font-black text-white shadow z-20
+      <div className={`absolute -top-1.5 -left-1.5 sm:-top-2 sm:-left-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full border flex items-center justify-center text-[10px] sm:text-xs font-black text-white shadow z-20
         ${isSp ? 'bg-amber-500 border-amber-300' : isEvent ? 'bg-emerald-500 border-emerald-300' : 'bg-blue-500 border-blue-300'}
       `}>
         {isSp ? card.spCost : card.cost}
       </div>
 
       {/* 稀有度（右上） */}
-      <div className={`absolute -top-2 -right-2 text-xs font-bold px-1.5 py-0.5 rounded z-20
+      <div className={`absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 text-[9px] sm:text-xs font-bold px-1 sm:px-1.5 py-0.5 rounded z-20
         ${card.rarity === 'SSR' ? 'bg-yellow-500/80 text-black' : 'bg-black/60 text-white'}
       `}>
         {isSp ? 'SP' : card.rarity}
@@ -148,36 +148,36 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
       )}
 
       {/* 阵营标记 */}
-      <div className="text-center text-lg leading-none mt-1">{faction?.icon}</div>
+      <div className="text-center text-sm sm:text-lg leading-none mt-0.5 sm:mt-1">{faction?.icon}</div>
 
       {/* 名称 */}
-      <div className="text-center text-xs font-bold text-white truncate mt-1">{card.name}</div>
+      <div className="text-center text-[9px] sm:text-xs font-bold text-white truncate mt-0.5 sm:mt-1">{card.name}</div>
 
       {/* 阵营名 */}
-      <div className="text-center text-[10px] text-white/50">{faction?.name}</div>
+      <div className="text-center text-[8px] sm:text-[10px] text-white/50 hidden sm:block">{faction?.name}</div>
 
       {isEvent ? (
-        <div className="mt-1.5 mb-1 text-[9px] text-emerald-200 text-center leading-tight px-1 min-h-[24px]">
+        <div className="mt-1 mb-0.5 sm:mt-1.5 sm:mb-1 text-[7px] sm:text-[9px] text-emerald-200 text-center leading-tight px-0.5 sm:px-1 min-h-[16px] sm:min-h-[24px]">
           {card.effectDescription}
         </div>
       ) : (
         <>
-          <div className="relative h-3 bg-gray-800 rounded-full overflow-hidden mt-1.5 mb-1">
+          <div className="relative h-2 sm:h-3 bg-gray-800 rounded-full overflow-hidden mt-1 mb-0.5 sm:mt-1.5 sm:mb-1">
             <motion.div
               className={`absolute inset-y-0 left-0 ${hpColor} rounded-full`}
               initial={false}
               animate={{ width: `${hpPercent}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             />
-            <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white drop-shadow">
+            <div className="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-white drop-shadow">
               {hp}/{maxHp}
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-white/80">
+          <div className="flex items-center justify-between text-[8px] sm:text-[10px] text-white/80">
             <span>⚔️{card.atk}</span>
             {card.skills?.length > 0 && (
-              <span className="text-yellow-300 truncate max-w-[60px]" title={card.skills.map(s => s.name).join(', ')}>
+              <span className="text-yellow-300 truncate max-w-[40px] sm:max-w-[60px]" title={card.skills.map(s => s.name).join(', ')}>
                 {card.skills[0].name}
               </span>
             )}
