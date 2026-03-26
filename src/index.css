@@ -35,3 +35,80 @@
     display: flex !important;
   }
 }
+
+/* === P1: 手机横屏紧凑模式（视口高度 < 500px） === */
+@media (max-height: 500px) {
+  .battle-container {
+    font-size: 10px;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+  }
+  /* 战场卡槽区域压缩 */
+  .battle-container .field-area {
+    flex-basis: 12% !important;
+    flex-grow: 1 !important;
+    min-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  /* 卡槽放弃固定宽高比，改为铺满可用高度 */
+  .battle-container .field-area > div {
+    aspect-ratio: unset !important;
+    height: 100% !important;
+  }
+  /* 手牌区压缩 */
+  .battle-container .hand-area {
+    height: auto !important;
+    flex-basis: 22% !important;
+    min-height: 0 !important;
+  }
+  /* 控制栏压缩 */
+  .battle-container .control-bar {
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+    gap: 1px !important;
+  }
+  .battle-container .control-bar button {
+    padding: 1px 6px !important;
+    font-size: 10px !important;
+    min-height: 24px !important;
+  }
+  /* Power Bank 条压缩 */
+  .battle-container .pb-bar {
+    height: 10px !important;
+  }
+  /* HP 条区域 */
+  .battle-container .hp-bar-area {
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  /* 信息文字缩小 */
+  .battle-container .info-row {
+    font-size: 7px !important;
+    gap: 1px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+  /* VS 分隔线压缩 */
+  .battle-container .vs-divider {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 8px !important;
+    line-height: 1 !important;
+  }
+  /* 顶部信息栏 */
+  .battle-container .top-bar {
+    padding-top: 1px !important;
+    padding-bottom: 1px !important;
+  }
+  /* 战斗日志在紧凑模式下隐藏 */
+  .battle-container .battle-log {
+    display: none !important;
+  }
+  /* 直攻按钮压缩 */
+  .battle-container .direct-attack-btn {
+    padding: 1px 6px !important;
+    font-size: 9px !important;
+    min-height: 20px !important;
+  }
+}
