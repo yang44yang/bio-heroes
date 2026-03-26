@@ -854,7 +854,8 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         {/* SP区域 */}
         {playerSpDeck.length > 0 && (
           <div
-            className={`flex items-center gap-1 cursor-pointer ${isHighlighted('sp_area') ? 'ring-2 ring-yellow-400 rounded px-1' : ''}`}
+            className={`flex items-center gap-1 cursor-pointer ${isHighlighted('sp_area') ? 'ring-2 ring-yellow-400 rounded px-1 animate-bounce relative z-30' : ''}`}
+            style={isHighlighted('sp_area') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
             onClick={() => isClickable('sp_area') && handleSummonSp()}
           >
             <span className="text-xs text-purple-400">🌟SP</span>
@@ -868,8 +869,9 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           {powerBank.intact && powerBank.stored > 0 && (
             <button
               className={`text-xs px-2 py-0.5 rounded bg-cyan-700 hover:bg-cyan-600 text-white ${
-                isHighlighted('power_bank_break') ? 'ring-2 ring-yellow-400 animate-pulse' : ''
+                isHighlighted('power_bank_break') ? 'ring-2 ring-yellow-400 animate-bounce relative z-30' : ''
               }`}
+              style={isHighlighted('power_bank_break') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
               onClick={() => isClickable('power_bank_break') && handleBreakPowerBank()}
             >
               💥打破
@@ -890,22 +892,30 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       </div>
 
       {/* === 手牌区 === */}
-      <div className={`px-2 py-1 flex-none ${isHighlighted('hand') || isHighlighted('hand_card_0') || isHighlighted('hand_card_1') || isHighlighted('hand_card_2') || isHighlighted('hand_card_3') ? 'relative z-30' : ''}`}>
+      {(() => {
+        const anyHandHighlighted = isHighlighted('hand') || isHighlighted('hand_card_0') || isHighlighted('hand_card_1') || isHighlighted('hand_card_2') || isHighlighted('hand_card_3')
+        return (
+      <div className={`px-2 py-1 flex-none ${anyHandHighlighted ? 'relative z-30' : ''}`}>
         <div className="flex gap-1 justify-center flex-wrap">
           {playerHand.map((card, idx) => {
             const locked = isCardLocked(card)
             const highlighted = isHighlighted('hand') || isHighlighted(`hand_card_${idx}`)
             const canClick = isClickable('hand') && !locked && card.cost <= playerEnergy
+            // 有高亮目标时，非高亮卡片压暗
+            const dimmed = anyHandHighlighted && !highlighted
             return (
               <motion.div
                 key={card.uid}
                 className={`w-16 rounded-lg border p-1 text-center cursor-pointer transition-all ${
                   highlighted ? 'ring-2 ring-yellow-400 bg-gray-800' : 'bg-gray-850 border-gray-700'
-                } ${locked ? 'opacity-40 grayscale' : ''} ${
+                } ${locked || dimmed ? 'opacity-30 grayscale' : ''} ${
                   card.type === 'event' ? 'border-amber-600/50' : 'border-gray-600'
                 } ${selectedHandIdx === idx ? 'ring-2 ring-blue-400' : ''}`}
+                style={highlighted ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
                 whileHover={canClick ? { scale: 1.08, y: -4 } : {}}
                 whileTap={canClick ? { scale: 0.95 } : {}}
+                animate={highlighted ? { scale: [1, 1.06, 1] } : {}}
+                transition={highlighted ? { duration: 1.2, repeat: Infinity, ease: 'easeInOut' } : {}}
                 onClick={() => canClick && handleHandCardClick(idx)}
                 layout
               >
@@ -926,15 +936,18 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           })}
         </div>
       </div>
+        )
+      })()}
 
       {/* === 操作按钮 === */}
-      <div className="px-4 py-2 flex justify-center gap-3">
+      <div className={`px-4 py-2 flex justify-center gap-3 ${isHighlighted('end_turn_btn') ? 'relative z-30' : ''}`}>
         <button
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+          className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${
             isClickable('end_turn_btn')
               ? 'bg-green-600 hover:bg-green-500 text-white'
               : 'bg-gray-800 text-gray-600 cursor-not-allowed'
-          } ${isHighlighted('end_turn_btn') ? 'ring-2 ring-yellow-400 animate-pulse' : ''}`}
+          } ${isHighlighted('end_turn_btn') ? 'ring-2 ring-yellow-400 animate-bounce' : ''}`}
+          style={isHighlighted('end_turn_btn') ? { boxShadow: '0 0 20px rgba(250,204,21,0.6)' } : {}}
           onClick={() => isClickable('end_turn_btn') && handleEndTurn()}
           disabled={!isClickable('end_turn_btn')}
         >
@@ -966,12 +979,20 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             key={currentStep.id}
           >
             <div className="bg-yellow-900/95 border-2 border-yellow-500 rounded-xl p-3 shadow-lg shadow-yellow-500/20">
-              {/* 箭头指示 */}
+              {/* 箭头指示（弹跳动画） */}
               {currentStep.arrow === 'up' && (
-                <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-yellow-500" />
+                <motion.div
+                  className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-yellow-400 text-lg"
+                  animate={{ y: [0, 6, 0] }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                >▼</motion.div>
               )}
               {currentStep.arrow === 'down' && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-yellow-500" />
+                <motion.div
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 text-yellow-400 text-lg"
+                  animate={{ y: [0, -6, 0] }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+                >▲</motion.div>
               )}
 
               <p className="text-sm text-yellow-100 leading-relaxed">{currentStep.text}</p>
