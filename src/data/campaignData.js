@@ -72,7 +72,7 @@ export const campaignData = {
             spDeck: [],
             aiStrength: 0.4,
             aiPersonality: 'balanced',
-            bossMechanic: 'flu_mutation',
+            bossMechanic: null,
           },
           playerConfig: { useOwnDeck: true, recommendedFactions: ['body', 'tech'] },
           dialogue: {
@@ -455,4 +455,22 @@ export function getTotalStars(progress) {
 // 最大星数
 export function getMaxStars() {
   return campaignData.chapters.reduce((sum, ch) => sum + ch.stages.length * 3, 0)
+}
+
+// 开发者调试工具
+if (typeof window !== 'undefined') {
+  window.__debugCampaign = () => {
+    const prog = loadCampaignProgress()
+    const allStages = campaignData.chapters.flatMap(ch =>
+      ch.stages.map(s => ({
+        id: s.id,
+        name: s.name,
+        stars: prog.stageStars[s.id] || 0,
+        unlocked: isStageUnlocked(s.id, prog),
+      }))
+    )
+    console.table(allStages)
+    console.log('Claimed rewards:', prog.claimedRewards)
+    return prog
+  }
 }

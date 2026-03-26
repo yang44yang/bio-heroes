@@ -5,7 +5,7 @@ import BattleCard from './Card'
 import QuizModal from './QuizModal'
 import { useBattle } from '../hooks/useBattle'
 import { useHand } from '../hooks/useHand'
-import { FACTIONS, MAX_FIELD_SLOTS } from '../data/deckRules'
+import { FACTIONS, MAX_FIELD_SLOTS, LEADER_HP } from '../data/deckRules'
 import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
@@ -1327,7 +1327,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                     won,
                     quizCorrect: stats.quizCorrect,
                     turnsPlayed: battle.turn,
-                    leaderHPPercent: Math.round((battle.playerLeaderHp / 30000) * 100),
+                    leaderHPPercent: Math.round((battle.playerLeaderHp / LEADER_HP) * 100),
                   })}
                 >
                   {campaignConfig ? '返回闯关' : '返回主菜单'}
