@@ -257,7 +257,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '蓝鲸心脏像一辆汽车那么大，舌头上能站50个人！蓝鲸主要吃磷虾——最大的动物吃最小的食物，这就是生态系统的奇妙之处。' },
             ],
           },
-          rewards: { firstClear: { coins: 800, diamonds: 10 }, threeStars: { coins: 400 } },
+          rewards: { firstClear: { coins: 800, diamonds: 15 }, threeStars: { coins: 400 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
       ],
