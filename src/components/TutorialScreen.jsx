@@ -695,7 +695,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col relative overflow-hidden">
+    <div className="h-screen-d max-w-3xl mx-auto bg-gray-900 flex flex-col relative overflow-hidden">
       {/* 跳过教学按钮 */}
       <button
         className="absolute top-2 right-2 z-50 text-gray-600 text-xs hover:text-gray-400 bg-gray-800/80 px-2 py-1 rounded"
@@ -728,12 +728,12 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       </div>
 
       {/* === 敌方战场 === */}
-      <div className={`px-2 py-1 ${isHighlighted('enemy_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
-        <div className="grid grid-cols-5 gap-1">
+      <div className={`flex-1 px-2 py-1 min-h-0 ${isHighlighted('enemy_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
+        <div className="grid grid-cols-5 gap-1 h-full">
           {enemyField.map((card, slot) => (
             <div
               key={`ef-${slot}`}
-              className={`aspect-[3/4] rounded-lg border relative ${
+              className={`rounded-lg border relative ${
                 card ? 'border-red-700/50 bg-red-950/30' : 'border-gray-800 bg-gray-900/50'
               } ${selectedAtkSlot !== null && card ? 'cursor-pointer ring-1 ring-red-500/50' : ''}`}
               onClick={() => card && handleFieldCardClick('enemy', slot)}
@@ -786,12 +786,12 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       <div className="text-center text-gray-600 text-xs py-0.5">── VS ──</div>
 
       {/* === 玩家战场 === */}
-      <div className={`px-2 py-1 ${isHighlighted('player_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
-        <div className="grid grid-cols-5 gap-1">
+      <div className={`flex-1 px-2 py-1 min-h-0 ${isHighlighted('player_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
+        <div className="grid grid-cols-5 gap-1 h-full">
           {playerField.map((card, slot) => (
             <div
               key={`pf-${slot}`}
-              className={`aspect-[3/4] rounded-lg border relative ${
+              className={`rounded-lg border relative ${
                 card ? 'border-blue-700/50 bg-blue-950/30' : 'border-gray-800 bg-gray-900/50'
               } ${selectedAtkSlot === slot ? 'ring-2 ring-yellow-400' : ''} ${
                 card && !summonedThisTurn.has(card.uid) && !attackedThisTurn.has(card.uid) ? 'cursor-pointer' : ''
@@ -890,7 +890,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       </div>
 
       {/* === 手牌区 === */}
-      <div className={`px-2 py-1 flex-1 ${isHighlighted('hand') || isHighlighted('hand_card_0') || isHighlighted('hand_card_1') || isHighlighted('hand_card_2') || isHighlighted('hand_card_3') ? 'relative z-30' : ''}`}>
+      <div className={`px-2 py-1 flex-none ${isHighlighted('hand') || isHighlighted('hand_card_0') || isHighlighted('hand_card_1') || isHighlighted('hand_card_2') || isHighlighted('hand_card_3') ? 'relative z-30' : ''}`}>
         <div className="flex gap-1 justify-center flex-wrap">
           {playerHand.map((card, idx) => {
             const locked = isCardLocked(card)
