@@ -109,6 +109,12 @@ export default function App() {
 
       saveCampaignProgress(prog)
       campaignStageRef.current = null
+      // 清除闯关残留的 _campaignEnemy，保留玩家自选卡组
+      setSelectedDeck(prev => {
+        if (!prev) return null
+        const { _campaignEnemy, ...rest } = prev
+        return Object.keys(rest).length > 0 ? rest : null
+      })
       setScreen('campaign')
       return
     }
@@ -119,6 +125,12 @@ export default function App() {
       economy.claimBattleReward(reward)
     }
     campaignStageRef.current = null
+    // 同样清除残留状态
+    setSelectedDeck(prev => {
+      if (!prev) return null
+      const { _campaignEnemy, ...rest } = prev
+      return Object.keys(rest).length > 0 ? rest : null
+    })
     setScreen('title')
   }, [economy])
 
@@ -205,7 +217,7 @@ export default function App() {
 
       {screen === 'title' && (
         <TitleScreen
-          onStartBattle={() => setScreen('battle')}
+          onStartBattle={() => setScreen('deckBuilder')}
           onOpenGacha={() => setScreen('gacha')}
           onOpenDeckBuilder={() => setScreen('deckBuilder')}
           onOpenCollection={() => setScreen('collection')}
