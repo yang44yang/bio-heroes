@@ -270,6 +270,22 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                 </div>
               )}
 
+              {/* 卡组状态提示 */}
+              {selectedStage.type !== 'tutorial' && (() => {
+                try {
+                  const saved = JSON.parse(localStorage.getItem('bio-heroes-decks') || '[]')
+                  const hasDeck = saved.some(d => d && d.main?.length > 0)
+                  if (!hasDeck) {
+                    return (
+                      <div className="text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-700/30 rounded-lg px-2 py-1.5 mb-3">
+                        ⚠️ 你还没有自建卡组，将使用默认测试卡组。去「🃏 卡组」创建你的专属卡组！
+                      </div>
+                    )
+                  }
+                } catch (e) {}
+                return null
+              })()}
+
               {/* 按钮 */}
               <div className="flex gap-2">
                 <button

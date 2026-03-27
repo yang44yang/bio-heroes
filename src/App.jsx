@@ -244,6 +244,7 @@ export default function App() {
           <DeckBuilder
             onBack={() => setScreen('title')}
             onSelectDeck={handleSelectDeck}
+            collection={economy.collection}
           />
         )}
         {screen === 'collection' && (

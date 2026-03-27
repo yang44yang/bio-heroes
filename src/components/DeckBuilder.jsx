@@ -26,15 +26,13 @@ function saveDecks(decks) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(decks))
 }
 
-// Generate a recommended deck
-function generateRecommendedDeck(factionPrimary = 'body', factionSecondary = 'tech') {
+// Generate a recommended deck (from available cards pool)
+function generateRecommendedDeck(factionPrimary, factionSecondary, mainPool, spPool) {
   const main = []
-  // Pick cards from primary + secondary factions, sorted by cost
-  const pool = allMainCards
+  const pool = mainPool
     .filter(c => c.faction === factionPrimary || c.faction === factionSecondary)
     .sort((a, b) => a.cost - b.cost)
 
-  // Build a balanced curve: lots of low-cost, some mid, few high
   const costTargets = { 1: 6, 2: 6, 3: 5, 4: 4, 5: 2 }
   for (const [cost, count] of Object.entries(costTargets)) {
     const candidates = pool.filter(c => c.cost === Number(cost) && main.filter(m => m.id === c.id).length < MAX_SAME_CARD)
@@ -43,22 +41,29 @@ function generateRecommendedDeck(factionPrimary = 'body', factionSecondary = 'te
       if (pick) main.push(pick)
     }
   }
-  // Fill remaining with lowest-cost available
   while (main.length < DECK_SIZE) {
     const fill = pool.find(c => main.filter(m => m.id === c.id).length < MAX_SAME_CARD)
     if (!fill) break
     main.push(fill)
   }
 
-  // SP deck: pick from matching factions
-  const sp = allSpCards
+  const sp = spPool
     .filter(c => c.faction === factionPrimary || c.faction === factionSecondary)
     .slice(0, Math.min(3, SP_DECK_SIZE))
 
   return { main: main.map(c => c.id), sp: sp.map(c => c.id) }
 }
 
-export default function DeckBuilder({ onBack, onSelectDeck }) {
+export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
+  // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
+  const ownedMainCards = useMemo(() => {
+    if (!collection || collection.length === 0) return allMainCards
+    return allMainCards.filter(c => collection.includes(c.id))
+  }, [collection])
+  const ownedSpCards = useMemo(() => {
+    if (!collection || collection.length === 0) return allSpCards
+    return allSpCards.filter(c => collection.includes(c.id))
+  }, [collection])
   const [deckSlots, setDeckSlots] = useState(() => loadDecks())
   const [activeSlot, setActiveSlot] = useState(0)
   const [editing, setEditing] = useState(false)
@@ -124,14 +129,14 @@ export default function DeckBuilder({ onBack, onSelectDeck }) {
 
   // Apply recommended deck
   const applyRecommended = useCallback((primary, secondary) => {
-    const rec = generateRecommendedDeck(primary, secondary)
+    const rec = generateRecommendedDeck(primary, secondary, ownedMainCards, ownedSpCards)
     setMainDeck(rec.main)
     setSpDeck(rec.sp)
-  }, [])
+  }, [ownedMainCards, ownedSpCards])
 
   // Filtered + sorted card pool
   const filteredCards = useMemo(() => {
-    const pool = showSp ? allSpCards : allMainCards
+    const pool = showSp ? ownedSpCards : ownedMainCards
     let filtered = pool
 
     if (filterFaction !== 'all') {
@@ -410,13 +415,13 @@ export default function DeckBuilder({ onBack, onSelectDeck }) {
             className={`px-3 py-1 text-xs font-bold ${!showSp ? 'bg-blue-600 text-white' : 'text-gray-400'}`}
             onClick={() => setShowSp(false)}
           >
-            主卡({allMainCards.length})
+            主卡({ownedMainCards.length})
           </button>
           <button
             className={`px-3 py-1 text-xs font-bold ${showSp ? 'bg-yellow-600 text-white' : 'text-gray-400'}`}
             onClick={() => setShowSp(true)}
           >
-            SP卡({allSpCards.length})
+            SP卡({ownedSpCards.length})
           </button>
         </div>
 
