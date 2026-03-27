@@ -10,12 +10,12 @@
   min-height: 100dvh;
 }
 
-/* 战斗界面触摸优化 */
-.battle-container {
+/* 战斗界面触摸优化 — 用 data 属性选择器（Tailwind v4 会剥离非工具类名） */
+[data-battle-container] {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  touch-action: manipulation; /* 禁止双击缩放 */
+  touch-action: manipulation;
 }
 
 /* 滚动吸附 */
@@ -27,24 +27,24 @@
 }
 
 /* 手机竖屏横屏提示 — 仅在窄屏竖屏时显示 */
-.landscape-prompt {
+[data-landscape-prompt] {
   display: none !important;
 }
 @media (max-width: 639px) and (orientation: portrait) {
-  .landscape-prompt {
+  [data-landscape-prompt] {
     display: flex !important;
   }
 }
 
 /* === P1: 手机横屏紧凑模式（视口高度 < 500px） === */
 @media (max-height: 500px) {
-  .battle-container {
+  [data-battle-container] {
     font-size: 10px;
     padding-left: 2px !important;
     padding-right: 2px !important;
   }
   /* 战场卡槽区域压缩 */
-  .battle-container .field-area {
+  [data-battle-container] [data-field-area] {
     flex-basis: 12% !important;
     flex-grow: 1 !important;
     min-height: 0 !important;
@@ -52,61 +52,61 @@
     padding-bottom: 0 !important;
   }
   /* 卡槽放弃固定宽高比，改为铺满可用高度 */
-  .battle-container .field-area > div {
+  [data-battle-container] [data-field-area] > div {
     aspect-ratio: unset !important;
     height: 100% !important;
   }
   /* 手牌区压缩 */
-  .battle-container .hand-area {
+  [data-battle-container] [data-hand-area] {
     height: auto !important;
     flex-basis: 22% !important;
     min-height: 0 !important;
   }
   /* 控制栏压缩 */
-  .battle-container .control-bar {
+  [data-battle-container] [data-control-bar] {
     padding-top: 1px !important;
     padding-bottom: 1px !important;
     gap: 1px !important;
   }
-  .battle-container .control-bar button {
+  [data-battle-container] [data-control-bar] button {
     padding: 1px 6px !important;
     font-size: 10px !important;
     min-height: 24px !important;
   }
   /* Power Bank 条压缩 */
-  .battle-container .pb-bar {
+  [data-battle-container] [data-pb-bar] {
     height: 10px !important;
   }
   /* HP 条区域 */
-  .battle-container .hp-bar-area {
+  [data-battle-container] [data-hp-bar-area] {
     padding-top: 1px !important;
     padding-bottom: 1px !important;
   }
   /* 信息文字缩小 */
-  .battle-container .info-row {
+  [data-battle-container] [data-info-row] {
     font-size: 7px !important;
     gap: 1px !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
   }
   /* VS 分隔线压缩 */
-  .battle-container .vs-divider {
+  [data-battle-container] [data-vs-divider] {
     padding-top: 0 !important;
     padding-bottom: 0 !important;
     font-size: 8px !important;
     line-height: 1 !important;
   }
   /* 顶部信息栏 */
-  .battle-container .top-bar {
+  [data-battle-container] [data-top-bar] {
     padding-top: 1px !important;
     padding-bottom: 1px !important;
   }
   /* 战斗日志在紧凑模式下隐藏 */
-  .battle-container .battle-log {
+  [data-battle-container] [data-battle-log] {
     display: none !important;
   }
   /* 直攻按钮压缩 */
-  .battle-container .direct-attack-btn {
+  [data-battle-container] [data-direct-attack-btn] {
     padding: 1px 6px !important;
     font-size: 9px !important;
     min-height: 20px !important;

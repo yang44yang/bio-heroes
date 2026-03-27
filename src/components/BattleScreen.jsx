@@ -638,7 +638,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         <span className="text-[8px] sm:text-[10px] text-gray-500 w-10 sm:w-16 shrink-0">
           {side === 'player' ? '⚡PB' : '⚡敌PB'}
         </span>
-        <div className="pb-bar flex-1 h-3 sm:h-4 rounded-full overflow-hidden relative"
+        <div className="flex-1 h-3 sm:h-4 rounded-full overflow-hidden relative" data-pb-bar
           style={{ background: '#222', border: '1px solid #444' }}>
           <div
             className={shouldPulse ? 'animate-pulse' : ''}
@@ -699,7 +699,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   }
 
   return (
-    <div className="h-screen-d max-w-3xl mx-auto px-2 sm:px-4 flex flex-col overflow-hidden battle-container">
+    <div className="h-screen-d max-w-3xl mx-auto px-2 sm:px-4 flex flex-col overflow-hidden" data-battle-container="true">
 
       {/* 觉醒文字 */}
       {createPortal(
@@ -723,7 +723,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       )}
 
       {/* 回合 & 能量 — 顶部信息栏 */}
-      <div className="top-bar flex-none flex items-center justify-between py-1 sm:py-1.5">
+      <div className="flex-none flex items-center justify-between py-1 sm:py-1.5" data-top-bar="true">
         <div className="flex items-center gap-1 sm:gap-2">
           <span className="text-[10px] sm:text-sm text-gray-400">R{battle.turn}</span>
           <button
@@ -800,7 +800,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </AnimatePresence>
 
       {/* 敌方主人 HP */}
-      <div className="hp-bar-area flex-none relative">
+      <div className="flex-none relative" data-hp-bar-area="true">
         <HpBar current={battle.enemyLeaderHp} max={30000} label="敌方" color="bg-red-500" />
         <AnimatePresence>
           {floatingDmgs.filter(f => f.side === 'enemy' && f.slot === -1).map(f => (
@@ -823,11 +823,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       <div className="flex-none"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
 
       {/* 敌方战场 */}
-      <div className="field-area flex-1 basis-[22%] flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1">
+      <div className="flex-1 basis-[22%] flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1" data-field-area="true">
         {battle.enemyField.map((card, i) => (
           <div
             key={i}
-            className={`relative w-[calc((100%-1rem)/5)] h-full rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center
+            className={`relative w-[calc((100%-1rem)/5)] aspect-[5/7] rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center
               ${card && card.currentHp > 0
                 ? (isBattlePhase && selectedAtkSlot !== null ? 'border-red-400 cursor-pointer hover:border-red-300' : 'border-gray-600')
                 : 'border-gray-700'
@@ -862,7 +862,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       {isBattlePhase && selectedAtkSlot !== null && (
         <div className="flex-none text-center">
           <button
-            className="direct-attack-btn text-[10px] sm:text-xs px-3 sm:px-4 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg min-h-[28px]"
+            className="text-[10px] sm:text-xs px-3 sm:px-4 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg min-h-[28px]" data-direct-attack-btn="true"
             onClick={handleAttackLeader}
           >
             直攻主人
@@ -871,10 +871,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       )}
 
       {/* VS 分隔 */}
-      <div className="vs-divider flex-none text-center text-sm sm:text-2xl font-black text-red-500 py-0.5">⚔️</div>
+      <div className="flex-none text-center text-sm sm:text-2xl font-black text-red-500 py-0.5" data-vs-divider="true">⚔️</div>
 
       {/* 玩家战场 */}
-      <div className="field-area flex-1 basis-[22%] flex items-start justify-center gap-1 sm:gap-2 px-1 pt-1">
+      <div className="flex-1 basis-[22%] flex items-start justify-center gap-1 sm:gap-2 px-1 pt-1" data-field-area="true">
         {battle.playerField.map((card, i) => (
           <div
             key={i}
@@ -926,7 +926,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         const total = battle.playerDiscard.length
         if (total === 0) return null
         return (
-          <div className="info-row flex-none flex items-center gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-gray-500 px-1">
+          <div className="flex-none flex items-center gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-gray-500 px-1" data-info-row="true">
             <span>弃牌({total}):</span>
             {markers.nature > 0 && <span>🌱{markers.nature}</span>}
             {markers.body > 0 && <span>🧬{markers.body}</span>}
@@ -937,7 +937,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       })()}
 
       {/* 玩家主人 HP */}
-      <div className="hp-bar-area flex-none relative">
+      <div className="flex-none relative" data-hp-bar-area="true">
         <HpBar current={battle.playerLeaderHp} max={30000} label="我方" color="bg-green-500" />
         <AnimatePresence>
           {floatingDmgs.filter(f => f.side === 'player' && f.slot === -1).map(f => (
@@ -958,14 +958,14 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
       {/* SP 卡区域 */}
       {(battle.playerSpDeck.length > 0 || battle.enemySpDeck.length > 0) && (
-        <div className="info-row flex-none flex justify-between items-center text-[8px] sm:text-[10px] text-gray-500 px-1">
+        <div className="flex-none flex justify-between items-center text-[8px] sm:text-[10px] text-gray-500 px-1" data-info-row="true">
           <span>🌟SP:{battle.playerSpDeck.length}</span>
           <span>🌟敌SP:{battle.enemySpDeck.length}</span>
         </div>
       )}
 
       {/* 手牌区 */}
-      <div className="hand-area flex-none h-[28%] sm:h-[26%] flex flex-col">
+      <div className="flex-none h-[28%] sm:h-[26%] flex flex-col" data-hand-area="true">
         <div className="flex items-center gap-1 sm:gap-2 px-1">
           <span className="text-[10px] sm:text-xs text-gray-400">手牌({playerHand.hand.length})</span>
           <span className="text-[10px] sm:text-xs text-gray-600">卡组{playerHand.drawPileCount}</span>
@@ -1013,7 +1013,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </div>
 
       {/* 底部控制栏 */}
-      <div className="control-bar flex-none py-1 sm:py-2 flex flex-col gap-1">
+      <div className="flex-none py-1 sm:py-2 flex flex-col gap-1" data-control-bar="true">
         {/* 操作按钮 */}
         <div className="flex justify-center items-center gap-2 sm:gap-3">
           {isMainPhase && (
@@ -1052,7 +1052,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         </div>
 
         {/* 战斗日志 — 紧凑 */}
-        <div ref={logRef} className="battle-log bg-gray-800/60 rounded-lg sm:rounded-xl p-1.5 sm:p-2 max-h-16 sm:max-h-24 overflow-y-auto text-[9px] sm:text-xs space-y-0.5">
+        <div ref={logRef} className="bg-gray-800/60 rounded-lg sm:rounded-xl p-1.5 sm:p-2 max-h-16 sm:max-h-24 overflow-y-auto text-[9px] sm:text-xs space-y-0.5" data-battle-log="true">
           {battle.battleLog.slice(-8).map((log, i) => (
             <div key={i} className="text-gray-300 truncate">{log}</div>
           ))}
@@ -1352,7 +1352,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </AnimatePresence>
 
       {/* 手机竖屏横屏提示 */}
-      <div className="landscape-prompt fixed inset-0 z-[999] bg-gray-900/95 flex-col items-center justify-center gap-4">
+      <div className="fixed inset-0 z-[999] bg-gray-900/95 flex-col items-center justify-center gap-4" data-landscape-prompt="true">
         <div className="text-6xl animate-bounce">📱</div>
         <p className="text-white text-lg font-bold">请横过来玩！</p>
         <p className="text-gray-400 text-sm">横屏体验更佳</p>
