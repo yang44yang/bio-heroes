@@ -376,7 +376,7 @@ export const campaignData = {
               { speaker: 'narrator', emoji: '🎓', text: '超级细菌是21世纪最严峻的公共卫生危机之一。科学家正在研究噬菌体疗法、CRISPR基因编辑来对抗它。保护抗生素的有效性需要每个人的努力！' },
             ],
           },
-          rewards: { firstClear: { coins: 1600, diamonds: 20 }, threeStars: { coins: 800 } },
+          rewards: { firstClear: { coins: 1600, diamonds: 20 }, threeStars: { coins: 800, ssrTicket: true } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
       ],

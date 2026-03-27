@@ -218,6 +218,11 @@ export function useEconomy() {
     return success
   }, [])
 
+  // SSR保底券：下次抽卡必出SSR（设pity到49，下一抽触发硬保底50）
+  const useSSRTicket = useCallback(() => {
+    setState(prev => ({ ...prev, pityCounter: SSR_PITY - 1 }))
+  }, [])
+
   // 清除新玩家标记
   const dismissNewPlayer = useCallback(() => {
     setState(prev => {
@@ -244,6 +249,7 @@ export function useEconomy() {
     checkEvolution,
     evolveCard,
     dismissNewPlayer,
+    useSSRTicket,
 
     SINGLE_COST,
     MULTI_COST,

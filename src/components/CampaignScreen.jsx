@@ -318,5 +318,6 @@ function formatReward(r) {
   const parts = []
   if (r.coins) parts.push(`${r.coins}🪙`)
   if (r.diamonds) parts.push(`${r.diamonds}💎`)
+  if (r.ssrTicket) parts.push('SSR保底券🎫')
   return parts.join(' + ') || '-'
 }

@@ -103,6 +103,7 @@ export default function App() {
             prog.claimedRewards[threeKey] = true
             const r = stageConfig.rewards.threeStars
             if (r?.coins) economy.addCoins(r.coins)
+            if (r?.ssrTicket) economy.useSSRTicket()
           }
         }
       }
