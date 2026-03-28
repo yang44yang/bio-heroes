@@ -37,6 +37,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const [selectedHandIdx, setSelectedHandIdx] = useState(null)  // 手牌中选中的卡
   const [selectedAtkSlot, setSelectedAtkSlot] = useState(null)  // 战场中选中的攻击者
   const [awakenOpts, setAwakenOpts] = useState({})
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [lockToast, setLockToast] = useState(null)
 
   // === 换卡（Mulligan）===
   const [mulliganSelected, setMulliganSelected] = useState(new Set()) // 选中要换的卡 uid
@@ -108,6 +110,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
   // 觉醒演出
   const [awakenText, setAwakenText] = useState(null)
+
+  // 锁定卡牌提示自动消失
+  useEffect(() => {
+    if (!lockToast) return
+    const t = setTimeout(() => setLockToast(null), 2000)
+    return () => clearTimeout(t)
+  }, [lockToast])
 
   // 日志自动滚动
   const logRef = useRef(null)
@@ -742,6 +751,12 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           >
             {soundMuted ? '🔇' : '🔊'}
           </button>
+          <button
+            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
+            onClick={() => setShowExitConfirm(true)}
+          >
+            🚪
+          </button>
         </div>
         <div className="flex gap-1.5 sm:gap-3 text-[10px] sm:text-sm items-center">
           <span className="text-blue-400">⚡{battle.playerEnergy}</span>
@@ -978,7 +993,50 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               📜 使用事件
             </motion.button>
           )}
+          <div className="ml-auto flex items-center gap-1 sm:gap-2">
+            {isMainPhase && (
+              <motion.button
+                className="px-2 sm:px-4 py-0.5 sm:py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-[10px] sm:text-xs min-h-[28px] sm:min-h-0"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSelectedHandIdx(null)
+                  battle.endMainPhase()
+                  playSound('phaseChange')
+                }}
+              >
+                结束出牌 →
+              </motion.button>
+            )}
+            {isBattlePhase && (
+              <motion.button
+                className="px-2 sm:px-4 py-0.5 sm:py-1 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold text-[10px] sm:text-xs min-h-[28px] sm:min-h-0"
+                whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  setSelectedAtkSlot(null)
+                  battle.endBattlePhase()
+                }}
+              >
+                结束回合
+              </motion.button>
+            )}
+            {isBattlePhase && selectedAtkSlot !== null && (
+              <span className="text-[10px] text-yellow-300">选目标</span>
+            )}
+          </div>
         </div>
+        <AnimatePresence>
+          {lockToast && (
+            <motion.div
+              key={lockToast.key}
+              className="text-center text-[10px] sm:text-xs text-yellow-300 bg-gray-800/90 rounded-lg px-2 py-0.5"
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+            >
+              {lockToast.text}
+            </motion.div>
+          )}
+        </AnimatePresence>
         <div className="flex-1 flex gap-1 sm:gap-2 overflow-x-auto items-center px-1 snap-x">
           {playerHand.hand.map((card, i) => {
             const canAfford = card.cost <= battle.playerEnergy
@@ -991,6 +1049,18 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 } ${isMainPhase && canAfford && markerOk ? 'opacity-100' : 'opacity-50'}`}
                 onClick={() => {
                   if (!isMainPhase) return
+                  // 提示不可出牌原因
+                  if (!markerOk && card.factionRequirement) {
+                    const f = FACTIONS[card.factionRequirement.faction]
+                    const markers = getFactionMarkers(battle.playerDiscard)
+                    const have = markers[card.factionRequirement.faction] || 0
+                    setLockToast({ text: `${f.icon} 需要弃牌堆有 ${card.factionRequirement.count} 张${f.name}卡（当前 ${have} 张）`, key: Date.now() })
+                    return
+                  }
+                  if (!canAfford) {
+                    setLockToast({ text: `能量不足（需要 ${card.cost}，当前 ${battle.playerEnergy}）`, key: Date.now() })
+                    return
+                  }
                   if (selectedHandIdx === i && card.type === 'event') {
                     // Double-click event card to play it
                     handlePlayCard(-1)
@@ -1012,47 +1082,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         </div>
       </div>
 
-      {/* 底部控制栏 */}
-      <div className="flex-none py-1 sm:py-2 flex flex-col gap-1" data-control-bar="true">
-        {/* 操作按钮 */}
-        <div className="flex justify-center items-center gap-2 sm:gap-3">
-          {isMainPhase && (
-            <motion.button
-              className="px-3 sm:px-6 py-1.5 sm:py-2 bg-orange-600 hover:bg-orange-500 text-white rounded-xl font-bold text-xs sm:text-sm min-h-[36px]"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                setSelectedHandIdx(null)
-                battle.endMainPhase()
-                playSound('phaseChange')
-              }}
-            >
-              <span className="sm:hidden">结束出牌 →</span>
-              <span className="hidden sm:inline">结束出牌 → 战斗</span>
-            </motion.button>
-          )}
-          {isBattlePhase && (
-            <>
-              {selectedAtkSlot !== null && (
-                <span className="text-[10px] sm:text-xs text-yellow-300">选目标</span>
-              )}
-              <motion.button
-                className="px-3 sm:px-6 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-500 text-white rounded-xl font-bold text-xs sm:text-sm min-h-[36px]"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setSelectedAtkSlot(null)
-                  battle.endBattlePhase()
-                }}
-              >
-                结束回合
-              </motion.button>
-            </>
-          )}
-        </div>
-
-        {/* 战斗日志 — 紧凑 */}
-        <div ref={logRef} className="bg-gray-800/60 rounded-lg sm:rounded-xl p-1.5 sm:p-2 max-h-16 sm:max-h-24 overflow-y-auto text-[9px] sm:text-xs space-y-0.5" data-battle-log="true">
+      {/* 底部战斗日志 */}
+      <div className="flex-none py-0.5 sm:py-1" data-control-bar="true">
+        <div ref={logRef} className="bg-gray-800/60 rounded-lg sm:rounded-xl p-1.5 sm:p-2 max-h-12 sm:max-h-24 overflow-y-auto text-[9px] sm:text-xs space-y-0.5" data-battle-log="true">
           {battle.battleLog.slice(-8).map((log, i) => (
             <div key={i} className="text-gray-300 truncate">{log}</div>
           ))}
@@ -1350,6 +1382,41 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           />
         )}
       </AnimatePresence>
+
+      {/* 退出确认弹窗 */}
+      {showExitConfirm && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70">
+          <div className="bg-gray-800 rounded-2xl p-6 mx-4 max-w-sm w-full text-center shadow-2xl border border-gray-600">
+            <p className="text-white text-lg font-bold mb-2">退出战斗？</p>
+            {campaignConfig && (
+              <p className="text-red-400 text-sm mb-4">退出将视为失败，不会获得奖励</p>
+            )}
+            {!campaignConfig && (
+              <p className="text-gray-400 text-sm mb-4">当前战斗进度将丢失</p>
+            )}
+            <div className="flex gap-3 justify-center">
+              <button
+                className="px-5 py-2.5 bg-gray-600 hover:bg-gray-500 rounded-xl text-white font-bold text-sm min-h-[44px]"
+                onClick={() => setShowExitConfirm(false)}
+              >
+                继续战斗
+              </button>
+              <button
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-white font-bold text-sm min-h-[44px]"
+                onClick={() => onExit({
+                  won: false,
+                  quizCorrect: 0,
+                  turnsPlayed: battle.turn,
+                  leaderHPPercent: Math.round((battle.playerLeaderHp / LEADER_HP) * 100),
+                })}
+              >
+                确认退出
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* 手机竖屏横屏提示 */}
       <div className="fixed inset-0 z-[999] bg-gray-900/95 flex-col items-center justify-center gap-4" data-landscape-prompt="true">

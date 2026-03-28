@@ -60,12 +60,38 @@ export default function App() {
 
   // === 闯关战役状态 ===
   const campaignStageRef = useRef(null) // 当前战斗的关卡配置
+  const pendingCampaignRef = useRef(null) // 等待选卡组后开始的闯关配置
 
   const handleSelectDeck = useCallback((deck) => {
     if (deck) {
       setSelectedDeck(deck)
     } else {
       setSelectedDeck(null)
+    }
+    // 如果有待处理的闯关战斗，选完卡组后直接开始闯关
+    const pendingCampaign = pendingCampaignRef.current
+    if (pendingCampaign) {
+      pendingCampaignRef.current = null
+      const stageConfig = pendingCampaign
+      campaignStageRef.current = stageConfig
+      const enemyDeck = buildEnemyDeck(stageConfig.enemyConfig.deck)
+      const enemySpDeck = stageConfig.enemyConfig.spDeck
+        ? buildEnemyDeck(stageConfig.enemyConfig.spDeck)
+        : []
+      setSelectedDeck(prev => ({
+        ...prev,
+        _campaignEnemy: {
+          deck: enemyDeck,
+          spDeck: enemySpDeck,
+          leaderHP: stageConfig.enemyConfig.leaderHP,
+          aiStrength: stageConfig.enemyConfig.aiStrength,
+          bossMechanic: stageConfig.enemyConfig.bossMechanic,
+          bossPreplaced: stageConfig.enemyConfig.bossPreplaced,
+          dialogue: stageConfig.dialogue,
+          stageType: stageConfig.stageType,
+          stageName: stageConfig.stageName,
+        },
+      }))
     }
     setScreen('battle')
   }, [])
@@ -135,31 +161,10 @@ export default function App() {
     setScreen('title')
   }, [economy])
 
-  // === 闯关战役：开始战斗 ===
+  // === 闯关战役：开始战斗（先选卡组）===
   const handleCampaignBattle = useCallback((stageConfig) => {
-    campaignStageRef.current = stageConfig
-    // 构建敌方卡组
-    const enemyDeck = buildEnemyDeck(stageConfig.enemyConfig.deck)
-    const enemySpDeck = stageConfig.enemyConfig.spDeck
-      ? buildEnemyDeck(stageConfig.enemyConfig.spDeck)
-      : []
-
-    setSelectedDeck(prev => ({
-      ...prev,
-      // 保留玩家自己的卡组
-      _campaignEnemy: {
-        deck: enemyDeck,
-        spDeck: enemySpDeck,
-        leaderHP: stageConfig.enemyConfig.leaderHP,
-        aiStrength: stageConfig.enemyConfig.aiStrength,
-        bossMechanic: stageConfig.enemyConfig.bossMechanic,
-        bossPreplaced: stageConfig.enemyConfig.bossPreplaced,
-        dialogue: stageConfig.dialogue,
-        stageType: stageConfig.stageType,
-        stageName: stageConfig.stageName,
-      },
-    }))
-    setScreen('battle')
+    pendingCampaignRef.current = stageConfig
+    setScreen('deckBuilder')
   }, [])
 
   // 教学毕业奖励
@@ -243,7 +248,14 @@ export default function App() {
         )}
         {screen === 'deckBuilder' && (
           <DeckBuilder
-            onBack={() => setScreen('title')}
+            onBack={() => {
+              if (pendingCampaignRef.current) {
+                pendingCampaignRef.current = null
+                setScreen('campaign')
+              } else {
+                setScreen('title')
+              }
+            }}
             onSelectDeck={handleSelectDeck}
             collection={economy.collection}
           />

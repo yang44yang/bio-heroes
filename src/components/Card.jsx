@@ -185,6 +185,13 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
         </>
       )}
 
+      {/* 阵营标记需求 */}
+      {!isEvent && card.factionRequirement && (
+        <div className="text-center text-[8px] sm:text-[9px] text-amber-300/80 mt-0.5 truncate">
+          🔒{FACTIONS[card.factionRequirement.faction]?.icon}{card.factionRequirement.count}张{FACTIONS[card.factionRequirement.faction]?.name}
+        </div>
+      )}
+
       {/* SP召唤标记 */}
       {isEvent && card.spSummonRule && (
         <div className="text-center text-[9px] text-yellow-300 mt-0.5">
