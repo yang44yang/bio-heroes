@@ -188,7 +188,7 @@ export const LEVEL_2 = {
     {
       id: 'show_advantage',
       highlight: 'player_field',
-      text: '看到 🔺 标记了吗？代表你克制对方！下回合攻击时伤害会增加 20%',
+      text: '你的 🧬 人体系卡克制对面的 🦠 病原系！下回合攻击时伤害会增加 20%',
       arrow: 'none',
       waitFor: 'acknowledge',
     },
