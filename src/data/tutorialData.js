@@ -13,6 +13,17 @@ const cardById = (id) => {
   return { ...c, currentHp: c.hp, maxHp: c.hp, statuses: [], uid: `tut_${id}_${Math.random().toString(36).slice(2, 6)}` }
 }
 
+// 生成一张基于真实卡牌但覆盖部分属性的教学用卡（保留外观/技能，降低伤害）
+const tutorialCard = (id, atkOverride = null, hpOverride = null) => {
+  const c = cards.find(c => c.id === id)
+    || eventCards.find(c => c.id === id)
+    || spCards.find(c => c.id === id)
+  if (!c) throw new Error(`Tutorial card not found: ${id}`)
+  const atk = atkOverride ?? c.atk
+  const hp = hpOverride ?? c.hp
+  return { ...c, atk, hp, currentHp: hp, maxHp: hp, statuses: [], uid: `tut_${id}_${Math.random().toString(36).slice(2, 6)}` }
+}
+
 // 生成一张自定义弱卡（教程对手用）
 const weakCard = (name, atk, hp, faction = 'pathogen') => ({
   id: `tut_weak_${name}`,
@@ -151,8 +162,8 @@ export const LEVEL_2 = {
   ],
   getEnemyField: () => {
     const field = [null, null, null, null, null]
-    field[1] = cardById('cavity_bacteria') // 🦠
-    field[3] = cardById('flu_virus')       // 🦠
+    field[1] = tutorialCard('cavity_bacteria', 500) // 🦠 ATK降至500，玩家卡互扣后能存活
+    field[3] = tutorialCard('flu_virus', 500)       // 🦠 ATK降至500，玩家卡互扣后能存活
     return field
   },
   playerField: () => [null, null, null, null, null],
