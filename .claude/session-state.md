@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-03-27
+> 更新时间: 2026-03-28
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`
@@ -7,65 +7,48 @@
 - **GitHub**: github.com/yang44yang/bio-heroes (main分支)
 - macOS文件系统大小写不敏感，`Projects` = `projects`
 
-## 最近完成（本session）
+## 最近完成（2026-03-28）
 
-### Sprint 12：基建部署
-- GitHub仓库创建推送 + Vercel部署就绪
+### 教学 Bug 修复
+- 教学关卡2敌方ATK降至500，修复互扣秒死bug（`tutorialCard()`辅助函数）
+- 教学关卡2步骤3去掉不存在的🔺标记引用，改为阵营图标说明
 
-### Sprint 13：教学模块
-- 5关渐进式教学 + 步骤引导系统 + 毕业奖励
+### 战斗UI优化
+- 战斗界面顶部栏新增🚪退出按钮（确认弹窗，闯关提示"退出将视为失败"）
+- 操作按钮（结束出牌/结束回合）从底部控制栏移至手牌标题行右侧，修复iPad横屏按钮被截断
+- 点击不可出牌的手牌显示原因toast（能量不足/阵营标记不足，2秒自动消失）
 
-### Sprint 14：闯关战役
-- 4章17关 + 战前/战后对话 + Boss机制 + 三星评价 + 首通奖励
+### 闯关选卡组流程
+- 闯关点"开始战斗"后先跳转卡组管理选卡，选完再进入战斗
+- DeckBuilder返回按钮：从闯关进入时回闯关画面，从主菜单进入时回主菜单
+- 使用 `pendingCampaignRef` 暂存闯关配置，选卡后合并
 
-### Sprint 15：Bug修复 + 响应式 + 新手体验
-- 初始金币3000 + 20张初始卡牌 + 欢迎弹窗 + 存档迁移v2→v3
-- 闯关bug修复（bossMechanic/leaderHPPercent/_campaignEnemy残留）
-- "自由对战"先跳DeckBuilder + DeckBuilder按collection过滤
-- 响应式全面完成（dvh/max-w-3xl/sm:断点/触摸44px）
-- **Tailwind v4兼容修复**：非工具类名被剥离→改用data-*属性选择器（12个）
-- 手机横屏紧凑模式 + 竖屏横屏提示
-- 教学引导UX增强（非目标压暗/目标发光/按钮z-index）
-- 4-4 SSR保底券奖励（useSSRTicket + CampaignScreen显示🎫）
+### 阵营标记需求可视化
+- Card.jsx 卡牌底部显示阵营标记前置条件（如"🔒🧬2张人体系"）
+- 图鉴、卡组编辑、战斗手牌中均可见
 
 ## 进行中
 - 无
 
 ## 已知问题
 - Vite dev server HMR在headless preview环境中有时不刷新（WebSocket连接失败），但production build正确
-- 闯关选卡组流程：闯关直接用上次选的卡组或默认测试卡组，没有强制先选卡组
 - Boss特殊机制（超级传播/声纳/三阶段）定义在campaignData但useBattle的bossMechanic钩子可能未完全接线
 - AI强度参数(aiStrength 0.3-0.8)定义在campaignData，但useBattle的AI逻辑是否读取待验证
 - 章节完成奖励（spec有但未实现）
 
 ## 下次启动时优先
-1. 验证Vercel部署是否正常工作
-2. 闯关选卡组流程优化（可选）
-3. Boss机制完整实现（可选）
-4. 成就系统（后续feature）
+1. Boss机制完整实现（可选）
+2. AI强度参数接线验证
+3. 成就系统（后续feature）
 
-## 关键文件变更（本session）
+## 关键文件变更（2026-03-28）
 
-### 新增文件
 | 文件 | 说明 |
 |------|------|
-| `src/data/tutorialData.js` | 5关教学数据（手牌/场面/步骤引导） |
-| `src/components/TutorialScreen.jsx` | 教学界面（关卡选择+战斗引导+总结） |
-| `src/data/campaignData.js` | 4章12关闯关配置（敌方卡组/AI/对话/奖励） |
-| `src/components/CampaignScreen.jsx` | 闯关地图+关卡详情+星数 |
-| `src/components/DialogueBox.jsx` | 战前/战后剧情对话框 |
-
-### 修改文件
-| 文件 | 说明 |
-|------|------|
-| `src/App.jsx` | 教学/闯关/欢迎弹窗集成、闯关奖励发放、_campaignEnemy清除、SSR券 |
-| `src/components/TitleScreen.jsx` | 新增闯关/教学按钮、sm:断点、onOpenCampaign |
-| `src/components/BattleScreen.jsx` | 闯关配置支持、对话集成、data-*属性替代CSS类名（12个）、敌方aspect-ratio修复 |
-| `src/hooks/useBattle.js` | 自定义敌方HP、闯关战斗结果含leaderHPPercent |
-| `src/hooks/useEconomy.js` | 初始金币3000+初始卡牌、useSSRTicket、dismissNewPlayer |
-| `src/utils/saveManager.js` | 存档v3迁移（补发金币+卡牌） |
-| `src/index.css` | data-*属性选择器替代CSS类名选择器 |
-| `CLAUDE.md` | Sprint 13-15完成记录 |
+| `src/App.jsx` | 闯关选卡组流程（pendingCampaignRef + DeckBuilder返回逻辑） |
+| `src/components/BattleScreen.jsx` | 🚪退出按钮+确认弹窗、操作按钮移至手牌行、不可出牌toast |
+| `src/components/Card.jsx` | 阵营标记需求显示（🔒🧬2张人体系） |
+| `src/data/tutorialData.js` | tutorialCard()辅助函数、教学2敌方ATK降至500、步骤3文本修复 |
 
 ## 技术备忘
 
@@ -80,3 +63,6 @@ Tailwind v4 会**剥离非工具类名**从DOM中。例如 `className="field-are
 
 ### SSR保底券机制
 `useSSRTicket()` 设 `pityCounter = SSR_PITY - 1 = 49`，下次抽卡必触发50抽硬保底出SSR。
+
+### iPad布局注意
+BattleScreen 使用 `h-screen-d`(100dvh) + `overflow-hidden` + `flex-col`。操作按钮不能放在手牌区下方的独立控制栏，否则在iPad横屏(768px高)会被截断。已改为放在手牌标题行右侧。
