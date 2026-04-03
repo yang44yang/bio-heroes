@@ -1049,9 +1049,17 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
                   <p className="text-sm text-yellow-100 leading-relaxed">{currentStep.text}</p>
 
                   {currentStep.waitFor === 'acknowledge' && (
-                    <div className="text-center mt-2">
-                      <span className="text-[10px] text-yellow-400/60 animate-pulse">点击任意处继续</span>
-                    </div>
+                    <button
+                      className="w-full mt-3 py-2.5 rounded-lg text-sm font-medium cursor-pointer transition-colors hover:bg-yellow-500/30"
+                      style={{
+                        background: 'rgba(241, 196, 15, 0.2)',
+                        border: '1.5px solid #f1c40f',
+                        color: '#f1c40f',
+                      }}
+                      onClick={(e) => { e.stopPropagation(); handleAcknowledge() }}
+                    >
+                      继续 →
+                    </button>
                   )}
                 </div>
               </motion.div>
