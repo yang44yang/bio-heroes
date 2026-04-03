@@ -832,7 +832,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   }
 
   return (
-    <div className="h-screen-d max-w-3xl mx-auto px-2 sm:px-4 flex flex-col overflow-hidden" data-battle-container="true">
+    <div className="h-screen-d max-w-3xl mx-auto px-2 sm:px-4 flex flex-col" style={{ overflow: 'hidden' }} data-battle-container="true">
 
       {/* 觉醒文字 */}
       {createPortal(
@@ -953,7 +953,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       <div className="flex-none"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
 
       {/* 敌方战场 */}
-      <div className="flex-1 basis-[22%] flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1" data-field-area="true">
+      <div className="flex-1 min-h-0 flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1" data-field-area="true">
         {battle.enemyField.map((card, i) => {
           const isValid = validEnemyTargets.includes(i)
           const isTargeting = isBattlePhase && selectedAtkSlot !== null
@@ -997,7 +997,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       <div className="flex-none text-center text-sm sm:text-2xl font-black text-red-500 py-0.5" data-vs-divider="true">⚔️</div>
 
       {/* 玩家战场 */}
-      <div className="flex-1 basis-[22%] flex items-start justify-center gap-1 sm:gap-2 px-1 pt-1" data-field-area="true">
+      <div className="flex-1 min-h-0 flex items-start justify-center gap-1 sm:gap-2 px-1 pt-1" data-field-area="true">
         {battle.playerField.map((card, i) => {
           const isAttacker = selectedAtkSlot === i
           const isTargeting = isBattlePhase && selectedAtkSlot !== null
@@ -1102,7 +1102,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       )}
 
       {/* 手牌区 */}
-      <div className={`flex-none h-[28%] sm:h-[26%] flex flex-col ${isBattlePhase && selectedAtkSlot !== null ? 'opacity-60' : ''}`} data-hand-area="true">
+      <div className={`shrink-0 min-h-[120px] flex flex-col ${isBattlePhase && selectedAtkSlot !== null ? 'opacity-60' : ''}`} data-hand-area="true">
         <div className="flex items-center gap-1 sm:gap-2 px-1">
           <span className="text-[10px] sm:text-xs text-gray-400">手牌({playerHand.hand.length})</span>
           <span className="text-[10px] sm:text-xs text-gray-600">卡组{playerHand.drawPileCount}</span>

@@ -76,9 +76,7 @@
   }
   /* 手牌区压缩 */
   [data-battle-container] [data-hand-area] {
-    height: auto !important;
-    flex-basis: 22% !important;
-    min-height: 0 !important;
+    min-height: 80px !important;
   }
   /* 控制栏压缩 */
   [data-battle-container] [data-control-bar] {
