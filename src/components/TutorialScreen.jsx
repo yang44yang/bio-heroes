@@ -697,10 +697,9 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
   // 检查卡牌是否因阵营标记不足而锁定
   const isCardLocked = (card) => {
     if (!card.factionRequirement) return false
-    for (const [faction, count] of Object.entries(card.factionRequirement)) {
-      if ((factionMarkers[faction] || 0) < count) return true
-    }
-    return false
+    const reqFaction = card.factionRequirement.faction
+    const reqCount = card.factionRequirement.count
+    return (factionMarkers[reqFaction] || 0) < reqCount
   }
 
   return (
