@@ -816,27 +816,35 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       <div className="text-center text-gray-600 text-xs py-0.5">── VS ──</div>
 
       {/* === 玩家战场 === */}
-      <div className={`flex-1 px-2 py-1 min-h-0 ${isHighlighted('player_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
+      {/* 教学引导框：战斗阶段时不包围整个己方区域（让攻击高亮自己引导） */}
+      <div className={`flex-1 px-2 py-1 min-h-0 ${
+        isHighlighted('player_field') && !['attack', 'direct_attack', 'clear_field'].includes(currentStep?.waitFor)
+          ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''
+      }`}>
         <div className="grid grid-cols-5 gap-1 h-full">
           {playerField.map((card, slot) => {
             const isAttacker = selectedAtkSlot === slot
             const canAct = card && !summonedThisTurn.has(card.uid) && !attackedThisTurn.has(card.uid)
-            // 教学中直攻主人步骤：不暗化己方卡（避免整个区域看起来不可交互）
             const isDirectAttackStep = currentStep?.waitFor === 'direct_attack'
+            const isWaitingForAttacker = selectedAtkSlot === null && ['attack', 'direct_attack', 'clear_field'].includes(currentStep?.waitFor)
             const isDimmed = !isDirectAttackStep && selectedAtkSlot !== null && !isAttacker && card
-            const isInactive = !isDirectAttackStep && !canAct && card
+            const hasFatigue = card && !canAct && (summonedThisTurn.has(card?.uid) || attackedThisTurn.has(card?.uid))
             return (
             <div
               key={`pf-${slot}`}
               className={`rounded-lg border relative transition-all ${
                 card ? 'border-blue-700/50 bg-blue-950/30' : 'border-gray-800 bg-gray-900/50'
-              } ${canAct ? 'cursor-pointer' : ''} ${isDimmed ? 'opacity-50' : ''} ${
-                isInactive ? 'opacity-40' : ''
+              } ${canAct ? 'cursor-pointer' : ''} ${isDimmed ? 'opacity-60' : ''} ${
+                hasFatigue && !isDirectAttackStep ? 'opacity-50' : ''
               }`}
               style={isAttacker ? {
-                transform: 'translateY(-6px)',
-                boxShadow: '0 0 0 3px #f1c40f, 0 0 12px rgba(241, 196, 15, 0.5)',
+                transform: 'translateY(-10px)',
+                boxShadow: '0 0 0 3px #f1c40f, 0 0 15px rgba(241, 196, 15, 0.5)',
                 borderColor: '#f1c40f',
+              } : isWaitingForAttacker && canAct ? {
+                boxShadow: '0 0 0 2px #f1c40f, 0 0 10px rgba(241, 196, 15, 0.3)',
+                borderColor: 'rgba(241, 196, 15, 0.7)',
+                transform: 'scale(1.02)',
               } : {}}
               onClick={() => card && handleFieldCardClick('player', slot)}
             >

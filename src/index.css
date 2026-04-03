@@ -36,14 +36,14 @@
   }
 }
 
-/* === 攻击目标红色脉冲（醒目版） === */
+/* === 攻击目标红色脉冲 === */
 @keyframes target-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.6), 0 0 20px rgba(231, 76, 60, 0.3); }
+  0%, 100% { box-shadow: 0 0 0 4px rgba(231, 76, 60, 0.5), 0 0 20px rgba(231, 76, 60, 0.4); }
   50% { box-shadow: 0 0 0 6px rgba(231, 76, 60, 0.8), 0 0 30px rgba(231, 76, 60, 0.5); }
 }
 [data-attack-target] {
   animation: target-pulse 1.2s ease-in-out infinite;
-  background: rgba(231, 76, 60, 0.15) !important;
+  background: rgba(231, 76, 60, 0.2) !important;
   border-color: #e74c3c !important;
   border-width: 2.5px !important;
 }

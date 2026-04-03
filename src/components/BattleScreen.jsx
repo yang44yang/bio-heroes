@@ -760,7 +760,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   }
 
   // 主人面板组件（替代原 HpBar，可点击直攻）
-  const LeaderPanel = ({ isEnemy, currentHP, maxHP, isAttackTarget, dimmed, onClick, floats }) => {
+  const LeaderPanel = ({ isEnemy, currentHP, maxHP, isAttackTarget, dimmed, onClick, floats, style: extraStyle }) => {
     const pct = Math.max(0, (currentHP / maxHP) * 100)
     const barColor = isEnemy ? 'bg-red-500' : 'bg-blue-500'
     const avatarBg = isEnemy ? 'bg-red-900/60 border-red-700' : 'bg-blue-900/60 border-blue-700'
@@ -770,7 +770,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
     return (
       <div
-        className={`flex-none relative ${isAttackTarget ? 'cursor-pointer' : ''} ${dimmed ? 'opacity-40' : ''}`}
+        className={`flex-none relative ${isAttackTarget ? 'cursor-pointer' : ''} ${dimmed ? 'opacity-50' : ''}`}
+        style={extraStyle || {}}
         data-hp-bar-area="true"
         data-leader-panel="true"
         {...(isAttackTarget ? { 'data-attack-target': 'true' } : {})}
@@ -964,7 +965,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               ${isTargeting && isValid && card && card.currentHp > 0
                 ? 'border-red-400 cursor-pointer hover:border-red-300'
                 : card && card.currentHp > 0 ? 'border-gray-600' : 'border-gray-700'
-              } ${isDimmedTarget ? 'opacity-30' : ''}`}
+              } ${isDimmedTarget ? 'opacity-50' : ''}`}
             {...(isTargeting && isValid && card && card.currentHp > 0 ? { 'data-attack-target': 'true' } : {})}
             onClick={() => isTargeting && isValid && card && card.currentHp > 0 && handleSelectTarget(i)}
           >
@@ -1000,21 +1001,28 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         {battle.playerField.map((card, i) => {
           const isAttacker = selectedAtkSlot === i
           const isTargeting = isBattlePhase && selectedAtkSlot !== null
+          const isWaitingForAttacker = isBattlePhase && selectedAtkSlot === null
+          const canAtk = card && card.currentHp > 0 && battle.canAttack(i)
           const playerDimmed = isTargeting && !isAttacker && card && card.currentHp > 0
+          const hasSummonFatigue = card && card.currentHp > 0 && !battle.canAttack(i) && isBattlePhase
           return (
           <div
             key={i}
             className={`relative w-[calc((100%-1rem)/5)] aspect-[5/7] rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center transition-all
               ${isMainPhase && selectedHandIdx !== null
                 ? 'border-green-400 cursor-pointer hover:border-green-300'
-                : isBattlePhase && card && card.currentHp > 0 && battle.canAttack(i)
-                  ? (isAttacker ? 'border-yellow-400' : 'border-blue-400 cursor-pointer hover:border-blue-300')
-                  : 'border-gray-600'
-              } ${playerDimmed ? 'opacity-35' : ''}`}
+                : isAttacker ? 'border-yellow-400'
+                : isWaitingForAttacker && canAtk ? 'border-yellow-500/70 cursor-pointer'
+                : isBattlePhase && canAtk ? 'border-blue-400 cursor-pointer hover:border-blue-300'
+                : 'border-gray-600'
+              } ${playerDimmed ? 'opacity-60' : ''} ${hasSummonFatigue ? 'opacity-50' : ''}`}
             style={isAttacker ? {
-              transform: 'translateY(-8px)',
-              boxShadow: '0 0 0 3px #f1c40f, 0 0 12px rgba(241, 196, 15, 0.5)',
+              transform: 'translateY(-10px)',
+              boxShadow: '0 0 0 3px #f1c40f, 0 0 15px rgba(241, 196, 15, 0.5)',
               borderRadius: '12px',
+            } : isWaitingForAttacker && canAtk ? {
+              boxShadow: '0 0 0 2px #f1c40f, 0 0 10px rgba(241, 196, 15, 0.3)',
+              transform: 'scale(1.02)',
             } : {}}
             onClick={() => {
               if (isMainPhase && selectedHandIdx !== null) {
@@ -1079,9 +1087,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         currentHP={battle.playerLeaderHp}
         maxHP={LEADER_HP}
         isAttackTarget={false}
-        dimmed={isBattlePhase && selectedAtkSlot !== null}
+        dimmed={false}
         onClick={null}
         floats={floatingDmgs.filter(f => f.side === 'player' && f.slot === -1)}
+        style={isBattlePhase && selectedAtkSlot !== null ? { opacity: 0.8 } : {}}
       />
 
       {/* SP 卡区域 */}
@@ -1093,7 +1102,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       )}
 
       {/* 手牌区 */}
-      <div className="flex-none h-[28%] sm:h-[26%] flex flex-col" data-hand-area="true">
+      <div className={`flex-none h-[28%] sm:h-[26%] flex flex-col ${isBattlePhase && selectedAtkSlot !== null ? 'opacity-60' : ''}`} data-hand-area="true">
         <div className="flex items-center gap-1 sm:gap-2 px-1">
           <span className="text-[10px] sm:text-xs text-gray-400">手牌({playerHand.hand.length})</span>
           <span className="text-[10px] sm:text-xs text-gray-600">卡组{playerHand.drawPileCount}</span>
