@@ -937,6 +937,14 @@ export function useBattle() {
         return { ...c, statuses, atk: newAtk }
       }))
       addLog(`🦠 超级细菌：摧毁所有敌方护盾，科技系 ATK -50%！`)
+      // 自身获得 immune_tech（抗药免疫：免疫科技系伤害）
+      friendlySetter(prev => prev.map(c => {
+        if (!c || c.id !== 'sp_super_bacteria') return c
+        const statuses = c.statuses ? [...c.statuses] : []
+        statuses.push({ type: 'immune_tech', turnsLeft: 99 })
+        return { ...c, statuses }
+      }))
+      addLog(`🦠 超级细菌：抗药免疫激活！免疫科技系伤害！`)
     }
 
     // SP6 Ancient Virus: 5000 damage to leader
