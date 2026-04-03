@@ -63,20 +63,12 @@
   }
   /* 战场卡槽区域压缩 */
   [data-battle-container] [data-field-area] {
-    flex-basis: 12% !important;
-    flex-grow: 1 !important;
-    min-height: 0 !important;
     padding-top: 0 !important;
     padding-bottom: 0 !important;
   }
-  /* 卡槽放弃固定宽高比，改为铺满可用高度 */
-  [data-battle-container] [data-field-area] > div {
-    aspect-ratio: unset !important;
-    height: 100% !important;
-  }
   /* 手牌区压缩 */
   [data-battle-container] [data-hand-area] {
-    min-height: 80px !important;
+    height: 90px !important;
   }
   /* 控制栏压缩 */
   [data-battle-container] [data-control-bar] {
