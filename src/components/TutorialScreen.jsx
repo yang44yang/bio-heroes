@@ -1021,12 +1021,20 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       {/* ================================================================ */}
       {currentStep && (
         <>
-          {/* 半透明遮罩（点击可推进 acknowledge 步骤） */}
-          <div
-            className={`absolute inset-0 bg-black/50 z-20 ${currentStep.waitFor === 'acknowledge' ? 'cursor-pointer' : ''}`}
-            onClick={handleAcknowledge}
-            style={{ pointerEvents: currentStep.waitFor === 'acknowledge' ? 'auto' : 'none' }}
-          />
+          {/* 半透明遮罩 — 攻击阶段不遮挡（让攻击高亮系统接管视觉） */}
+          {(() => {
+            const isBattleStep = ['attack', 'direct_attack', 'clear_field'].includes(currentStep.waitFor)
+            const isAck = currentStep.waitFor === 'acknowledge'
+            // 攻击阶段：不显示遮罩（让红色/金色高亮完全可见）
+            if (isBattleStep) return null
+            return (
+              <div
+                className={`absolute inset-0 bg-black/50 z-20 ${isAck ? 'cursor-pointer' : ''}`}
+                onClick={handleAcknowledge}
+                style={{ pointerEvents: isAck ? 'auto' : 'none' }}
+              />
+            )
+          })()}
 
           {/* 提示框（根据目标位置动态定位：目标在下半→提示在上，目标在上半→提示在下） */}
           {(() => {
