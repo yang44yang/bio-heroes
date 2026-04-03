@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "/opt/homebrew/bin/node",
+      "runtimeArgs": ["/Users/yangyang_macair15/Projects/bio-heroes/node_modules/.bin/vite"],
+      "port": 5173
+    }
+  ]
+}
