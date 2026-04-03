@@ -715,10 +715,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
     return (
       <div className="flex items-center gap-1 sm:gap-2">
-        <span className="text-[8px] sm:text-[10px] text-gray-500 w-10 sm:w-16 shrink-0">
+        <span className="text-[9px] sm:text-[11px] text-gray-500 w-10 sm:w-16 shrink-0">
           {side === 'player' ? '⚡PB' : '⚡敌PB'}
         </span>
-        <div className="flex-1 h-3 sm:h-4 rounded-full overflow-hidden relative" data-pb-bar
+        <div className="flex-1 h-4 sm:h-5 rounded-full overflow-hidden relative" data-pb-bar
           style={{ background: '#222', border: '1px solid #444' }}>
           <div
             className={shouldPulse ? 'animate-pulse' : ''}
@@ -730,7 +730,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               transition: 'width 0.5s ease, background 0.3s ease',
             }}
           />
-          <span className="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[10px] font-black text-white"
+          <span className="absolute inset-0 flex items-center justify-center text-[9px] sm:text-[11px] font-black text-white"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
             {intact ? (stored > 0 ? `⚡${stored}` : '') : '破'}
           </span>
@@ -949,13 +949,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         floats={floatingDmgs.filter(f => f.side === 'enemy' && f.slot === -1)}
       />
 
-      {/* 敌方 Power Bank（有存储或已破坏时才显示） */}
-      {(battle.enemyPowerBank.stored > 0 || !battle.enemyPowerBank.intact) && (
-        <div className="flex-none"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
-      )}
+      {/* 敌方 Power Bank */}
+      <div className="flex-none py-1"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
 
       {/* 敌方战场 */}
-      <div className="flex-1 min-h-0 flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1" data-field-area="true">
+      <div className="flex-1 min-h-0 max-h-[25vh] flex items-end justify-center gap-1 sm:gap-2 px-1 py-2" data-field-area="true">
         {battle.enemyField.map((card, i) => {
           const isValid = validEnemyTargets.includes(i)
           const isTargeting = isBattlePhase && selectedAtkSlot !== null
@@ -996,10 +994,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </div>
 
       {/* VS 分隔 */}
-      <div className="flex-none text-center text-sm sm:text-2xl font-black text-red-500 py-0.5" data-vs-divider="true">⚔️</div>
+      <div className="flex-none text-center text-sm sm:text-2xl font-black text-red-500 py-1.5" data-vs-divider="true">⚔️</div>
 
       {/* 玩家战场 */}
-      <div className="flex-1 min-h-0 flex items-start justify-center gap-1 sm:gap-2 px-1 pt-1" data-field-area="true">
+      <div className="flex-1 min-h-0 max-h-[25vh] flex items-start justify-center gap-1 sm:gap-2 px-1 py-2" data-field-area="true">
         {battle.playerField.map((card, i) => {
           const isAttacker = selectedAtkSlot === i
           const isTargeting = isBattlePhase && selectedAtkSlot !== null
@@ -1065,7 +1063,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </div>
 
       {/* 玩家 Power Bank */}
-      <div className="flex-none"><PowerBankBar powerBank={battle.playerPowerBank} side="player" canBreak={isMainPhase} /></div>
+      <div className="flex-none py-1"><PowerBankBar powerBank={battle.playerPowerBank} side="player" canBreak={isMainPhase} /></div>
 
       {/* 弃牌堆阵营标记 */}
       {(() => {
