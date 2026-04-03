@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-03-28
+> 更新时间: 2026-04-03
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`
@@ -7,48 +7,59 @@
 - **GitHub**: github.com/yang44yang/bio-heroes (main分支)
 - macOS文件系统大小写不敏感，`Projects` = `projects`
 
-## 最近完成（2026-03-28）
+## 最近完成（2026-04-03）— Sprint 16
 
-### 教学 Bug 修复
-- 教学关卡2敌方ATK降至500，修复互扣秒死bug（`tutorialCard()`辅助函数）
-- 教学关卡2步骤3去掉不存在的🔺标记引用，改为阵营图标说明
+### Boss 机制接线（P0）
+- 新建 `src/engine/bossMechanics.js`：3 个 Boss 行为逻辑
+  - covid_boss (2-4): onTurnEnd 50%召唤病毒副本，HP<50% ATK+2000 + 变异对话
+  - whale_boss (3-4): 每3回合声纳AOE 2500伤害，HP<30% 1回合完全免疫
+  - super_bacteria_boss (4-4): HP<60%免疫科技系，HP<30%每回合自愈2000HP
+- `useBattle.js`: campaignConfigRef + bossStateRef + 钩子调用点(onTurnStart/onTurnEnd/onHPThreshold)
+- `useBattle.js`: bossPreplaced 处理（Boss卡回合1预置到敌方场上）
+- `damage.js`: immune/immune_tech 伤害豁免检查
+- `statusEffects.js`: immune/immune_tech 状态回合递减
+- `BattleScreen.jsx`: Boss事件消费（浮字 + bossHalfHP对话触发）
 
-### 战斗UI优化
-- 战斗界面顶部栏新增🚪退出按钮（确认弹窗，闯关提示"退出将视为失败"）
-- 操作按钮（结束出牌/结束回合）从底部控制栏移至手牌标题行右侧，修复iPad横屏按钮被截断
-- 点击不可出牌的手牌显示原因toast（能量不足/阵营标记不足，2秒自动消失）
+### AI 强度参数（P1）
+- aiStrength (0.3-0.8) 注入 3 个决策点：
+  1. 出牌选择：高强度选最优卡，低强度随机选
+  2. 攻击目标：高强度精准击杀/威胁，低强度随机攻击
+  3. 犹豫概率：`0.30 - aiStr * 0.25`（强AI犹豫更少）
 
-### 闯关选卡组流程
-- 闯关点"开始战斗"后先跳转卡组管理选卡，选完再进入战斗
-- DeckBuilder返回按钮：从闯关进入时回闯关画面，从主菜单进入时回主菜单
-- 使用 `pendingCampaignRef` 暂存闯关配置，选卡后合并
+### 章节完成奖励（P2）
+- `App.jsx`: 通关2-4/3-4/4-4发放章节奖励（金币/称号）
+- 星数里程碑：30星500金币，45星1000金币
+- `CampaignScreen.jsx`: 里程碑目标显示 + 科学家🔬称号
+- `BattleScreen.jsx`: Boss战结算画面显示章节奖励
 
-### 阵营标记需求可视化
-- Card.jsx 卡牌底部显示阵营标记前置条件（如"🔒🧬2张人体系"）
-- 图鉴、卡组编辑、战斗手牌中均可见
+### Git 工作流更新
+- CLAUDE.md 新增规则：所有改动直接在 main 分支工作和推送，不创建 branch/PR
 
 ## 进行中
 - 无
 
 ## 已知问题
 - Vite dev server HMR在headless preview环境中有时不刷新（WebSocket连接失败），但production build正确
-- Boss特殊机制（超级传播/声纳/三阶段）定义在campaignData但useBattle的bossMechanic钩子可能未完全接线
-- AI强度参数(aiStrength 0.3-0.8)定义在campaignData，但useBattle的AI逻辑是否读取待验证
-- 章节完成奖励（spec有但未实现）
+- Boss机制尚未实战测试（需要手动打到2-4/3-4/4-4验证触发效果）
+- launch.json 在 worktree 中改为绝对路径 `/opt/homebrew/bin/node`（主仓库可能需要同步）
 
 ## 下次启动时优先
-1. Boss机制完整实现（可选）
-2. AI强度参数接线验证
-3. 成就系统（后续feature）
+1. 实战测试 Boss 机制（打2-4/3-4/4-4验证触发）
+2. 成就系统（后续 feature）
+3. 可选主人系统 / 多人对战 / 每日挑战
 
-## 关键文件变更（2026-03-28）
+## 关键文件变更（2026-04-03）
 
 | 文件 | 说明 |
 |------|------|
-| `src/App.jsx` | 闯关选卡组流程（pendingCampaignRef + DeckBuilder返回逻辑） |
-| `src/components/BattleScreen.jsx` | 🚪退出按钮+确认弹窗、操作按钮移至手牌行、不可出牌toast |
-| `src/components/Card.jsx` | 阵营标记需求显示（🔒🧬2张人体系） |
-| `src/data/tutorialData.js` | tutorialCard()辅助函数、教学2敌方ATK降至500、步骤3文本修复 |
+| `src/engine/bossMechanics.js` | **新建** — 3个Boss行为逻辑(covid/whale/super_bacteria) |
+| `src/hooks/useBattle.js` | Boss钩子调用 + bossPreplaced + campaignConfig传入 |
+| `src/utils/damage.js` | immune/immune_tech 伤害豁免 |
+| `src/engine/statusEffects.js` | immune/immune_tech 状态回合递减 |
+| `src/components/BattleScreen.jsx` | AI强度注入 + Boss UI反馈 + 章节奖励结算 |
+| `src/App.jsx` | 章节完成奖励 + 星数里程碑 |
+| `src/components/CampaignScreen.jsx` | 里程碑显示 + 科学家称号 |
+| `CLAUDE.md` | Git工作流规则（直接main分支） |
 
 ## 技术备忘
 
@@ -66,3 +77,8 @@ Tailwind v4 会**剥离非工具类名**从DOM中。例如 `className="field-are
 
 ### iPad布局注意
 BattleScreen 使用 `h-screen-d`(100dvh) + `overflow-hidden` + `flex-col`。操作按钮不能放在手牌区下方的独立控制栏，否则在iPad横屏(768px高)会被截断。已改为放在手牌标题行右侧。
+
+### Boss 机制架构
+- `bossMechanics.js` 导出 `getBossMechanic(id)` → 返回 `{ onTurnStart?, onTurnEnd?, onHPThreshold? }`
+- `bossStateRef` 追踪阶段（phase: 1/2/3），避免重复触发 HP 阈值
+- Boss 事件通过 `bossMechanicEvents` state 传递到 BattleScreen 消费（浮字+对话）
