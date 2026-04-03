@@ -949,8 +949,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         floats={floatingDmgs.filter(f => f.side === 'enemy' && f.slot === -1)}
       />
 
-      {/* 敌方 Power Bank */}
-      <div className="flex-none"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
+      {/* 敌方 Power Bank（有存储或已破坏时才显示） */}
+      {(battle.enemyPowerBank.stored > 0 || !battle.enemyPowerBank.intact) && (
+        <div className="flex-none"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
+      )}
 
       {/* 敌方战场 */}
       <div className="flex-1 min-h-0 flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1" data-field-area="true">
@@ -1102,7 +1104,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       )}
 
       {/* 手牌区 */}
-      <div className={`shrink-0 flex flex-col ${isBattlePhase && selectedAtkSlot !== null ? 'opacity-60' : ''}`} style={{ height: '130px' }} data-hand-area="true">
+      <div className={`shrink-0 flex flex-col ${isBattlePhase && selectedAtkSlot !== null ? 'opacity-60' : ''}`} data-hand-area="true">
         <div className="flex items-center gap-1 sm:gap-2 px-1">
           <span className="text-[10px] sm:text-xs text-gray-400">手牌({playerHand.hand.length})</span>
           <span className="text-[10px] sm:text-xs text-gray-600">卡组{playerHand.drawPileCount}</span>
@@ -1166,7 +1168,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             return (
               <div
                 key={card.uid}
-                className={`relative flex-none w-[22%] sm:w-[15%] lg:w-[13%] aspect-[5/7] cursor-pointer transition-transform snap-start ${
+                className={`relative flex-none w-[22%] sm:w-[15%] lg:w-[13%] aspect-[5/7] max-h-[110px] cursor-pointer transition-transform snap-start ${
                   selectedHandIdx === i ? 'scale-105 ring-2 ring-green-400 rounded-lg sm:rounded-xl' : ''
                 } ${isMainPhase && canAfford && markerOk ? 'opacity-100' : 'opacity-50'}`}
                 onClick={() => {
@@ -1205,9 +1207,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       </div>
 
       {/* 底部战斗日志 */}
-      <div className="flex-none py-0.5 sm:py-1" data-control-bar="true">
-        <div ref={logRef} className="bg-gray-800/60 rounded-lg sm:rounded-xl p-1.5 sm:p-2 max-h-12 sm:max-h-24 overflow-y-auto text-[9px] sm:text-xs space-y-0.5" data-battle-log="true">
-          {battle.battleLog.slice(-8).map((log, i) => (
+      {/* 战斗日志（紧凑：只在桌面显示，最多2行） */}
+      <div className="flex-none hidden sm:block py-0.5" data-control-bar="true">
+        <div ref={logRef} className="bg-gray-800/60 rounded-lg p-1 max-h-10 overflow-y-auto text-[9px] space-y-0.5" data-battle-log="true">
+          {battle.battleLog.slice(-3).map((log, i) => (
             <div key={i} className="text-gray-300 truncate">{log}</div>
           ))}
         </div>
