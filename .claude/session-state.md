@@ -1,84 +1,98 @@
 # Bio Heroes Session State
-> 更新时间: 2026-04-03
+> 更新时间: 2026-04-03（晚间）
 
 ## 项目位置
-- **实际路径**: `/Users/YangYANG/projects/bio-heroes/`
-- **符号链接**: `/Users/YangYANG/projects/2026 AI/bio-heroes` → 指向上面（同一份代码）
+- **实际路径**: `/Users/yangyang_macair15/Projects/bio-heroes/`
 - **GitHub**: github.com/yang44yang/bio-heroes (main分支)
-- macOS文件系统大小写不敏感，`Projects` = `projects`
 
-## 最近完成（2026-04-03）— Sprint 16
+## 最近完成（2026-04-03）
 
-### Boss 机制接线（P0）
-- 新建 `src/engine/bossMechanics.js`：3 个 Boss 行为逻辑
-  - covid_boss (2-4): onTurnEnd 50%召唤病毒副本，HP<50% ATK+2000 + 变异对话
-  - whale_boss (3-4): 每3回合声纳AOE 2500伤害，HP<30% 1回合完全免疫
-  - super_bacteria_boss (4-4): HP<60%免疫科技系，HP<30%每回合自愈2000HP
-- `useBattle.js`: campaignConfigRef + bossStateRef + 钩子调用点(onTurnStart/onTurnEnd/onHPThreshold)
-- `useBattle.js`: bossPreplaced 处理（Boss卡回合1预置到敌方场上）
-- `damage.js`: immune/immune_tech 伤害豁免检查
-- `statusEffects.js`: immune/immune_tech 状态回合递减
-- `BattleScreen.jsx`: Boss事件消费（浮字 + bossHalfHP对话触发）
+### Sprint 16: 闯关收尾 ✅
+- Boss机制接线: 3个Boss行为逻辑 + useBattle钩子调用
+- AI强度参数: aiStrength注入出牌/攻击/犹豫3个决策点
+- 章节完成奖励: 通关2-4/3-4/4-4发放金币/称号 + 星数里程碑
 
-### AI 强度参数（P1）
-- aiStrength (0.3-0.8) 注入 3 个决策点：
-  1. 出牌选择：高强度选最优卡，低强度随机选
-  2. 攻击目标：高强度精准击杀/威胁，低强度随机攻击
-  3. 犹豫概率：`0.30 - aiStr * 0.25`（强AI犹豫更少）
+### UX大修（14个commit） ✅
+1. **LeaderPanel大面板** — 替代细血条（头像+名字+HP+可点击直攻），同步到BattleScreen+TutorialScreen
+2. **攻击三状态视觉系统** — 等待选攻击者(金色脉冲) / 已选攻击者(上移+金色+ATK标签) / 目标(红色脉冲)
+3. **攻击目标红色高亮** — CSS target-pulse动画 + Guard优先逻辑 + 非目标暗化(≥0.5)
+4. **教学遮罩修复** — 只在acknowledge步骤显示bg-black/50，操作步骤不渲染遮罩
+5. **教学2/5攻击卡住** — 选中攻击者时过滤已攻击/疲劳卡
+6. **教学2/5直攻主人卡住** — direct_attack步骤跳过attackedThisTurn检查
+7. **教学4/5霸王龙卡住** — SP清场后合并attack+direct为direct_attack步骤
+8. **教学5/5虎鲸出不了场×2** — Object.entries遍历factionRequirement的bug（handlePlayCard+isCardLocked两处）
+9. **"继续→"按钮** — 替代"点击任意处继续"
+10. **教学提示文字** — "左上角"→"上方"，直攻步骤统一"点你的卡→点对手面板"
+11. **教学引导定位** — 去掉▲▼箭头，提示框根据目标位置动态定位
+12. **直攻步骤不暗化己方卡** — 避免双重暗化让整个区域看起来不可交互
+13. **BattleScreen布局重做** — 卡槽aspect-[5/7]→h-full, 手牌固定130px, flex弹性分配
 
-### 章节完成奖励（P2）
-- `App.jsx`: 通关2-4/3-4/4-4发放章节奖励（金币/称号）
-- 星数里程碑：30星500金币，45星1000金币
-- `CampaignScreen.jsx`: 里程碑目标显示 + 科学家🔬称号
-- `BattleScreen.jsx`: Boss战结算画面显示章节奖励
-
-### Git 工作流更新
-- CLAUDE.md 新增规则：所有改动直接在 main 分支工作和推送，不创建 branch/PR
+### 环境
+- worktree已清理，直接在main分支工作
+- CLAUDE.md新增Git工作流规则
 
 ## 进行中
 - 无
 
 ## 已知问题
-- Vite dev server HMR在headless preview环境中有时不刷新（WebSocket连接失败），但production build正确
-- Boss机制尚未实战测试（需要手动打到2-4/3-4/4-4验证触发效果）
-- launch.json 在 worktree 中改为绝对路径 `/opt/homebrew/bin/node`（主仓库可能需要同步）
+- Boss机制尚未实战测试（需手动打到2-4/3-4/4-4验证触发效果）
+- 布局在极端视口（<400px高度）可能需要进一步测试
+- launch.json用了绝对路径 `/opt/homebrew/bin/node`
 
 ## 下次启动时优先
-1. 实战测试 Boss 机制（打2-4/3-4/4-4验证触发）
-2. 成就系统（后续 feature）
-3. 可选主人系统 / 多人对战 / 每日挑战
+1. 实战测试教学1-5全流程（Vercel上）
+2. 实战测试Boss机制（闯关2-4/3-4/4-4）
+3. 成就系统
+4. 可选主人 / 多人对战 / 每日挑战
+5. 新卡牌扩充 / 视觉美化
 
-## 关键文件变更（2026-04-03）
+## 关键文件变更（2026-04-03 全天）
 
 | 文件 | 说明 |
 |------|------|
-| `src/engine/bossMechanics.js` | **新建** — 3个Boss行为逻辑(covid/whale/super_bacteria) |
-| `src/hooks/useBattle.js` | Boss钩子调用 + bossPreplaced + campaignConfig传入 |
-| `src/utils/damage.js` | immune/immune_tech 伤害豁免 |
-| `src/engine/statusEffects.js` | immune/immune_tech 状态回合递减 |
-| `src/components/BattleScreen.jsx` | AI强度注入 + Boss UI反馈 + 章节奖励结算 |
-| `src/App.jsx` | 章节完成奖励 + 星数里程碑 |
+| `src/engine/bossMechanics.js` | **新建** — 3个Boss行为逻辑 |
+| `src/hooks/useBattle.js` | Boss钩子 + bossPreplaced + immune检查 |
+| `src/utils/damage.js` | immune/immune_tech伤害豁免 |
+| `src/engine/statusEffects.js` | immune/immune_tech状态递减 |
+| `src/components/BattleScreen.jsx` | LeaderPanel + 攻击视觉系统 + AI强度 + 布局重做 |
+| `src/components/TutorialScreen.jsx` | LeaderPanel同步 + 攻击高亮 + 遮罩修复 + factionReq bug |
 | `src/components/CampaignScreen.jsx` | 里程碑显示 + 科学家称号 |
-| `CLAUDE.md` | Git工作流规则（直接main分支） |
+| `src/App.jsx` | 章节完成奖励 + 星数里程碑 |
+| `src/index.css` | target-pulse/tutorial-pulse CSS + 紧凑模式更新 |
+| `src/data/tutorialData.js` | 文字修正 + 步骤合并 + 直攻提示统一 |
 
 ## 技术备忘
 
-### Tailwind v4 重要发现
-Tailwind v4 会**剥离非工具类名**从DOM中。例如 `className="field-area flex-1"` 渲染后只剩 `class="flex-1"`，`field-area` 被移除。
-**解决方案**：用 `data-*` 属性替代自定义CSS类名（如 `data-field-area="true"`），CSS选择器用 `[data-field-area]`。
+### 布局架构（BattleScreen flex column）
+```
+容器: h-screen-d flex flex-col overflow-hidden
+├─ 顶部栏: shrink-0
+├─ 环境事件: shrink-0
+├─ 敌方主人面板: shrink-0 (LeaderPanel)
+├─ 敌方PB: shrink-0
+├─ 敌方卡槽: flex-1 min-h-0（卡片h-full自适应）
+├─ VS分隔: shrink-0
+├─ 己方卡槽: flex-1 min-h-0（卡片h-full自适应）
+├─ 己方PB: shrink-0
+├─ 己方主人面板: shrink-0 (LeaderPanel)
+├─ 能量/SP: shrink-0
+├─ 手牌区: shrink-0 height:130px
+└─ 战斗日志: shrink-0
+```
 
-### 存档版本
-- v1: 初始版本
-- v2: 添加saveVersion字段
-- v3: 初始金币3000 + 初始卡牌礼包（v2→v3迁移自动补发）
+### factionRequirement 检查（两处都已修）
+```javascript
+// 正确写法
+const reqFaction = card.factionRequirement.faction
+const reqCount = card.factionRequirement.count
+// 错误写法（Object.entries遍历了type/scienceNote）
+for (const [faction, count] of Object.entries(card.factionRequirement))
+```
 
-### SSR保底券机制
-`useSSRTicket()` 设 `pityCounter = SSR_PITY - 1 = 49`，下次抽卡必触发50抽硬保底出SSR。
+### 教学遮罩规则
+- `acknowledge`步骤: 渲染bg-black/50遮罩（可点击推进）
+- 所有操作步骤: 不渲染遮罩（play_card/attack/direct_attack/end_turn等）
 
-### iPad布局注意
-BattleScreen 使用 `h-screen-d`(100dvh) + `overflow-hidden` + `flex-col`。操作按钮不能放在手牌区下方的独立控制栏，否则在iPad横屏(768px高)会被截断。已改为放在手牌标题行右侧。
-
-### Boss 机制架构
-- `bossMechanics.js` 导出 `getBossMechanic(id)` → 返回 `{ onTurnStart?, onTurnEnd?, onHPThreshold? }`
-- `bossStateRef` 追踪阶段（phase: 1/2/3），避免重复触发 HP 阈值
-- Boss 事件通过 `bossMechanicEvents` state 传递到 BattleScreen 消费（浮字+对话）
+### Boss机制架构
+`bossMechanics.js` → `getBossMechanic(id)` → `{ onTurnStart?, onTurnEnd?, onHPThreshold? }`
+`bossStateRef` 追踪阶段(1/2/3)，事件通过 `bossMechanicEvents` state传递到BattleScreen。
