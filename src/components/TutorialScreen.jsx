@@ -348,8 +348,9 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
 
     if (side === 'player') {
       if (w === 'attack' || w === 'direct_attack' || w === 'clear_field') {
-        // 选中攻击者
-        if (playerField[slot]) {
+        // 选中攻击者（过滤已攻击和召唤疲劳的卡）
+        const card = playerField[slot]
+        if (card && !attackedThisTurn.has(card.uid) && !summonedThisTurn.has(card.uid)) {
           setSelectedAtkSlot(slot)
         }
       }
@@ -753,9 +754,10 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           {enemyField.map((card, slot) => (
             <div
               key={`ef-${slot}`}
-              className={`rounded-lg border relative ${
+              className={`rounded-lg border relative transition-all ${
                 card ? 'border-red-700/50 bg-red-950/30' : 'border-gray-800 bg-gray-900/50'
-              } ${selectedAtkSlot !== null && card ? 'cursor-pointer ring-1 ring-red-500/50' : ''}`}
+              } ${selectedAtkSlot !== null && card ? 'cursor-pointer border-red-500' : ''}`}
+              {...(selectedAtkSlot !== null && card ? { 'data-attack-target': 'true' } : {})}
               onClick={() => card && handleFieldCardClick('enemy', slot)}
             >
               {card && (
@@ -808,16 +810,28 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       {/* === 玩家战场 === */}
       <div className={`flex-1 px-2 py-1 min-h-0 ${isHighlighted('player_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
         <div className="grid grid-cols-5 gap-1 h-full">
-          {playerField.map((card, slot) => (
+          {playerField.map((card, slot) => {
+            const isAttacker = selectedAtkSlot === slot
+            const canAct = card && !summonedThisTurn.has(card.uid) && !attackedThisTurn.has(card.uid)
+            const isDimmed = selectedAtkSlot !== null && !isAttacker && card
+            return (
             <div
               key={`pf-${slot}`}
-              className={`rounded-lg border relative ${
+              className={`rounded-lg border relative transition-all ${
                 card ? 'border-blue-700/50 bg-blue-950/30' : 'border-gray-800 bg-gray-900/50'
-              } ${selectedAtkSlot === slot ? 'ring-2 ring-yellow-400' : ''} ${
-                card && !summonedThisTurn.has(card.uid) && !attackedThisTurn.has(card.uid) ? 'cursor-pointer' : ''
+              } ${canAct ? 'cursor-pointer' : ''} ${isDimmed ? 'opacity-50' : ''} ${
+                !canAct && card ? 'opacity-40' : ''
               }`}
+              style={isAttacker ? {
+                transform: 'translateY(-6px)',
+                boxShadow: '0 0 0 3px #f1c40f, 0 0 12px rgba(241, 196, 15, 0.5)',
+                borderColor: '#f1c40f',
+              } : {}}
               onClick={() => card && handleFieldCardClick('player', slot)}
             >
+              {isAttacker && (
+                <span className="absolute -top-2 -right-1 z-10 text-[8px] font-bold bg-yellow-500 text-gray-900 px-1 py-0.5 rounded-full leading-none">ATK</span>
+              )}
               {card && (
                 <div className="w-full h-full flex flex-col items-center justify-center p-0.5">
                   <div className="text-xs font-bold text-center truncate w-full">{card.name?.slice(0, 4)}</div>
@@ -845,7 +859,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
                 ))}
               </AnimatePresence>
             </div>
-          ))}
+          )})}
         </div>
       </div>
 
