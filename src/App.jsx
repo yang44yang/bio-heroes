@@ -134,6 +134,39 @@ export default function App() {
         }
       }
 
+      // 章节完成奖励（Boss 关首通时检查）
+      if (battleResult.won && stageConfig.stageId.endsWith('-4')) {
+        const chapterMap = { '2-4': 'ch2', '3-4': 'ch3', '4-4': 'ch4' }
+        const chapterId = chapterMap[stageConfig.stageId]
+        if (chapterId) {
+          const chapterKey = `${chapterId}_complete`
+          if (!prog.claimedRewards[chapterKey]) {
+            prog.claimedRewards[chapterKey] = true
+            if (chapterId === 'ch2') {
+              economy.addCoins(500)
+            } else if (chapterId === 'ch3') {
+              economy.addCoins(500)
+              // diamonds: 暂用 coins 代替
+              economy.addCoins(10)
+            } else if (chapterId === 'ch4') {
+              // "科学家🔬"称号 — 标记存在 claimedRewards 中
+              // UI 在 TitleScreen / CampaignScreen 读取显示
+            }
+          }
+        }
+      }
+
+      // 星数里程碑奖励
+      const totalStars = Object.values(prog.stageStars).reduce((sum, s) => sum + s, 0)
+      if (totalStars >= 30 && !prog.claimedRewards['star_milestone_30']) {
+        prog.claimedRewards['star_milestone_30'] = true
+        economy.addCoins(500)
+      }
+      if (totalStars >= 45 && !prog.claimedRewards['star_milestone_45']) {
+        prog.claimedRewards['star_milestone_45'] = true
+        economy.addCoins(1000)
+      }
+
       saveCampaignProgress(prog)
       campaignStageRef.current = null
       // 清除闯关残留的 _campaignEnemy，保留玩家自选卡组

@@ -10,6 +10,7 @@ import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
 import DialogueBox from './DialogueBox'
+import cards from '../data/cards'
 
 /**
  * BattleScreen — Sprint 2 完全重写
@@ -157,10 +158,20 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     playerHand.initHand()
     enemyHand.initHand()
     const enemySp = enemySpDeckCards || campaignConfig?.spDeck || enemyTestSpDeck
+    // 查找 bossPreplaced 卡牌数据
+    let bossPreplacedCard = null
+    if (campaignConfig?.bossPreplaced) {
+      const found = cards.find(c => c.id === campaignConfig.bossPreplaced)
+      if (found) {
+        bossPreplacedCard = { ...found, uid: `boss_${found.id}_0` }
+      }
+    }
     battle.startBattle({
       player: playerSpDeckCards || playerTestSpDeck,
       enemy: enemySp,
       enemyLeaderHP: campaignConfig?.leaderHP,
+      campaignConfig,
+      bossPreplaced: bossPreplacedCard,
     })
   }, [])
 
@@ -169,6 +180,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const [dialogueIdx, setDialogueIdx] = useState(0)
   const currentDialogues = dialoguePhase === 'before' ? campaignConfig?.dialogue?.before
     : dialoguePhase === 'after' ? campaignConfig?.dialogue?.after
+    : dialoguePhase === 'bossHalfHP' ? campaignConfig?.dialogue?.bossHalfHP
     : null
 
   const handleDialogueNext = useCallback(() => {
@@ -213,10 +225,17 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     playerHand.initHand()
     enemyHand.initHand()
     const enemySp = enemySpDeckCards || campaignConfig?.spDeck || enemyTestSpDeck
+    let bossPreplacedCard = null
+    if (campaignConfig?.bossPreplaced) {
+      const found = cards.find(c => c.id === campaignConfig.bossPreplaced)
+      if (found) bossPreplacedCard = { ...found, uid: `boss_${found.id}_0` }
+    }
     battle.startBattle({
       player: playerSpDeckCards || playerTestSpDeck,
       enemy: enemySp,
       enemyLeaderHP: campaignConfig?.leaderHP,
+      campaignConfig,
+      bossPreplaced: bossPreplacedCard,
     })
     if (campaignConfig?.dialogue?.before) {
       setDialoguePhase('before')
@@ -224,11 +243,44 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     }
   }, [playerHand, enemyHand, battle])
 
+  // === Boss 机制事件消费（浮字 + 对话） ===
+  useEffect(() => {
+    if (battle.bossMechanicEvents.length === 0) return
+    const events = [...battle.bossMechanicEvents]
+    battle.setBossMechanicEvents([])
+
+    for (const evt of events) {
+      if (evt.type === 'BOSS_EVENT') {
+        showFloat('enemy', -1, evt.text, evt.color || 'text-red-400')
+      }
+      if (evt.type === 'BOSS_AOE' && evt.slot !== undefined) {
+        showDamageFloat('player', evt.slot, evt.damage)
+      }
+      if (evt.type === 'BOSS_DIALOGUE' && evt.dialogueKey && campaignConfig?.dialogue?.[evt.dialogueKey]) {
+        setTimeout(() => {
+          setDialoguePhase(evt.dialogueKey)
+          setDialogueIdx(0)
+        }, 800)
+      }
+    }
+  }, [battle.bossMechanicEvents])
+
   // 初始化后敌方放起手卡（遵守能量=1限制）
+  // Boss 预置卡跳过正常出牌（已在 useBattle.startBattle 中放置）
   const enemyPlaced = useRef(false)
   useEffect(() => {
     if (enemyHand.hand.length > 0 && !enemyPlaced.current) {
       enemyPlaced.current = true
+
+      // 如果有 bossPreplaced，从手牌中移除该卡（避免重复）
+      if (campaignConfig?.bossPreplaced) {
+        const bossInHand = enemyHand.hand.find(c => c.id === campaignConfig.bossPreplaced)
+        if (bossInHand) {
+          enemyHand.playCard(bossInHand.uid) // 从手牌移除
+        }
+        return // Boss 已预置，不再额外出牌
+      }
+
       const hand = enemyHand.hand
       // 回合1能量=1，只能出费用≤1的卡，最多1张
       const affordable = hand.filter(c => c.cost <= 1)
@@ -261,6 +313,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       // --- 2. 刷新能量 ---
       const eEnergy = battle.beginEnemyTurn()
       let remainEnergy = eEnergy
+
+      // AI 强度参数（0.0-1.0，越高越聪明）
+      const aiStr = campaignConfig?.aiStrength ?? 0.5
 
       // --- 3. AI 出牌阶段 ---
       const MAX_CARDS_PER_TURN = 2
@@ -359,22 +414,25 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
         if (playable.length === 0) break
 
-        // 20% 概率犹豫跳过（+ 攒能量策略）
-        if (Math.random() < 0.20 || (aiShouldSave && cardsPlayed >= 1)) {
+        // 犹豫概率受 aiStrength 影响：强 AI 犹豫更少
+        const hesitateChance = Math.max(0.05, 0.30 - aiStr * 0.25)
+        if (Math.random() < hesitateChance || (aiShouldSave && cardsPlayed >= 1)) {
           battle.addLog('🔴 敌方犹豫了一下...')
           break
         }
 
-        // 选卡逻辑
+        // 选卡逻辑（aiStrength 影响：高强度选最优，低强度有概率选随机）
         let chosen
         const aliveCount = aiField.filter(c => c && c.currentHp > 0).length
 
         if (aliveCount === 0) {
           chosen = playable.reduce((min, c) => c.cost < min.cost ? c : min, playable[0])
-        } else if (aliveCount < 2) {
+        } else if (Math.random() < aiStr) {
+          // 最优选择：ATK+HP 最高的卡（playable 已按此排序）
           chosen = playable[0]
         } else {
-          chosen = playable[0]
+          // 随机选择
+          chosen = playable[Math.floor(Math.random() * playable.length)]
         }
 
         const slotIdx = emptySlots[0]
@@ -411,8 +469,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         } else if (pAlive.length === 0) {
           // T3: 直攻主人
           defSlot = -1
-        } else if (Math.random() > 0.30) {
-          // T2: 70% 概率尝试一击杀
+        } else if (Math.random() < aiStr) {
+          // 最优攻击：尝试一击杀 → 打最大威胁
           const killable = pAlive
             .filter(c => atkCard.atk >= c.currentHp)
             .sort((a, b) => b.atk - a.atk)
@@ -420,12 +478,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           if (killable.length > 0) {
             defSlot = killable[0].slot
           } else {
-            // 杀不了 → 打最大威胁
             defSlot = pAlive.reduce((max, c) => c.atk > max.atk ? c : max, pAlive[0]).slot
           }
         } else {
-          // T4: 30% 概率直接打最大威胁（错过斩杀）
-          defSlot = pAlive.reduce((max, c) => c.atk > max.atk ? c : max, pAlive[0]).slot
+          // 随机攻击（弱 AI 有时打随机目标）
+          defSlot = pAlive[Math.floor(Math.random() * pAlive.length)].slot
         }
 
         const result = battle.aiAttack(atkSlot, defSlot)
@@ -1330,7 +1387,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
               {/* Reward */}
               <motion.div
-                className="bg-yellow-900/30 border border-yellow-500/30 rounded-xl px-4 py-2 mb-5"
+                className="bg-yellow-900/30 border border-yellow-500/30 rounded-xl px-4 py-2 mb-3"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
@@ -1340,6 +1397,30 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   <span className="text-gray-500 text-xs ml-2">(含答题奖励 +{stats.quizCorrect * (won ? 10 : 5)})</span>
                 )}
               </motion.div>
+
+              {/* 章节奖励（Boss战首通） */}
+              {won && campaignConfig?.stageType === 'boss' && (() => {
+                const chapterRewards = {
+                  '2-4': '🎁 章节奖励: +500 金币',
+                  '3-4': '🎁 章节奖励: +500 金币 +10 钻石',
+                  '4-4': '🎁 章节奖励: 科学家🔬称号',
+                }
+                // 从 campaignConfig 中提取 stageId（通过 stageName 或其他方式）
+                const stageId = Object.keys(chapterRewards).find(
+                  id => campaignConfig?.stageName === { '2-4': '新冠病毒', '3-4': '蓝鲸巨灵', '4-4': '超级细菌' }[id]
+                )
+                if (!stageId) return null
+                return (
+                  <motion.div
+                    className="bg-purple-900/30 border border-purple-500/30 rounded-xl px-4 py-2 mb-5"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.8 }}
+                  >
+                    <div className="text-purple-300 text-xs font-bold">{chapterRewards[stageId]}</div>
+                  </motion.div>
+                )
+              })()}
 
               {/* Buttons */}
               <div className="flex gap-3 justify-center">

@@ -8,6 +8,7 @@ import { getRandomQuiz, resetQuizHistory } from '../data/quizzes'
 import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
 import { pickRandomEvent } from '../data/events'
+import { getBossMechanic } from '../engine/bossMechanics'
 
 /**
  * useBattle — Sprint 3 技能触发框架版
@@ -95,6 +96,13 @@ export function useBattle() {
     eventsTriggered: 0,
   })
 
+  // === Boss 机制 ===
+  const campaignConfigRef = useRef(null)
+  const bossStateRef = useRef({ phase: 1 }) // 追踪 Boss 阶段，避免重复触发
+  const bossMechanicRef = useRef(null)
+  // Boss 事件队列（供 BattleScreen 消费：浮字 + 对话触发）
+  const [bossMechanicEvents, setBossMechanicEvents] = useState([])
+
   // === 问答触发控制：首次攻击必触发，之后每3回合触发一次 ===
   const firstAttackDone = useRef(false)      // 本局是否已做过首次攻击
   const lastQuizTurn = useRef(0)             // 上次触发问答的回合数
@@ -171,6 +179,31 @@ export function useBattle() {
     }
     return dead
   }, [])
+
+  // ----------------------------------------------------------------
+  //  Boss HP 阈值检查（攻击后调用）
+  // ----------------------------------------------------------------
+  function checkBossHPThreshold() {
+    const boss = bossMechanicRef.current
+    if (!boss?.onHPThreshold) return
+    const config = campaignConfigRef.current
+    const maxHP = config?.leaderHP || LEADER_HP
+    const currentHP = enemyLeaderHpRef.current
+    const result = boss.onHPThreshold({
+      currentHP,
+      maxHP,
+      enemyField: enemyFieldRef.current,
+      setEnemyField,
+      addLog,
+      bossState: bossStateRef.current,
+    })
+    if (result?.events?.length > 0) {
+      setBossMechanicEvents(prev => [...prev, ...result.events])
+    }
+    if (result?.dialogue) {
+      setBossMechanicEvents(prev => [...prev, { type: 'BOSS_DIALOGUE', dialogueKey: result.dialogue }])
+    }
+  }
 
   // ----------------------------------------------------------------
   //  统一技能事件执行器
@@ -310,11 +343,13 @@ export function useBattle() {
         if ((evt.type === 'OVERFLOW_DAMAGE' || evt.type === 'PIERCING_DAMAGE') && evt.damage > 0) {
           if (side === 'player') {
             // 玩家攻击 → 扣敌方主人
+            let won = false
             setEnemyLeaderHp(prev => {
               const next = Math.max(0, prev - evt.damage)
-              if (next <= 0) { setWinner('player'); setPhase('over') }
+              if (next <= 0) { setWinner('player'); setPhase('over'); won = true }
               return next
             })
+            if (!won) checkBossHPThreshold()
           } else {
             // 敌方攻击 → 扣玩家主人
             setPlayerLeaderHp(prev => {
@@ -1083,6 +1118,22 @@ export function useBattle() {
     firstAttackDone.current = false
     lastQuizTurn.current = 0
     resetQuizHistory()
+    // Boss 机制初始化
+    campaignConfigRef.current = spDecks.campaignConfig || null
+    bossStateRef.current = { phase: 1 }
+    const mechId = spDecks.campaignConfig?.bossMechanic
+    bossMechanicRef.current = mechId ? getBossMechanic(mechId) : null
+    setBossMechanicEvents([])
+    // bossPreplaced: 预置 Boss 卡到敌方场上
+    if (spDecks.bossPreplaced) {
+      const bossCard = makeFieldCard(spDecks.bossPreplaced)
+      setEnemyField(prev => {
+        const next = [...prev]
+        next[0] = bossCard
+        return next
+      })
+      summonedThisTurn.current.add(bossCard.uid)
+    }
     setPhase('mulligan')
   }, [])
 
@@ -1238,6 +1289,7 @@ export function useBattle() {
       })
       addLog(`${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
       battleStatsRef.current.totalDamage += dmg
+      if (!gameWon) checkBossHPThreshold()
       return { atkDmg: dmg, defDmg: 0, defKilled: false, atkKilled: false, leaderHit: true, gameWon }
     }
 
@@ -1264,9 +1316,10 @@ export function useBattle() {
     }
     pushSkillEvents(allPreEvents)
 
-    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus } = calcCardBattle(atkCard, defCard, awakenOpts)
+    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus, defImmune } = calcCardBattle(atkCard, defCard, awakenOpts)
     let defKilled = false, atkKilled = false
 
+    if (defImmune) addLog(`🛡️ ${defCard.name} 免疫了攻击！`)
     if (atkFactionBonus) addLog(`⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
 
@@ -1340,6 +1393,20 @@ export function useBattle() {
     // 玩家剩余能量流入 Power Bank
     processEndPhase('player')
     addLog('--- 玩家回合结束 ---')
+
+    // Boss onTurnEnd 钩子（玩家回合结束 = 敌方视角的回合结束）
+    const boss = bossMechanicRef.current
+    if (boss?.onTurnEnd) {
+      const bossEvents = boss.onTurnEnd({
+        enemyField: enemyFieldRef.current,
+        setEnemyField,
+        addLog,
+      })
+      if (bossEvents?.length > 0) {
+        setBossMechanicEvents(prev => [...prev, ...bossEvents])
+      }
+    }
+
     setPhase('enemyTurn')
   }, [phase, addLog, pushSkillEvents])
 
@@ -1532,6 +1599,27 @@ export function useBattle() {
     summonedThisTurn.current.clear()
     attackedThisTurn.current.clear()
 
+    // Boss onTurnStart 钩子（玩家新回合开始时触发）
+    const boss = bossMechanicRef.current
+    if (boss?.onTurnStart) {
+      const config = campaignConfigRef.current
+      const bossEvents = boss.onTurnStart({
+        turn: newTurn,
+        playerField: playerFieldRef.current,
+        setPlayerField,
+        enemyField: enemyFieldRef.current,
+        setEnemyField,
+        enemyLeaderHp: enemyLeaderHpRef.current,
+        maxLeaderHP: config?.leaderHP || LEADER_HP,
+        setEnemyLeaderHp,
+        addLog,
+        bossState: bossStateRef.current,
+      })
+      if (bossEvents?.length > 0) {
+        setBossMechanicEvents(prev => [...prev, ...bossEvents])
+      }
+    }
+
     // 环境事件 tick
     tickEnvEvent()
     tickVirusOutbreak()
@@ -1633,6 +1721,9 @@ export function useBattle() {
     playerSpDeck, enemySpDeck, pendingSpSummon,
     // Environment events
     activeEnvEvent, pendingEnvEvent,
+    // Boss mechanics
+    bossMechanicEvents, setBossMechanicEvents,
+    campaignConfigRef, bossStateRef,
 
     startBattle, endMulligan, startPlayerTurn,
     playToField, endMainPhase,

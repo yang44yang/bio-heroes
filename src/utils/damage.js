@@ -36,10 +36,36 @@ export function applyFactionAdvantage(attacker, defender, baseDmg) {
 }
 
 /**
- * 攻击卡牌：双方互扣（含阵营克制）
- * 返回 { atkDmg, defDmg, atkFactionBonus, defFactionBonus }
+ * 检查卡牌是否免疫该次攻击
+ * - immune: 完全免疫所有伤害
+ * - immune_tech: 免疫科技系伤害
+ */
+function isImmune(defender, attacker) {
+  if (!defender.statuses) return false
+  if (defender.statuses.some(s => s.type === 'immune')) return true
+  if (defender.statuses.some(s => s.type === 'immune_tech') && attacker?.faction === 'tech') return true
+  return false
+}
+
+/**
+ * 攻击卡牌：双方互扣（含阵营克制 + 免疫检查）
+ * 返回 { atkDmg, defDmg, atkFactionBonus, defFactionBonus, defImmune }
  */
 export function calcCardBattle(attacker, defender, opts = {}) {
+  // 防守方免疫检查
+  if (isImmune(defender, attacker)) {
+    // 攻击方仍受反击伤害（除非攻击方也免疫）
+    const rawDefDmg = isImmune(attacker, defender) ? 0 : defender.atk
+    const defResult = applyFactionAdvantage(defender, attacker, rawDefDmg)
+    return {
+      atkDmg: 0,
+      defDmg: defResult.dmg,
+      atkFactionBonus: false,
+      defFactionBonus: defResult.factionBonus,
+      defImmune: true,
+    }
+  }
+
   const rawAtkDmg = getEffectiveAtk(attacker.atk, opts)
   const rawDefDmg = defender.atk // 反击不受觉醒加成
 
@@ -52,6 +78,7 @@ export function calcCardBattle(attacker, defender, opts = {}) {
     defDmg: defResult.dmg,
     atkFactionBonus: atkResult.factionBonus,
     defFactionBonus: defResult.factionBonus,
+    defImmune: false,
   }
 }
 

@@ -56,6 +56,33 @@ export function processStatuses(card) {
         break
       }
 
+      case 'immune': {
+        if (status.turnsLeft > 1) {
+          remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })
+        } else {
+          events.push({
+            type: 'IMMUNE_CLEAR',
+            target: card.name,
+            message: `🛡️ ${card.name} 的免疫状态结束了`,
+          })
+        }
+        break
+      }
+
+      case 'immune_tech': {
+        // 科技免疫通常持续到战斗结束（turnsLeft=99），但仍支持回合递减
+        if (status.turnsLeft > 1) {
+          remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })
+        } else {
+          events.push({
+            type: 'IMMUNE_TECH_CLEAR',
+            target: card.name,
+            message: `⚗️ ${card.name} 不再免疫科技系伤害`,
+          })
+        }
+        break
+      }
+
       default:
         remaining.push(status) // 未知状态保留
     }

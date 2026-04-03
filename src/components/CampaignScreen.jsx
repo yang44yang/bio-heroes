@@ -44,6 +44,35 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
   const totalStars = getTotalStars(progress)
   const maxStars = getMaxStars()
 
+  // 星数里程碑
+  const nextMilestone = totalStars < 30 ? { target: 30, reward: '500 金币' }
+    : totalStars < 45 ? { target: 45, reward: '1000 金币' }
+    : null
+  const hasScientistTitle = progress.claimedRewards?.ch4_complete
+
+  // 进入页面时检查里程碑奖励（补发机制）
+  useEffect(() => {
+    const prog = loadCampaignProgress()
+    let changed = false
+    const stars = getTotalStars(prog)
+    if (stars >= 30 && !prog.claimedRewards?.star_milestone_30) {
+      prog.claimedRewards = prog.claimedRewards || {}
+      prog.claimedRewards.star_milestone_30 = true
+      economy?.addCoins?.(500)
+      changed = true
+    }
+    if (stars >= 45 && !prog.claimedRewards?.star_milestone_45) {
+      prog.claimedRewards = prog.claimedRewards || {}
+      prog.claimedRewards.star_milestone_45 = true
+      economy?.addCoins?.(1000)
+      changed = true
+    }
+    if (changed) {
+      saveCampaignProgress(prog)
+      setProgress(prog)
+    }
+  }, [])
+
   const handleStageClick = useCallback((stage, chapter) => {
     if (!isStageUnlocked(stage.id, progress)) return
     setSelectedStage({ ...stage, chapter })
@@ -77,8 +106,17 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
         >
           ← 返回
         </button>
-        <h1 className="text-lg font-black">🏆 闯关战役</h1>
-        <div className="text-sm text-yellow-400 font-bold">⭐ {totalStars}/{maxStars}</div>
+        <h1 className="text-lg font-black">
+          🏆 闯关战役{hasScientistTitle ? ' 🔬' : ''}
+        </h1>
+        <div className="text-right">
+          <div className="text-sm text-yellow-400 font-bold">⭐ {totalStars}/{maxStars}</div>
+          {nextMilestone && (
+            <div className="text-[10px] text-gray-500">
+              下个奖励: {nextMilestone.target}⭐ ({nextMilestone.reward})
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 章节 Tab */}
