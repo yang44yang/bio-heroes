@@ -511,16 +511,9 @@ export const LEVEL_4 = {
       autoAction: 'enemy_pass',
     },
     {
-      id: 'sp_crush',
-      highlight: 'player_field',
-      text: '用霸王龙攻击！感受 SP 卡的碾压力量！',
-      arrow: 'up',
-      waitFor: 'attack',
-    },
-    {
       id: 'direct_sp',
       highlight: 'enemy_leader',
-      text: '点你的卡 → 点上方对手面板，直攻主人！',
+      text: '霸王龙的登场效果清空了敌方！点你的卡 → 点上方对手面板，直攻主人！',
       arrow: 'up',
       waitFor: 'direct_attack',
     },
