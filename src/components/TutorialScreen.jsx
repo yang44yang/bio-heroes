@@ -192,9 +192,9 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       playerDiscard.forEach(c => {
         if (c.faction) markers[c.faction] = (markers[c.faction] || 0) + 1
       })
-      for (const [faction, count] of Object.entries(card.factionRequirement)) {
-        if ((markers[faction] || 0) < count) return // 标记不够
-      }
+      const reqFaction = card.factionRequirement.faction
+      const reqCount = card.factionRequirement.count
+      if ((markers[reqFaction] || 0) < reqCount) return // 标记不够
     }
 
     setPlayerEnergy(e => e - card.cost)
@@ -1021,20 +1021,13 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
       {/* ================================================================ */}
       {currentStep && (
         <>
-          {/* 半透明遮罩 — 攻击阶段不遮挡（让攻击高亮系统接管视觉） */}
-          {(() => {
-            const isBattleStep = ['attack', 'direct_attack', 'clear_field'].includes(currentStep.waitFor)
-            const isAck = currentStep.waitFor === 'acknowledge'
-            // 攻击阶段：不显示遮罩（让红色/金色高亮完全可见）
-            if (isBattleStep) return null
-            return (
-              <div
-                className={`absolute inset-0 bg-black/50 z-20 ${isAck ? 'cursor-pointer' : ''}`}
-                onClick={handleAcknowledge}
-                style={{ pointerEvents: isAck ? 'auto' : 'none' }}
-              />
-            )
-          })()}
+          {/* 半透明遮罩 — 只在 acknowledge 步骤显示（需要操作的步骤不遮挡） */}
+          {currentStep.waitFor === 'acknowledge' && (
+            <div
+              className="absolute inset-0 bg-black/50 z-20 cursor-pointer"
+              onClick={handleAcknowledge}
+            />
+          )}
 
           {/* 提示框（根据目标位置动态定位：目标在下半→提示在上，目标在上半→提示在下） */}
           {(() => {
