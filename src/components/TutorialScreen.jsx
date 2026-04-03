@@ -261,7 +261,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
     const atkCard = playerField[atkSlot]
     if (!atkCard) return
     if (summonedThisTurn.has(atkCard.uid)) return
-    if (attackedThisTurn.has(atkCard.uid)) return
+    // 直攻主人不检查 attackedThisTurn（教学中清场后卡都攻击过了）
 
     const dmg = atkCard.atk
     setEnemyLeaderHp(prev => Math.max(0, prev - dmg))
@@ -348,10 +348,18 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
 
     if (side === 'player') {
       if (w === 'attack' || w === 'direct_attack' || w === 'clear_field') {
-        // 选中攻击者（过滤已攻击和召唤疲劳的卡）
+        // 选中攻击者
         const card = playerField[slot]
-        if (card && !attackedThisTurn.has(card.uid) && !summonedThisTurn.has(card.uid)) {
-          setSelectedAtkSlot(slot)
+        if (!card) return
+        // direct_attack 步骤跳过已攻击检查（教学中清场后所有卡都攻击过了，但仍需直攻主人）
+        if (w === 'direct_attack') {
+          if (!summonedThisTurn.has(card.uid)) {
+            setSelectedAtkSlot(slot)
+          }
+        } else {
+          if (!attackedThisTurn.has(card.uid) && !summonedThisTurn.has(card.uid)) {
+            setSelectedAtkSlot(slot)
+          }
         }
       }
     } else {

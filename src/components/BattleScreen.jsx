@@ -964,7 +964,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               ${isTargeting && isValid && card && card.currentHp > 0
                 ? 'border-red-400 cursor-pointer hover:border-red-300'
                 : card && card.currentHp > 0 ? 'border-gray-600' : 'border-gray-700'
-              } ${isDimmedTarget ? 'opacity-40' : ''}`}
+              } ${isDimmedTarget ? 'opacity-30' : ''}`}
             {...(isTargeting && isValid && card && card.currentHp > 0 ? { 'data-attack-target': 'true' } : {})}
             onClick={() => isTargeting && isValid && card && card.currentHp > 0 && handleSelectTarget(i)}
           >
@@ -1010,7 +1010,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 : isBattlePhase && card && card.currentHp > 0 && battle.canAttack(i)
                   ? (isAttacker ? 'border-yellow-400' : 'border-blue-400 cursor-pointer hover:border-blue-300')
                   : 'border-gray-600'
-              } ${playerDimmed ? 'opacity-50' : ''}`}
+              } ${playerDimmed ? 'opacity-35' : ''}`}
             style={isAttacker ? {
               transform: 'translateY(-8px)',
               boxShadow: '0 0 0 3px #f1c40f, 0 0 12px rgba(241, 196, 15, 0.5)',
