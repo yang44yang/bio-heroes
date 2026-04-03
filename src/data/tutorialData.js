@@ -238,7 +238,7 @@ export const LEVEL_2 = {
     {
       id: 'direct_attack_leader',
       highlight: 'enemy_leader',
-      text: '场上没有敌人了！直接攻击对方主人！',
+      text: '场上没有敌人了！先点你的卡选为攻击者，再点上方对手面板直攻主人！',
       arrow: 'up',
       waitFor: 'direct_attack',
     },
@@ -384,7 +384,7 @@ export const LEVEL_3 = {
     {
       id: 'direct_finish',
       highlight: 'enemy_leader',
-      text: '场上清空了！直接攻击对方主人结束战斗！',
+      text: '场上清空了！点你的卡 → 点上方对手面板，直攻主人！',
       arrow: 'up',
       waitFor: 'direct_attack',
     },
@@ -520,7 +520,7 @@ export const LEVEL_4 = {
     {
       id: 'direct_sp',
       highlight: 'enemy_leader',
-      text: '直接攻击对方主人！',
+      text: '点你的卡 → 点上方对手面板，直攻主人！',
       arrow: 'up',
       waitFor: 'direct_attack',
     },
@@ -679,7 +679,7 @@ export const LEVEL_5 = {
     {
       id: 'direct_orca',
       highlight: 'enemy_leader',
-      text: '直攻对方主人！SSR 就是这么强！',
+      text: '点你的卡 → 点上方对手面板，直攻主人！SSR 就是这么强！',
       arrow: 'up',
       waitFor: 'direct_attack',
     },

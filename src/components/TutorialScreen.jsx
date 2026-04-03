@@ -821,14 +821,17 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           {playerField.map((card, slot) => {
             const isAttacker = selectedAtkSlot === slot
             const canAct = card && !summonedThisTurn.has(card.uid) && !attackedThisTurn.has(card.uid)
-            const isDimmed = selectedAtkSlot !== null && !isAttacker && card
+            // 教学中直攻主人步骤：不暗化己方卡（避免整个区域看起来不可交互）
+            const isDirectAttackStep = currentStep?.waitFor === 'direct_attack'
+            const isDimmed = !isDirectAttackStep && selectedAtkSlot !== null && !isAttacker && card
+            const isInactive = !isDirectAttackStep && !canAct && card
             return (
             <div
               key={`pf-${slot}`}
               className={`rounded-lg border relative transition-all ${
                 card ? 'border-blue-700/50 bg-blue-950/30' : 'border-gray-800 bg-gray-900/50'
               } ${canAct ? 'cursor-pointer' : ''} ${isDimmed ? 'opacity-50' : ''} ${
-                !canAct && card ? 'opacity-40' : ''
+                isInactive ? 'opacity-40' : ''
               }`}
               style={isAttacker ? {
                 transform: 'translateY(-6px)',
