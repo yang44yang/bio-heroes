@@ -10,6 +10,7 @@ import {
 import cards from './data/cards'
 import eventCards from './data/eventCards'
 import spCards from './data/spCards'
+import IntroModal from './components/IntroModal'
 
 // 懒加载重型组件 — 代码分割
 const BattleScreen = lazy(() => import('./components/BattleScreen'))
@@ -49,6 +50,8 @@ function buildEnemyDeck(deckIds) {
 export default function App() {
   // 首次进入：检查是否需要自动开始教学
   const [screen, setScreen] = useState(() => {
+    // 首次进入：显示主菜单+IntroModal（而不是直接跳教学）
+    if (!localStorage.getItem('bio-heroes-intro-seen')) return 'title'
     const tut = loadTutorialProgress()
     if (!tut.graduated && tut.completedLevels.length === 0) {
       return 'tutorial'
@@ -206,8 +209,10 @@ export default function App() {
     economy.addCoins(900)
   }, [economy])
 
-  // 新玩家欢迎提示
-  const [showWelcome, setShowWelcome] = useState(economy.isNewPlayer)
+  // 新手欢迎弹窗（首次进入）
+  const [showIntro, setShowIntro] = useState(() => !localStorage.getItem('bio-heroes-intro-seen'))
+  // 老玩家欢迎提示（有旧存档的 isNewPlayer）
+  const [showWelcome, setShowWelcome] = useState(economy.isNewPlayer && !!localStorage.getItem('bio-heroes-intro-seen'))
   const handleDismissWelcome = useCallback(() => {
     setShowWelcome(false)
     economy.dismissNewPlayer()
@@ -218,41 +223,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen-d bg-gray-900 text-white">
-      {/* 新玩家欢迎提示 */}
-      <AnimatePresence>
-        {showWelcome && screen === 'tutorial' && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleDismissWelcome}
-          >
-            <motion.div
-              className="bg-gray-800 border-2 border-yellow-500 rounded-2xl p-6 max-w-sm mx-4 text-center"
-              initial={{ scale: 0.7, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.7, opacity: 0 }}
-              transition={{ type: 'spring', damping: 12 }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="text-4xl mb-3">🎁</div>
-              <h2 className="text-xl font-black text-yellow-400 mb-2">欢迎新战士！</h2>
-              <p className="text-gray-300 text-sm mb-4 leading-relaxed">
-                你获得了<span className="text-yellow-400 font-bold">初始卡牌礼包</span>和
-                <span className="text-yellow-400 font-bold"> 3000 金币</span>！
-                <br />先去教学关卡学习怎么玩吧！
-              </p>
-              <button
-                className="px-6 py-2 bg-yellow-500 text-black font-bold rounded-xl hover:bg-yellow-400 transition"
-                onClick={handleDismissWelcome}
-              >
-                知道了！
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* 新手欢迎弹窗（首次进入游戏） */}
+      {showIntro && screen === 'title' && (
+        <IntroModal
+          onStartTutorial={() => {
+            localStorage.setItem('bio-heroes-intro-seen', 'true')
+            setShowIntro(false)
+            economy.dismissNewPlayer?.()
+            setScreen('tutorial')
+          }}
+          onSkip={() => {
+            localStorage.setItem('bio-heroes-intro-seen', 'true')
+            setShowIntro(false)
+            economy.dismissNewPlayer?.()
+          }}
+        />
+      )}
 
       {screen === 'title' && (
         <TitleScreen

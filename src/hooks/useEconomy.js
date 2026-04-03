@@ -53,6 +53,10 @@ function loadEconomy() {
     if (raw) {
       const parsed = JSON.parse(raw)
       const migrated = migrateData(parsed)
+      // 老玩家自动标记已看过介绍
+      if (!localStorage.getItem('bio-heroes-intro-seen')) {
+        localStorage.setItem('bio-heroes-intro-seen', 'true')
+      }
       return { ...DEFAULT_STATE, ...(migrated || parsed) }
     }
   } catch (e) { /* ignore */ }
