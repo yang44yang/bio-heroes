@@ -709,21 +709,41 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         教学 {level.id}/5: {level.title} | 回合 {turn}
       </div>
 
-      {/* === 敌方主人 HP === */}
+      {/* === 敌方主人面板 === */}
       <div
-        className={`px-4 py-1 ${isHighlighted('enemy_leader') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}
+        className={`px-2 ${isHighlighted('enemy_leader') ? 'relative z-30' : ''}`}
+        {...(isHighlighted('enemy_leader') ? { 'data-attack-target': 'true' } : {})}
         onClick={() => handleLeaderClick('enemy')}
       >
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-red-400">👹 对手</span>
-          <div className="flex-1 bg-gray-800 rounded-full h-4 overflow-hidden">
-            <motion.div
-              className="bg-red-600 h-full rounded-full"
-              animate={{ width: `${Math.max(0, (enemyLeaderHp / (level?.enemyLeaderHp || 30000)) * 100)}%` }}
-              transition={{ duration: 0.3 }}
-            />
+        <div className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border-[1.5px] bg-[#151c30] border-[#3a2020] ${
+          selectedAtkSlot !== null ? 'border-red-500 bg-[#2a1515] cursor-pointer' : ''
+        } ${isHighlighted('enemy_leader') ? 'ring-2 ring-yellow-400' : ''}`}
+          style={isHighlighted('enemy_leader') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
+        >
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 bg-red-900/60 border-red-700 flex items-center justify-center text-lg sm:text-xl shrink-0">👹</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-xs sm:text-sm font-medium text-red-400">对手</span>
+              <span className="text-xs sm:text-sm text-white font-medium font-mono">
+                {enemyLeaderHp.toLocaleString()}
+                <span className="text-gray-500 text-[10px] sm:text-xs"> / {(level?.enemyLeaderHp || 30000).toLocaleString()}</span>
+              </span>
+            </div>
+            <div className="h-3.5 sm:h-[18px] bg-[#1a1a2e] rounded-lg overflow-hidden">
+              <motion.div
+                className="h-full bg-red-500 rounded-lg"
+                animate={{ width: `${Math.max(0, (enemyLeaderHp / (level?.enemyLeaderHp || 30000)) * 100)}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
           </div>
-          <span className="text-xs text-red-300 font-mono w-14 text-right">{enemyLeaderHp}</span>
+          {selectedAtkSlot !== null && (
+            <motion.span
+              className="text-[10px] sm:text-xs text-red-400 border border-red-500 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 font-bold"
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >TAP</motion.span>
+          )}
         </div>
       </div>
 
@@ -829,18 +849,26 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         </div>
       </div>
 
-      {/* === 玩家主人 HP === */}
-      <div className="px-4 py-1">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-blue-400">🧑 你</span>
-          <div className="flex-1 bg-gray-800 rounded-full h-4 overflow-hidden">
-            <motion.div
-              className="bg-blue-600 h-full rounded-full"
-              animate={{ width: `${Math.max(0, (playerLeaderHp / (level?.playerLeaderHp || 30000)) * 100)}%` }}
-              transition={{ duration: 0.3 }}
-            />
+      {/* === 玩家主人面板 === */}
+      <div className="px-2">
+        <div className="flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border-[1.5px] bg-[#0c1a2a] border-[#1a3a5a]">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 bg-blue-900/60 border-blue-700 flex items-center justify-center text-lg sm:text-xl shrink-0">👦</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-xs sm:text-sm font-medium text-blue-400">你</span>
+              <span className="text-xs sm:text-sm text-white font-medium font-mono">
+                {playerLeaderHp.toLocaleString()}
+                <span className="text-gray-500 text-[10px] sm:text-xs"> / {(level?.playerLeaderHp || 30000).toLocaleString()}</span>
+              </span>
+            </div>
+            <div className="h-3.5 sm:h-[18px] bg-[#1a1a2e] rounded-lg overflow-hidden">
+              <motion.div
+                className="h-full bg-blue-500 rounded-lg"
+                animate={{ width: `${Math.max(0, (playerLeaderHp / (level?.playerLeaderHp || 30000)) * 100)}%` }}
+                transition={{ duration: 0.3 }}
+              />
+            </div>
           </div>
-          <span className="text-xs text-blue-300 font-mono w-14 text-right">{playerLeaderHp}</span>
         </div>
       </div>
 
