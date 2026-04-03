@@ -75,7 +75,7 @@ export const LEVEL_1 = {
     {
       id: 'show_hand',
       highlight: 'hand',
-      text: '这是你的手牌！每张卡左上角的数字是费用。你有 3 点能量 ⚡',
+      text: '这是你的手牌！每张卡上方的数字是费用。你有 3 点能量 ⚡',
       arrow: 'down',
       waitFor: 'acknowledge', // 点击任意处继续
     },

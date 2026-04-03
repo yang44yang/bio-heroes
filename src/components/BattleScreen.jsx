@@ -684,6 +684,20 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const isMainPhase = battle.phase === 'main'
   const isBattlePhase = battle.phase === 'battle'
 
+  // 攻击目标判定
+  const hasEnemyGuard = battle.enemyField.some(c => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard'))
+  const enemyLeaderTargetable = isBattlePhase && selectedAtkSlot !== null && !hasEnemyGuard
+  const enemyAlive = battle.enemyField.filter((c, i) => c && c.currentHp > 0).map((c, i) => {
+    const realIdx = battle.enemyField.findIndex((cc, ii) => cc === c && ii >= 0)
+    return realIdx
+  })
+  // 对面存活卡牌的 slot indexes（用于 Bug 4 高亮）
+  const validEnemyTargets = isBattlePhase && selectedAtkSlot !== null
+    ? (hasEnemyGuard
+        ? battle.enemyField.map((c, i) => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard') ? i : -1).filter(i => i >= 0)
+        : battle.enemyField.map((c, i) => c && c.currentHp > 0 ? i : -1).filter(i => i >= 0))
+    : []
+
   // Power Bank 能量条组件
   const PowerBankBar = ({ powerBank, side, canBreak }) => {
     const { stored, intact } = powerBank
@@ -745,21 +759,73 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     )
   }
 
-  // HP 条组件
-  const HpBar = ({ current, max, label, color }) => {
-    const pct = Math.max(0, (current / max) * 100)
+  // 主人面板组件（替代原 HpBar，可点击直攻）
+  const LeaderPanel = ({ isEnemy, currentHP, maxHP, isAttackTarget, dimmed, onClick, floats }) => {
+    const pct = Math.max(0, (currentHP / maxHP) * 100)
+    const barColor = isEnemy ? 'bg-red-500' : 'bg-blue-500'
+    const avatarBg = isEnemy ? 'bg-red-900/60 border-red-700' : 'bg-blue-900/60 border-blue-700'
+    const nameColor = isEnemy ? 'text-red-400' : 'text-blue-400'
+    const panelBg = isEnemy ? 'bg-[#151c30]' : 'bg-[#0c1a2a]'
+    const panelBorder = isEnemy ? 'border-[#3a2020]' : 'border-[#1a3a5a]'
+
     return (
-      <div className="flex items-center gap-1 sm:gap-2">
-        <span className="text-[10px] sm:text-xs text-gray-400 w-6 sm:w-8 shrink-0">{label}</span>
-        <div className="flex-1 h-3 sm:h-4 bg-gray-800 rounded-full overflow-hidden">
-          <motion.div
-            className={`h-full ${color} rounded-full`}
-            initial={false}
-            animate={{ width: `${pct}%` }}
-            transition={{ duration: 0.5 }}
-          />
+      <div
+        className={`flex-none relative ${isAttackTarget ? 'cursor-pointer' : ''} ${dimmed ? 'opacity-40' : ''}`}
+        data-hp-bar-area="true"
+        data-leader-panel="true"
+        {...(isAttackTarget ? { 'data-attack-target': 'true' } : {})}
+        onClick={() => isAttackTarget && onClick?.()}
+      >
+        <div className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border-[1.5px] ${panelBg} ${panelBorder} ${
+          isAttackTarget ? 'border-red-500 bg-[#2a1515]' : ''
+        }`}>
+          {/* 头像 */}
+          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 ${avatarBg} flex items-center justify-center text-lg sm:text-xl shrink-0`}>
+            {isEnemy ? '👹' : '👦'}
+          </div>
+          {/* 信息 */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className={`text-xs sm:text-sm font-medium ${nameColor}`}>{isEnemy ? '对手' : '你'}</span>
+              <span className="text-xs sm:text-sm text-white font-medium font-mono">
+                {currentHP.toLocaleString()}
+                <span className="text-gray-500 text-[10px] sm:text-xs"> / {maxHP.toLocaleString()}</span>
+              </span>
+            </div>
+            <div className="h-3.5 sm:h-[18px] bg-[#1a1a2e] rounded-lg overflow-hidden">
+              <motion.div
+                className={`h-full ${barColor} rounded-lg`}
+                initial={false}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+          </div>
+          {/* TAP 提示 */}
+          {isAttackTarget && (
+            <motion.span
+              className="text-[10px] sm:text-xs text-red-400 border border-red-500 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 font-bold"
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >TAP</motion.span>
+          )}
         </div>
-        <span className="text-[10px] sm:text-xs text-white w-12 sm:w-16 text-right font-mono">{current.toLocaleString()}</span>
+        {/* 浮字伤害 */}
+        <AnimatePresence>
+          {floats?.map(f => (
+            <motion.div
+              key={f.id}
+              className={`absolute right-4 top-0 text-xl font-black pointer-events-none z-50 ${f.color || 'text-yellow-400'}`}
+              style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
+              initial={{ opacity: 1, y: 0, scale: 1.3 }}
+              animate={{ opacity: 0, y: -30, scale: 0.8 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1 }}
+            >
+              {f.text || `-${f.dmg}`}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     )
   }
@@ -871,40 +937,36 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         )}
       </AnimatePresence>
 
-      {/* 敌方主人 HP */}
-      <div className="flex-none relative" data-hp-bar-area="true">
-        <HpBar current={battle.enemyLeaderHp} max={30000} label="敌方" color="bg-red-500" />
-        <AnimatePresence>
-          {floatingDmgs.filter(f => f.side === 'enemy' && f.slot === -1).map(f => (
-            <motion.div
-              key={f.id}
-              className={`absolute right-4 -top-2 text-xl font-black pointer-events-none ${f.color || 'text-yellow-400'}`}
-              style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
-              initial={{ opacity: 1, y: 0, scale: 1.3 }}
-              animate={{ opacity: 0, y: -30, scale: 0.8 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
-            >
-              {f.text || `-${f.dmg}`}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      {/* 敌方主人面板 */}
+      <LeaderPanel
+        isEnemy={true}
+        currentHP={battle.enemyLeaderHp}
+        maxHP={campaignConfig?.leaderHP || LEADER_HP}
+        isAttackTarget={enemyLeaderTargetable}
+        dimmed={isBattlePhase && selectedAtkSlot !== null && hasEnemyGuard}
+        onClick={handleAttackLeader}
+        floats={floatingDmgs.filter(f => f.side === 'enemy' && f.slot === -1)}
+      />
 
       {/* 敌方 Power Bank */}
       <div className="flex-none"><PowerBankBar powerBank={battle.enemyPowerBank} side="enemy" canBreak={false} /></div>
 
       {/* 敌方战场 */}
       <div className="flex-1 basis-[22%] flex items-end justify-center gap-1 sm:gap-2 px-1 pb-1" data-field-area="true">
-        {battle.enemyField.map((card, i) => (
+        {battle.enemyField.map((card, i) => {
+          const isValid = validEnemyTargets.includes(i)
+          const isTargeting = isBattlePhase && selectedAtkSlot !== null
+          const isDimmedTarget = isTargeting && card && card.currentHp > 0 && !isValid
+          return (
           <div
             key={i}
-            className={`relative w-[calc((100%-1rem)/5)] aspect-[5/7] rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center
-              ${card && card.currentHp > 0
-                ? (isBattlePhase && selectedAtkSlot !== null ? 'border-red-400 cursor-pointer hover:border-red-300' : 'border-gray-600')
-                : 'border-gray-700'
-              }`}
-            onClick={() => isBattlePhase && selectedAtkSlot !== null && card && card.currentHp > 0 && handleSelectTarget(i)}
+            className={`relative w-[calc((100%-1rem)/5)] aspect-[5/7] rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center transition-opacity
+              ${isTargeting && isValid && card && card.currentHp > 0
+                ? 'border-red-400 cursor-pointer hover:border-red-300'
+                : card && card.currentHp > 0 ? 'border-gray-600' : 'border-gray-700'
+              } ${isDimmedTarget ? 'opacity-40' : ''}`}
+            {...(isTargeting && isValid && card && card.currentHp > 0 ? { 'data-attack-target': 'true' } : {})}
+            onClick={() => isTargeting && isValid && card && card.currentHp > 0 && handleSelectTarget(i)}
           >
             {card && card.currentHp > 0 ? (
               <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={false} isActive={false} />
@@ -927,36 +989,33 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               ))}
             </AnimatePresence>
           </div>
-        ))}
+          )})}
       </div>
-
-      {/* 直攻主人按钮 */}
-      {isBattlePhase && selectedAtkSlot !== null && (
-        <div className="flex-none text-center">
-          <button
-            className="text-[10px] sm:text-xs px-3 sm:px-4 py-1 bg-red-700 hover:bg-red-600 text-white rounded-lg min-h-[28px]" data-direct-attack-btn="true"
-            onClick={handleAttackLeader}
-          >
-            直攻主人
-          </button>
-        </div>
-      )}
 
       {/* VS 分隔 */}
       <div className="flex-none text-center text-sm sm:text-2xl font-black text-red-500 py-0.5" data-vs-divider="true">⚔️</div>
 
       {/* 玩家战场 */}
       <div className="flex-1 basis-[22%] flex items-start justify-center gap-1 sm:gap-2 px-1 pt-1" data-field-area="true">
-        {battle.playerField.map((card, i) => (
+        {battle.playerField.map((card, i) => {
+          const isAttacker = selectedAtkSlot === i
+          const isTargeting = isBattlePhase && selectedAtkSlot !== null
+          const playerDimmed = isTargeting && !isAttacker && card && card.currentHp > 0
+          return (
           <div
             key={i}
-            className={`relative w-[calc((100%-1rem)/5)] aspect-[5/7] rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center
+            className={`relative w-[calc((100%-1rem)/5)] aspect-[5/7] rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center transition-all
               ${isMainPhase && selectedHandIdx !== null
                 ? 'border-green-400 cursor-pointer hover:border-green-300'
                 : isBattlePhase && card && card.currentHp > 0 && battle.canAttack(i)
-                  ? (selectedAtkSlot === i ? 'border-yellow-400 ring-2 ring-yellow-400' : 'border-blue-400 cursor-pointer hover:border-blue-300')
+                  ? (isAttacker ? 'border-yellow-400' : 'border-blue-400 cursor-pointer hover:border-blue-300')
                   : 'border-gray-600'
-              }`}
+              } ${playerDimmed ? 'opacity-50' : ''}`}
+            style={isAttacker ? {
+              transform: 'translateY(-8px)',
+              boxShadow: '0 0 0 3px #f1c40f, 0 0 12px rgba(241, 196, 15, 0.5)',
+              borderRadius: '12px',
+            } : {}}
             onClick={() => {
               if (isMainPhase && selectedHandIdx !== null) {
                 handlePlayCard(i)
@@ -965,8 +1024,14 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               }
             }}
           >
+            {/* ATK 标签（选中攻击者时） */}
+            {isAttacker && (
+              <span className="absolute -top-2 -right-1 z-10 text-[9px] sm:text-[10px] font-bold bg-yellow-500 text-gray-900 px-1.5 py-0.5 rounded-full leading-none">
+                ATK
+              </span>
+            )}
             {card && card.currentHp > 0 ? (
-              <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={true} isActive={selectedAtkSlot === i} />
+              <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={true} isActive={isAttacker} />
             ) : (
               <span className="text-gray-700 text-[9px] sm:text-xs">{i + 1}</span>
             )}
@@ -986,7 +1051,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               ))}
             </AnimatePresence>
           </div>
-        ))}
+          )})}
       </div>
 
       {/* 玩家 Power Bank */}
@@ -1008,25 +1073,16 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         )
       })()}
 
-      {/* 玩家主人 HP */}
-      <div className="flex-none relative" data-hp-bar-area="true">
-        <HpBar current={battle.playerLeaderHp} max={30000} label="我方" color="bg-green-500" />
-        <AnimatePresence>
-          {floatingDmgs.filter(f => f.side === 'player' && f.slot === -1).map(f => (
-            <motion.div
-              key={f.id}
-              className={`absolute right-4 -top-2 text-xl font-black pointer-events-none ${f.color || 'text-yellow-400'}`}
-              style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
-              initial={{ opacity: 1, y: 0, scale: 1.3 }}
-              animate={{ opacity: 0, y: -30, scale: 0.8 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1 }}
-            >
-              {f.text || `-${f.dmg}`}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-      </div>
+      {/* 玩家主人面板 */}
+      <LeaderPanel
+        isEnemy={false}
+        currentHP={battle.playerLeaderHp}
+        maxHP={LEADER_HP}
+        isAttackTarget={false}
+        dimmed={isBattlePhase && selectedAtkSlot !== null}
+        onClick={null}
+        floats={floatingDmgs.filter(f => f.side === 'player' && f.slot === -1)}
+      />
 
       {/* SP 卡区域 */}
       {(battle.playerSpDeck.length > 0 || battle.enemySpDeck.length > 0) && (

@@ -967,43 +967,34 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             style={{ pointerEvents: currentStep.waitFor === 'acknowledge' ? 'auto' : 'none' }}
           />
 
-          {/* 提示框 */}
-          <motion.div
-            className="absolute left-1/2 -translate-x-1/2 z-50 max-w-xs"
-            style={{
-              bottom: currentStep.arrow === 'up' ? '35%' : currentStep.arrow === 'down' ? 'auto' : '20%',
-              top: currentStep.arrow === 'down' ? '10%' : 'auto',
-            }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            key={currentStep.id}
-          >
-            <div className="bg-yellow-900/95 border-2 border-yellow-500 rounded-xl p-3 shadow-lg shadow-yellow-500/20">
-              {/* 箭头指示（弹跳动画） */}
-              {currentStep.arrow === 'up' && (
-                <motion.div
-                  className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-yellow-400 text-lg"
-                  animate={{ y: [0, 6, 0] }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
-                >▼</motion.div>
-              )}
-              {currentStep.arrow === 'down' && (
-                <motion.div
-                  className="absolute -top-4 left-1/2 -translate-x-1/2 text-yellow-400 text-lg"
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
-                >▲</motion.div>
-              )}
+          {/* 提示框（根据目标位置动态定位：目标在下半→提示在上，目标在上半→提示在下） */}
+          {(() => {
+            // 目标在屏幕下半部分的区域
+            const lowerAreas = ['hand', 'hand_card_0', 'hand_card_1', 'hand_card_2', 'hand_card_3', 'hand_card_4', 'end_turn_btn', 'power_bank', 'power_bank_break', 'discard_area']
+            const isTargetLower = lowerAreas.some(a => currentStep.highlight?.startsWith(a))
+            return (
+              <motion.div
+                className="absolute left-1/2 -translate-x-1/2 z-50 max-w-xs"
+                style={isTargetLower
+                  ? { top: '8%', bottom: 'auto' }
+                  : { bottom: '30%', top: 'auto' }
+                }
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                key={currentStep.id}
+              >
+                <div className="bg-yellow-900/95 border-2 border-yellow-500 rounded-xl p-3 shadow-lg shadow-yellow-500/20">
+                  <p className="text-sm text-yellow-100 leading-relaxed">{currentStep.text}</p>
 
-              <p className="text-sm text-yellow-100 leading-relaxed">{currentStep.text}</p>
-
-              {currentStep.waitFor === 'acknowledge' && (
-                <div className="text-center mt-2">
-                  <span className="text-[10px] text-yellow-400/60 animate-pulse">点击任意处继续</span>
+                  {currentStep.waitFor === 'acknowledge' && (
+                    <div className="text-center mt-2">
+                      <span className="text-[10px] text-yellow-400/60 animate-pulse">点击任意处继续</span>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </motion.div>
+              </motion.div>
+            )
+          })()}
         </>
       )}
     </div>
