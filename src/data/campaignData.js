@@ -1,5 +1,5 @@
 // Bio Heroes 闯关战役数据
-// 4章17关（5教学 + 12闯关）
+// 4章23关（5教学 + 18闯关）— Sprint 19 扩展
 
 const CAMPAIGN_STORAGE_KEY = 'bio-heroes-campaign'
 
@@ -63,6 +63,31 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
+          id: 'stage_2_2',
+          name: '食物中毒危机',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 18000,
+            deck: ['salmonella_poison','salmonella_poison','cholera_wave','hookworm_sucker','common_cold_virus','ringworm_itch','ecoli_thug','ecoli_thug','event_infection_outbreak','event_infection_outbreak'],
+            spDeck: [],
+            aiStrength: 0.35,
+            aiPersonality: 'aggressive',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['body', 'tech'] },
+          dialogue: {
+            before: [
+              { speaker: 'enemy', emoji: '🦠', text: '嘿嘿，你吃的东西里有我们的大军！肚子开始疼了吧？' },
+              { speaker: 'player', emoji: '💬', text: '别小看我的消化系统！胃酸和免疫细胞会把你们全部消灭！' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '沙门氏菌最喜欢藏在没煮熟的鸡蛋和肉里。记住：食物要充分加热，生熟要分开，饭前要洗手！全球每年有6亿人因为不洁食物而生病。' },
+            ],
+          },
+          rewards: { firstClear: { coins: 350 }, threeStars: { coins: 175 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
+        },
+        {
           id: '2-2',
           name: '流感风暴',
           type: 'battle',
@@ -85,6 +110,31 @@ export const campaignData = {
             ],
           },
           rewards: { firstClear: { coins: 400 }, threeStars: { coins: 200 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
+        },
+        {
+          id: 'stage_2_4',
+          name: '蚊媒双煞',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 20000,
+            deck: ['dengue_mosquito','dengue_mosquito','plasmodium_parasite','hookworm_sucker','common_cold_virus','norovirus_storm','flu_virus','flu_virus','event_infection_outbreak','event_gene_mutation'],
+            spDeck: [],
+            aiStrength: 0.4,
+            aiPersonality: 'balanced',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
+          dialogue: {
+            before: [
+              { speaker: 'enemy', emoji: '🦟', text: '嗡嗡嗡——我们是蚊子大军的乘客！登革热和疟疾，你选哪个？' },
+              { speaker: 'player', emoji: '💬', text: '科学家已经发明了疫苗和蚊帐！你们的日子不多了！' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '全世界每年有2.5亿人感染疟疾，登革热也在热带地区肆虐。一只蚊子一次能产200颗卵，只需要一个瓶盖大小的积水就够了！消灭蚊子繁殖地是最好的预防方法。' },
+            ],
+          },
+          rewards: { firstClear: { coins: 450 }, threeStars: { coins: 225 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -181,6 +231,31 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
+          id: 'stage_3_2',
+          name: '深海猎场',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 22000,
+            deck: ['shark_hunter','shark_hunter','octopus_genius','sea_turtle_navigator','jellyfish_stealth','amoeba_shapeshifter','electric_eel_battery','event_food_chain_burst','event_food_chain_burst','event_ecosystem_recovery'],
+            spDeck: [],
+            aiStrength: 0.5,
+            aiPersonality: 'aggressive',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['nature', 'tech'] },
+          dialogue: {
+            before: [
+              { speaker: 'enemy', emoji: '🦈', text: '这里是深海，我们的领地！你的陆地生物在这里什么都不是！' },
+              { speaker: 'player', emoji: '💬', text: '海洋里也有我的朋友——海龟、鲸鱼，还有科技的力量！' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '海洋食物链从浮游植物开始，经过浮游动物、小鱼、大鱼，到鲨鱼和虎鲸等顶级捕食者。海洋产生了地球上50%以上的氧气，主要来自浮游植物的光合作用。' },
+            ],
+          },
+          rewards: { firstClear: { coins: 550 }, threeStars: { coins: 275 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
+        },
+        {
           id: '3-2',
           name: '水母迷宫',
           type: 'battle',
@@ -228,6 +303,31 @@ export const campaignData = {
             ],
           },
           rewards: { firstClear: { coins: 700 }, threeStars: { coins: 350 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
+        },
+        {
+          id: 'stage_3_4',
+          name: '丛林法则',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 24000,
+            deck: ['elephant_elder','spider_trapper','spider_trapper','chameleon_stealth','ant_queen_colony','bee_worker','cheetah_sprinter','event_food_chain_burst','event_photosynthesis','event_ecosystem_recovery'],
+            spDeck: [],
+            aiStrength: 0.55,
+            aiPersonality: 'balanced',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['body', 'nature'] },
+          dialogue: {
+            before: [
+              { speaker: 'enemy', emoji: '🐘', text: '在丛林中，适者生存！弱小的生物只是食物链的一环！' },
+              { speaker: 'player', emoji: '💬', text: '但每个生物都有自己的生存策略——蜘蛛有网，变色龙有伪装，蚂蚁有团队！' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '丛林里每种动物都有独特的生存策略：变色龙用伪装、蜘蛛用陷阱、蚂蚁用数量。热带雨林只占地球面积的6%，却拥有全球50%以上的物种！' },
+            ],
+          },
+          rewards: { firstClear: { coins: 750 }, threeStars: { coins: 375 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
@@ -299,6 +399,31 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
+          id: 'stage_4_2',
+          name: '真菌入侵',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 25000,
+            deck: ['cordyceps_zombie','cordyceps_zombie','ringworm_itch','ringworm_itch','prion_folder','anthrax_spore','ecoli_thug','event_gene_mutation','event_drug_resistance','event_infection_outbreak'],
+            spDeck: [],
+            aiStrength: 0.65,
+            aiPersonality: 'defensive',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
+          dialogue: {
+            before: [
+              { speaker: 'enemy', emoji: '🍄', text: '我不是普通的病菌——我能控制你的大脑！看看我对蚂蚁做的事...' },
+              { speaker: 'player', emoji: '💬', text: '僵尸真菌？听起来很可怕，但抗真菌药和免疫系统能保护我们！' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '真菌不是细菌也不是病毒，它们是独立的一界生物！冬虫夏草能控制昆虫行为，朊病毒则是错误折叠的蛋白质——连DNA都没有。地球上有超过500万种真菌，但只有约300种能感染人类。' },
+            ],
+          },
+          rewards: { firstClear: { coins: 1100 }, threeStars: { coins: 550 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
+        },
+        {
           id: '4-2',
           name: 'HIV潜伏',
           type: 'battle',
@@ -346,6 +471,31 @@ export const campaignData = {
             ],
           },
           rewards: { firstClear: { coins: 1400 }, threeStars: { coins: 700 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
+        },
+        {
+          id: 'stage_4_4',
+          name: '出血热噩梦',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 28000,
+            deck: ['ebola_terror','ebola_terror','smallpox_ghost','anthrax_spore','dengue_mosquito','norovirus_storm','hiv_hunter','event_global_pandemic','event_drug_resistance','event_gene_mutation'],
+            spDeck: ['sp_zombie_plague'],
+            aiStrength: 0.7,
+            aiPersonality: 'aggressive',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
+          dialogue: {
+            before: [
+              { speaker: 'enemy', emoji: '💀', text: '天花曾经杀死了全人类10%的人口...而我，更加致命！' },
+              { speaker: 'player', emoji: '💬', text: '天花已经被人类消灭了！科学的力量能战胜任何瘟疫！' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '埃博拉和天花是人类历史上最可怕的病原体。天花在1980年被彻底消灭，是人类唯一完全战胜的传染病！天花疫苗（牛痘接种法）是人类发明的第一种疫苗，由爱德华·詹纳在1796年发明。' },
+            ],
+          },
+          rewards: { firstClear: { coins: 1500 }, threeStars: { coins: 750 } },
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
