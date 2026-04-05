@@ -674,24 +674,14 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
                 onClick={() => !atLimit && !deckFull && addCard(card.id)}
               >
                 <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
-                {/* ℹ️ 详情按钮 */}
+                {/* ℹ️ 详情按钮 — 右下角，不与费用/稀有度重叠 */}
                 <button
-                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-black/60 text-[10px] text-blue-300 flex items-center justify-center hover:bg-blue-600/80 hover:text-white z-10"
+                  className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 text-[10px] text-blue-300 flex items-center justify-center hover:bg-blue-600/80 hover:text-white z-30"
                   onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
                   title="查看详情"
                 >
                   ℹ
                 </button>
-                {/* 技能小图标 */}
-                {card.skills && card.skills.length > 0 && (
-                  <div className="absolute bottom-0.5 left-0.5 flex gap-0.5">
-                    {card.skills.slice(0, 2).map((skill, si) => (
-                      <span key={si} className="text-[9px] bg-black/50 rounded px-0.5" title={skill.name}>
-                        {getSkillIcon(skill.name)}
-                      </span>
-                    ))}
-                  </div>
-                )}
                 {currentCount > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 text-white text-[10px] font-black flex items-center justify-center">
                     ×{currentCount}
