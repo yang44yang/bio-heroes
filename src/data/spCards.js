@@ -1,6 +1,6 @@
 // Bio Heroes 生物英雄传 - SP觉醒卡数据
 // Generated: 2026-03-16
-// Total: 8 SP cards (4 factions × 2 cards)
+// Total: 16 SP cards (8 original + 8 Sprint 18) (4 factions × 2 cards)
 // SP卡只能通过事件卡的SP召唤规则触发上场
 // SP卡上场不消耗能量，占战场位，被击杀进弃牌堆
 
@@ -329,6 +329,242 @@ const spCards = [
     evolutionFrom: null,
     evolutionTo: null,
     tags: ["gene_editing"],
+  },
+
+  // ============================================================
+  // Sprint 18 新增 SP 卡 (8张，每阵营+2)
+  // ============================================================
+
+  {
+    id: "sp_world_tree_ancient",
+    name: "SP·远古世界树·万灵庇护",
+    nameEn: "SP: Ancient World Tree - Universal Shelter",
+    type: "sp",
+    faction: "nature",
+    subType: "plant",
+    set: "BASE",
+    spCost: 8,
+    rarity: "SSR",
+    atk: 5000,
+    hp: 25000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "生态庇护",
+                "nameEn": "Ecosystem Shelter",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "出场时全队恢复 5000 HP，且每回合恢复 2000 HP（持续到世界树被击杀）",
+                "scienceNote": "一棵大树能为数百种生物提供栖息地和食物，是整个生态系统的核心"
+          }
+    ],
+    scienceCard: "世界上最大的树是加州的谢尔曼将军巨杉，高84米，树干周长31米，已经活了2200年！一棵大树每年能吸收22公斤的二氧化碳。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["ancient","keystone_species"],
+  },
+
+  {
+    id: "sp_kraken",
+    name: "SP·大王乌贼·深渊之王",
+    nameEn: "SP: Giant Squid - Abyssal King",
+    type: "sp",
+    faction: "nature",
+    subType: "marine",
+    set: "BASE",
+    spCost: 7,
+    rarity: "SSR",
+    atk: 15000,
+    hp: 12000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "深渊触手",
+                "nameEn": "Abyssal Tentacles",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "出场时对所有敌方卡造成 4000 伤害，并使其 ATK -2000 持续 2 回合",
+                "scienceNote": "大王乌贼有10条触手，最长可达13米，能同时缠住多个猎物"
+          }
+    ],
+    scienceCard: "大王乌贼是地球上最大的无脊椎动物，眼睛直径达27厘米——比篮球还大！它们生活在深海1000米处，直到2004年才第���次被活体拍摄到。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["cephalopod","deep_sea"],
+  },
+
+  {
+    id: "sp_immune_overdrive",
+    name: "SP·免疫风暴·全系统协同",
+    nameEn: "SP: Immune Storm - Full System Sync",
+    type: "sp",
+    faction: "body",
+    subType: "blood",
+    set: "BASE",
+    spCost: 8,
+    rarity: "SSR",
+    atk: 8000,
+    hp: 20000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "细胞因子风暴",
+                "nameEn": "Cytokine Storm",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "出场时全队 ATK +3000 且获得 2 回合免疫（不受负面状态影响）",
+                "scienceNote": "免疫系统全面激活时释放大量细胞因子，所有免疫细胞同时行动"
+          }
+    ],
+    scienceCard: "免疫风暴（细胞因子风暴）是免疫系统的'全力一击'——所有免疫细胞同时出动。虽然能消灭入侵者，但有时过于猛烈反而伤害自身。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["immune","adaptive_immunity"],
+  },
+
+  {
+    id: "sp_bone_titan",
+    name: "SP·骨骼巨人·钢铁之躯",
+    nameEn: "SP: Bone Titan - Iron Body",
+    type: "sp",
+    faction: "body",
+    subType: "structure",
+    set: "BASE",
+    spCost: 6,
+    rarity: "SSR",
+    atk: 10000,
+    hp: 15000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "钙化铠甲",
+                "nameEn": "Calcified Armor",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "守护 + 受到伤害减少 30%。被击杀时为主人添加 5000 护盾",
+                "scienceNote": "骨��是活的组织，由钙质不断重建，是人体最坚硬的防御结构"
+          }
+    ],
+    scienceCard: "人体有206块骨头！骨骼不是死的——它们一直在更新，每10年你的骨骼就完全换新一次。骨头比钢铁还结实，但重量只有钢铁的1/5。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: [],
+  },
+
+  {
+    id: "sp_zombie_plague",
+    name: "SP·��尸瘟疫·末日病原",
+    nameEn: "SP: Zombie Plague - Doomsday Pathogen",
+    type: "sp",
+    faction: "pathogen",
+    subType: "virus",
+    set: "BASE",
+    spCost: 9,
+    rarity: "SSR",
+    atk: 12000,
+    hp: 18000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "感染扩散",
+                "nameEn": "Infection Spread",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "出场时'感染'所有敌方卡：每回合损失当前 HP 的 15%，持续 3 回合",
+                "scienceNote": "假想的终极病原体结合了高传播力和免疫逃逸能力"
+          }
+    ],
+    scienceCard: "科学家最担心的'X疾病'——是一种还没出现的超级病原体。世卫组织专门列了一个'需要关注的病原体清单'。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["hypothetical","pandemic"],
+  },
+
+  {
+    id: "sp_biofilm_fortress",
+    name: "SP·生物膜·细菌堡垒",
+    nameEn: "SP: Biofilm Fortress",
+    type: "sp",
+    faction: "pathogen",
+    subType: "bacteria",
+    set: "BASE",
+    spCost: 6,
+    rarity: "SSR",
+    atk: 6000,
+    hp: 22000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "生物膜屏障",
+                "nameEn": "Biofilm Shield",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "守护 + 免疫科技系伤害。每回合为所有病原系友方卡恢复 1500 HP",
+                "scienceNote": "生物膜是细菌的集体防御工事，抗生素几乎���法穿透"
+          }
+    ],
+    scienceCard: "细菌不只是单打独斗！它们会聚在一起形成'生物膜'——一层黏糊糊的保护膜，让抗生素的效果降低1000倍��你牙齿上的牙菌斑就是生物膜！",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["biofilm","community"],
+  },
+
+  {
+    id: "sp_quantum_healer",
+    name: "SP·量子医疗·未来之光",
+    nameEn: "SP: Quantum Healer - Future Light",
+    type: "sp",
+    faction: "tech",
+    subType: "genetech",
+    set: "BASE",
+    spCost: 10,
+    rarity: "SSR",
+    atk: 8000,
+    hp: 22000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "量子修复",
+                "nameEn": "Quantum Repair",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "出场时完全恢复己方主人的 HP 到满值，并复活所有己方已倒下的卡（HP 50%）",
+                "scienceNote": "量子计算能在瞬间分析所有治疗方案，选择最优解"
+          }
+    ],
+    scienceCard: "量子计算机能在1秒内完成普通电脑1万年才能完成的计算！科学家正在研究用量子计算来设计新药。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["quantum","future_tech"],
+  },
+
+  {
+    id: "sp_vaccine_shield",
+    name: "SP·全民免疫·疫苗之盾",
+    nameEn: "SP: Herd Immunity Shield",
+    type: "sp",
+    faction: "tech",
+    subType: "medicine",
+    set: "BASE",
+    spCost: 7,
+    rarity: "SSR",
+    atk: 5000,
+    hp: 18000,
+    factionRequirement: null,
+    skills: [
+          {
+                "name": "群体免疫",
+                "nameEn": "Herd Immunity",
+                "type": "unique",
+                "timing": "onPlay",
+                "description": "出场时所有己��卡获得'免疫护盾'���每张卡可以抵消一次致死伤害（保留 1 HP）",
+                "scienceNote": "当群体中足够多的人有免疫力时，病原体无法传播"
+          }
+    ],
+    scienceCard: "群体免疫是疫��最伟大的成就！当95%以上的人接种了麻疹疫苗，剩下5%没接种的人也不会感染。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["vaccine","public_health"],
   },
 
 ];
