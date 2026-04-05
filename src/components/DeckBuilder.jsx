@@ -54,6 +54,161 @@ function generateRecommendedDeck(factionPrimary, factionSecondary, mainPool, spP
   return { main: main.map(c => c.id), sp: sp.map(c => c.id) }
 }
 
+// 技能类型 → 图标映射
+const SKILL_ICONS = {
+  '守护': '🛡️',
+  'Guard': '🛡️',
+  '迅击': '⚡',
+  'Swift': '⚡',
+  '穿透': '🗡️',
+  'Piercing': '🗡️',
+  '压制': '💪',
+  'Overpower': '💪',
+  '自愈': '💚',
+  'Recovery': '💚',
+}
+
+function getSkillIcon(skillName) {
+  for (const [key, icon] of Object.entries(SKILL_ICONS)) {
+    if (skillName.includes(key)) return icon
+  }
+  return '🎯' // 专属技能默认图标
+}
+
+// 卡牌详情弹窗组件
+function CardDetailModal({ card, onClose, onAdd, canAdd }) {
+  if (!card) return null
+  const faction = FACTIONS[card.faction]
+  const rarityColors = { SSR: '#f1c40f', SR: '#9b59b6', R: '#3498db' }
+  const borderColor = rarityColors[card.rarity] || '#3498db'
+
+  return (
+    <>
+      {/* 背景遮罩 */}
+      <motion.div
+        className="fixed inset-0 z-[999]"
+        style={{ background: 'rgba(0,0,0,0.6)' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+      />
+      {/* 弹窗本体 */}
+      <motion.div
+        className="fixed z-[1000] overflow-y-auto"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: 'min(90vw, 360px)',
+          maxHeight: '80vh',
+          background: '#1a1e2e',
+          borderRadius: '12px',
+          padding: '20px',
+          border: `2px solid ${borderColor}`,
+        }}
+        initial={{ opacity: 0, scale: 0.85 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.85 }}
+        transition={{ duration: 0.2 }}
+      >
+        {/* 卡名 */}
+        <h3 className="text-lg font-black text-white mb-1">
+          {faction?.icon} {card.name}
+        </h3>
+        {/* 阵营/子类型/稀有度/费用 */}
+        <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 mb-3">
+          <span style={{ color: faction?.color }}>{faction?.name}</span>
+          {card.subType && <span>· {card.subType}</span>}
+          <span
+            className="font-bold px-1.5 py-0.5 rounded text-[10px]"
+            style={{ background: `${borderColor}22`, color: borderColor }}
+          >
+            {card.rarity}
+          </span>
+          <span>⚡{card.cost ?? card.spCost ?? '?'}</span>
+        </div>
+
+        {/* ATK / HP */}
+        {(card.atk != null || card.hp != null) && (
+          <div className="flex gap-4 mb-3 text-sm font-bold">
+            {card.atk != null && <span className="text-red-400">⚔️ {card.atk}</span>}
+            {card.hp != null && <span className="text-green-400">❤️ {card.hp}</span>}
+          </div>
+        )}
+
+        {/* 技能 */}
+        {card.skills && card.skills.length > 0 && (
+          <div className="mb-3">
+            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">── 技能 ──</div>
+            {card.skills.map((skill, i) => (
+              <div key={i} className="mb-2">
+                <div className="text-sm font-bold text-white">
+                  {getSkillIcon(skill.name)} {skill.name}
+                  {skill.nameEn && <span className="text-gray-500 text-[10px] ml-1">({skill.nameEn})</span>}
+                </div>
+                <div className="text-xs text-gray-300 mt-0.5">{skill.description}</div>
+                {skill.scienceNote && (
+                  <div className="text-[10px] text-blue-300/70 mt-0.5">💡 {skill.scienceNote}</div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* 科学知识卡 */}
+        {card.scienceCard && (
+          <div className="mb-3">
+            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">── 你知道吗？──</div>
+            <div className="text-xs text-gray-300 leading-relaxed">📚 {card.scienceCard}</div>
+          </div>
+        )}
+
+        {/* 出场条件（仅有 factionRequirement 时显示）*/}
+        {card.factionRequirement && (
+          <div className="mb-3">
+            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">── 出场条件 ──</div>
+            <div className="text-xs text-yellow-300">
+              🔒 弃牌堆需 {FACTIONS[card.factionRequirement.faction]?.icon}×{card.factionRequirement.count}
+              {card.factionRequirement.type === 'consume' && ' (消耗)'}
+            </div>
+          </div>
+        )}
+
+        {/* 标签 */}
+        {card.tags && card.tags.length > 0 && (
+          <div className="mb-4">
+            <div className="flex flex-wrap gap-1">
+              {card.tags.map((tag, i) => (
+                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-400">
+                  🏷️ {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 按钮 */}
+        <div className="flex gap-2 mt-2">
+          {canAdd && (
+            <button
+              className="flex-1 text-sm py-2 rounded-lg font-bold bg-blue-600 hover:bg-blue-500 text-white"
+              onClick={() => { onAdd(card.id); onClose() }}
+            >
+              ＋ 选入卡组
+            </button>
+          )}
+          <button
+            className={`${canAdd ? 'flex-1' : 'w-full'} text-sm py-2 rounded-lg font-bold bg-gray-700 hover:bg-gray-600 text-gray-300`}
+            onClick={onClose}
+          >
+            关闭
+          </button>
+        </div>
+      </motion.div>
+    </>
+  )
+}
+
 export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
@@ -67,6 +222,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   const [deckSlots, setDeckSlots] = useState(() => loadDecks())
   const [activeSlot, setActiveSlot] = useState(0)
   const [editing, setEditing] = useState(false)
+  const [detailCard, setDetailCard] = useState(null) // 卡牌详情弹窗
 
   // Current deck being edited
   const [mainDeck, setMainDeck] = useState([]) // array of card ids
@@ -530,6 +686,24 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
                 onClick={() => !atLimit && !deckFull && addCard(card.id)}
               >
                 <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
+                {/* ℹ️ 详情按钮 */}
+                <button
+                  className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-black/60 text-[10px] text-blue-300 flex items-center justify-center hover:bg-blue-600/80 hover:text-white z-10"
+                  onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
+                  title="查看详情"
+                >
+                  ℹ
+                </button>
+                {/* 技能小图标 */}
+                {card.skills && card.skills.length > 0 && (
+                  <div className="absolute bottom-0.5 left-0.5 flex gap-0.5">
+                    {card.skills.slice(0, 2).map((skill, si) => (
+                      <span key={si} className="text-[9px] bg-black/50 rounded px-0.5" title={skill.name}>
+                        {getSkillIcon(skill.name)}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {currentCount > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 text-white text-[10px] font-black flex items-center justify-center">
                     ×{currentCount}
@@ -540,6 +714,24 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
           })}
         </div>
       </div>
+
+      {/* 卡牌详情弹窗 */}
+      <AnimatePresence>
+        {detailCard && (
+          <CardDetailModal
+            card={detailCard}
+            onClose={() => setDetailCard(null)}
+            onAdd={(id) => addCard(id)}
+            canAdd={(() => {
+              const isSp = detailCard.type === 'sp'
+              const deck = isSp ? spDeck : mainDeck
+              const max = isSp ? MAX_SAME_SP : MAX_SAME_CARD
+              const limit = isSp ? SP_DECK_SIZE : DECK_SIZE
+              return deck.length < limit && deck.filter(id => id === detailCard.id).length < max
+            })()}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
