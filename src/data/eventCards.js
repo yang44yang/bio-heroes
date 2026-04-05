@@ -16,6 +16,7 @@ const eventCards = [
     nameEn: "Photosynthesis",
     type: "event",
     faction: "nature",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: null,
@@ -30,6 +31,7 @@ const eventCards = [
     scienceCard: "光合作用是地球上最重要的化学反应——植物利用阳光把二氧化碳和水变成糖和氧气。没有光合作用，地球上就不会有氧气，也不会有我们！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -38,6 +40,7 @@ const eventCards = [
     nameEn: "Food Chain Burst",
     type: "event",
     faction: "nature",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: null,
@@ -56,6 +59,7 @@ const eventCards = [
     scienceCard: "食物链中的能量从底层向上传递：植物→食草动物→食肉动物。顶级掠食者汇聚了整个生态系统的力量！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -64,6 +68,7 @@ const eventCards = [
     nameEn: "Ecosystem Recovery",
     type: "event",
     faction: "nature",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: null,
@@ -81,6 +86,7 @@ const eventCards = [
     scienceCard: "生态系统有惊人的自我恢复能力！1988年黄石公园大火烧毁了大片森林，但仅仅20年后，新生的树木就覆盖了烧焦的土地，野生动物也全部回归。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -89,6 +95,7 @@ const eventCards = [
     nameEn: "Cambrian Explosion",
     type: "event",
     faction: "nature",
+    set: "BASE",
     cost: 4,
     rarity: "SSR",
     atk: null,
@@ -108,6 +115,7 @@ const eventCards = [
     scienceCard: "5.4亿年前的寒武纪大爆发是生命史上最神奇的事件——在短短几百万年内，几乎所有现代动物的祖先同时出现！从三叶虫到奇虾，生命的多样性瞬间爆发。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   // ============================================================
@@ -120,6 +128,7 @@ const eventCards = [
     nameEn: "Immune Response",
     type: "event",
     faction: "body",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: null,
@@ -134,6 +143,7 @@ const eventCards = [
     scienceCard: "免疫系统检测到入侵者后会启动一系列防御反应：先是炎症反应召集白细胞，然后抗体精准锁定敌人，最后记忆细胞记住敌人的样子防止再次入侵。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -142,6 +152,7 @@ const eventCards = [
     nameEn: "Antigen Presentation",
     type: "event",
     faction: "body",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: null,
@@ -160,6 +171,7 @@ const eventCards = [
     scienceCard: "抗原呈递细胞（如树突状细胞）是免疫系统的\"侦察兵\"。它们吞噬病原体后把碎片展示在自己表面，像举着\"通缉令\"给T细胞看，激活整个适应性免疫反应！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -168,6 +180,7 @@ const eventCards = [
     nameEn: "Fever Response",
     type: "event",
     faction: "body",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: null,
@@ -185,6 +198,7 @@ const eventCards = [
     scienceCard: "发烧不是坏事！体温升高1-2度能让白细胞活动加快、抗体产生增多，同时大部分细菌在高温下繁殖变慢。但代价是身体消耗更多能量，所以发烧时会觉得很累。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -193,6 +207,7 @@ const eventCards = [
     nameEn: "Stem Cell Differentiation",
     type: "event",
     faction: "body",
+    set: "BASE",
     cost: 4,
     rarity: "SSR",
     atk: null,
@@ -212,6 +227,7 @@ const eventCards = [
     scienceCard: "干细胞是身体里的\"万能细胞\"——它们可以分化成任何类型的细胞！骨髓中的造血干细胞每天制造数千亿个血液细胞，皮肤干细胞不断更新皮肤。科学家正在研究用干细胞修复受损的心脏和神经！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   // ============================================================
@@ -224,6 +240,7 @@ const eventCards = [
     nameEn: "Infection Outbreak",
     type: "event",
     faction: "pathogen",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: null,
@@ -238,6 +255,7 @@ const eventCards = [
     scienceCard: "病原体入侵后会在宿主体内快速繁殖，引发感染。细菌每20分钟就能分裂一次——意味着一个细菌8小时后可以变成1700万个！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -246,6 +264,7 @@ const eventCards = [
     nameEn: "Gene Mutation",
     type: "event",
     faction: "pathogen",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: null,
@@ -264,6 +283,7 @@ const eventCards = [
     scienceCard: "基因突变是进化的引擎！大部分突变是有害的或中性的，但偶尔会出现有利突变，让生物获得新的能力。病毒的高突变率让它们能快速适应环境——这就是为什么流感病毒每年都在变。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -272,6 +292,7 @@ const eventCards = [
     nameEn: "Drug Resistance Evolution",
     type: "event",
     faction: "pathogen",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: null,
@@ -289,6 +310,7 @@ const eventCards = [
     scienceCard: "当抗生素杀死大部分细菌时，少数天生耐药的个体存活下来并大量繁殖。这就是自然选择——达尔文进化论在微观世界的完美体现！这也是为什么不能随便停药。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -297,6 +319,7 @@ const eventCards = [
     nameEn: "Global Pandemic",
     type: "event",
     faction: "pathogen",
+    set: "BASE",
     cost: 5,
     rarity: "SSR",
     atk: null,
@@ -313,6 +336,7 @@ const eventCards = [
     scienceCard: "当传染病跨越国界大规模传播时就成为\"大流行\"（Pandemic）。人类历史上经历过多次大流行：14世纪的黑死病杀死了欧洲三分之一人口，1918年的西班牙流感感染了全球三分之一人口。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   // ============================================================
@@ -325,6 +349,7 @@ const eventCards = [
     nameEn: "Lab Observation",
     type: "event",
     faction: "tech",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: null,
@@ -339,6 +364,7 @@ const eventCards = [
     scienceCard: "科学实验的第一步永远是仔细观察和记录。伽利略观察木星发现了四颗卫星，列文虎克观察水滴发现了微生物，弗莱明观察发霉的培养皿发现了青霉素。伟大的发现往往始于一次认真的观察！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -347,6 +373,7 @@ const eventCards = [
     nameEn: "Clinical Trial",
     type: "event",
     faction: "tech",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: null,
@@ -364,6 +391,7 @@ const eventCards = [
     scienceCard: "每种新药在上市前都必须经过严格的临床试验。从实验室到药房平均需要12年和数十亿元的投入！临床试验分三期：I期测安全性，II期测有效性，III期做大规模对比。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -372,6 +400,7 @@ const eventCards = [
     nameEn: "Emergency Surgery",
     type: "event",
     faction: "tech",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: null,
@@ -390,6 +419,7 @@ const eventCards = [
     scienceCard: "现代外科手术能精准切除病变组织而几乎不伤及周围健康组织。从19世纪李斯特的无菌手术，到今天的达芬奇机器人手术系统，手术越来越精确、创伤越来越小。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -398,6 +428,7 @@ const eventCards = [
     nameEn: "Tech Revolution",
     type: "event",
     faction: "tech",
+    set: "BASE",
     cost: 5,
     rarity: "SSR",
     atk: null,
@@ -417,6 +448,7 @@ const eventCards = [
     scienceCard: "从显微镜到X光，从青霉素到基因编辑，每次科技革命都彻底改变了人类对抗疾病的方式。18世纪的疫苗、19世纪的无菌手术、20世纪的抗生素、21世纪的基因疗法——下一个革命会是什么？",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
 ];

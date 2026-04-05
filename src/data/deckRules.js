@@ -48,6 +48,38 @@ export const POWER_CURVE = {
   10: 22000,
 }
 
+// === 子类型 ===
+export const SUBTYPES = {
+  nature:   [
+    { key: 'plant',  name: '🌿 植物',     nameEn: 'Plant' },
+    { key: 'land',   name: '🐾 陆地动物', nameEn: 'Land' },
+    { key: 'marine', name: '🐋 海洋生物', nameEn: 'Marine' },
+    { key: 'aerial', name: '🦅 飞行生物', nameEn: 'Aerial' },
+    { key: 'micro',  name: '🔬 微生物',   nameEn: 'Micro' },
+  ],
+  body:     [
+    { key: 'blood',     name: '🩸 血液免疫', nameEn: 'Blood' },
+    { key: 'organ',     name: '❤️ 器官',     nameEn: 'Organ' },
+    { key: 'nerve',     name: '⚡ 神经',     nameEn: 'Nerve' },
+    { key: 'structure', name: '🦴 结构',     nameEn: 'Structure' },
+    { key: 'cellmech',  name: '🧫 细胞机制', nameEn: 'Cell Mech' },
+  ],
+  pathogen: [
+    { key: 'virus',    name: '🧫 病毒',   nameEn: 'Virus' },
+    { key: 'bacteria', name: '🦠 细菌',   nameEn: 'Bacteria' },
+    { key: 'fungus',   name: '🍄 真菌',   nameEn: 'Fungus' },
+    { key: 'parasite', name: '🪱 寄生虫', nameEn: 'Parasite' },
+    { key: 'other',    name: '❓ 其他',    nameEn: 'Other' },
+  ],
+  tech:     [
+    { key: 'medicine',   name: '💊 药物',     nameEn: 'Medicine' },
+    { key: 'diagnostic', name: '🔍 诊断工具', nameEn: 'Diagnostic' },
+    { key: 'equipment',  name: '🔧 医疗设备', nameEn: 'Equipment' },
+    { key: 'genetech',   name: '🧬 基因技术', nameEn: 'Genetech' },
+    { key: 'prevention', name: '🛡️ 预防措施', nameEn: 'Prevention' },
+  ],
+}
+
 // === 阵营 ===
 export const FACTIONS = {
   nature:   { name: '自然系', nameEn: 'Nature',   icon: '🌱', color: '#4ADE80' },

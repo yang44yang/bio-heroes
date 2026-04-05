@@ -1163,10 +1163,6 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           {playerHand.hand.map((card, i) => {
             const canAfford = card.cost <= battle.playerEnergy
             const markerOk = card.type === 'event' || canPlayWithMarkers(card, battle.playerDiscard)
-            if (card.factionRequirement) {
-              console.log('[DEBUG] Card:', card.name, 'req:', card.factionRequirement.faction, '×', card.factionRequirement.count,
-                'discard:', battle.playerDiscard.length, 'markers:', getFactionMarkers(battle.playerDiscard), 'markerOk:', markerOk)
-            }
             return (
               <div
                 key={card.uid}

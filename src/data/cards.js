@@ -3,6 +3,7 @@
 // Total: 40 cards (4 factions × 10 cards)
 // 最小数值变动幅度: 500
 // v2 变更: 新增 factionRequirement 字段（阵营标记需求）
+// v3 变更: 新增 subType/set/tags 字段 + 胃酸改名为胃 + 噬菌体归virus
 
 const cards = [
 
@@ -16,6 +17,8 @@ const cards = [
     nameEn: "Ant: Micro Warrior",
     type: "character",
     faction: "nature",
+    subType: "land",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 1500,
@@ -33,6 +36,7 @@ const cards = [
     scienceCard: "一只蚂蚁能举起自身体重50倍的东西，相当于你举起一辆卡车！全世界蚂蚁的总重量和全人类差不多重。它们还会\"种地\"——切叶蚁会把树叶搬回家种蘑菇吃！",
     evolutionFrom: null,
     evolutionTo: "蚁群·百万军团",
+    tags: ["insect", "social"],
   },
 
   {
@@ -41,6 +45,8 @@ const cards = [
     nameEn: "Mimosa: Timid Warrior",
     type: "character",
     faction: "nature",
+    subType: "plant",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 1000,
@@ -58,6 +64,7 @@ const cards = [
     scienceCard: "含羞草一碰就会\"害羞\"地把叶子合起来！其实它不是害羞，而是在装死——让想吃它的虫子以为它枯萎了。更神奇的是，如果你反复碰它，它会\"学会\"不再合拢，好像知道你不是真正的危险！",
     evolutionFrom: null,
     evolutionTo: "捕蝇草·猎杀陷阱",
+    tags: [],
   },
 
   {
@@ -66,6 +73,8 @@ const cards = [
     nameEn: "Bee: Diligent Brewer",
     type: "character",
     faction: "nature",
+    subType: "land",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 2000,
@@ -83,6 +92,7 @@ const cards = [
     scienceCard: "蜜蜂蜇人后自己也会死，所以它们只有在保护蜂巢时才会蜇人——这是用生命在战斗！一只蜜蜂一辈子只能酿一茶匙蜂蜜，但一个蜂群一年能酿30公斤。它们还会跳\"8字舞\"告诉同伴花在哪里！",
     evolutionFrom: null,
     evolutionTo: "蜂群·万刺风暴",
+    tags: ["insect", "pollinator"],
   },
 
   {
@@ -91,6 +101,8 @@ const cards = [
     nameEn: "Jellyfish: Transparent Assassin",
     type: "character",
     faction: "nature",
+    subType: "marine",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: 2000,
@@ -108,6 +120,7 @@ const cards = [
     scienceCard: "水母没有大脑、没有心脏、没有骨头，身体95%都是水！但有些水母的毒液超级厉害，箱形水母是世界上最毒的动物之一。还有一种叫\"灯塔水母\"的小家伙，能把自己变回婴儿重新长大，理论上可以永生！",
     evolutionFrom: null,
     evolutionTo: "箱形水母·致命蓝焰",
+    tags: ["cnidarian", "venomous"],
   },
 
   {
@@ -116,6 +129,8 @@ const cards = [
     nameEn: "Sunflower: Solar Charger",
     type: "character",
     faction: "nature",
+    subType: "plant",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: 1000,
@@ -133,6 +148,7 @@ const cards = [
     scienceCard: "向日葵幼苗会追着太阳转，早上朝东、傍晚朝西，但长大后就固定朝东了！一朵向日葵上其实有上千朵小花，排列方式符合斐波那契数列——大自然也懂数学！",
     evolutionFrom: null,
     evolutionTo: "世界树·生命之源",
+    tags: [],
   },
 
   {
@@ -141,6 +157,8 @@ const cards = [
     nameEn: "Electric Eel: Living Battery",
     type: "character",
     faction: "nature",
+    subType: "marine",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: 3000,
@@ -158,6 +176,7 @@ const cards = [
     scienceCard: "电鳗其实不是鳗鱼，而是一种南美洲的裸背电鱼！它的身体80%都是发电器官，就像一节超级大电池。它在浑浊的亚马逊河里靠放电来探路和捕猎。",
     evolutionFrom: null,
     evolutionTo: "电鳗·雷霆之王",
+    tags: ["fish", "electric"],
   },
 
   {
@@ -166,6 +185,8 @@ const cards = [
     nameEn: "Cheetah: Lightning Hunter",
     type: "character",
     faction: "nature",
+    subType: "land",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 5000,
@@ -190,6 +211,7 @@ const cards = [
     scienceCard: "猎豹是地球上跑得最快的动物，3秒就能加速到时速100公里，比大部分跑车还快！但它有个弱点：跑太快身体会过热，所以它必须在30秒内抓到猎物，否则就只能放弃。猎豹跑步时尾巴像方向盘一样帮它转弯！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["mammal", "predator"],
   },
 
   {
@@ -198,6 +220,8 @@ const cards = [
     nameEn: "Venus Flytrap: Kill Trap",
     type: "character",
     faction: "nature",
+    subType: "plant",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 3500,
@@ -215,6 +239,7 @@ const cards = [
     scienceCard: "捕蝇草是会\"吃肉\"的植物！它的叶子像一个长满牙齿的大嘴巴，虫子碰到里面的小毛毛两次，嘴巴就\"啪\"地合上，然后用消化液慢慢把虫子化掉。它会数数——碰一次不关，必须碰两次才触发！",
     evolutionFrom: "含羞草·胆小勇士",
     evolutionTo: null,
+    tags: ["carnivorous"],
   },
 
   {
@@ -223,6 +248,8 @@ const cards = [
     nameEn: "Orca: Apex of the Abyss",
     type: "character",
     faction: "nature",
+    subType: "marine",
+    set: "BASE",
     cost: 7,
     rarity: "SSR",
     atk: 8500,
@@ -252,6 +279,7 @@ const cards = [
     scienceCard: "虎鲸其实是海豚科中体型最大的成员，不是鲸！它们的大脑非常发达，不同家族有自己独特的\"方言\"。虎鲸是母系社会，妈妈会带着孩子一辈子。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["mammal", "predator"],
   },
 
   {
@@ -260,6 +288,8 @@ const cards = [
     nameEn: "Blue Whale: Abyssal Titan",
     type: "character",
     faction: "nature",
+    subType: "marine",
+    set: "BASE",
     cost: 8,
     rarity: "SSR",
     atk: 6000,
@@ -289,6 +319,7 @@ const cards = [
     scienceCard: "蓝鲸是地球有史以来最大的动物——比最大的恐龙还大！它的心脏像一辆汽车那么大，舌头上能站50个人。蓝鲸宝宝刚出生就有7米长，每天喝400升奶，半年就能长到15米！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["mammal"],
   },
 
   // ============================================================
@@ -301,6 +332,8 @@ const cards = [
     nameEn: "Platelet: Wound Guardian",
     type: "character",
     faction: "body",
+    subType: "blood",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 500,
@@ -318,6 +351,7 @@ const cards = [
     scienceCard: "血小板其实不是完整的细胞，而是骨髓里的巨核细胞碎裂出来的小碎片！虽然个头最小，但没有它们你流血就停不下来。它们会成群结队地冲到伤口，手拉手堵住破洞，就像一群小工人在修水管！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -326,6 +360,8 @@ const cards = [
     nameEn: "Red Blood Cell: Oxygen Courier",
     type: "character",
     faction: "body",
+    subType: "blood",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 1000,
@@ -343,14 +379,17 @@ const cards = [
     scienceCard: "你的身体里有大约25万亿个红细胞！它们长得像中间凹下去的小圆饼，没有细胞核，这样就能装更多氧气。每秒钟你的骨髓会制造大约200万个新的红细胞。",
     evolutionFrom: null,
     evolutionTo: "血红蛋白·超级载体",
+    tags: [],
   },
 
   {
     id: "stomach_acid",
-    name: "胃酸·消化熔炉",
-    nameEn: "Stomach Acid: Digestive Furnace",
+    name: "胃·消化熔炉",
+    nameEn: "Stomach: Digestive Furnace",
     type: "character",
     faction: "body",
+    subType: "organ",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: 3000,
@@ -368,6 +407,7 @@ const cards = [
     scienceCard: "你的胃里装着超级强酸，酸到可以溶解金属！那为什么胃不会把自己消化掉呢？因为胃壁有一层厚厚的黏液保护层，而且胃壁细胞每3-4天就全部更新一次，比你换衣服还勤快！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -376,6 +416,8 @@ const cards = [
     nameEn: "White Blood Cell: Immune Vanguard",
     type: "character",
     faction: "body",
+    subType: "blood",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: 3000,
@@ -393,6 +435,7 @@ const cards = [
     scienceCard: "白细胞是你身体里的\"警察\"和\"士兵\"！当你受伤发炎、伤口变红变肿的时候，其实就是大量白细胞赶到现场在打仗。它们能穿过血管壁，跑到需要的地方去消灭坏蛋。",
     evolutionFrom: null,
     evolutionTo: "巨噬细胞·终极吞噬者",
+    tags: ["immune"],
   },
 
   {
@@ -401,6 +444,8 @@ const cards = [
     nameEn: "Skin: First Line of Defense",
     type: "character",
     faction: "body",
+    subType: "structure",
+    set: "BASE",
     cost: 3,
     rarity: "R",
     atk: 1500,
@@ -418,6 +463,7 @@ const cards = [
     scienceCard: "皮肤是你身体上最大的器官，展开面积有2平方米！它每天都在掉落死皮——你一辈子大约会掉40公斤的死皮。皮肤每27天就全部换新一次，所以你的皮肤永远都是\"新\"的！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -426,6 +472,8 @@ const cards = [
     nameEn: "Neuron: Lightning Messenger",
     type: "character",
     faction: "body",
+    subType: "nerve",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 4000,
@@ -443,6 +491,7 @@ const cards = [
     scienceCard: "你的大脑里有大约860亿个神经元，比银河系的星星还多！每个神经元可以和一万个其他神经元连接，它们之间传递消息的速度比眨眼还快。你现在能看懂这段话，就是因为亿万个神经元正在疯狂\"打电话\"！",
     evolutionFrom: null,
     evolutionTo: "大脑皮层·意识之海",
+    tags: [],
   },
 
   {
@@ -451,6 +500,8 @@ const cards = [
     nameEn: "Antibody: Guided Missile",
     type: "character",
     faction: "body",
+    subType: "blood",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 4500,
@@ -468,6 +519,7 @@ const cards = [
     scienceCard: "抗体就像你免疫系统的\"导弹\"！每种抗体只能对付一种敌人，形状刚好像钥匙配锁一样。你的身体能造出超过10亿种不同的抗体，几乎能对付任何入侵者。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["immune"],
   },
 
   {
@@ -476,6 +528,8 @@ const cards = [
     nameEn: "Lung: Breathing Engine",
     type: "character",
     faction: "body",
+    subType: "organ",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 2000,
@@ -493,6 +547,7 @@ const cards = [
     scienceCard: "你的两个肺不一样大——左肺比右肺小一点，因为要给心脏留位置！肺里面有3亿个小气球叫\"肺泡\"，如果全部展开铺平，面积比一个网球场还大。你每天呼吸大约2万次！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -501,6 +556,8 @@ const cards = [
     nameEn: "Skeleton: Steel Frame",
     type: "character",
     faction: "body",
+    subType: "structure",
+    set: "BASE",
     cost: 4,
     rarity: "SR",
     atk: 1500,
@@ -525,6 +582,7 @@ const cards = [
     scienceCard: "你出生时有300多块骨头，但长大后只剩206块，因为很多小骨头长着长着就合并了！骨头看起来硬邦邦的，但里面其实是活的——骨髓每天都在造血。人的大腿骨比同样粗细的钢筋还结实！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -533,6 +591,8 @@ const cards = [
     nameEn: "Heart: Perpetual Engine",
     type: "character",
     faction: "body",
+    subType: "organ",
+    set: "BASE",
     cost: 5,
     rarity: "SSR",
     atk: 3000,
@@ -562,6 +622,7 @@ const cards = [
     scienceCard: "你的心脏从妈妈肚子里就开始跳了，到现在一秒都没停过！它每天跳10万次，一辈子能跳25亿次。心脏泵出的血液如果接成一条线，能绕地球两圈半！而且心脏有自己的\"发电站\"，就算脱离身体也能继续跳一小会儿。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   // ============================================================
@@ -574,6 +635,8 @@ const cards = [
     nameEn: "Influenza: Mutation Invader",
     type: "character",
     faction: "pathogen",
+    subType: "virus",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 2000,
@@ -591,6 +654,7 @@ const cards = [
     scienceCard: "流感病毒特别\"狡猾\"，它的外壳蛋白质一直在变化，就像不断换衣服的小偷，让你的免疫系统认不出它。这就是为什么你打了流感疫苗，第二年可能还会感冒！",
     evolutionFrom: null,
     evolutionTo: "H5N1·超级毒株",
+    tags: ["RNA_virus"],
   },
 
   {
@@ -599,6 +663,8 @@ const cards = [
     nameEn: "Cavity Bacteria: Sweet Destroyer",
     type: "character",
     faction: "pathogen",
+    subType: "bacteria",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 2000,
@@ -616,6 +682,7 @@ const cards = [
     scienceCard: "蛀牙菌最爱吃糖！它们住在你的牙齿上，吃完糖后会\"吐酸水\"，把坚硬的牙齿慢慢溶化出洞来。所以吃完甜食一定要刷牙，不然就是在请蛀牙菌吃大餐！",
     evolutionFrom: null,
     evolutionTo: "牙周病菌·骨骼侵蚀者",
+    tags: [],
   },
 
   {
@@ -624,6 +691,8 @@ const cards = [
     nameEn: "Rabies: Neural Invader",
     type: "character",
     faction: "pathogen",
+    subType: "virus",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: 3500,
@@ -641,6 +710,7 @@ const cards = [
     scienceCard: "狂犬病毒会沿着神经\"爬\"到大脑，让被感染的动物变得暴躁爱咬人，这样病毒就能通过唾液传给下一个受害者。感染后如果不及时打疫苗，致死率几乎100%！好在现在有疫苗可以预防。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["RNA_virus", "zoonotic"],
   },
 
   {
@@ -649,6 +719,8 @@ const cards = [
     nameEn: "E. Coli: Gut Thug",
     type: "character",
     faction: "pathogen",
+    subType: "bacteria",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: 2500,
@@ -666,6 +738,7 @@ const cards = [
     scienceCard: "大肠杆菌其实大部分是好的！你的肠子里住着几万亿个，帮你消化食物和制造维生素K。但有少数坏的品种跑到不该去的地方就会让你拉肚子。一个细菌20分钟就能变成两个，一天就能变出几十亿个！",
     evolutionFrom: null,
     evolutionTo: "超级细菌·耐药终结者",
+    tags: [],
   },
 
   {
@@ -674,6 +747,8 @@ const cards = [
     nameEn: "Tapeworm: Parasitic Lurker",
     type: "character",
     faction: "pathogen",
+    subType: "parasite",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: 2000,
@@ -691,6 +766,7 @@ const cards = [
     scienceCard: "绦虫是世界上最长的寄生虫，最长能到20米——比一辆公交车还长！它没有嘴巴也没有胃，全靠身体表面\"偷吃\"你已经消化好的食物。它的头上有钩子和吸盘，牢牢勾住你的肠壁，很难弄掉。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["flatworm"],
   },
 
   {
@@ -699,6 +775,8 @@ const cards = [
     nameEn: "Bacteriophage: Bacteria Killer",
     type: "character",
     faction: "pathogen",
+    subType: "virus",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 4500,
@@ -716,6 +794,7 @@ const cards = [
     scienceCard: "噬菌体是专门吃细菌的病毒！它长得像一个登月飞船，有头部、尾巴和脚。它会把脚插进细菌身体里，把自己的基因注射进去，然后细菌就变成了噬菌体工厂，最后\"砰\"一声炸开，放出几百个新的噬菌体宝宝！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["bacteriophage"],
   },
 
   {
@@ -724,6 +803,8 @@ const cards = [
     nameEn: "Plasmodium: Blood Parasite King",
     type: "character",
     faction: "pathogen",
+    subType: "parasite",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 4000,
@@ -741,6 +822,7 @@ const cards = [
     scienceCard: "疟原虫是通过蚊子叮咬传播的小寄生虫，它会钻进你的红细胞里\"安家\"，吃掉红细胞的营养，然后像小炸弹一样让红细胞爆炸，跑出来再入侵新的红细胞。疟疾在人类历史上杀死的人比任何战争都多！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["protist"],
   },
 
   {
@@ -749,6 +831,8 @@ const cards = [
     nameEn: "Botulinum: Deadly Chef",
     type: "character",
     faction: "pathogen",
+    subType: "bacteria",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 5500,
@@ -766,6 +850,7 @@ const cards = [
     scienceCard: "肉毒杆菌产生的毒素是世界上最毒的东西——比眼镜蛇毒强一百万倍！但科学家把它变成了美容神器——肉毒素（Botox）注射可以消除皱纹。同一种东西，用多了是毒药，用少了是药物！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["toxin"],
   },
 
   {
@@ -774,6 +859,8 @@ const cards = [
     nameEn: "HIV: Immune Hunter",
     type: "character",
     faction: "pathogen",
+    subType: "virus",
+    set: "BASE",
     cost: 4,
     rarity: "SSR",
     atk: 5000,
@@ -803,6 +890,7 @@ const cards = [
     scienceCard: "艾滋病毒专门攻击保护你的白细胞——就像小偷专门打警察！它会把自己的基因偷偷塞进白细胞的DNA里，藏起来很久都发现不了。现在虽然还没有疫苗能完全消灭它，但药物已经能让感染者像健康人一样生活。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["retrovirus"],
   },
 
   {
@@ -811,6 +899,8 @@ const cards = [
     nameEn: "COVID-19: Global Invader",
     type: "character",
     faction: "pathogen",
+    subType: "virus",
+    set: "BASE",
     cost: 5,
     rarity: "SSR",
     atk: 4000,
@@ -840,6 +930,7 @@ const cards = [
     scienceCard: "新冠病毒表面有很多像皇冠一样的凸起，所以叫\"冠状病毒\"。它用这些凸起当\"钥匙\"，打开人体细胞的\"门锁\"钻进去。科学家用创纪录的速度研制出了mRNA疫苗来对付它。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["RNA_virus", "coronavirus"],
   },
 
   // ============================================================
@@ -852,6 +943,8 @@ const cards = [
     nameEn: "Band-Aid: First Aid Helper",
     type: "character",
     faction: "tech",
+    subType: "equipment",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 500,
@@ -869,6 +962,7 @@ const cards = [
     scienceCard: "创可贴是1920年厄尔·迪克森发明的，因为他太太总是在厨房切菜切到手！他把纱布粘在胶带上，这样她一个人也能贴。后来强生公司把它变成了全世界最常见的急救用品。",
     evolutionFrom: null,
     evolutionTo: "青霉素·抗菌先驱",
+    tags: [],
   },
 
   {
@@ -877,6 +971,8 @@ const cards = [
     nameEn: "Thermometer: Fever Alarm",
     type: "character",
     faction: "tech",
+    subType: "diagnostic",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 500,
@@ -894,6 +990,7 @@ const cards = [
     scienceCard: "最早的体温计是伽利略发明的，有一米多长！你发烧时体温升高，其实是身体在\"开暖气\"对抗病菌——因为大部分细菌在高温下会变弱。所以适度发烧是你的免疫系统在努力工作！",
     evolutionFrom: null,
     evolutionTo: "MRI·全身透视仪",
+    tags: [],
   },
 
   {
@@ -902,6 +999,8 @@ const cards = [
     nameEn: "Stethoscope: Heart Listener",
     type: "character",
     faction: "tech",
+    subType: "diagnostic",
+    set: "BASE",
     cost: 1,
     rarity: "R",
     atk: 500,
@@ -919,6 +1018,7 @@ const cards = [
     scienceCard: "听诊器是因为一个尴尬的故事发明的！医生雷奈克需要听一位女病人的心跳，但直接把耳朵贴上去太不礼貌了，于是他卷了一筒纸当\"传声筒\"，发现效果特别好！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -927,6 +1027,8 @@ const cards = [
     nameEn: "X-Ray: Bone Vision",
     type: "character",
     faction: "tech",
+    subType: "diagnostic",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: 1500,
@@ -944,6 +1046,7 @@ const cards = [
     scienceCard: "X光也是意外发现的！1895年伦琴发现了一种神秘射线，他用X光拍了太太的手，能清楚看到骨头和戒指。伦琴因此获得了第一届诺贝尔物理学奖。",
     evolutionFrom: "体温计·发烧警报器",
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -952,6 +1055,8 @@ const cards = [
     nameEn: "Microscope: Micro Eye",
     type: "character",
     faction: "tech",
+    subType: "diagnostic",
+    set: "BASE",
     cost: 2,
     rarity: "R",
     atk: 1000,
@@ -969,6 +1074,7 @@ const cards = [
     scienceCard: "第一个用显微镜看到细菌的人叫列文虎克，他是一个荷兰的布料商人！他自己磨镜片做了几百台显微镜，发现水滴里竟然住着无数\"小动物\"。没有显微镜，我们根本不知道世界上还有细菌和病毒！",
     evolutionFrom: null,
     evolutionTo: "电子显微镜·纳米之眼",
+    tags: [],
   },
 
   {
@@ -977,6 +1083,8 @@ const cards = [
     nameEn: "Anesthesia: Sleep Fog",
     type: "character",
     faction: "tech",
+    subType: "medicine",
+    set: "BASE",
     cost: 2,
     rarity: "SR",
     atk: 2000,
@@ -994,6 +1102,7 @@ const cards = [
     scienceCard: "在麻醉药发明之前，做手术就像酷刑！1846年一个牙医用乙醚让病人睡着后拔了牙，全场震惊——从此手术再也不用\"硬扛\"了。到今天科学家还没完全搞清楚麻醉药为什么能让人失去意识！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -1002,6 +1111,8 @@ const cards = [
     nameEn: "Penicillin: Antibacterial Pioneer",
     type: "character",
     faction: "tech",
+    subType: "medicine",
+    set: "BASE",
     cost: 3,
     rarity: "SR",
     atk: 4000,
@@ -1019,6 +1130,7 @@ const cards = [
     scienceCard: "青霉素是弗莱明在1928年\"不小心\"发现的！他度假回来发现实验皿上长了一块霉菌，霉菌周围的细菌全死了。这个\"偷懒\"的发现后来拯救了几亿人的生命！",
     evolutionFrom: "创可贴·急救小帮手",
     evolutionTo: "抗生素注射器·终极武器",
+    tags: ["antibiotic"],
   },
 
   {
@@ -1027,6 +1139,8 @@ const cards = [
     nameEn: "Vaccine: Immune Training Camp",
     type: "character",
     faction: "tech",
+    subType: "medicine",
+    set: "BASE",
     cost: 4,
     rarity: "SR",
     atk: 2500,
@@ -1044,6 +1158,7 @@ const cards = [
     scienceCard: "疫苗就像给你的免疫系统请了一个\"陪练\"！它把弱化的病菌送进你身体，让白细胞练习打仗。天花曾经杀死了几亿人，但因为疫苗，它成了人类消灭的第一种传染病！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["preventive"],
   },
 
   {
@@ -1052,6 +1167,8 @@ const cards = [
     nameEn: "Scalpel: Precision Blade",
     type: "character",
     faction: "tech",
+    subType: "equipment",
+    set: "BASE",
     cost: 4,
     rarity: "SR",
     atk: 5500,
@@ -1076,6 +1193,7 @@ const cards = [
     scienceCard: "古代的\"手术\"超级可怕，没有麻药也没有消毒！最快的医生能在28秒内截掉一条腿。直到李斯特医生发明了无菌手术，手术才变得安全。现在最厉害的手术刀是激光刀，切口比头发丝还细！",
     evolutionFrom: null,
     evolutionTo: "达芬奇机器人·全自动手术台",
+    tags: [],
   },
 
   {
@@ -1084,6 +1202,8 @@ const cards = [
     nameEn: "Antibiotic Syringe: Ultimate Weapon",
     type: "character",
     faction: "tech",
+    subType: "medicine",
+    set: "BASE",
     cost: 5,
     rarity: "SSR",
     atk: 6000,
@@ -1113,6 +1233,7 @@ const cards = [
     scienceCard: "抗生素曾经是人类最强大的武器——一针下去细菌全军覆没！但因为太多人乱用抗生素，有些细菌\"学会了\"抵抗，变成了\"超级细菌\"。所以医生总是说\"不要随便吃抗生素\"，就是为了不让细菌变得更强！",
     evolutionFrom: "青霉素·抗菌先驱",
     evolutionTo: null,
+    tags: ["antibiotic"],
   },
 
 ];

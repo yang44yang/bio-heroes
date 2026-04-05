@@ -4,7 +4,7 @@ import BattleCard from './Card'
 import cards from '../data/cards'
 import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
-import { FACTIONS } from '../data/deckRules'
+import { FACTIONS, SUBTYPES } from '../data/deckRules'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
 
 const allCards = [...cards, ...eventCards, ...spCards]
@@ -261,51 +261,97 @@ export default function Collection({ onBack, economy }) {
         </span>
       </div>
 
-      {/* Card grid */}
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
-        {filtered.map(card => {
-          const isOwned = owned.includes(card.id)
-          const fragments = economy.fragments[card.id] || 0
-          const evo = getEvolutionTarget(card.id)
-          const canEvolve = evo && isOwned && fragments >= evo.fragmentCost
-          return (
-            <motion.div
-              key={card.id}
-              className={`relative cursor-pointer ${!isOwned ? 'grayscale opacity-40' : ''}`}
-              whileHover={isOwned ? { scale: 1.05 } : {}}
-              onClick={() => isOwned && setSelectedCard(card)}
-            >
-              <BattleCard
-                card={card}
-                hp={card.hp || 0}
-                maxHp={card.hp || 1}
-                isPlayer={true}
-                isActive={false}
-              />
-              {!isOwned && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-3xl">❓</span>
+      {/* Card grid — grouped by subType when faction is selected */}
+      {filterFaction !== 'all' && SUBTYPES[filterFaction] ? (
+        // Grouped by subType
+        <div className="space-y-4">
+          {SUBTYPES[filterFaction].map(st => {
+            const groupCards = filtered.filter(c => c.subType === st.key)
+            if (groupCards.length === 0) return null
+            return (
+              <div key={st.key}>
+                <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">{st.name}</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {groupCards.map(card => {
+                    const isOwned = owned.includes(card.id)
+                    const fragments = economy.fragments[card.id] || 0
+                    const evo = getEvolutionTarget(card.id)
+                    const canEvolve = evo && isOwned && fragments >= evo.fragmentCost
+                    return (
+                      <motion.div
+                        key={card.id}
+                        className={`relative cursor-pointer ${!isOwned ? 'grayscale opacity-40' : ''}`}
+                        whileHover={isOwned ? { scale: 1.05 } : {}}
+                        onClick={() => isOwned && setSelectedCard(card)}
+                      >
+                        <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
+                        {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
+                        {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">碎片×{fragments}</div>}
+                        {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
+                      </motion.div>
+                    )
+                  })}
                 </div>
-              )}
-              {isOwned && fragments > 0 && (
-                <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">
-                  碎片×{fragments}
+              </div>
+            )
+          })}
+          {/* Cards without matching subType (e.g. event cards with no subType) */}
+          {(() => {
+            const subTypeKeys = SUBTYPES[filterFaction].map(st => st.key)
+            const ungrouped = filtered.filter(c => !subTypeKeys.includes(c.subType))
+            if (ungrouped.length === 0) return null
+            return (
+              <div>
+                <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">📜 事件卡</h3>
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {ungrouped.map(card => {
+                    const isOwned = owned.includes(card.id)
+                    const fragments = economy.fragments[card.id] || 0
+                    const evo = getEvolutionTarget(card.id)
+                    const canEvolve = evo && isOwned && fragments >= evo.fragmentCost
+                    return (
+                      <motion.div
+                        key={card.id}
+                        className={`relative cursor-pointer ${!isOwned ? 'grayscale opacity-40' : ''}`}
+                        whileHover={isOwned ? { scale: 1.05 } : {}}
+                        onClick={() => isOwned && setSelectedCard(card)}
+                      >
+                        <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
+                        {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
+                        {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">碎片×{fragments}</div>}
+                        {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
+                      </motion.div>
+                    )
+                  })}
                 </div>
-              )}
-              {/* 可进化标记 */}
-              {canEvolve && (
-                <motion.div
-                  className="absolute -top-1 -right-1 text-sm z-30"
-                  animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                >
-                  🧬
-                </motion.div>
-              )}
-            </motion.div>
-          )
-        })}
-      </div>
+              </div>
+            )
+          })()}
+        </div>
+      ) : (
+        // Flat grid (no faction selected)
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
+          {filtered.map(card => {
+            const isOwned = owned.includes(card.id)
+            const fragments = economy.fragments[card.id] || 0
+            const evo = getEvolutionTarget(card.id)
+            const canEvolve = evo && isOwned && fragments >= evo.fragmentCost
+            return (
+              <motion.div
+                key={card.id}
+                className={`relative cursor-pointer ${!isOwned ? 'grayscale opacity-40' : ''}`}
+                whileHover={isOwned ? { scale: 1.05 } : {}}
+                onClick={() => isOwned && setSelectedCard(card)}
+              >
+                <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
+                {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
+                {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">碎片×{fragments}</div>}
+                {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
+              </motion.div>
+            )
+          })}
+        </div>
+      )}
 
       {/* Card detail modal */}
       <AnimatePresence>

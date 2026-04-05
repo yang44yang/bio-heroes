@@ -4,7 +4,7 @@ import BattleCard from './Card'
 import cards from '../data/cards'
 import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
-import { FACTIONS, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP } from '../data/deckRules'
+import { FACTIONS, SUBTYPES, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP } from '../data/deckRules'
 
 const STORAGE_KEY = 'bio-heroes-decks'
 const MAX_SLOTS = 3
@@ -76,6 +76,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   const [filterFaction, setFilterFaction] = useState('all')
   const [filterType, setFilterType] = useState('all') // all | character | event
   const [filterRarity, setFilterRarity] = useState('all')
+  const [filterSubType, setFilterSubType] = useState('all')
   const [sortBy, setSortBy] = useState('cost') // cost | atk | rarity
   const [showSp, setShowSp] = useState(false)
 
@@ -148,6 +149,9 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
     if (filterRarity !== 'all') {
       filtered = filtered.filter(c => c.rarity === filterRarity)
     }
+    if (filterSubType !== 'all') {
+      filtered = filtered.filter(c => c.subType === filterSubType)
+    }
 
     // Sort
     if (sortBy === 'cost') {
@@ -160,7 +164,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
     }
 
     return filtered
-  }, [showSp, filterFaction, filterType, filterRarity, sortBy])
+  }, [showSp, filterFaction, filterType, filterRarity, filterSubType, sortBy])
 
   // Cost curve data
   const costCurve = useMemo(() => {
@@ -429,13 +433,27 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
         <select
           className="bg-gray-800 text-xs text-gray-300 rounded px-2 py-1 border border-gray-700"
           value={filterFaction}
-          onChange={e => setFilterFaction(e.target.value)}
+          onChange={e => { setFilterFaction(e.target.value); setFilterSubType('all') }}
         >
           <option value="all">全部阵营</option>
           {Object.entries(FACTIONS).map(([key, f]) => (
             <option key={key} value={key}>{f.icon} {f.name}</option>
           ))}
         </select>
+
+        {/* SubType filter (when faction selected) */}
+        {filterFaction !== 'all' && SUBTYPES[filterFaction] && (
+          <select
+            className="bg-gray-800 text-xs text-gray-300 rounded px-2 py-1 border border-gray-700"
+            value={filterSubType}
+            onChange={e => setFilterSubType(e.target.value)}
+          >
+            <option value="all">全部子类型</option>
+            {SUBTYPES[filterFaction].map(st => (
+              <option key={st.key} value={st.key}>{st.name}</option>
+            ))}
+          </select>
+        )}
 
         {/* Type filter (main cards only) */}
         {!showSp && (

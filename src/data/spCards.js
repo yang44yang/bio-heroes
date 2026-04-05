@@ -16,6 +16,8 @@ const spCards = [
     nameEn: "SP: T-Rex: Ancient Apex",
     type: "sp",
     faction: "nature",
+    subType: "land",
+    set: "BASE",
     spCost: 6,
     rarity: "SSR",
     atk: 10000,
@@ -48,6 +50,7 @@ const spCards = [
     scienceCard: "霸王龙生活在约6800万年前的白垩纪晚期，是有史以来最大的陆地掠食者之一。它的牙齿像香蕉一样大，咬合力高达6吨——相当于一辆卡车的重量压在一个点上！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["dinosaur", "predator"],
   },
 
   {
@@ -56,6 +59,8 @@ const spCards = [
     nameEn: "SP: World Tree: Source of Life",
     type: "sp",
     faction: "nature",
+    subType: "plant",
+    set: "BASE",
     spCost: 4,
     rarity: "SSR",
     atk: 3000,
@@ -88,6 +93,7 @@ const spCards = [
     scienceCard: "世界各地的神话中都有世界树的传说——北欧的尤克特拉希尔、中国的建木、日本的神木。它们象征着生命的根基和宇宙的连接。现实中，地球上最大的树是加州的巨杉\"谢尔曼将军\"，高83米！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["mythical"],
   },
 
   // ============================================================
@@ -100,6 +106,8 @@ const spCards = [
     nameEn: "SP: CAR-T Cell: Gene Warrior",
     type: "sp",
     faction: "body",
+    subType: "blood",
+    set: "BASE",
     spCost: 5,
     rarity: "SSR",
     atk: 8000,
@@ -125,6 +133,7 @@ const spCards = [
     scienceCard: "CAR-T细胞疗法是21世纪最革命性的医学突破之一！医生从患者血液中取出T细胞，用基因工程给它装上\"导航系统\"（嵌合抗原受体），让它能精准找到并消灭癌细胞。2017年获得FDA批准，已经治愈了很多白血病患者！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["immune", "immunotherapy"],
   },
 
   {
@@ -133,6 +142,8 @@ const spCards = [
     nameEn: "SP: Brain: Consciousness Awakening",
     type: "sp",
     faction: "body",
+    subType: "organ",
+    set: "BASE",
     spCost: 7,
     rarity: "SSR",
     atk: 5000,
@@ -158,6 +169,7 @@ const spCards = [
     scienceCard: "人脑是已知宇宙中最复杂的结构——860亿个神经元通过100万亿个突触相连，产生了意识、思维、情感和创造力。大脑只占体重的2%，却消耗20%的能量。至今科学家仍然不完全理解意识是如何产生的。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   // ============================================================
@@ -170,6 +182,8 @@ const spCards = [
     nameEn: "SP: Super Bacteria: Resistance Ender",
     type: "sp",
     faction: "pathogen",
+    subType: "bacteria",
+    set: "BASE",
     spCost: 5,
     rarity: "SSR",
     atk: 7000,
@@ -195,6 +209,7 @@ const spCards = [
     scienceCard: "超级细菌是对多种抗生素都产生耐药性的细菌，比如MRSA（耐甲氧西林金黄色葡萄球菌）。世界卫生组织警告说，如果不采取行动，到2050年每年可能有1000万人死于耐药感染——比癌症还多！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["MRSA"],
   },
 
   {
@@ -203,6 +218,8 @@ const spCards = [
     nameEn: "SP: Ancient Virus: Frozen Resurrection",
     type: "sp",
     faction: "pathogen",
+    subType: "virus",
+    set: "BASE",
     spCost: 8,
     rarity: "SSR",
     atk: 12000,
@@ -235,6 +252,7 @@ const spCards = [
     scienceCard: "2014年科学家从西伯利亚3万年前的永久冻土中复活了一种巨型病毒（Pithovirus）。随着全球变暖加速冻土融化，被冰封了数万年的远古病毒可能重见天日——这些病毒人类从未接触过，没有任何免疫力！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["ancient"],
   },
 
   // ============================================================
@@ -247,6 +265,8 @@ const spCards = [
     nameEn: "SP: Nanobot: Micro Legion",
     type: "sp",
     faction: "tech",
+    subType: "genetech",
+    set: "BASE",
     spCost: 5,
     rarity: "SSR",
     atk: 6000,
@@ -272,6 +292,7 @@ const spCards = [
     scienceCard: "纳米机器人是科学家梦想中的微型医生——比血细胞还小的机器人在你的血管里巡逻，发现病变就立刻修复。虽然真正的医用纳米机器人还在研发中，但已经有纳米药物载体能把药物精准送到肿瘤内部！",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: [],
   },
 
   {
@@ -280,6 +301,8 @@ const spCards = [
     nameEn: "SP: Gene Editor: Power of CRISPR",
     type: "sp",
     faction: "tech",
+    subType: "genetech",
+    set: "BASE",
     spCost: 7,
     rarity: "SSR",
     atk: 8000,
@@ -305,6 +328,7 @@ const spCards = [
     scienceCard: "CRISPR-Cas9是2020年诺贝尔化学奖的获奖技术！它就像一把分子剪刀，能在DNA的精确位置剪一刀，然后插入、删除或替换基因。发明者詹妮弗·杜德纳和埃马纽埃尔·夏彭蒂耶让\"编辑生命\"成为了现实。",
     evolutionFrom: null,
     evolutionTo: null,
+    tags: ["gene_editing"],
   },
 
 ];
