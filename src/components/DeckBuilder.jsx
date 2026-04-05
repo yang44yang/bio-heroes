@@ -665,16 +665,18 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
             const atLimit = currentCount >= maxCount
             const deckFull = showSp ? spDeck.length >= SP_DECK_SIZE : mainDeck.length >= DECK_SIZE
 
+            const canAdd = !atLimit && !deckFull
+
             return (
               <motion.div
                 key={card.id}
-                className={`relative cursor-pointer ${atLimit || deckFull ? 'opacity-40' : ''}`}
-                whileHover={!atLimit && !deckFull ? { scale: 1.05 } : {}}
-                whileTap={!atLimit && !deckFull ? { scale: 0.95 } : {}}
-                onClick={() => !atLimit && !deckFull && addCard(card.id)}
+                className={`relative ${canAdd ? 'cursor-pointer' : 'cursor-default'} ${atLimit ? 'opacity-50' : ''}`}
+                whileHover={canAdd ? { scale: 1.05 } : {}}
+                whileTap={canAdd ? { scale: 0.95 } : {}}
+                onClick={() => canAdd && addCard(card.id)}
               >
                 <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
-                {/* ℹ️ 详情按钮 — 右下角，不与费用/稀有度重叠 */}
+                {/* ℹ️ 详情按钮 — 右下角，始终可点 */}
                 <button
                   className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 text-[10px] text-blue-300 flex items-center justify-center hover:bg-blue-600/80 hover:text-white z-30"
                   onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
