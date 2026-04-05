@@ -9,8 +9,10 @@ import { FACTIONS, SUBTYPES, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP
 const STORAGE_KEY = 'bio-heroes-decks'
 const MAX_SLOTS = 3
 
-// All available cards
+// allMainCards 包含所有卡（用于 resolveCard / costCurve 等需要查找已入组卡牌的场景）
 const allMainCards = [...cards, ...eventCards]
+// 卡池显示只包含生物卡(character)，事件卡不能手动放入卡组
+const selectableMainCards = cards.filter(c => c.type === 'character')
 const allSpCards = spCards
 
 // Load saved decks from localStorage
@@ -212,8 +214,8 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
 export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
-    if (!collection || collection.length === 0) return allMainCards
-    return allMainCards.filter(c => collection.includes(c.id))
+    if (!collection || collection.length === 0) return selectableMainCards
+    return selectableMainCards.filter(c => collection.includes(c.id))
   }, [collection])
   const ownedSpCards = useMemo(() => {
     if (!collection || collection.length === 0) return allSpCards
@@ -230,7 +232,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
 
   // Filters
   const [filterFaction, setFilterFaction] = useState('all')
-  const [filterType, setFilterType] = useState('all') // all | character | event
+  // filterType 已移除 — 卡池只显示 character 卡
   const [filterRarity, setFilterRarity] = useState('all')
   const [filterSubType, setFilterSubType] = useState('all')
   const [sortBy, setSortBy] = useState('cost') // cost | atk | rarity
@@ -299,9 +301,6 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
     if (filterFaction !== 'all') {
       filtered = filtered.filter(c => c.faction === filterFaction)
     }
-    if (!showSp && filterType !== 'all') {
-      filtered = filtered.filter(c => c.type === filterType)
-    }
     if (filterRarity !== 'all') {
       filtered = filtered.filter(c => c.rarity === filterRarity)
     }
@@ -320,7 +319,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
     }
 
     return filtered
-  }, [showSp, filterFaction, filterType, filterRarity, filterSubType, sortBy])
+  }, [showSp, filterFaction, filterRarity, filterSubType, sortBy])
 
   // Cost curve data
   const costCurve = useMemo(() => {
@@ -611,18 +610,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
           </select>
         )}
 
-        {/* Type filter (main cards only) */}
-        {!showSp && (
-          <select
-            className="bg-gray-800 text-xs text-gray-300 rounded px-2 py-1 border border-gray-700"
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-          >
-            <option value="all">全部类型</option>
-            <option value="character">🃏 生物卡</option>
-            <option value="event">📜 事件卡</option>
-          </select>
-        )}
+        {/* Type filter 已移除 — 卡池只显示生物卡，事件卡不可手动选入 */}
 
         {/* Rarity filter */}
         <select
