@@ -123,6 +123,7 @@ export const campaignData = {
             aiStrength: 0.4,
             aiPersonality: 'balanced',
             bossMechanic: null,
+            stageRule: 'mosquito_swarm',
           },
           playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
           dialogue: {
@@ -241,6 +242,7 @@ export const campaignData = {
             aiStrength: 0.5,
             aiPersonality: 'aggressive',
             bossMechanic: null,
+            stageRule: 'deep_sea_pressure',
           },
           playerConfig: { useOwnDeck: true, recommendedFactions: ['nature', 'tech'] },
           dialogue: {
@@ -316,6 +318,7 @@ export const campaignData = {
             aiStrength: 0.55,
             aiPersonality: 'balanced',
             bossMechanic: null,
+            stageRule: 'jungle_mist',
           },
           playerConfig: { useOwnDeck: true, recommendedFactions: ['body', 'nature'] },
           dialogue: {
@@ -409,6 +412,7 @@ export const campaignData = {
             aiStrength: 0.65,
             aiPersonality: 'defensive',
             bossMechanic: null,
+            stageRule: 'spore_plague',
           },
           playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
           dialogue: {
@@ -484,6 +488,7 @@ export const campaignData = {
             aiStrength: 0.7,
             aiPersonality: 'aggressive',
             bossMechanic: null,
+            stageRule: 'bio_alert',
           },
           playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
           dialogue: {

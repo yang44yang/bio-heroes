@@ -9,6 +9,7 @@ import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
 import { pickRandomEvent } from '../data/events'
 import { getBossMechanic } from '../engine/bossMechanics'
+import { getStageRule } from '../engine/stageRules'
 
 /**
  * useBattle — Sprint 3 技能触发框架版
@@ -103,6 +104,9 @@ export function useBattle() {
   // Boss 事件队列（供 BattleScreen 消费：浮字 + 对话触发）
   const [bossMechanicEvents, setBossMechanicEvents] = useState([])
 
+  // === 关卡特殊规则 ===
+  const stageRuleRef = useRef(null)
+
   // === 问答触发控制：首次攻击必触发，之后每3回合触发一次 ===
   const firstAttackDone = useRef(false)      // 本局是否已做过首次攻击
   const lastQuizTurn = useRef(0)             // 上次触发问答的回合数
@@ -176,6 +180,20 @@ export function useBattle() {
     // Dead cards go to discard pile (for faction markers)
     if (dead.length > 0) {
       setDiscardPile(prev => [...prev, ...dead])
+    }
+    // 关卡特殊规则：敌方卡死亡时触发（孢子蔓延等）
+    if (side === 'enemy' && dead.length > 0 && stageRuleRef.current?.onEnemyCardDeath) {
+      for (const deadCard of dead) {
+        const ruleEvents = stageRuleRef.current.onEnemyCardDeath({
+          deadCard,
+          enemyField: enemyFieldRef.current,
+          setEnemyField,
+          addLog,
+        })
+        if (ruleEvents?.length > 0) {
+          setBossMechanicEvents(prev => [...prev, ...ruleEvents])
+        }
+      }
     }
     return dead
   }, [])
@@ -1132,6 +1150,9 @@ export function useBattle() {
     const mechId = spDecks.campaignConfig?.bossMechanic
     bossMechanicRef.current = mechId ? getBossMechanic(mechId) : null
     setBossMechanicEvents([])
+    // 关卡特殊规则初始化
+    const ruleId = spDecks.campaignConfig?.stageRule
+    stageRuleRef.current = ruleId ? getStageRule(ruleId) : null
     // bossPreplaced: 预置 Boss 卡到敌方场上
     if (spDecks.bossPreplaced) {
       const bossCard = makeFieldCard(spDecks.bossPreplaced)
@@ -1464,6 +1485,22 @@ export function useBattle() {
     for (const evt of playEvents) {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }
+
+    // 关卡特殊规则：敌方出牌后触发（丛林迷雾隐身等）
+    if (stageRuleRef.current?.onEnemyCardPlayed) {
+      const fieldCard = enemyFieldRef.current[slotIdx]
+      if (fieldCard) {
+        const ruleEvents = stageRuleRef.current.onEnemyCardPlayed({
+          card: fieldCard,
+          setEnemyField,
+          addLog,
+        })
+        if (ruleEvents?.length > 0) {
+          setBossMechanicEvents(prev => [...prev, ...ruleEvents])
+        }
+      }
+    }
+
     return playEvents
   }, [addLog])
 
@@ -1625,6 +1662,24 @@ export function useBattle() {
       })
       if (bossEvents?.length > 0) {
         setBossMechanicEvents(prev => [...prev, ...bossEvents])
+      }
+    }
+
+    // 关卡特殊规则 onTurnStart
+    const stageRule = stageRuleRef.current
+    if (stageRule?.onTurnStart) {
+      const ruleEvents = stageRule.onTurnStart({
+        turn: newTurn,
+        playerField: playerFieldRef.current,
+        setPlayerField,
+        enemyField: enemyFieldRef.current,
+        setEnemyField,
+        playerLeaderHp: playerLeaderHpRef.current,
+        setPlayerLeaderHp: setPlayerLeaderHp,
+        addLog,
+      })
+      if (ruleEvents?.length > 0) {
+        setBossMechanicEvents(prev => [...prev, ...ruleEvents])
       }
     }
 

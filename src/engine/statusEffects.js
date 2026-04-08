@@ -83,6 +83,26 @@ export function processStatuses(card) {
         break
       }
 
+      case 'stealth': {
+        // 隐身：按回合递减，到期后消失
+        if (status.turnsLeft > 1) {
+          remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })
+        } else {
+          events.push({
+            type: 'STEALTH_CLEAR',
+            target: card.name,
+            message: `🌫️ ${card.name} 的隐身消失了`,
+          })
+        }
+        break
+      }
+
+      case 'deep_pressure': {
+        // 深海压力：持续存在，不递减（turnsLeft=99）
+        remaining.push(status)
+        break
+      }
+
       default:
         remaining.push(status) // 未知状态保留
     }

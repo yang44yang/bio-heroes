@@ -695,7 +695,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const validEnemyTargets = isBattlePhase && selectedAtkSlot !== null
     ? (hasEnemyGuard
         ? battle.enemyField.map((c, i) => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard') ? i : -1).filter(i => i >= 0)
-        : battle.enemyField.map((c, i) => c && c.currentHp > 0 ? i : -1).filter(i => i >= 0))
+        : battle.enemyField.map((c, i) => c && c.currentHp > 0 && !c.statuses?.some(s => s.type === 'stealth') ? i : -1).filter(i => i >= 0))
     : []
 
   // Power Bank 能量条组件

@@ -90,6 +90,7 @@ export default function App() {
           aiStrength: stageConfig.enemyConfig.aiStrength,
           bossMechanic: stageConfig.enemyConfig.bossMechanic,
           bossPreplaced: stageConfig.enemyConfig.bossPreplaced,
+          stageRule: stageConfig.enemyConfig.stageRule,
           dialogue: stageConfig.dialogue,
           stageType: stageConfig.stageType,
           stageName: stageConfig.stageName,
