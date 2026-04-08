@@ -1,21 +1,21 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useLanguage } from '../i18n/LanguageContext'
 
 /**
  * DialogueBox — 战前/战中/战后对话框
- *
- * Props:
- *   dialogues: [{ speaker, emoji, text }]
- *   currentIdx: number (当前显示第几句)
- *   onNext: () => void (点击继续)
- *   onSkip: () => void (跳过全部)
  */
 export default function DialogueBox({ dialogues, currentIdx, onNext, onSkip }) {
+  const { t, lang } = useLanguage()
+
   if (!dialogues || currentIdx >= dialogues.length) return null
 
   const d = dialogues[currentIdx]
   const isEnemy = d.speaker === 'enemy'
   const isNarrator = d.speaker === 'narrator'
+
+  const speakerLabel = isNarrator ? t('dialogue.narrator') : isEnemy ? t('dialogue.enemy') : t('dialogue.you')
+  const dialogueText = (lang === 'en' && d.textEn) ? d.textEn : d.text
 
   return (
     <motion.div
@@ -45,7 +45,7 @@ export default function DialogueBox({ dialogues, currentIdx, onNext, onSkip }) {
           <span className={`text-xs font-bold ${
             isNarrator ? 'text-indigo-300' : isEnemy ? 'text-red-300' : 'text-blue-300'
           }`}>
-            {isNarrator ? '旁白' : isEnemy ? '敌方' : '你'}
+            {speakerLabel}
           </span>
         </div>
 
@@ -56,7 +56,7 @@ export default function DialogueBox({ dialogues, currentIdx, onNext, onSkip }) {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.1 }}
         >
-          {d.text}
+          {dialogueText}
         </motion.p>
 
         {/* 底部操作 */}
@@ -65,7 +65,7 @@ export default function DialogueBox({ dialogues, currentIdx, onNext, onSkip }) {
             className="text-[10px] text-gray-500 hover:text-gray-300"
             onClick={(e) => { e.stopPropagation(); onSkip() }}
           >
-            跳过对话
+            {t('dialogue.skip')}
           </button>
           <button
             className={`text-xs px-3 py-1 rounded-lg font-bold ${
@@ -73,7 +73,7 @@ export default function DialogueBox({ dialogues, currentIdx, onNext, onSkip }) {
             }`}
             onClick={(e) => { e.stopPropagation(); onNext() }}
           >
-            {currentIdx < dialogues.length - 1 ? '继续 →' : '开始！'}
+            {currentIdx < dialogues.length - 1 ? t('dialogue.continue') : t('dialogue.start')}
           </button>
         </div>
 

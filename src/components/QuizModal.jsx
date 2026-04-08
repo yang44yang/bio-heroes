@@ -1,14 +1,15 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-
-const diffMap = { easy: '⭐', medium: '⭐⭐', hard: '⭐⭐⭐' }
-const diffLabel = { easy: '初级', medium: '中级', hard: '高级' }
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function QuizModal({ quiz, onAnswer }) {
+  const { t } = useLanguage()
+
   if (!quiz) return null
 
+  const diffMap = { easy: '⭐', medium: '⭐⭐', hard: '⭐⭐⭐' }
   const stars = diffMap[quiz.difficulty] || '⭐'
-  const label = diffLabel[quiz.difficulty] || '初级'
+  const label = t(`quiz.${quiz.difficulty}`)
 
   return (
     <AnimatePresence>
@@ -26,7 +27,7 @@ export default function QuizModal({ quiz, onAnswer }) {
         >
           {/* 标题 */}
           <div className="text-center mb-2 sm:mb-4">
-            <div className="text-yellow-400 text-sm sm:text-lg font-bold mb-0.5 sm:mb-1">🧠 觉醒问答！</div>
+            <div className="text-yellow-400 text-sm sm:text-lg font-bold mb-0.5 sm:mb-1">{t('quiz.title')}</div>
             <div className="text-[10px] sm:text-xs text-gray-400">{stars} {label}</div>
           </div>
 

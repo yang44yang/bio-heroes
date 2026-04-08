@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
 import BattleCard from './Card'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const rarityColors = {
   R: 'text-blue-400',
@@ -17,10 +18,11 @@ const rarityBg = {
 }
 
 export default function GachaScreen({ onBack, economy }) {
+  const { t } = useLanguage()
   const { pull } = useGacha()
   const [pulled, setPulled] = useState([])
   const [pulling, setPulling] = useState(false)
-  const [results, setResults] = useState([]) // with isNew/fragments info
+  const [results, setResults] = useState([])
 
   const doPull = (count) => {
     const cost = count === 1 ? economy.SINGLE_COST : economy.MULTI_COST
@@ -33,9 +35,7 @@ export default function GachaScreen({ onBack, economy }) {
 
     setTimeout(() => {
       const { pulled: newCards, newPityCounter } = pull(count, economy.pityCounter, economy.SSR_PITY)
-      // Process through economy (collection + fragments)
       economy.pullCards(newCards)
-      // Mark new vs dupe
       const enriched = newCards.map(card => ({
         ...card,
         isNew: !economy.collection.includes(card.id),
@@ -53,15 +53,15 @@ export default function GachaScreen({ onBack, economy }) {
 
   return (
     <div className="min-h-screen flex flex-col items-center py-8 px-4">
-      <h1 className="text-3xl font-black text-yellow-400 mb-1">🎰 抽卡</h1>
-      <p className="text-gray-400 text-sm mb-4">收集生物英雄，组建最强战队！</p>
+      <h1 className="text-3xl font-black text-yellow-400 mb-1">{t('gacha.title')}</h1>
+      <p className="text-gray-400 text-sm mb-4">{t('gacha.subtitle')}</p>
 
       {/* Currency display */}
       <div className="flex gap-4 mb-6 text-sm">
         <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
         <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
-        <span className="text-gray-500">已收集 {economy.collection.length} 张</span>
-        <span className="text-gray-600">SSR保底: {pityDisplay}抽</span>
+        <span className="text-gray-500">{t('gacha.collected', { n: economy.collection.length })}</span>
+        <span className="text-gray-600">{t('gacha.pity', { n: pityDisplay })}</span>
       </div>
 
       {/* Pull buttons */}
@@ -77,7 +77,7 @@ export default function GachaScreen({ onBack, economy }) {
           onClick={() => doPull(1)}
           disabled={pulling || !economy.canAfford(economy.SINGLE_COST)}
         >
-          <span className="text-lg">单抽 ×1</span>
+          <span className="text-lg">{t('gacha.single')}</span>
           <span className="text-xs opacity-70">🪙 {economy.SINGLE_COST}</span>
         </motion.button>
         <motion.button
@@ -91,8 +91,8 @@ export default function GachaScreen({ onBack, economy }) {
           onClick={() => doPull(10)}
           disabled={pulling || !economy.canAfford(economy.MULTI_COST)}
         >
-          <span className="text-lg">十连抽 ×10</span>
-          <span className="text-xs opacity-70">🪙 {economy.MULTI_COST} (保底SR+)</span>
+          <span className="text-lg">{t('gacha.multi')}</span>
+          <span className="text-xs opacity-70">🪙 {economy.MULTI_COST} {t('gacha.multiGuarantee')}</span>
         </motion.button>
       </div>
 
@@ -106,7 +106,7 @@ export default function GachaScreen({ onBack, economy }) {
             exit={{ opacity: 0 }}
             className="text-2xl text-yellow-400 animate-bounce"
           >
-            ✨ 抽取中...
+            {t('gacha.pulling')}
           </motion.div>
         )}
         {results.length > 0 && (
@@ -127,14 +127,13 @@ export default function GachaScreen({ onBack, economy }) {
                   transition={{ delay: i * 0.15, type: 'spring', damping: 12 }}
                 >
                   <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
-                  {/* New / Dupe badge */}
                   {card.isNew ? (
                     <div className="absolute top-0 left-0 bg-green-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-lg">
                       NEW!
                     </div>
                   ) : (
                     <div className="absolute top-0 left-0 bg-gray-600 text-gray-300 text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">
-                      +{card.fragments}碎片
+                      {t('gacha.fragments', { n: card.fragments })}
                     </div>
                   )}
                 </motion.div>
@@ -150,7 +149,7 @@ export default function GachaScreen({ onBack, economy }) {
         whileTap={{ scale: 0.95 }}
         onClick={onBack}
       >
-        ← 返回主菜单
+        {t('gacha.back')}
       </motion.button>
     </div>
   )

@@ -1,5 +1,6 @@
 import React, { useState, Suspense, lazy, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { LanguageProvider } from './i18n/LanguageContext'
 import TitleScreen from './components/TitleScreen'
 import { playerTestDeck, enemyTestDeck } from './data/testDecks'
 import { useEconomy } from './hooks/useEconomy'
@@ -223,6 +224,7 @@ export default function App() {
   const campaignEnemy = selectedDeck?._campaignEnemy
 
   return (
+    <LanguageProvider>
     <div className="min-h-screen-d bg-gray-900 text-white">
       {/* 新手欢迎弹窗（首次进入游戏） */}
       {showIntro && screen === 'title' && (
@@ -303,5 +305,6 @@ export default function App() {
         )}
       </Suspense>
     </div>
+    </LanguageProvider>
   )
 }

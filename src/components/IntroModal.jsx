@@ -1,21 +1,24 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-
-const FEATURES = [
-  { icon: '⚔️', title: '对战', color: '#f1c40f', bg: '#1a3020', desc: '出卡、攻击、保护你的主人（30,000 HP）' },
-  { icon: '🧠', title: '答题', color: '#3498db', bg: '#1a2040', desc: '答对科学题，攻击力翻倍！答错也能学知识' },
-  { icon: '🃏', title: '收集', color: '#9b59b6', bg: '#2a1a30', desc: '60张卡牌、4大阵营，组建你的最强卡组！' },
-  { icon: '🏆', title: '闯关', color: '#e67e22', bg: '#2a2010', desc: '17个关卡、史诗Boss、真实科学故事' },
-]
-
-const FACTIONS = [
-  { emoji: '🌱', name: '自然系', color: '#27ae60', bg: '#1a3020', border: '#27ae60' },
-  { emoji: '🧬', name: '人体系', color: '#9b59b6', bg: '#1a1a30', border: '#9b59b6' },
-  { emoji: '🦠', name: '病原系', color: '#e74c3c', bg: '#2a1515', border: '#e74c3c' },
-  { emoji: '⚗️', name: '科技系', color: '#3498db', bg: '#0a1a2a', border: '#3498db' },
-]
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function IntroModal({ onStartTutorial, onSkip }) {
+  const { t } = useLanguage()
+
+  const FEATURES = [
+    { icon: '⚔️', title: t('intro.feature.battle'), color: '#f1c40f', bg: '#1a3020', desc: t('intro.feature.battleDesc') },
+    { icon: '🧠', title: t('intro.feature.quiz'), color: '#3498db', bg: '#1a2040', desc: t('intro.feature.quizDesc') },
+    { icon: '🃏', title: t('intro.feature.collect'), color: '#9b59b6', bg: '#2a1a30', desc: t('intro.feature.collectDesc') },
+    { icon: '🏆', title: t('intro.feature.campaign'), color: '#e67e22', bg: '#2a2010', desc: t('intro.feature.campaignDesc') },
+  ]
+
+  const FACTIONS = [
+    { emoji: '🌱', name: t('intro.faction.nature'), color: '#27ae60', bg: '#1a3020', border: '#27ae60' },
+    { emoji: '🧬', name: t('intro.faction.body'), color: '#9b59b6', bg: '#1a1a30', border: '#9b59b6' },
+    { emoji: '🦠', name: t('intro.faction.pathogen'), color: '#e74c3c', bg: '#2a1515', border: '#e74c3c' },
+    { emoji: '⚗️', name: t('intro.faction.tech'), color: '#3498db', bg: '#0a1a2a', border: '#3498db' },
+  ]
+
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)',
@@ -35,13 +38,13 @@ export default function IntroModal({ onStartTutorial, onSkip }) {
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
           <div style={{ fontSize: 48, marginBottom: 8 }}>🧬⚔️🦠</div>
           <div style={{ color: '#f1c40f', fontSize: 22, fontWeight: 500, marginBottom: 6 }}>Bio Heroes</div>
-          <div style={{ color: '#8899bb', fontSize: 15 }}>你身体里的战斗，即将开始！</div>
+          <div style={{ color: '#8899bb', fontSize: 15 }}>{t('intro.tagline')}</div>
         </div>
 
         {/* 故事引入 */}
         <div style={{ color: '#bbb', fontSize: 14, lineHeight: 1.9, marginBottom: 20, textAlign: 'center' }}>
-          <p style={{ margin: '0 0 8px' }}>病毒、细菌、超级病原体正在入侵你的身体！<br />只有你能指挥生物英雄们反击！</p>
-          <p style={{ margin: 0 }}>收集强力卡牌，组建最强队伍，<br />用科学的力量打败入侵者！</p>
+          <p style={{ margin: '0 0 8px' }}>{t('intro.story1')}<br />{t('intro.story1b')}</p>
+          <p style={{ margin: 0 }}>{t('intro.story2')}<br />{t('intro.story2b')}</p>
         </div>
 
         {/* 四大玩法 */}
@@ -83,7 +86,7 @@ export default function IntroModal({ onStartTutorial, onSkip }) {
             cursor: 'pointer', marginBottom: 8,
           }}
         >
-          开始教学 ➡
+          {t('intro.startTutorial')}
         </button>
         <button
           onClick={onSkip}
@@ -92,7 +95,7 @@ export default function IntroModal({ onStartTutorial, onSkip }) {
             border: '1px solid #333', borderRadius: 10, fontSize: 13, cursor: 'pointer',
           }}
         >
-          我已经会玩了，跳过
+          {t('intro.skipTutorial')}
         </button>
       </motion.div>
     </div>

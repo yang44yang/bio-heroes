@@ -1,8 +1,10 @@
 import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exportSave, importSave, resetSave } from '../utils/saveManager'
+import { useLanguage } from '../i18n/LanguageContext'
 
 export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, economy }) {
+  const { t, lang, toggleLang } = useLanguage()
   const [showSettings, setShowSettings] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
   const fileRef = useRef(null)
@@ -15,12 +17,11 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
     if (result.success) {
       setTimeout(() => window.location.reload(), 1200)
     }
-    // Reset file input
     if (fileRef.current) fileRef.current.value = ''
   }
 
   const handleReset = () => {
-    if (window.confirm('确定要重置所有存档吗？此操作不可恢复！')) {
+    if (window.confirm(t('menu.confirmReset'))) {
       resetSave()
       window.location.reload()
     }
@@ -28,6 +29,16 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
 
   return (
     <div className="min-h-screen-d flex flex-col items-center justify-center px-4 py-4 overflow-y-auto">
+      {/* 语言切换 */}
+      <div className="absolute top-3 right-3 z-10">
+        <button
+          className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg text-xs font-bold"
+          onClick={toggleLang}
+        >
+          🌐 {lang === 'zh' ? 'EN' : '中文'}
+        </button>
+      </div>
+
       {/* 标题 */}
       <motion.div
         className="text-center mb-4 sm:mb-10"
@@ -36,10 +47,10 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         transition={{ duration: 0.6 }}
       >
         <h1 className="text-3xl sm:text-5xl font-black mb-1 sm:mb-2">
-          <span className="text-red-500">生物</span>
-          <span className="text-yellow-400">英雄传</span>
+          <span className="text-red-500">{t('menu.title.bio')}</span>
+          <span className="text-yellow-400">{t('menu.title.heroes')}</span>
         </h1>
-        <p className="text-gray-400 text-sm">Bio Heroes — 龙珠风格生物科学卡牌对战</p>
+        <p className="text-gray-400 text-sm">{t('menu.subtitle')}</p>
       </motion.div>
 
       {/* 货币显示 */}
@@ -52,7 +63,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         >
           <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
           <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
-          <span className="text-gray-500">收集 {economy.collection.length} 张</span>
+          <span className="text-gray-500">{t('menu.collected', { n: economy.collection.length })}</span>
         </motion.div>
       )}
 
@@ -67,7 +78,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           transition={{ delay: 0.15 }}
           onClick={onOpenCampaign}
         >
-          🏆 闯关战役
+          {t('menu.campaign')}
         </motion.button>
 
         <motion.button
@@ -79,7 +90,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           transition={{ delay: 0.25 }}
           onClick={onStartBattle}
         >
-          ⚔️ 自由对战
+          {t('menu.freeBattle')}
         </motion.button>
 
         <motion.button
@@ -91,7 +102,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           transition={{ delay: 0.3 }}
           onClick={onOpenDeckBuilder}
         >
-          🃏 卡组
+          {t('menu.deck')}
         </motion.button>
 
         <motion.button
@@ -103,7 +114,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           transition={{ delay: 0.4 }}
           onClick={onOpenGacha}
         >
-          🎰 抽卡
+          {t('menu.gacha')}
         </motion.button>
 
         <motion.button
@@ -115,7 +126,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           transition={{ delay: 0.5 }}
           onClick={onOpenCollection}
         >
-          📖 图鉴
+          {t('menu.collection')}
         </motion.button>
 
         <motion.button
@@ -127,7 +138,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           transition={{ delay: 0.55 }}
           onClick={onOpenTutorial}
         >
-          📚 教学
+          {t('menu.tutorial')}
         </motion.button>
 
         <motion.button
@@ -139,7 +150,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           transition={{ delay: 0.65 }}
           onClick={() => setShowSettings(!showSettings)}
         >
-          ⚙️ 存档管理
+          {t('menu.settings')}
         </motion.button>
       </div>
 
@@ -157,7 +168,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
                 className="w-full py-2 bg-emerald-700 hover:bg-emerald-600 rounded-lg text-sm text-white"
                 onClick={exportSave}
               >
-                💾 导出存档
+                {t('settings.export')}
               </button>
 
               <div>
@@ -172,7 +183,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
                   className="w-full py-2 bg-blue-700 hover:bg-blue-600 rounded-lg text-sm text-white"
                   onClick={() => fileRef.current?.click()}
                 >
-                  📂 导入存档
+                  {t('settings.import')}
                 </button>
               </div>
 
@@ -180,7 +191,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
                 className="w-full py-2 bg-red-900 hover:bg-red-800 rounded-lg text-sm text-red-300"
                 onClick={handleReset}
               >
-                🗑️ 重置存档
+                {t('settings.reset')}
               </button>
 
               {importMsg && (
@@ -204,8 +215,8 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
       >
-        <p>🧬 在对战中学习生物科学</p>
-        <p className="mt-1">父子亲子项目 v0.1</p>
+        <p>{t('menu.footer1')}</p>
+        <p className="mt-1">{t('menu.footer2')}</p>
       </motion.div>
     </div>
   )

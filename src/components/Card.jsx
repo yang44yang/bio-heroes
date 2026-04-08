@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react'
 import { motion } from 'framer-motion'
 import { FACTIONS, RARITIES } from '../data/deckRules'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const rarityColors = {
   R: 'from-blue-600 to-blue-800',
@@ -29,6 +30,7 @@ const spBg = 'from-amber-500 via-yellow-400 to-orange-500'
 const spBorder = 'border-yellow-300'
 
 const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick }, ref) => {
+  const { t, cardName, skillName, lang } = useLanguage()
   if (!card) return null
 
   const isEvent = card.type === 'event'
@@ -143,7 +145,7 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
       {/* 类型标签（事件卡） */}
       {isEvent && (
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-600 text-white z-20">
-          事件
+          {t('card.event')}
         </div>
       )}
 
@@ -151,10 +153,10 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
       <div className="text-center text-sm sm:text-lg leading-none mt-0.5 sm:mt-1">{faction?.icon}</div>
 
       {/* 名称 */}
-      <div className="text-center text-[9px] sm:text-xs font-bold text-white truncate mt-0.5 sm:mt-1">{card.name}</div>
+      <div className="text-center text-[9px] sm:text-xs font-bold text-white truncate mt-0.5 sm:mt-1">{cardName(card)}</div>
 
       {/* 阵营名 */}
-      <div className="text-center text-[8px] sm:text-[10px] text-white/50 hidden sm:block">{faction?.name}</div>
+      <div className="text-center text-[8px] sm:text-[10px] text-white/50 hidden sm:block">{lang === 'en' ? (faction?.nameEn || faction?.name) : faction?.name}</div>
 
       {isEvent ? (
         <div className="mt-1 mb-0.5 sm:mt-1.5 sm:mb-1 text-[7px] sm:text-[9px] text-emerald-200 text-center leading-tight px-0.5 sm:px-1 min-h-[16px] sm:min-h-[24px]">
@@ -177,8 +179,8 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
           <div className="flex items-center justify-between text-[8px] sm:text-[10px] text-white/80">
             <span>⚔️{card.atk}</span>
             {card.skills?.length > 0 && (
-              <span className="text-yellow-300 truncate max-w-[40px] sm:max-w-[60px]" title={card.skills.map(s => s.name).join(', ')}>
-                {card.skills[0].name}
+              <span className="text-yellow-300 truncate max-w-[40px] sm:max-w-[60px]" title={card.skills.map(s => skillName(s)).join(', ')}>
+                {skillName(card.skills[0])}
               </span>
             )}
           </div>
@@ -195,7 +197,7 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
       {/* SP召唤标记 */}
       {isEvent && card.spSummonRule && (
         <div className="text-center text-[9px] text-yellow-300 mt-0.5">
-          🌟 可触发SP
+          {t('card.spTrigger')}
         </div>
       )}
     </div>

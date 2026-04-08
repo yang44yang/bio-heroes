@@ -5,6 +5,7 @@ import { FACTIONS, MAX_FIELD_SLOTS, FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS }
 import {
   TUTORIAL_LEVELS, loadTutorialProgress, saveTutorialProgress,
 } from '../data/tutorialData'
+import { useLanguage } from '../i18n/LanguageContext'
 
 // ================================================================
 //  TutorialScreen — 教学模块
@@ -12,6 +13,7 @@ import {
 // ================================================================
 
 export default function TutorialScreen({ onExit, onGraduate, economy }) {
+  const { t } = useLanguage()
   // === 教学进度 ===
   const [progress, setProgress] = useState(() => loadTutorialProgress())
   const [currentLevelIdx, setCurrentLevelIdx] = useState(null) // null = 关卡选择界面
@@ -434,9 +436,9 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          📚 教学关卡
+          {t('tutorial.title')}
         </motion.h1>
-        <p className="text-gray-400 text-sm mb-6">循序渐进学习 Bio Heroes 的核心玩法</p>
+        <p className="text-gray-400 text-sm mb-6">{t('tutorial.subtitle')}</p>
 
         <div className="space-y-3 w-72">
           {TUTORIAL_LEVELS.map((lv, idx) => {
@@ -462,8 +464,8 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
               >
                 <span className="text-2xl">{done ? '✅' : unlocked ? lv.icon : '🔒'}</span>
                 <div>
-                  <div className="font-bold text-sm">关卡 {lv.id}: {lv.title}</div>
-                  {done && <div className="text-xs text-green-500">已完成</div>}
+                  <div className="font-bold text-sm">{t('tutorial.levelTitle', { id: lv.id, title: lv.title })}</div>
+                  {done && <div className="text-xs text-green-500">{t('tutorial.completed')}</div>}
                 </div>
               </motion.button>
             )
@@ -485,7 +487,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >
-            🎓 领取毕业奖励
+            {t('tutorial.graduate')}
           </motion.button>
         )}
 
@@ -494,14 +496,14 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             className="text-gray-500 text-sm hover:text-gray-300"
             onClick={onExit}
           >
-            ← 返回主菜单
+            {t('tutorial.back')}
           </button>
           {!progress.graduated && (
             <button
               className="text-gray-600 text-xs hover:text-gray-400"
               onClick={handleSkip}
             >
-              跳过教学
+              {t('tutorial.skip')}
             </button>
           )}
         </div>
@@ -522,8 +524,8 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           transition={{ type: 'spring', damping: 10 }}
         >
           <div className="text-6xl mb-4">🎉</div>
-          <h1 className="text-3xl font-black text-yellow-400 mb-2">恭喜毕业！</h1>
-          <p className="text-gray-300 mb-6">你已经掌握了 Bio Heroes 的所有核心玩法！</p>
+          <h1 className="text-3xl font-black text-yellow-400 mb-2">{t('tutorial.congrats')}</h1>
+          <p className="text-gray-300 mb-6">{t('tutorial.congratsMsg')}</p>
 
           <motion.div
             className="bg-gray-800 rounded-xl p-4 mb-6 border border-yellow-600/30 inline-block"
@@ -531,15 +533,15 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
           >
-            <div className="text-sm text-gray-400 mb-2">🎁 毕业奖励</div>
+            <div className="text-sm text-gray-400 mb-2">{t('tutorial.reward')}</div>
             <div className="flex gap-6 justify-center">
               <div className="text-center">
                 <div className="text-2xl">🪙</div>
-                <div className="text-yellow-400 font-bold">+500 金币</div>
+                <div className="text-yellow-400 font-bold">{t('tutorial.rewardCoins')}</div>
               </div>
               <div className="text-center">
                 <div className="text-2xl">🎰</div>
-                <div className="text-purple-400 font-bold">免费十连抽！</div>
+                <div className="text-purple-400 font-bold">{t('tutorial.rewardPull')}</div>
               </div>
             </div>
           </motion.div>
@@ -553,7 +555,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             transition={{ delay: 1 }}
             onClick={handleGraduate}
           >
-            开始自由对战！🎮
+            {t('tutorial.startFreeBattle')}
           </motion.button>
         </motion.div>
       </div>
@@ -573,7 +575,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         >
           <div className="text-5xl mb-4">{level.icon}</div>
           <h2 className="text-2xl font-black mb-4">
-            关卡 {level.id}: {level.title}
+            {t('tutorial.levelTitle', { id: level.id, title: level.title })}
           </h2>
           <div className="space-y-2 text-gray-300 text-sm mb-8">
             {level.intro.map((line, i) => (
@@ -596,7 +598,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             transition={{ delay: 0.8 }}
             onClick={() => setPhase('battle')}
           >
-            开始！
+            {t('tutorial.start')}
           </motion.button>
         </motion.div>
 
@@ -604,7 +606,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           className="mt-8 text-gray-600 text-xs hover:text-gray-400"
           onClick={handleSkip}
         >
-          跳过教学
+          {t('tutorial.skip')}
         </button>
       </div>
     )
@@ -624,7 +626,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         >
           <div className="text-5xl mb-4">🏆</div>
           <h2 className="text-2xl font-black text-green-400 mb-2">
-            恭喜！你学会了{level.title}！
+            {t('tutorial.summaryTitle', { title: level.title })}
           </h2>
           <div className="bg-gray-800/80 rounded-xl p-4 text-sm text-gray-300 mb-6 border border-green-700/30">
             {level.summary}
@@ -648,13 +650,13 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
                 }
               }}
             >
-              {currentLevelIdx + 1 < TUTORIAL_LEVELS.length ? '下一关 →' : '🎓 领取毕业奖励'}
+              {currentLevelIdx + 1 < TUTORIAL_LEVELS.length ? t('tutorial.nextLevel') : t('tutorial.graduate')}
             </motion.button>
             <button
               className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-xl text-sm"
               onClick={() => setCurrentLevelIdx(null)}
             >
-              返回选择
+              {t('tutorial.backToSelect')}
             </button>
           </div>
         </motion.div>
@@ -709,12 +711,12 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         className="absolute top-2 right-2 z-50 text-gray-600 text-xs hover:text-gray-400 bg-gray-800/80 px-2 py-1 rounded"
         onClick={handleSkip}
       >
-        跳过教学
+        {t('tutorial.skip')}
       </button>
 
       {/* 关卡标题 */}
       <div className="text-center py-1 text-xs text-gray-500">
-        教学 {level.id}/5: {level.title} | 回合 {turn}
+        {t('tutorial.battleHeader', { id: level.id, title: level.title, turn })}
       </div>
 
       {/* === 敌方主人面板 === */}
@@ -731,7 +733,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 bg-red-900/60 border-red-700 flex items-center justify-center text-lg sm:text-xl shrink-0">👹</div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-xs sm:text-sm font-medium text-red-400">对手</span>
+              <span className="text-xs sm:text-sm font-medium text-red-400">{t('battle.enemy')}</span>
               <span className="text-xs sm:text-sm text-white font-medium font-mono">
                 {enemyLeaderHp.toLocaleString()}
                 <span className="text-gray-500 text-[10px] sm:text-xs"> / {(level?.enemyLeaderHp || 30000).toLocaleString()}</span>
@@ -857,7 +859,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
                   <div className="text-[10px] text-green-300">❤️{card.currentHp}/{card.maxHp || card.hp}</div>
                   {card.faction && <div className="text-xs">{FACTIONS[card.faction]?.icon}</div>}
                   {summonedThisTurn.has(card.uid) && (
-                    <div className="text-[8px] text-yellow-500">💤疲劳</div>
+                    <div className="text-[8px] text-yellow-500">{t('tutorial.fatigue')}</div>
                   )}
                 </div>
               )}
@@ -887,7 +889,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 bg-blue-900/60 border-blue-700 flex items-center justify-center text-lg sm:text-xl shrink-0">👦</div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-0.5">
-              <span className="text-xs sm:text-sm font-medium text-blue-400">你</span>
+              <span className="text-xs sm:text-sm font-medium text-blue-400">{t('battle.you')}</span>
               <span className="text-xs sm:text-sm text-white font-medium font-mono">
                 {playerLeaderHp.toLocaleString()}
                 <span className="text-gray-500 text-[10px] sm:text-xs"> / {(level?.playerLeaderHp || 30000).toLocaleString()}</span>
@@ -934,16 +936,16 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
               style={isHighlighted('power_bank_break') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
               onClick={() => isClickable('power_bank_break') && handleBreakPowerBank()}
             >
-              💥打破
+              {t('battle.pb.break')}
             </button>
           )}
-          {!powerBank.intact && <span className="text-[10px] text-gray-600">已破坏</span>}
+          {!powerBank.intact && <span className="text-[10px] text-gray-600">{t('tutorial.pbBroken')}</span>}
         </div>
 
         {/* 弃牌堆标记 */}
         {playerDiscard.length > 0 && (
           <div className={`text-xs text-gray-400 ${isHighlighted('discard_area') ? 'ring-2 ring-yellow-400 rounded px-1' : ''}`}>
-            弃牌堆:{playerDiscard.length}
+            {t('tutorial.discardPile')}{playerDiscard.length}
             {Object.entries(factionMarkers).map(([f, n]) => (
               <span key={f} className="ml-1">{FACTIONS[f]?.icon}×{n}</span>
             ))}
@@ -982,7 +984,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
                 <div className="text-[10px] text-yellow-400 font-bold">{card.cost}⚡</div>
                 <div className="text-xs font-bold truncate">{card.name?.slice(0, 3)}</div>
                 {card.type === 'event' ? (
-                  <div className="text-[10px] text-amber-400">📜事件</div>
+                  <div className="text-[10px] text-amber-400">{t('tutorial.eventLabel')}</div>
                 ) : (
                   <>
                     <div className="text-[10px] text-red-300">⚔️{card.atk}</div>
@@ -1011,7 +1013,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
           onClick={() => isClickable('end_turn_btn') && handleEndTurn()}
           disabled={!isClickable('end_turn_btn')}
         >
-          结束回合 ⏭️
+          {t('tutorial.endTurn')}
         </button>
       </div>
 
@@ -1057,7 +1059,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
                       }}
                       onClick={(e) => { e.stopPropagation(); handleAcknowledge() }}
                     >
-                      继续 →
+                      {t('tutorial.continue')}
                     </button>
                   )}
                 </div>

@@ -5,6 +5,7 @@ import cards from '../data/cards'
 import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP } from '../data/deckRules'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const STORAGE_KEY = 'bio-heroes-decks'
 const MAX_SLOTS = 3
@@ -79,6 +80,7 @@ function getSkillIcon(skillName) {
 
 // 卡牌详情弹窗组件
 function CardDetailModal({ card, onClose, onAdd, canAdd }) {
+  const { t, cardName, skillName, lang } = useLanguage()
   if (!card) return null
   const faction = FACTIONS[card.faction]
   const rarityColors = { SSR: '#f1c40f', SR: '#9b59b6', R: '#3498db' }
@@ -115,7 +117,7 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
       >
         {/* 卡名 */}
         <h3 className="text-lg font-black text-white mb-1">
-          {faction?.icon} {card.name}
+          {faction?.icon} {cardName(card)}
         </h3>
         {/* 阵营/子类型/稀有度/费用 */}
         <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 mb-3">
@@ -141,12 +143,13 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
         {/* 技能 */}
         {card.skills && card.skills.length > 0 && (
           <div className="mb-3">
-            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">── 技能 ──</div>
+            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">{t('deck.detail.skills')}</div>
             {card.skills.map((skill, i) => (
               <div key={i} className="mb-2">
                 <div className="text-sm font-bold text-white">
-                  {getSkillIcon(skill.name)} {skill.name}
-                  {skill.nameEn && <span className="text-gray-500 text-[10px] ml-1">({skill.nameEn})</span>}
+                  {getSkillIcon(skill.name)} {skillName(skill)}
+                  {lang === 'zh' && skill.nameEn && <span className="text-gray-500 text-[10px] ml-1">({skill.nameEn})</span>}
+                  {lang === 'en' && skill.name !== skill.nameEn && <span className="text-gray-500 text-[10px] ml-1">({skill.name})</span>}
                 </div>
                 <div className="text-xs text-gray-300 mt-0.5">{skill.description}</div>
                 {skill.scienceNote && (
@@ -160,18 +163,18 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
         {/* 科学知识卡 */}
         {card.scienceCard && (
           <div className="mb-3">
-            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">── 你知道吗？──</div>
-            <div className="text-xs text-gray-300 leading-relaxed">📚 {card.scienceCard}</div>
+            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">{t('deck.detail.science')}</div>
+            <div className="text-xs text-gray-300 leading-relaxed">📚 {card.scienceCard} {lang === 'en' && t('science.chineseOnly')}</div>
           </div>
         )}
 
         {/* 出场条件（仅有 factionRequirement 时显示）*/}
         {card.factionRequirement && (
           <div className="mb-3">
-            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">── 出场条件 ──</div>
+            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">{t('deck.detail.requirement')}</div>
             <div className="text-xs text-yellow-300">
-              🔒 弃牌堆需 {FACTIONS[card.factionRequirement.faction]?.icon}×{card.factionRequirement.count}
-              {card.factionRequirement.type === 'consume' && ' (消耗)'}
+              {t('deck.detail.reqText', { icon: FACTIONS[card.factionRequirement.faction]?.icon, count: card.factionRequirement.count })}
+              {card.factionRequirement.type === 'consume' && t('deck.detail.consume')}
             </div>
           </div>
         )}
@@ -196,14 +199,14 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
               className="flex-1 text-sm py-2 rounded-lg font-bold bg-blue-600 hover:bg-blue-500 text-white"
               onClick={() => { onAdd(card.id); onClose() }}
             >
-              ＋ 选入卡组
+              {t('deck.detail.addToDeck')}
             </button>
           )}
           <button
             className={`${canAdd ? 'flex-1' : 'w-full'} text-sm py-2 rounded-lg font-bold bg-gray-700 hover:bg-gray-600 text-gray-300`}
             onClick={onClose}
           >
-            关闭
+            {t('deck.detail.close')}
           </button>
         </div>
       </motion.div>
@@ -212,6 +215,7 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
 }
 
 export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
+  const { t, cardName, lang } = useLanguage()
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
     if (!collection || collection.length === 0) return selectableMainCards
@@ -367,12 +371,12 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-6 min-h-screen">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-black text-yellow-400">🃏 卡组管理</h1>
+          <h1 className="text-2xl font-black text-yellow-400">{t('deck.title')}</h1>
           <button
             className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg"
             onClick={onBack}
           >
-            ← 返回
+            {t('deck.back')}
           </button>
         </div>
 
@@ -385,13 +389,13 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-lg font-bold text-white">卡组 {i + 1}</span>
+                  <span className="text-lg font-bold text-white">{t('deck.slot', { n: i + 1 })}</span>
                   {slot ? (
                     <span className="text-xs text-gray-400 ml-3">
-                      {slot.main.length}/{DECK_SIZE} 主卡 | {slot.sp.length} SP
+                      {t('deck.mainCount', { n: slot.main.length, total: DECK_SIZE })} | {t('deck.spCount', { n: slot.sp.length })}
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500 ml-3">空卡组</span>
+                    <span className="text-xs text-gray-500 ml-3">{t('deck.emptySlot')}</span>
                   )}
                 </div>
                 <div className="flex gap-2">
@@ -399,14 +403,14 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
                     className="text-xs px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold"
                     onClick={() => loadSlot(i)}
                   >
-                    {slot ? '✏️ 编辑' : '➕ 新建'}
+                    {slot ? t('deck.edit') : t('deck.create')}
                   </button>
                   {slot && slot.main.length === DECK_SIZE && (
                     <button
                       className="text-xs px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold"
                       onClick={() => handleSelectForBattle(i)}
                     >
-                      ⚔️ 出战
+                      {t('deck.battle')}
                     </button>
                   )}
                 </div>
@@ -442,7 +446,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
               onSelectDeck(null) // use default test deck
             }}
           >
-            使用默认测试卡组开始战斗
+            {t('deck.defaultDeck')}
           </button>
         </div>
       </div>
@@ -459,13 +463,13 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
             className="text-sm px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded"
             onClick={() => setEditing(false)}
           >
-            ← 返回
+            {t('deck.back')}
           </button>
-          <h2 className="text-lg font-bold text-white">卡组 {activeSlot + 1} 编辑</h2>
+          <h2 className="text-lg font-bold text-white">{t('deck.editing', { n: activeSlot + 1 })}</h2>
         </div>
         <div className="flex gap-2">
           <span className={`text-sm font-bold ${mainDeck.length === DECK_SIZE ? 'text-green-400' : 'text-yellow-400'}`}>
-            主卡 {mainDeck.length}/{DECK_SIZE}
+            {t('deck.mainCards')} {mainDeck.length}/{DECK_SIZE}
           </span>
           <span className={`text-sm font-bold ${spDeck.length <= SP_DECK_SIZE ? 'text-blue-400' : 'text-red-400'}`}>
             SP {spDeck.length}/{SP_DECK_SIZE}
@@ -476,7 +480,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
             }`}
             onClick={deckReady ? saveToSlot : undefined}
           >
-            💾 保存
+            {t('deck.save')}
           </button>
         </div>
       </div>
@@ -484,7 +488,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
       {/* Current deck display */}
       <div className="bg-gray-800/60 rounded-xl p-3 mb-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-400">当前卡组</span>
+          <span className="text-xs text-gray-400">{t('deck.currentDeck')}</span>
           <div className="flex gap-2">
             {/* Cost curve mini */}
             <div className="flex items-end gap-0.5 h-5">
@@ -540,7 +544,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
               </motion.div>
             )
           })}
-          {mainDeck.length === 0 && <span className="text-gray-600 text-xs">从下方选卡添加到卡组</span>}
+          {mainDeck.length === 0 && <span className="text-gray-600 text-xs">{t('deck.addHint')}</span>}
         </div>
 
         {/* SP deck */}
@@ -574,13 +578,13 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
             className={`px-3 py-1 text-xs font-bold ${!showSp ? 'bg-blue-600 text-white' : 'text-gray-400'}`}
             onClick={() => setShowSp(false)}
           >
-            主卡({ownedMainCards.length})
+            {t('deck.mainCards')}({ownedMainCards.length})
           </button>
           <button
             className={`px-3 py-1 text-xs font-bold ${showSp ? 'bg-yellow-600 text-white' : 'text-gray-400'}`}
             onClick={() => setShowSp(true)}
           >
-            SP卡({ownedSpCards.length})
+            {t('deck.spCards')}({ownedSpCards.length})
           </button>
         </div>
 
@@ -590,7 +594,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
           value={filterFaction}
           onChange={e => { setFilterFaction(e.target.value); setFilterSubType('all') }}
         >
-          <option value="all">全部阵营</option>
+          <option value="all">{t('deck.allFaction')}</option>
           {Object.entries(FACTIONS).map(([key, f]) => (
             <option key={key} value={key}>{f.icon} {f.name}</option>
           ))}
@@ -603,7 +607,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
             value={filterSubType}
             onChange={e => setFilterSubType(e.target.value)}
           >
-            <option value="all">全部子类型</option>
+            <option value="all">{t('deck.allSubType')}</option>
             {SUBTYPES[filterFaction].map(st => (
               <option key={st.key} value={st.key}>{st.name}</option>
             ))}
@@ -618,7 +622,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
           value={filterRarity}
           onChange={e => setFilterRarity(e.target.value)}
         >
-          <option value="all">全部稀有度</option>
+          <option value="all">{t('deck.allRarity')}</option>
           <option value="R">R</option>
           <option value="SR">SR</option>
           <option value="SSR">SSR</option>
@@ -630,9 +634,9 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
           value={sortBy}
           onChange={e => setSortBy(e.target.value)}
         >
-          <option value="cost">按费用</option>
-          <option value="atk">按攻击力</option>
-          <option value="rarity">按稀有度</option>
+          <option value="cost">{t('deck.sortCost')}</option>
+          <option value="atk">{t('deck.sortAtk')}</option>
+          <option value="rarity">{t('deck.sortRarity')}</option>
         </select>
 
         {/* Recommended decks */}

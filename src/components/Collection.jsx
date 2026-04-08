@@ -6,6 +6,7 @@ import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES } from '../data/deckRules'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const allCards = [...cards, ...eventCards, ...spCards]
 const TOTAL_CARDS = allCards.length // 64
@@ -15,6 +16,7 @@ const cardMap = Object.fromEntries(allCards.map(c => [c.id, c]))
 const rarityLabel = { R: 'text-blue-400', SR: 'text-purple-400', SSR: 'text-yellow-400' }
 
 export default function Collection({ onBack, economy }) {
+  const { t, lang, cardName, skillName } = useLanguage()
   const [filterFaction, setFilterFaction] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const [selectedCard, setSelectedCard] = useState(null)
@@ -79,19 +81,19 @@ export default function Collection({ onBack, economy }) {
     <div className="w-full max-w-4xl mx-auto px-4 py-6 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-black text-yellow-400">📖 卡牌图鉴</h1>
+        <h1 className="text-2xl font-black text-yellow-400">{t('collection.title')}</h1>
         <button
           className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg"
           onClick={onBack}
         >
-          ← 返回
+          {t('collection.back')}
         </button>
       </div>
 
       {/* Progress bar */}
       <div className="mb-4">
         <div className="flex items-center justify-between text-sm mb-1">
-          <span className="text-gray-400">收集进度</span>
+          <span className="text-gray-400">{t('collection.progress')}</span>
           <span className="text-yellow-400 font-bold">{ownedCount}/{TOTAL_CARDS} ({progress}%)</span>
         </div>
         <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
@@ -126,7 +128,7 @@ export default function Collection({ onBack, economy }) {
 
       {/* Evolution Chains Section */}
       <div className="mb-4">
-        <h2 className="text-sm font-bold text-amber-400 mb-2">🧬 进化链</h2>
+        <h2 className="text-sm font-bold text-amber-400 mb-2">{t('collection.evoChains')}</h2>
         <div className="flex flex-col gap-2">
           {EVOLUTION_CHAINS.map(chain => {
             const faction = FACTIONS[chain.faction]
@@ -140,7 +142,7 @@ export default function Collection({ onBack, economy }) {
                   <span className="text-sm">{faction?.icon}</span>
                   <span className="text-xs font-bold text-gray-300">{chain.name}</span>
                   <span className="text-[10px] text-gray-500 ml-auto">
-                    {showEvolutionChain === chain.id ? '收起 ▲' : '展开 ▼'}
+                    {showEvolutionChain === chain.id ? t('collection.collapse') : t('collection.expand')}
                   </span>
                 </div>
 
@@ -204,11 +206,11 @@ export default function Collection({ onBack, economy }) {
                                 </div>
                                 {isOwned && fragments > 0 && (
                                   <div className="text-[9px] text-amber-400 mt-0.5">
-                                    碎片×{fragments}
+                                    {t('collection.fragments', { n: fragments })}
                                   </div>
                                 )}
                                 {!isOwned && (
-                                  <div className="text-[9px] text-gray-500 mt-0.5">未获得</div>
+                                  <div className="text-[9px] text-gray-500 mt-0.5">{t('collection.notOwned')}</div>
                                 )}
                               </div>
 
@@ -217,7 +219,7 @@ export default function Collection({ onBack, economy }) {
                                 <div className="flex flex-col items-center">
                                   <div className="text-amber-500 text-xl font-bold">⟶</div>
                                   <div className="text-[9px] text-gray-400">
-                                    {evo ? `${evo.fragmentCost}碎片` : ''}
+                                    {evo ? t('collection.fragCost', { n: evo.fragmentCost }) : ''}
                                   </div>
                                 </div>
                               )}
@@ -241,9 +243,9 @@ export default function Collection({ onBack, economy }) {
           value={filterFaction}
           onChange={e => setFilterFaction(e.target.value)}
         >
-          <option value="all">全部阵营</option>
+          <option value="all">{t('collection.allFaction')}</option>
           {Object.entries(FACTIONS).map(([key, f]) => (
-            <option key={key} value={key}>{f.icon} {f.name}</option>
+            <option key={key} value={key}>{f.icon} {lang === 'en' ? (f.nameEn || f.name) : f.name}</option>
           ))}
         </select>
         <select
@@ -251,13 +253,13 @@ export default function Collection({ onBack, economy }) {
           value={filterType}
           onChange={e => setFilterType(e.target.value)}
         >
-          <option value="all">全部类型</option>
-          <option value="character">🃏 生物卡</option>
-          <option value="event">📜 事件卡</option>
-          <option value="sp">🌟 SP卡</option>
+          <option value="all">{t('collection.allType')}</option>
+          <option value="character">{t('collection.character')}</option>
+          <option value="event">{t('collection.event')}</option>
+          <option value="sp">{t('collection.sp')}</option>
         </select>
         <span className="text-xs text-gray-500 self-center ml-auto">
-          显示 {filtered.length} 张
+          {t('collection.showing', { n: filtered.length })}
         </span>
       </div>
 
@@ -286,7 +288,7 @@ export default function Collection({ onBack, economy }) {
                       >
                         <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
                         {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
-                        {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">碎片×{fragments}</div>}
+                        {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">{t('collection.fragments', { n: fragments })}</div>}
                         {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
                       </motion.div>
                     )
@@ -302,7 +304,7 @@ export default function Collection({ onBack, economy }) {
             if (ungrouped.length === 0) return null
             return (
               <div>
-                <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">📜 事件卡</h3>
+                <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">{t('collection.detail.eventCards')}</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {ungrouped.map(card => {
                     const isOwned = owned.includes(card.id)
@@ -318,7 +320,7 @@ export default function Collection({ onBack, economy }) {
                       >
                         <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
                         {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
-                        {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">碎片×{fragments}</div>}
+                        {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">{t('collection.fragments', { n: fragments })}</div>}
                         {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
                       </motion.div>
                     )
@@ -345,7 +347,7 @@ export default function Collection({ onBack, economy }) {
               >
                 <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
                 {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
-                {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">碎片×{fragments}</div>}
+                {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">{t('collection.fragments', { n: fragments })}</div>}
                 {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
               </motion.div>
             )
@@ -408,7 +410,7 @@ export default function Collection({ onBack, economy }) {
                       animate={{ scale: [0, 1.3, 1], opacity: [0, 1, 1] }}
                       transition={{ duration: 0.8, delay: 0.3 }}
                     >
-                      ✨ 进化成功！
+                      {t('collection.detail.evoSuccess')}
                     </motion.div>
                     {/* 粒子效果（CSS 模拟） */}
                     {[...Array(8)].map((_, i) => (
@@ -447,14 +449,14 @@ export default function Collection({ onBack, economy }) {
                   />
                 </motion.div>
               </div>
-              <h3 className="text-lg font-bold text-white text-center mb-1">{selectedCard.name}</h3>
-              <p className="text-xs text-gray-500 text-center mb-3">{selectedCard.nameEn}</p>
+              <h3 className="text-lg font-bold text-white text-center mb-1">{cardName(selectedCard)}</h3>
+              <p className="text-xs text-gray-500 text-center mb-3">{lang === 'en' ? selectedCard.name : selectedCard.nameEn}</p>
 
               {/* Stats */}
               <div className="flex justify-center gap-4 text-sm mb-3">
                 {selectedCard.atk != null && <span className="text-red-400">⚔️ {selectedCard.atk}</span>}
                 {selectedCard.hp != null && <span className="text-green-400">❤️ {selectedCard.hp}</span>}
-                <span className="text-blue-400">💎 费用 {selectedCard.cost || selectedCard.spCost}</span>
+                <span className="text-blue-400">{t('collection.detail.cost', { n: selectedCard.cost || selectedCard.spCost })}</span>
               </div>
 
               {/* Skills */}
@@ -462,7 +464,7 @@ export default function Collection({ onBack, economy }) {
                 <div className="mb-3">
                   {selectedCard.skills.map((s, i) => (
                     <div key={i} className="text-xs text-gray-300 mb-1">
-                      <span className="text-yellow-400 font-bold">{s.name}</span>
+                      <span className="text-yellow-400 font-bold">{skillName(s)}</span>
                       <span className="text-gray-500 ml-1">— {s.description}</span>
                     </div>
                   ))}
@@ -478,7 +480,7 @@ export default function Collection({ onBack, economy }) {
 
               {/* Science card */}
               <div className="bg-gray-800/80 rounded-xl p-3 text-xs text-gray-400 leading-relaxed mb-3">
-                📖 {selectedCard.scienceCard}
+                📖 {selectedCard.scienceCard} {t('science.chineseOnly')}
               </div>
 
               {/* 进化链可视化 */}
@@ -517,7 +519,7 @@ export default function Collection({ onBack, economy }) {
                             <div className="flex flex-col items-center">
                               <span className="text-amber-500 text-sm font-bold">→</span>
                               <span className="text-[8px] text-gray-500">
-                                {evo ? `${evo.fragmentCost}碎片` : ''}
+                                {evo ? t('collection.fragCost', { n: evo.fragmentCost }) : ''}
                               </span>
                             </div>
                           )}
@@ -539,8 +541,8 @@ export default function Collection({ onBack, economy }) {
                       /{selectedEvoInfo.fragmentsNeed}
                     </span>
                     <span className="text-gray-500">
-                      进化为 <span className={rarityLabel[selectedEvoInfo.target.targetRarity]}>
-                        {cardMap[selectedEvoInfo.target.targetCardId]?.name || selectedEvoInfo.target.targetCardId}
+                      {t('collection.detail.evolveTo')} <span className={rarityLabel[selectedEvoInfo.target.targetRarity]}>
+                        {cardName(cardMap[selectedEvoInfo.target.targetCardId]) || selectedEvoInfo.target.targetCardId}
                       </span>
                     </span>
                   </div>
@@ -574,9 +576,9 @@ export default function Collection({ onBack, economy }) {
                     }}
                     disabled={!selectedEvoInfo.canEvolve || evolving}
                   >
-                    {evolving ? '🧬 进化中...' : selectedEvoInfo.canEvolve
-                      ? `🧬 进化！(消耗 ${selectedEvoInfo.fragmentsNeed} 碎片)`
-                      : `🧬 碎片不足 (${selectedEvoInfo.fragmentsHave}/${selectedEvoInfo.fragmentsNeed})`
+                    {evolving ? t('collection.detail.evolving') : selectedEvoInfo.canEvolve
+                      ? t('collection.detail.evolveBtn', { n: selectedEvoInfo.fragmentsNeed })
+                      : t('collection.detail.evolveInsufficient', { have: selectedEvoInfo.fragmentsHave, need: selectedEvoInfo.fragmentsNeed })
                     }
                   </motion.button>
                 </div>
@@ -587,7 +589,7 @@ export default function Collection({ onBack, economy }) {
                 onClick={() => { if (!evolving) setSelectedCard(null) }}
                 disabled={evolving}
               >
-                关闭
+                {t('collection.detail.close')}
               </button>
             </motion.div>
           </motion.div>

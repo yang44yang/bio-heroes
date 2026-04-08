@@ -11,6 +11,7 @@ import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
 import DialogueBox from './DialogueBox'
 import cards from '../data/cards'
+import { useLanguage } from '../i18n/LanguageContext'
 
 /**
  * BattleScreen — Sprint 2 完全重写
@@ -20,6 +21,7 @@ import cards from '../data/cards'
  *   → 手牌区 → 操作按钮 → 日志
  */
 export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, onExit }) {
+  const { t, lang, cardName } = useLanguage()
   const battle = useBattle()
   const playerHand = useHand(playerDeckCards)
   const enemyHand = useHand(enemyDeckCards)
@@ -636,7 +638,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       if (opts.scientistTriggered) {
         setTimeout(() => playSound('scientistMode'), 600)
       }
-      setAwakenText(opts.scientistTriggered ? '🔬 科学家模式！' : '觉醒！ATK ×2.0')
+      setAwakenText(opts.scientistTriggered ? t('battle.scientistAwaken') : t('battle.awaken'))
       setTimeout(() => {
         setAwakenText(null)
         if (pendingAtkSlot !== undefined) {
@@ -716,7 +718,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     return (
       <div className="flex items-center gap-1 sm:gap-2">
         <span className="text-[9px] sm:text-[11px] text-gray-500 w-10 sm:w-16 shrink-0">
-          {side === 'player' ? '⚡PB' : '⚡敌PB'}
+          {side === 'player' ? t('battle.pb.player') : t('battle.pb.enemy')}
         </span>
         <div className="flex-1 h-4 sm:h-5 rounded-full overflow-hidden relative" data-pb-bar
           style={{ background: '#222', border: '1px solid #444' }}>
@@ -732,7 +734,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           />
           <span className="absolute inset-0 flex items-center justify-center text-[9px] sm:text-[11px] font-black text-white"
             style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}>
-            {intact ? (stored > 0 ? `⚡${stored}` : '') : '破'}
+            {intact ? (stored > 0 ? `⚡${stored}` : '') : t('battle.pb.broken')}
           </span>
         </div>
         {canBreak && intact && stored > 0 && (
@@ -752,7 +754,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               }
             }}
           >
-            💥打破
+            {t('battle.pb.break')}
           </motion.button>
         )}
       </div>
@@ -787,7 +789,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           {/* 信息 */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-0.5">
-              <span className={`text-xs sm:text-sm font-medium ${nameColor}`}>{isEnemy ? '对手' : '你'}</span>
+              <span className={`text-xs sm:text-sm font-medium ${nameColor}`}>{isEnemy ? t('battle.enemy') : t('battle.you')}</span>
               <span className="text-xs sm:text-sm text-white font-medium font-mono">
                 {currentHP.toLocaleString()}
                 <span className="text-gray-500 text-[10px] sm:text-xs"> / {maxHP.toLocaleString()}</span>
@@ -887,10 +889,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           {battle.quizStreak > 0 && (
             <span className="text-yellow-300 font-bold">🧠×{battle.quizStreak}</span>
           )}
-          <span className="text-red-400/60 hidden sm:inline">🔴 手牌{enemyHand.hand.length}</span>
-          {isMainPhase && <span className="text-green-400 font-bold animate-pulse text-[10px] sm:text-sm">出牌</span>}
-          {isBattlePhase && <span className="text-red-400 font-bold animate-pulse text-[10px] sm:text-sm">战斗</span>}
-          {battle.phase === 'enemyTurn' && <span className="text-orange-400 font-bold animate-pulse text-[10px] sm:text-sm">敌方...</span>}
+          <span className="text-red-400/60 hidden sm:inline">{t('battle.enemyHand')}{enemyHand.hand.length}</span>
+          {isMainPhase && <span className="text-green-400 font-bold animate-pulse text-[10px] sm:text-sm">{t('battle.playPhase')}</span>}
+          {isBattlePhase && <span className="text-red-400 font-bold animate-pulse text-[10px] sm:text-sm">{t('battle.battlePhase')}</span>}
+          {battle.phase === 'enemyTurn' && <span className="text-orange-400 font-bold animate-pulse text-[10px] sm:text-sm">{t('battle.enemyTurn')}</span>}
         </div>
       </div>
 
@@ -914,8 +916,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               backgroundPosition: { duration: 2, repeat: Infinity, ease: 'linear' },
             }}
           >
-            <span className="text-purple-300">🔬 科学家模式！</span>
-            <span className="text-gray-400 text-xs ml-2">全队 ATK +20%（剩余 {battle.scientistMode.turnsLeft} 回合）</span>
+            <span className="text-purple-300">{t('battle.scientistMode')}</span>
+            <span className="text-gray-400 text-xs ml-2">{t('battle.scientistModeDesc', { n: battle.scientistMode.turnsLeft })}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -933,7 +935,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             <span className="text-amber-400">
               {battle.activeEnvEvent.event.emoji} {battle.activeEnvEvent.event.name}
             </span>
-            <span className="text-gray-500 ml-2">剩余 {battle.activeEnvEvent.turnsLeft} 回合</span>
+            <span className="text-gray-500 ml-2">{t('battle.envRemaining', { n: battle.activeEnvEvent.turnsLeft })}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -972,7 +974,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             {card && card.currentHp > 0 ? (
               <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={false} isActive={false} />
             ) : (
-              <span className="text-gray-700 text-[9px] sm:text-xs">空</span>
+              <span className="text-gray-700 text-[9px] sm:text-xs">{t('battle.empty')}</span>
             )}
             <AnimatePresence>
               {floatingDmgs.filter(f => f.side === 'enemy' && f.slot === i).map(f => (
@@ -1072,7 +1074,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         if (total === 0) return null
         return (
           <div className="flex-none flex items-center gap-1 sm:gap-2 text-[8px] sm:text-[10px] text-gray-500 px-1" data-info-row="true">
-            <span>弃牌({total}):</span>
+            <span>{t('battle.discard')}({total}):</span>
             {markers.nature > 0 && <span>🌱{markers.nature}</span>}
             {markers.body > 0 && <span>🧬{markers.body}</span>}
             {markers.pathogen > 0 && <span>🦠{markers.pathogen}</span>}
@@ -1096,23 +1098,23 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       {/* SP 卡区域 */}
       {(battle.playerSpDeck.length > 0 || battle.enemySpDeck.length > 0) && (
         <div className="flex-none flex justify-between items-center text-[8px] sm:text-[10px] text-gray-500 px-1" data-info-row="true">
-          <span>🌟SP:{battle.playerSpDeck.length}</span>
-          <span>🌟敌SP:{battle.enemySpDeck.length}</span>
+          <span>{t('battle.sp.player')}:{battle.playerSpDeck.length}</span>
+          <span>{t('battle.sp.enemy')}:{battle.enemySpDeck.length}</span>
         </div>
       )}
 
       {/* 手牌区 */}
       <div className={`shrink-0 flex flex-col ${isBattlePhase && selectedAtkSlot !== null ? 'opacity-60' : ''}`} data-hand-area="true">
         <div className="flex items-center gap-1 sm:gap-2 px-1">
-          <span className="text-[10px] sm:text-xs text-gray-400">手牌({playerHand.hand.length})</span>
-          <span className="text-[10px] sm:text-xs text-gray-600">卡组{playerHand.drawPileCount}</span>
+          <span className="text-[10px] sm:text-xs text-gray-400">{t('battle.hand')}({playerHand.hand.length})</span>
+          <span className="text-[10px] sm:text-xs text-gray-600">{t('battle.deckPile')}{playerHand.drawPileCount}</span>
           {isMainPhase && selectedHandIdx !== null && playerHand.hand[selectedHandIdx]?.type === 'event' && (
             <motion.button
               className="px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg min-h-[28px] sm:min-h-0"
               whileTap={{ scale: 0.9 }}
               onClick={() => handlePlayCard(-1)}
             >
-              📜 使用事件
+              {t('battle.useEvent')}
             </motion.button>
           )}
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
@@ -1126,7 +1128,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   playSound('phaseChange')
                 }}
               >
-                结束出牌 →
+                {t('battle.endPlay')}
               </motion.button>
             )}
             {isBattlePhase && (
@@ -1138,11 +1140,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   battle.endBattlePhase()
                 }}
               >
-                结束回合
+                {t('battle.endTurn')}
               </motion.button>
             )}
             {isBattlePhase && selectedAtkSlot !== null && (
-              <span className="text-[10px] text-yellow-300">选目标</span>
+              <span className="text-[10px] text-yellow-300">{t('battle.selectTarget')}</span>
             )}
           </div>
         </div>
@@ -1176,11 +1178,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                     const f = FACTIONS[card.factionRequirement.faction]
                     const markers = getFactionMarkers(battle.playerDiscard)
                     const have = markers[card.factionRequirement.faction] || 0
-                    setLockToast({ text: `${f.icon} 需要弃牌堆有 ${card.factionRequirement.count} 张${f.name}卡（当前 ${have} 张）`, key: Date.now() })
+                    setLockToast({ text: t('battle.lockNeedFaction', { icon: f.icon, need: card.factionRequirement.count, name: f.name, have }), key: Date.now() })
                     return
                   }
                   if (!canAfford) {
-                    setLockToast({ text: `能量不足（需要 ${card.cost}，当前 ${battle.playerEnergy}）`, key: Date.now() })
+                    setLockToast({ text: t('battle.lockNeedEnergy', { cost: card.cost, current: battle.playerEnergy }), key: Date.now() })
                     return
                   }
                   if (selectedHandIdx === i && card.type === 'event') {
@@ -1209,7 +1211,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             )
           })}
           {playerHand.hand.length === 0 && (
-            <div className="text-gray-600 text-[10px] sm:text-xs py-2">手牌为空</div>
+            <div className="text-gray-600 text-[10px] sm:text-xs py-2">{t('battle.handEmpty')}</div>
           )}
         </div>
       </div>
@@ -1243,9 +1245,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             animate={{ scale: 1, y: 0 }}
             transition={{ type: 'spring', damping: 15 }}
           >
-            <h2 className="text-xl font-bold text-yellow-400 text-center mb-2">🌟 SP 觉醒！</h2>
+            <h2 className="text-xl font-bold text-yellow-400 text-center mb-2">{t('sp.title')}</h2>
             <p className="text-gray-400 text-sm text-center mb-4">
-              选择一张 SP 卡召唤到战场（免费！）
+              {t('sp.desc')}
             </p>
             <div className="flex gap-3 justify-center flex-wrap mb-4">
               {battle.pendingSpSummon.candidates.map((sp) => (
@@ -1268,7 +1270,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 className="text-xs text-gray-500 hover:text-gray-300"
                 onClick={() => battle.cancelSpSummon()}
               >
-                跳过召唤
+                {t('sp.skip')}
               </button>
             </div>
           </motion.div>
@@ -1301,7 +1303,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             </div>
             {battle.pendingEnvEvent.duration > 0 && (
               <p className="text-center text-[10px] text-amber-500/70 mb-3">
-                持续 {battle.pendingEnvEvent.duration} 回合
+                {t('env.duration', { n: battle.pendingEnvEvent.duration })}
               </p>
             )}
             <div className="text-center">
@@ -1310,7 +1312,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 whileTap={{ scale: 0.95 }}
                 onClick={() => battle.dismissEnvEvent()}
               >
-                确认
+                {t('env.confirm')}
               </motion.button>
             </div>
           </motion.div>
@@ -1331,9 +1333,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             animate={{ scale: 1, y: 0 }}
             transition={{ type: 'spring', damping: 15 }}
           >
-            <h2 className="text-xl font-bold text-yellow-400 text-center mb-2">🔄 换卡阶段</h2>
+            <h2 className="text-xl font-bold text-yellow-400 text-center mb-2">{t('mulligan.title')}</h2>
             <p className="text-gray-400 text-sm text-center mb-4">
-              点击选择要换掉的卡牌（换掉后从卡组重新抽取同等数量）
+              {t('mulligan.desc')}
             </p>
 
             {/* 手牌展示 */}
@@ -1360,7 +1362,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                     )}
                     {card.cost > 2 && !isSelected && (
                       <div className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                        贵
+                        {t('mulligan.expensive')}
                       </div>
                     )}
                   </motion.div>
@@ -1369,7 +1371,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             </div>
 
             <div className="text-center text-xs text-gray-500 mb-4">
-              已选 {mulliganSelected.size} 张换掉
+              {t('mulligan.selected', { n: mulliganSelected.size })}
             </div>
 
             {/* 按钮 */}
@@ -1387,7 +1389,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   setTimeout(() => playSound('turnStart'), 300)
                 }}
               >
-                不换了，直接开始
+                {t('mulligan.skip')}
               </motion.button>
               <motion.button
                 className={`px-6 py-2 rounded-xl font-bold text-sm text-white ${
@@ -1399,7 +1401,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 whileTap={mulliganSelected.size > 0 ? { scale: 0.95 } : {}}
                 onClick={() => mulliganSelected.size > 0 && confirmMulligan()}
               >
-                确认换卡 ({mulliganSelected.size})
+                {t('mulligan.confirm', { n: mulliganSelected.size })}
               </motion.button>
             </div>
           </motion.div>
@@ -1430,33 +1432,33 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 animate={won ? { textShadow: ['0 0 20px rgba(255,215,0,0.5)', '0 0 40px rgba(255,215,0,0.8)', '0 0 20px rgba(255,215,0,0.5)'] } : {}}
                 transition={won ? { duration: 2, repeat: Infinity } : {}}
               >
-                {won ? '🏆 胜利！' : '💀 败北…'}
+                {won ? t('battle.victory') : t('battle.defeat')}
               </motion.div>
               <div className="text-gray-400 text-sm mb-4">
-                {won ? '太厉害了！你的生物英雄赢了！' : '别灰心，下次一定能赢！'}
+                {won ? t('battle.victoryMsg') : t('battle.defeatMsg')}
               </div>
 
               {/* Stats */}
               <div className="bg-gray-800/80 rounded-xl p-4 mb-4 text-left">
-                <div className="text-xs text-gray-500 mb-2 text-center font-bold">📊 战斗统计</div>
+                <div className="text-xs text-gray-500 mb-2 text-center font-bold">{t('battle.stats')}</div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                  <span className="text-gray-400">⚔️ 总伤害</span>
+                  <span className="text-gray-400">{t('battle.stats.damage')}</span>
                   <span className="text-white text-right font-bold">{stats.totalDamage.toLocaleString()}</span>
-                  <span className="text-gray-400">💀 击杀数</span>
+                  <span className="text-gray-400">{t('battle.stats.kills')}</span>
                   <span className="text-white text-right font-bold">{stats.kills}</span>
-                  <span className="text-gray-400">🃏 出牌数</span>
+                  <span className="text-gray-400">{t('battle.stats.cardsPlayed')}</span>
                   <span className="text-white text-right font-bold">{stats.cardsPlayed}</span>
-                  <span className="text-gray-400">🧠 答题</span>
+                  <span className="text-gray-400">{t('battle.stats.quiz')}</span>
                   <span className="text-white text-right font-bold">{stats.quizCorrect}/{stats.quizTotal}</span>
                   {stats.spSummons > 0 && <>
-                    <span className="text-gray-400">🌟 SP召唤</span>
+                    <span className="text-gray-400">{t('battle.stats.spSummons')}</span>
                     <span className="text-yellow-400 text-right font-bold">{stats.spSummons}</span>
                   </>}
                   {stats.powerBankMax > 0 && <>
-                    <span className="text-gray-400">⚡ PB最高</span>
+                    <span className="text-gray-400">{t('battle.stats.pbMax')}</span>
                     <span className="text-blue-400 text-right font-bold">{stats.powerBankMax}</span>
                   </>}
-                  <span className="text-gray-400">📅 回合数</span>
+                  <span className="text-gray-400">{t('battle.stats.turns')}</span>
                   <span className="text-white text-right font-bold">{battle.turn}</span>
                 </div>
               </div>
@@ -1468,18 +1470,18 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
               >
-                <span className="text-yellow-400 text-sm font-bold">🪙 +{reward.coins} 金币</span>
+                <span className="text-yellow-400 text-sm font-bold">{t('battle.reward.coins', { n: reward.coins })}</span>
                 {stats.quizCorrect > 0 && (
-                  <span className="text-gray-500 text-xs ml-2">(含答题奖励 +{stats.quizCorrect * (won ? 10 : 5)})</span>
+                  <span className="text-gray-500 text-xs ml-2">{t('battle.reward.quizBonus', { n: stats.quizCorrect * (won ? 10 : 5) })}</span>
                 )}
               </motion.div>
 
               {/* 章节奖励（Boss战首通） */}
               {won && campaignConfig?.stageType === 'boss' && (() => {
                 const chapterRewards = {
-                  '2-4': '🎁 章节奖励: +500 金币',
-                  '3-4': '🎁 章节奖励: +500 金币 +10 钻石',
-                  '4-4': '🎁 章节奖励: 科学家🔬称号',
+                  '2-4': t('battle.chapterReward.2-4'),
+                  '3-4': t('battle.chapterReward.3-4'),
+                  '4-4': t('battle.chapterReward.4-4'),
                 }
                 // 从 campaignConfig 中提取 stageId（通过 stageName 或其他方式）
                 const stageId = Object.keys(chapterRewards).find(
@@ -1506,7 +1508,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   whileTap={{ scale: 0.95 }}
                   onClick={handleRestart}
                 >
-                  🔄 再来一局
+                  {t('battle.rematch')}
                 </motion.button>
                 <motion.button
                   className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-bold text-sm"
@@ -1519,7 +1521,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                     leaderHPPercent: Math.round((battle.playerLeaderHp / LEADER_HP) * 100),
                   })}
                 >
-                  {campaignConfig ? '返回闯关' : '返回主菜单'}
+                  {campaignConfig ? t('battle.backCampaign') : t('battle.backMenu')}
                 </motion.button>
               </div>
             </motion.div>
@@ -1544,19 +1546,19 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       {showExitConfirm && createPortal(
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70">
           <div className="bg-gray-800 rounded-2xl p-6 mx-4 max-w-sm w-full text-center shadow-2xl border border-gray-600">
-            <p className="text-white text-lg font-bold mb-2">退出战斗？</p>
+            <p className="text-white text-lg font-bold mb-2">{t('battle.exit.title')}</p>
             {campaignConfig && (
-              <p className="text-red-400 text-sm mb-4">退出将视为失败，不会获得奖励</p>
+              <p className="text-red-400 text-sm mb-4">{t('battle.exit.campaign')}</p>
             )}
             {!campaignConfig && (
-              <p className="text-gray-400 text-sm mb-4">当前战斗进度将丢失</p>
+              <p className="text-gray-400 text-sm mb-4">{t('battle.exit.normal')}</p>
             )}
             <div className="flex gap-3 justify-center">
               <button
                 className="px-5 py-2.5 bg-gray-600 hover:bg-gray-500 rounded-xl text-white font-bold text-sm min-h-[44px]"
                 onClick={() => setShowExitConfirm(false)}
               >
-                继续战斗
+                {t('battle.exit.continue')}
               </button>
               <button
                 className="px-5 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl text-white font-bold text-sm min-h-[44px]"
@@ -1567,7 +1569,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   leaderHPPercent: Math.round((battle.playerLeaderHp / LEADER_HP) * 100),
                 })}
               >
-                确认退出
+                {t('battle.exit.confirm')}
               </button>
             </div>
           </div>
@@ -1578,8 +1580,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       {/* 手机竖屏横屏提示 */}
       <div className="fixed inset-0 z-[999] bg-gray-900/95 flex-col items-center justify-center gap-4" data-landscape-prompt="true">
         <div className="text-6xl animate-bounce">📱</div>
-        <p className="text-white text-lg font-bold">请横过来玩！</p>
-        <p className="text-gray-400 text-sm">横屏体验更佳</p>
+        <p className="text-white text-lg font-bold">{t('battle.landscape')}</p>
+        <p className="text-gray-400 text-sm">{t('battle.landscapeHint')}</p>
       </div>
     </div>
   )

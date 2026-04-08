@@ -8,6 +8,7 @@ import {
 import { loadTutorialProgress } from '../data/tutorialData'
 import { FACTIONS } from '../data/deckRules'
 import DialogueBox from './DialogueBox'
+import { useLanguage } from '../i18n/LanguageContext'
 
 /**
  * CampaignScreen — 闯关战役
@@ -19,6 +20,7 @@ import DialogueBox from './DialogueBox'
  *   economy: useEconomy()
  */
 export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial, economy }) {
+  const { t, lang, cardName } = useLanguage()
   const [progress, setProgress] = useState(() => loadCampaignProgress())
   const [selectedStage, setSelectedStage] = useState(null) // 详情弹窗
   const [activeChapter, setActiveChapter] = useState(0)
@@ -45,8 +47,8 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
   const maxStars = getMaxStars()
 
   // 星数里程碑
-  const nextMilestone = totalStars < 30 ? { target: 30, reward: '500 金币' }
-    : totalStars < 45 ? { target: 45, reward: '1000 金币' }
+  const nextMilestone = totalStars < 30 ? { target: 30, reward: t('campaign.reward500') }
+    : totalStars < 45 ? { target: 45, reward: t('campaign.reward1000') }
     : null
   const hasScientistTitle = progress.claimedRewards?.ch4_complete
 
@@ -104,16 +106,16 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
           className="text-gray-400 text-sm hover:text-white"
           onClick={onBack}
         >
-          ← 返回
+          {t('campaign.back')}
         </button>
         <h1 className="text-lg font-black">
-          🏆 闯关战役{hasScientistTitle ? ' 🔬' : ''}
+          {t('campaign.title')}{hasScientistTitle ? ' 🔬' : ''}
         </h1>
         <div className="text-right">
           <div className="text-sm text-yellow-400 font-bold">⭐ {totalStars}/{maxStars}</div>
           {nextMilestone && (
             <div className="text-[10px] text-gray-500">
-              下个奖励: {nextMilestone.target}⭐ ({nextMilestone.reward})
+              {t('campaign.nextReward', { target: nextMilestone.target, reward: nextMilestone.reward })}
             </div>
           )}
         </div>
@@ -198,11 +200,11 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                     {stage.name}
                   </div>
                   <div className="text-[10px] text-gray-500">
-                    {isTutorial ? '教学关卡' :
+                    {isTutorial ? t('campaign.tutorialStage') :
                      stage.enemyConfig ? `HP ${stage.enemyConfig.leaderHP.toLocaleString()}` : ''}
                     {stage.playerConfig?.recommendedFactions &&
                       <span className="ml-1">
-                        推荐 {stage.playerConfig.recommendedFactions.map(f => FACTIONS[f]?.icon).join('')}
+                        {t('campaign.recommend')} {stage.playerConfig.recommendedFactions.map(f => FACTIONS[f]?.icon).join('')}
                       </span>
                     }
                   </div>
@@ -262,17 +264,17 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               {selectedStage.type !== 'tutorial' && selectedStage.enemyConfig && (
                 <div className="bg-gray-800/60 rounded-xl p-3 mb-3 space-y-1.5 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-400">敌方HP</span>
+                    <span className="text-gray-400">{t('campaign.enemyHP')}</span>
                     <span className="text-red-400 font-bold">{selectedStage.enemyConfig.leaderHP.toLocaleString()}</span>
                   </div>
                   {selectedStage.enemyConfig.bossMechanic && (
                     <div className="text-[10px] text-red-300">
-                      ⚠️ Boss 特殊机制
+                      {t('campaign.bossMechanic')}
                     </div>
                   )}
                   {selectedStage.playerConfig?.recommendedFactions && (
                     <div className="flex justify-between">
-                      <span className="text-gray-400">推荐阵营</span>
+                      <span className="text-gray-400">{t('campaign.recommendFaction')}</span>
                       <span>
                         {selectedStage.playerConfig.recommendedFactions.map(f =>
                           <span key={f} className="ml-1">{FACTIONS[f]?.icon} {FACTIONS[f]?.name}</span>
@@ -285,7 +287,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
 
               {/* 星数 */}
               <div className="text-center mb-3">
-                <span className="text-gray-500 text-xs">你的最高星数: </span>
+                <span className="text-gray-500 text-xs">{t('campaign.bestStars')}</span>
                 {[1, 2, 3].map(s => (
                   <span key={s} className={`text-lg ${s <= (progress.stageStars[selectedStage.id] || 0) ? 'text-yellow-400' : 'text-gray-700'}`}>⭐</span>
                 ))}
@@ -303,8 +305,8 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               {/* 奖励 */}
               {selectedStage.rewards && (
                 <div className="bg-gray-800/40 rounded-lg p-2 mb-3 text-xs text-gray-400">
-                  <div>首通: {formatReward(selectedStage.rewards.firstClear)}</div>
-                  <div>三星: {formatReward(selectedStage.rewards.threeStars)}</div>
+                  <div>{t('campaign.firstClear')}: {formatReward(selectedStage.rewards.firstClear)}</div>
+                  <div>{t('campaign.threeStars')}: {formatReward(selectedStage.rewards.threeStars)}</div>
                 </div>
               )}
 
@@ -316,7 +318,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                   if (!hasDeck) {
                     return (
                       <div className="text-xs text-yellow-400 bg-yellow-900/30 border border-yellow-700/30 rounded-lg px-2 py-1.5 mb-3">
-                        ⚠️ 你还没有自建卡组，将使用默认测试卡组。去「🃏 卡组」创建你的专属卡组！
+                        {t('campaign.noDeck')}
                       </div>
                     )
                   }
@@ -330,7 +332,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                   className="flex-1 py-3 bg-gray-700 hover:bg-gray-600 rounded-xl text-sm font-bold text-gray-300"
                   onClick={() => setSelectedStage(null)}
                 >
-                  返回
+                  {t('campaign.back2')}
                 </button>
                 <button
                   className={`flex-1 py-3 rounded-xl text-sm font-black ${
@@ -340,7 +342,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                   }`}
                   onClick={() => handleStartStage(selectedStage)}
                 >
-                  {selectedStage.type === 'tutorial' ? '开始教学' : '开始战斗！'}
+                  {selectedStage.type === 'tutorial' ? t('campaign.startTutorial') : t('campaign.startBattle')}
                 </button>
               </div>
             </motion.div>
