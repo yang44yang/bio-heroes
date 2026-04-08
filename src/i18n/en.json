@@ -169,6 +169,9 @@
   "campaign.back2": "Back",
   "campaign.startTutorial": "Start Tutorial",
   "campaign.startBattle": "Start Battle!",
+  "campaign.star1": "Clear the stage",
+  "campaign.star2": "Leader HP ≥ 50%",
+  "campaign.star3": "Leader HP ≥ 80% & ≤10 turns",
   "campaign.reward500": "500 Coins",
   "campaign.reward1000": "1000 Coins",
 

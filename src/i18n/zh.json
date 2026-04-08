@@ -169,6 +169,9 @@
   "campaign.back2": "返回",
   "campaign.startTutorial": "开始教学",
   "campaign.startBattle": "开始战斗！",
+  "campaign.star1": "通关",
+  "campaign.star2": "主人HP ≥ 50%",
+  "campaign.star3": "主人HP ≥ 80% 且 ≤10回合",
   "campaign.reward500": "500 金币",
   "campaign.reward1000": "1000 金币",
 

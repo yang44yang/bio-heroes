@@ -13,17 +13,19 @@ export const campaignData = {
     {
       id: 'ch1',
       name: '初级训练',
+      nameEn: 'Basic Training',
       difficulty: 1,
       icon: '⭐',
       description: '学习 Bio Heroes 的核心玩法',
+      descriptionEn: 'Learn the core mechanics of Bio Heroes',
       unlockCondition: null,
       completionReward: { coins: 500 },
       stages: [
-        { id: '1-1', name: '第一次战斗', type: 'tutorial', tutorialLevel: 1 },
-        { id: '1-2', name: '免疫反击', type: 'tutorial', tutorialLevel: 2 },
-        { id: '1-3', name: '能量爆发', type: 'tutorial', tutorialLevel: 3 },
-        { id: '1-4', name: '召唤觉醒', type: 'tutorial', tutorialLevel: 4 },
-        { id: '1-5', name: '解锁终极战士', type: 'tutorial', tutorialLevel: 5 },
+        { id: '1-1', name: '第一次战斗', nameEn: 'First Battle', type: 'tutorial', tutorialLevel: 1 },
+        { id: '1-2', name: '免疫反击', nameEn: 'Immune Counterattack', type: 'tutorial', tutorialLevel: 2 },
+        { id: '1-3', name: '能量爆发', nameEn: 'Energy Burst', type: 'tutorial', tutorialLevel: 3 },
+        { id: '1-4', name: '召唤觉醒', nameEn: 'Summon Awakening', type: 'tutorial', tutorialLevel: 4 },
+        { id: '1-5', name: '解锁终极战士', nameEn: 'Ultimate Warrior', type: 'tutorial', tutorialLevel: 5 },
       ],
     },
 
@@ -31,15 +33,18 @@ export const campaignData = {
     {
       id: 'ch2',
       name: '病原侵袭篇',
+      nameEn: 'Pathogen Invasion',
       difficulty: 2,
       icon: '🦠',
       description: '病原体入侵人体！用人体系和科技系保卫健康！',
+      descriptionEn: 'Pathogens are invading! Use Body and Tech factions to defend!',
       unlockCondition: 'ch1_complete',
       completionReward: { coins: 200, diamonds: 10 },
       stages: [
         {
           id: '2-1',
           name: '蛀牙军团',
+          nameEn: 'Cavity Bacteria Legion',
           type: 'battle',
           enemyConfig: {
             leaderHP: 15000,
@@ -65,6 +70,7 @@ export const campaignData = {
         {
           id: 'stage_2_2',
           name: '食物中毒危机',
+          nameEn: 'Food Poisoning Crisis',
           type: 'battle',
           enemyConfig: {
             leaderHP: 18000,
@@ -90,6 +96,7 @@ export const campaignData = {
         {
           id: '2-2',
           name: '流感风暴',
+          nameEn: 'Flu Storm',
           type: 'battle',
           enemyConfig: {
             leaderHP: 18000,
@@ -115,6 +122,7 @@ export const campaignData = {
         {
           id: 'stage_2_4',
           name: '蚊媒双煞',
+          nameEn: 'Mosquito-Borne Terror',
           type: 'battle',
           enemyConfig: {
             leaderHP: 20000,
@@ -141,6 +149,7 @@ export const campaignData = {
         {
           id: '2-3',
           name: '狂犬危机',
+          nameEn: 'Rabies Crisis',
           type: 'battle',
           enemyConfig: {
             leaderHP: 20000,
@@ -166,6 +175,7 @@ export const campaignData = {
         {
           id: '2-4',
           name: '新冠病毒',
+          nameEn: 'COVID-19',
           type: 'boss',
           enemyConfig: {
             leaderHP: 25000,
@@ -200,15 +210,18 @@ export const campaignData = {
     {
       id: 'ch3',
       name: '生态危机篇',
+      nameEn: 'Ecology Crisis',
       difficulty: 3,
       icon: '🌊',
       description: '自然界的顶级掠食者来了！你能应对吗？',
+      descriptionEn: 'Nature\'s apex predators are here! Can you handle them?',
       unlockCondition: 'ch2_complete',
       completionReward: { coins: 200, diamonds: 10 },
       stages: [
         {
           id: '3-1',
           name: '电鳗风暴',
+          nameEn: 'Electric Eel Storm',
           type: 'battle',
           enemyConfig: {
             leaderHP: 20000,
@@ -234,6 +247,7 @@ export const campaignData = {
         {
           id: 'stage_3_2',
           name: '深海猎场',
+          nameEn: 'Deep Sea Hunting Ground',
           type: 'battle',
           enemyConfig: {
             leaderHP: 22000,
@@ -260,6 +274,7 @@ export const campaignData = {
         {
           id: '3-2',
           name: '水母迷宫',
+          nameEn: 'Jellyfish Maze',
           type: 'battle',
           enemyConfig: {
             leaderHP: 20000,
@@ -285,6 +300,7 @@ export const campaignData = {
         {
           id: '3-3',
           name: '虎鲸猎场',
+          nameEn: 'Orca Hunting Ground',
           type: 'battle',
           enemyConfig: {
             leaderHP: 22000,
@@ -310,6 +326,7 @@ export const campaignData = {
         {
           id: 'stage_3_4',
           name: '丛林法则',
+          nameEn: 'Law of the Jungle',
           type: 'battle',
           enemyConfig: {
             leaderHP: 24000,
@@ -336,6 +353,7 @@ export const campaignData = {
         {
           id: '3-4',
           name: '蓝鲸巨灵',
+          nameEn: 'Blue Whale Titan',
           type: 'boss',
           enemyConfig: {
             leaderHP: 30000,
@@ -370,15 +388,18 @@ export const campaignData = {
     {
       id: 'ch4',
       name: '科技觉醒篇',
+      nameEn: 'Tech Awakening',
       difficulty: 4,
       icon: '⚗️',
       description: '终极挑战！超级细菌免疫所有科技，只有生物智慧才能战胜它！',
+      descriptionEn: 'Ultimate challenge! Superbugs resist all tech — only biological wisdom can defeat them!',
       unlockCondition: 'ch3_complete',
       completionReward: { coins: 300, diamonds: 20 },
       stages: [
         {
           id: '4-1',
           name: '耐药菌浪潮',
+          nameEn: 'Antibiotic Resistance Wave',
           type: 'battle',
           enemyConfig: {
             leaderHP: 22000,
@@ -404,6 +425,7 @@ export const campaignData = {
         {
           id: 'stage_4_2',
           name: '真菌入侵',
+          nameEn: 'Fungal Invasion',
           type: 'battle',
           enemyConfig: {
             leaderHP: 25000,
@@ -430,6 +452,7 @@ export const campaignData = {
         {
           id: '4-2',
           name: 'HIV潜伏',
+          nameEn: 'HIV Stealth',
           type: 'battle',
           enemyConfig: {
             leaderHP: 22000,
@@ -455,6 +478,7 @@ export const campaignData = {
         {
           id: '4-3',
           name: '远古病毒觉醒',
+          nameEn: 'Ancient Virus Awakens',
           type: 'battle',
           enemyConfig: {
             leaderHP: 25000,
@@ -480,6 +504,7 @@ export const campaignData = {
         {
           id: 'stage_4_4',
           name: '出血热噩梦',
+          nameEn: 'Hemorrhagic Fever Nightmare',
           type: 'battle',
           enemyConfig: {
             leaderHP: 28000,
@@ -506,6 +531,7 @@ export const campaignData = {
         {
           id: '4-4',
           name: '超级细菌',
+          nameEn: 'Superbug',
           type: 'boss',
           enemyConfig: {
             leaderHP: 30000,

@@ -144,7 +144,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               disabled={!chUnlocked}
             >
               <div className="text-base">{chUnlocked ? ch.icon : '🔒'}</div>
-              <div className="truncate">{ch.name}</div>
+              <div className="truncate">{lang === 'en' ? (ch.nameEn || ch.name) : ch.name}</div>
               {chComplete && <div className="text-green-500 text-[10px]">✅</div>}
             </button>
           )
@@ -153,7 +153,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
 
       {/* 章节描述 */}
       <div className="px-4 py-2 text-center">
-        <p className="text-gray-500 text-xs">{campaignData.chapters[activeChapter].description}</p>
+        <p className="text-gray-500 text-xs">{lang === 'en' ? (campaignData.chapters[activeChapter].descriptionEn || campaignData.chapters[activeChapter].description) : campaignData.chapters[activeChapter].description}</p>
       </div>
 
       {/* 关卡列表 */}
@@ -197,7 +197,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-sm truncate">
                     {isBoss && <span className="text-red-400 mr-1">BOSS</span>}
-                    {stage.name}
+                    {lang === 'en' ? (stage.nameEn || stage.name) : stage.name}
                   </div>
                   <div className="text-[10px] text-gray-500">
                     {isTutorial ? t('campaign.tutorialStage') :
@@ -252,11 +252,11 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               {/* 标题 */}
               <div className="text-center mb-3">
                 <div className="text-xs text-gray-500 mb-1">
-                  {'⭐'.repeat(selectedStage.chapter.difficulty)} {selectedStage.chapter.name}
+                  {'⭐'.repeat(selectedStage.chapter.difficulty)} {lang === 'en' ? (selectedStage.chapter.nameEn || selectedStage.chapter.name) : selectedStage.chapter.name}
                 </div>
                 <h2 className="text-xl font-black">
                   {selectedStage.type === 'boss' && <span className="text-red-400">💀 </span>}
-                  {selectedStage.name}
+                  {lang === 'en' ? (selectedStage.nameEn || selectedStage.name) : selectedStage.name}
                 </h2>
               </div>
 
@@ -277,7 +277,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                       <span className="text-gray-400">{t('campaign.recommendFaction')}</span>
                       <span>
                         {selectedStage.playerConfig.recommendedFactions.map(f =>
-                          <span key={f} className="ml-1">{FACTIONS[f]?.icon} {FACTIONS[f]?.name}</span>
+                          <span key={f} className="ml-1">{FACTIONS[f]?.icon} {lang === 'en' ? (FACTIONS[f]?.nameEn || FACTIONS[f]?.name) : FACTIONS[f]?.name}</span>
                         )}
                       </span>
                     </div>
@@ -296,9 +296,9 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               {/* 星数条件 */}
               {selectedStage.starConditions && (
                 <div className="text-[10px] text-gray-500 mb-3 space-y-0.5">
-                  <div>⭐ {selectedStage.starConditions.one}</div>
-                  <div>⭐⭐ {selectedStage.starConditions.two}</div>
-                  <div>⭐⭐⭐ {selectedStage.starConditions.three}</div>
+                  <div>⭐ {t('campaign.star1')}</div>
+                  <div>⭐⭐ {t('campaign.star2')}</div>
+                  <div>⭐⭐⭐ {t('campaign.star3')}</div>
                 </div>
               )}
 
