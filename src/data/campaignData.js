@@ -1,5 +1,5 @@
 // Bio Heroes 闯关战役数据
-// 4章23关（5教学 + 18闯关）— Sprint 19 扩展
+// 4章23关（3基础教学 + 2进阶教学 + 18闯关）— Sprint 21 重构
 
 const CAMPAIGN_STORAGE_KEY = 'bio-heroes-campaign'
 
@@ -21,11 +21,13 @@ export const campaignData = {
       unlockCondition: null,
       completionReward: { coins: 500 },
       stages: [
-        { id: '1-1', name: '第一次战斗', nameEn: 'First Battle', type: 'tutorial', tutorialLevel: 1 },
-        { id: '1-2', name: '免疫反击', nameEn: 'Immune Counterattack', type: 'tutorial', tutorialLevel: 2 },
-        { id: '1-3', name: '能量爆发', nameEn: 'Energy Burst', type: 'tutorial', tutorialLevel: 3 },
-        { id: '1-4', name: '召唤觉醒', nameEn: 'Summon Awakening', type: 'tutorial', tutorialLevel: 4 },
-        { id: '1-5', name: '解锁终极战士', nameEn: 'Ultimate Warrior', type: 'tutorial', tutorialLevel: 5 },
+        // 📗 基础教学（必须完成才能解锁第二章）
+        { id: '1-1', name: '第一次战斗', nameEn: 'First Battle', type: 'tutorial', tutorialLevel: 1, category: 'basic' },
+        { id: '1-2', name: '能量管理', nameEn: 'Energy Management', type: 'tutorial', tutorialLevel: 2, category: 'basic' },
+        { id: '1-3', name: '技能初体验', nameEn: 'Skills Introduction', type: 'tutorial', tutorialLevel: 3, category: 'basic' },
+        // 📙 进阶教学（可选，不阻止闯关）
+        { id: '1-4', name: 'Power Bank 能量爆发', nameEn: 'Power Bank Energy Burst', type: 'tutorial', tutorialLevel: 4, category: 'advanced' },
+        { id: '1-5', name: 'SP觉醒与阵营标记', nameEn: 'SP Awakening & Faction Markers', type: 'tutorial', tutorialLevel: 5, category: 'advanced' },
       ],
     },
 
@@ -38,7 +40,7 @@ export const campaignData = {
       icon: '🦠',
       description: '病原体入侵人体！用人体系和科技系保卫健康！',
       descriptionEn: 'Pathogens are invading! Use Body and Tech factions to defend!',
-      unlockCondition: 'ch1_complete',
+      unlockCondition: 'ch1_basic_complete',
       completionReward: { coins: 200, diamonds: 10 },
       stages: [
         {
@@ -47,10 +49,10 @@ export const campaignData = {
           nameEn: 'Cavity Bacteria Legion',
           type: 'battle',
           enemyConfig: {
-            leaderHP: 15000,
+            leaderHP: 12000,
             deck: ['cavity_bacteria','cavity_bacteria','cavity_bacteria','ecoli_thug','ecoli_thug','ecoli_thug','flu_virus','flu_virus','event_infection_outbreak','event_infection_outbreak'],
             spDeck: [],
-            aiStrength: 0.3,
+            aiStrength: 0.2,
             aiPersonality: 'aggressive',
             bossMechanic: null,
           },
@@ -73,10 +75,10 @@ export const campaignData = {
           nameEn: 'Food Poisoning Crisis',
           type: 'battle',
           enemyConfig: {
-            leaderHP: 18000,
+            leaderHP: 15000,
             deck: ['salmonella_poison','salmonella_poison','cholera_wave','hookworm_sucker','common_cold_virus','ringworm_itch','ecoli_thug','ecoli_thug','event_infection_outbreak','event_infection_outbreak'],
             spDeck: [],
-            aiStrength: 0.35,
+            aiStrength: 0.25,
             aiPersonality: 'aggressive',
             bossMechanic: null,
           },
@@ -181,7 +183,7 @@ export const campaignData = {
             leaderHP: 25000,
             deck: ['covid_invader','flu_virus','flu_virus','flu_virus','ecoli_thug','ecoli_thug','event_gene_mutation','event_gene_mutation','event_global_pandemic','event_infection_outbreak','event_infection_outbreak'],
             spDeck: ['sp_super_bacteria'],
-            aiStrength: 0.6,
+            aiStrength: 0.4,
             aiPersonality: 'aggressive',
             bossMechanic: 'covid_boss',
             bossPreplaced: 'covid_invader', // Boss从第1回合在场
@@ -597,23 +599,48 @@ export function saveCampaignProgress(progress) {
 // 检查关卡是否解锁
 export function isStageUnlocked(stageId, progress) {
   const { stageStars } = progress
-  // 第一章第一关始终解锁
   if (stageId === '1-1') return true
 
-  // 找到这一关在所有章节中的位置
   for (const chapter of campaignData.chapters) {
     for (let i = 0; i < chapter.stages.length; i++) {
       if (chapter.stages[i].id === stageId) {
+        const stage = chapter.stages[i]
+
+        // Advanced tutorial: unlocks after last basic tutorial (1-3) is done
+        if (stage.category === 'advanced') {
+          const basicStages = chapter.stages.filter(s => s.category === 'basic')
+          const lastBasic = basicStages[basicStages.length - 1]
+          if (!lastBasic) return false
+          // Also need previous advanced tutorial done (sequential within advanced)
+          const advStages = chapter.stages.filter(s => s.category === 'advanced')
+          const advIdx = advStages.indexOf(stage)
+          if (advIdx === 0) return (stageStars[lastBasic.id] || 0) >= 1
+          return (stageStars[advStages[advIdx - 1].id] || 0) >= 1
+        }
+
         if (i === 0) {
-          // 章节第一关：需要前一章最后一关通关
+          // First stage of chapter: check previous chapter
           const chIdx = campaignData.chapters.indexOf(chapter)
           if (chIdx === 0) return true
           const prevChapter = campaignData.chapters[chIdx - 1]
+          // For ch2+, only need basic tutorials of ch1 done (or last battle of previous chapter)
+          if (prevChapter.id === 'ch1') {
+            const basicStages = prevChapter.stages.filter(s => s.category === 'basic')
+            return basicStages.every(s => (stageStars[s.id] || 0) >= 1)
+          }
           const lastStage = prevChapter.stages[prevChapter.stages.length - 1]
           return (stageStars[lastStage.id] || 0) >= 1
         }
-        // 其他关：需要前一关通关
+        // Regular sequential unlock
         const prevStage = chapter.stages[i - 1]
+        // Skip advanced tutorials when checking sequential unlock for non-advanced stages
+        if (prevStage.category === 'advanced' && !stage.category) {
+          // Find the last non-advanced stage before this
+          const nonAdvStages = chapter.stages.filter(s => s.category !== 'advanced')
+          const myIdx = nonAdvStages.indexOf(stage)
+          if (myIdx <= 0) return true
+          return (stageStars[nonAdvStages[myIdx - 1].id] || 0) >= 1
+        }
         return (stageStars[prevStage.id] || 0) >= 1
       }
     }
@@ -625,6 +652,11 @@ export function isStageUnlocked(stageId, progress) {
 export function isChapterComplete(chapterId, progress) {
   const chapter = campaignData.chapters.find(c => c.id === chapterId)
   if (!chapter) return false
+  // For ch1, only basic tutorials count for "complete"
+  if (chapterId === 'ch1') {
+    const basicStages = chapter.stages.filter(s => s.category === 'basic')
+    return basicStages.every(s => (progress.stageStars[s.id] || 0) >= 1)
+  }
   return chapter.stages.every(s => (progress.stageStars[s.id] || 0) >= 1)
 }
 

@@ -1,5 +1,5 @@
 // Bio Heroes 教学关卡数据
-// 5个渐进式教学关卡，每关包含预设状态和步骤引导
+// Sprint 21: 3 基础 + 2 进阶教学关卡
 
 import cards from './cards'
 import eventCards from './eventCards'
@@ -42,37 +42,53 @@ const weakCard = (name, atk, hp, faction = 'pathogen', nameEn = name) => ({
   uid: `tut_weak_${Math.random().toString(36).slice(2, 8)}`,
 })
 
+// 生成一张带技能的自定义弱卡（教程守护敌人用）
+const weakCardWithSkills = (name, atk, hp, faction, nameEn, skills) => ({
+  id: `tut_weak_${name}`,
+  name,
+  nameEn,
+  type: 'character',
+  faction,
+  cost: 1,
+  rarity: 'R',
+  atk,
+  hp,
+  currentHp: hp,
+  maxHp: hp,
+  skills,
+  statuses: [],
+  uid: `tut_weak_${Math.random().toString(36).slice(2, 8)}`,
+})
+
 // ================================================================
-// 关卡1：出牌与基本战斗
+// 关卡1（基础 1/3）：第一次战斗 — 只教出牌和攻击
 // ================================================================
 export const LEVEL_1 = {
   id: 1,
-  title: '出牌与基本战斗',
-  titleEn: 'Play Cards & Basic Combat',
+  title: '第一次战斗',
+  titleEn: 'First Battle',
   icon: '⚔️',
+  category: 'basic',
   intro: [
     '欢迎来到 Bio Heroes！',
-    '在这里，你将学会如何打出卡牌、攻击对手，最终击败敌方主人！',
-    '让我们开始吧！',
+    '打出卡牌，攻击敌人，赢得胜利！',
   ],
   introEn: [
     'Welcome to Bio Heroes!',
-    'Here you\'ll learn how to play cards, attack opponents, and defeat the enemy leader!',
-    'Let\'s begin!',
+    'Play cards, attack enemies, and win!',
   ],
-  summary: '🎓 你学会了：出牌消耗能量、召唤疲劳、选择攻击目标、击败对方主人获胜',
-  summaryEn: '🎓 You learned: playing cards costs energy, summoning sickness, choosing attack targets, defeating the enemy leader to win',
+  summary: '🎓 你学会了：打出卡牌、攻击敌人、击败对方主人获胜',
+  summaryEn: '🎓 You learned: playing cards, attacking enemies, defeating the enemy leader to win',
   playerEnergy: 3,
   playerLeaderHp: 30000,
-  enemyLeaderHp: 5000, // 低HP，方便教学击杀
+  enemyLeaderHp: 5000,
   getPlayerHand: () => [
-    cardById('ant_soldier'),    // 1费
-    cardById('bee_worker'),     // 1费
-    cardById('red_blood_cell'), // 1费
+    cardById('ant_soldier'),  // 1费
+    cardById('bee_worker'),   // 1费
   ],
   getEnemyField: () => {
     const field = [null, null, null, null, null]
-    field[2] = weakCard('训练假人', 500, 1000, 'pathogen', 'Training Dummy') // 很弱，容易击杀
+    field[2] = weakCard('训练假人', 500, 1000, 'pathogen', 'Training Dummy')
     return field
   },
   playerField: () => [null, null, null, null, null],
@@ -82,74 +98,58 @@ export const LEVEL_1 = {
     {
       id: 'show_hand',
       highlight: 'hand',
-      text: '这是你的手牌！每张卡上方的数字是费用。你有 3 点能量 ⚡',
-      textEn: 'These are your hand cards! The number on each card is its cost. You have 3 energy ⚡',
+      text: '这是你的手牌！点击一张卡把它放到战场上',
+      textEn: 'These are your cards! Tap one to play it onto the field',
       arrow: 'down',
-      waitFor: 'acknowledge', // 点击任意处继续
+      waitFor: 'acknowledge',
     },
     {
       id: 'play_card_1',
       highlight: 'hand_card_0',
-      text: '点击这张蚂蚁卡把它放到战场上！消耗 1 点能量',
-      textEn: 'Tap this Ant card to play it onto the field! Costs 1 energy',
+      text: '点击这张蚂蚁卡，把它放上战场！',
+      textEn: 'Tap this Ant card to play it onto the field!',
       arrow: 'up',
-      waitFor: 'play_card', // 等待出牌动作
+      waitFor: 'play_card',
       targetCardIdx: 0,
     },
     {
-      id: 'explain_fatigue',
-      highlight: 'player_field',
-      text: '很好！蚂蚁已经上场了。但刚上场的卡不能立刻攻击（召唤疲劳），等下一回合',
-      textEn: "Great! The ant is on the field. But cards just played can't attack immediately (summoning sickness) — wait until next turn",
-      arrow: 'none',
-      waitFor: 'acknowledge',
-    },
-    {
-      id: 'play_card_2',
-      highlight: 'hand',
-      text: '再出一张！你还有 2 点能量',
-      textEn: 'Play another one! You still have 2 energy',
-      arrow: 'up',
-      waitFor: 'play_card',
-    },
-    {
-      id: 'end_turn_1',
+      id: 'explain_turn',
       highlight: 'end_turn_btn',
-      text: '点击"结束回合"。对手会行动，然后轮到你',
-      textEn: 'Tap "End Turn". The opponent will act, then it\'s your turn again',
+      text: '干得好！刚上场的卡不能马上攻击。点击"结束回合"',
+      textEn: "Nice! Cards just played can't attack yet. Tap 'End Turn'",
       arrow: 'right',
       waitFor: 'end_turn',
     },
     {
       id: 'enemy_turn',
       highlight: 'enemy_field',
-      text: '对手攻击了你的卡！双方互相造成伤害',
-      textEn: 'The opponent attacked your card! Both sides deal damage to each other',
+      text: '对手攻击了你的卡！现在轮到你了',
+      textEn: 'The opponent attacked your card! Now it\'s your turn',
       arrow: 'none',
       waitFor: 'acknowledge',
-      autoAction: 'enemy_attack', // 脚本AI自动攻击
+      autoAction: 'enemy_attack',
     },
     {
       id: 'your_attack',
       highlight: 'player_field',
-      text: '现在你的卡可以攻击了！点击你的卡 → 再点击要攻击的敌方目标',
-      textEn: 'Now your cards can attack! Tap your card → then tap the enemy target',
+      text: '点击你的卡，再点击敌人来攻击！',
+      textEn: 'Tap your card, then tap the enemy to attack!',
       arrow: 'up',
       waitFor: 'attack',
     },
     {
       id: 'enemy_defeated',
       highlight: 'enemy_leader',
-      text: '敌方卡被击败了！现在可以直接攻击对方主人！点击你的卡 → 点击对方主人',
-      textEn: 'Enemy card defeated! Now you can attack the enemy leader directly! Tap your card → tap the enemy leader',
+      text: '敌人被打倒了！点你的卡 → 点对方主人，直接攻击！',
+      textEn: 'Enemy defeated! Tap your card → tap the enemy leader to attack directly!',
       arrow: 'up',
       waitFor: 'direct_attack',
     },
     {
       id: 'victory',
       highlight: 'none',
-      text: '对方主人 HP 归零！你赢了！🎉',
-      textEn: 'Enemy leader HP reached zero! You won! 🎉',
+      text: '你赢了！🎉',
+      textEn: 'You won! 🎉',
       arrow: 'none',
       waitFor: 'acknowledge',
     },
@@ -157,36 +157,36 @@ export const LEVEL_1 = {
 }
 
 // ================================================================
-// 关卡2：技能与阵营克制
+// 关卡2（基础 2/3）：能量管理 — 只教能量和费用
 // ================================================================
 export const LEVEL_2 = {
   id: 2,
-  title: '技能与阵营克制',
-  titleEn: 'Skills & Faction Advantage',
-  icon: '🧬',
+  title: '能量管理',
+  titleEn: 'Energy Management',
+  icon: '⚡',
+  category: 'basic',
   intro: [
-    '不同阵营之间存在克制关系！',
-    '人体系 🧬 克制 病原系 🦠，攻击伤害 +20%！',
-    '卡牌的技能会在特定时机自动触发，带来额外效果。',
+    '每张卡都需要消耗能量才能出场！',
+    '每回合你会获得更多能量。合理安排出牌顺序！',
   ],
   introEn: [
-    'Different factions have advantages over each other!',
-    'Body 🧬 beats Pathogen 🦠, dealing +20% damage!',
-    'Card skills trigger automatically at the right moment for bonus effects.',
+    'Each card costs energy to play!',
+    'You get more energy each turn. Choose wisely!',
   ],
-  summary: '🎓 你学会了：阵营克制加成（🧬克制🦠，⚗️克制🦠）、卡牌技能自动触发',
-  summaryEn: '🎓 You learned: faction advantage bonus (🧬 beats 🦠, ⚗️ beats 🦠), card skills trigger automatically',
-  playerEnergy: 4,
+  summary: '🎓 你学会了：能量费用、便宜的卡能更早上场、贵的卡更强但需要更多回合',
+  summaryEn: '🎓 You learned: energy costs, cheap cards come early, expensive cards are stronger but need more turns',
+  playerEnergy: 2,
   playerLeaderHp: 30000,
-  enemyLeaderHp: 10000,
+  enemyLeaderHp: 8000,
   getPlayerHand: () => [
-    cardById('white_blood_cell'), // 🧬2费
-    cardById('stomach_acid'),     // 🧬2费
+    cardById('ant_soldier'),      // 1费
+    cardById('red_blood_cell'),   // 1费
+    cardById('white_blood_cell'), // 2费
   ],
   getEnemyField: () => {
     const field = [null, null, null, null, null]
-    field[1] = tutorialCard('cavity_bacteria', 500) // 🦠 ATK降至500，玩家卡互扣后能存活
-    field[3] = tutorialCard('flu_virus', 500)       // 🦠 ATK降至500，玩家卡互扣后能存活
+    field[1] = weakCard('病原兵A', 800, 1500, 'pathogen', 'Pathogen A')
+    field[3] = weakCard('病原兵B', 800, 1500, 'pathogen', 'Pathogen B')
     return field
   },
   playerField: () => [null, null, null, null, null],
@@ -194,92 +194,75 @@ export const LEVEL_2 = {
   playerSpDeck: [],
   steps: [
     {
-      id: 'show_faction',
-      highlight: 'hand_card_0',
-      text: '白细胞是人体系 🧬，对面是病原系 🦠。人体系克制病原系，攻击伤害 +20%！',
-      textEn: 'White Blood Cell is Body 🧬, the enemy is Pathogen 🦠. Body beats Pathogen, dealing +20% damage!',
-      arrow: 'up',
+      id: 'show_energy',
+      highlight: 'energy_display',
+      text: '你有 2 点能量 ⚡。每张卡左上角的数字是费用',
+      textEn: 'You have 2 energy ⚡. The number on each card is its cost',
+      arrow: 'left',
       waitFor: 'acknowledge',
     },
     {
-      id: 'play_white_blood',
-      highlight: 'hand_card_0',
-      text: '出白细胞上场！',
-      textEn: 'Play the White Blood Cell!',
+      id: 'try_expensive',
+      highlight: 'hand',
+      text: '白细胞费用是 2，蚂蚁费用是 1。你只有 2 能量，先出一张试试！',
+      textEn: 'White Blood Cell costs 2, Ant costs 1. You only have 2 energy — try playing one!',
       arrow: 'up',
       waitFor: 'play_card',
-      targetCardIdx: 0,
     },
     {
-      id: 'show_advantage',
-      highlight: 'player_field',
-      text: '你的 🧬 人体系卡克制对面的 🦠 病原系！下回合攻击时伤害会增加 20%',
-      textEn: 'Your 🧬 Body cards have advantage over 🦠 Pathogen! Next turn, attacks deal 20% more damage',
-      arrow: 'none',
+      id: 'energy_used',
+      highlight: 'energy_display',
+      text: '能量减少了！看看还能不能再出一张',
+      textEn: 'Energy decreased! See if you can play another card',
+      arrow: 'left',
       waitFor: 'acknowledge',
     },
     {
-      id: 'play_stomach',
+      id: 'play_second',
       highlight: 'hand',
-      text: '再出胃酸上场！',
-      textEn: 'Play the Stomach card too!',
+      text: '如果还有能量，再出一张！能量不够就结束回合',
+      textEn: 'If you have energy left, play another! Otherwise end your turn',
       arrow: 'up',
       waitFor: 'play_card',
     },
     {
       id: 'end_turn_2',
       highlight: 'end_turn_btn',
-      text: '结束回合，下回合就可以攻击了！',
-      textEn: 'End your turn — you can attack next turn!',
+      text: '结束回合！下回合你会得到更多能量（回合数 = 能量上限）',
+      textEn: 'End your turn! Next turn you get more energy (turn number = energy cap)',
       arrow: 'right',
       waitFor: 'end_turn',
     },
     {
       id: 'enemy_turn_2',
       highlight: 'none',
-      text: '对手回合结束。轮到你了！',
-      textEn: "Opponent's turn is over. Your turn!",
+      text: '对手回合结束',
+      textEn: "Opponent's turn is over",
       arrow: 'none',
       waitFor: 'acknowledge',
-      autoAction: 'enemy_pass', // 对手不做任何事
+      autoAction: 'enemy_pass',
     },
     {
-      id: 'attack_cavity',
+      id: 'attack_enemies',
       highlight: 'player_field',
-      text: '点击你的白细胞 → 攻击蛀牙菌！克制加成让你造成更多伤害！',
-      textEn: 'Tap your White Blood Cell → attack the Cavity Bacteria! Faction advantage deals more damage!',
+      text: '你的能量增加了！先攻击敌人吧！',
+      textEn: 'Your energy increased! Attack the enemies!',
       arrow: 'up',
       waitFor: 'attack',
     },
     {
-      id: 'skill_trigger',
-      highlight: 'player_field',
-      text: '白细胞的技能「吞噬攻击」触发了！ATK 永久 +500！继续攻击剩余敌人！',
-      textEn: 'White Blood Cell\'s skill "Phagocytosis" triggered! ATK permanently +500! Keep attacking the remaining enemies!',
-      arrow: 'none',
-      waitFor: 'acknowledge',
-    },
-    {
-      id: 'finish_enemies',
-      highlight: 'player_field',
-      text: '用胃酸攻击流感病毒！消灭所有敌人！',
-      textEn: 'Use the Stomach to attack the Flu Virus! Wipe out all enemies!',
-      arrow: 'up',
-      waitFor: 'attack',
-    },
-    {
-      id: 'direct_attack_leader',
+      id: 'finish',
       highlight: 'enemy_leader',
-      text: '场上没有敌人了！先点你的卡选为攻击者，再点上方对手面板直攻主人！',
-      textEn: 'No enemies left on the field! Tap your card to select it, then tap the enemy leader to attack directly!',
+      text: '用你的卡消灭敌人，攻击主人获胜！',
+      textEn: 'Destroy all enemies and attack the leader to win!',
       arrow: 'up',
       waitFor: 'direct_attack',
     },
     {
       id: 'victory_2',
       highlight: 'none',
-      text: '完美！利用克制关系让战斗更轻松！🎉',
-      textEn: 'Perfect! Using faction advantage makes battles much easier! 🎉',
+      text: '你学会了能量管理！便宜的卡能更早上场，贵的卡要等能量够了再出 🎉',
+      textEn: 'You learned energy management! Cheap cards come early, expensive ones need more turns 🎉',
       arrow: 'none',
       waitFor: 'acknowledge',
     },
@@ -287,13 +270,140 @@ export const LEVEL_2 = {
 }
 
 // ================================================================
-// 关卡3：Power Bank 能量爆发
+// 关卡3（基础 3/3）：技能初体验 — 只教守护和技能
 // ================================================================
 export const LEVEL_3 = {
   id: 3,
+  title: '技能初体验',
+  titleEn: 'Skills Introduction',
+  icon: '🛡️',
+  category: 'basic',
+  intro: [
+    '卡牌有特殊技能！',
+    '守护（Guard）会迫使敌人只能攻击它，穿透（Pierce）能打穿守护！',
+    '每张卡都是独一无二的！',
+  ],
+  introEn: [
+    'Cards have special skills!',
+    'Guard forces enemies to attack it, Pierce punches through!',
+    'Each card is unique!',
+  ],
+  summary: '🎓 你学会了：守护卡能挡住攻击、技能自动触发、每张卡都有独特能力',
+  summaryEn: '🎓 You learned: Guard blocks attacks, skills trigger automatically, each card is unique',
+  playerEnergy: 4,
+  playerLeaderHp: 30000,
+  enemyLeaderHp: 10000,
+  getPlayerHand: () => [
+    cardById('skeleton_frame'),     // 有守护
+    cardById('neuron_messenger'),   // 有迅击
+    cardById('white_blood_cell'),   // 有技能
+  ],
+  getEnemyField: () => {
+    const field = [null, null, null, null, null]
+    field[1] = weakCardWithSkills('守卫兵', 1500, 2000, 'pathogen', 'Guard Soldier', [
+      { name: '守护', nameEn: 'Guard', description: '对手只能攻击该卡', descriptionEn: 'Opponents must attack this card', type: 'guard' },
+    ])
+    field[2] = weakCard('普通兵', 1000, 1500, 'pathogen', 'Normal Soldier')
+    field[3] = weakCard('普通兵B', 1000, 1500, 'pathogen', 'Normal Soldier B')
+    return field
+  },
+  playerField: () => [null, null, null, null, null],
+  enemySpDeck: [],
+  playerSpDeck: [],
+  steps: [
+    {
+      id: 'show_guard',
+      highlight: 'enemy_slot_1',
+      text: '敌方有一张"守护"卡 🛡️——你只能先攻击它！',
+      textEn: 'The enemy has a "Guard" card 🛡️ — you must attack it first!',
+      arrow: 'down',
+      waitFor: 'acknowledge',
+    },
+    {
+      id: 'play_cards',
+      highlight: 'hand',
+      text: '先出卡上场！',
+      textEn: 'Play your cards onto the field!',
+      arrow: 'up',
+      waitFor: 'play_card',
+    },
+    {
+      id: 'play_more',
+      highlight: 'hand',
+      text: '再出一张！',
+      textEn: 'Play another one!',
+      arrow: 'up',
+      waitFor: 'play_card',
+    },
+    {
+      id: 'end_turn_3',
+      highlight: 'end_turn_btn',
+      text: '结束回合',
+      textEn: 'End your turn',
+      arrow: 'right',
+      waitFor: 'end_turn',
+    },
+    {
+      id: 'enemy_turn_3',
+      highlight: 'none',
+      text: '对手回合结束',
+      textEn: "Opponent's turn is over",
+      arrow: 'none',
+      waitFor: 'acknowledge',
+      autoAction: 'enemy_pass',
+    },
+    {
+      id: 'must_attack_guard',
+      highlight: 'player_field',
+      text: '对方有守护卡 🛡️，你必须先打它！点你的卡 → 点守护卡',
+      textEn: 'The enemy has a Guard card 🛡️ — you must attack it first! Tap your card → tap the Guard card',
+      arrow: 'up',
+      waitFor: 'attack',
+    },
+    {
+      id: 'guard_down',
+      highlight: 'enemy_field',
+      text: '守护卡被打倒了！现在可以攻击其他敌人！',
+      textEn: 'The Guard card is down! Now you can attack other enemies!',
+      arrow: 'none',
+      waitFor: 'acknowledge',
+    },
+    {
+      id: 'free_attack',
+      highlight: 'player_field',
+      text: '自由攻击！消灭所有敌人！',
+      textEn: 'Free attack! Destroy all enemies!',
+      arrow: 'up',
+      waitFor: 'attack',
+    },
+    {
+      id: 'direct_attack_3',
+      highlight: 'enemy_leader',
+      text: '攻击主人！',
+      textEn: 'Attack the leader!',
+      arrow: 'up',
+      waitFor: 'direct_attack',
+    },
+    {
+      id: 'victory_3',
+      highlight: 'none',
+      text: '你掌握了基础！可以开始闯关了！🎉',
+      textEn: "You've mastered the basics! Ready for campaign mode! 🎉",
+      arrow: 'none',
+      waitFor: 'acknowledge',
+    },
+  ],
+}
+
+// ================================================================
+// 关卡4（进阶 1）：Power Bank 能量爆发
+// ================================================================
+export const LEVEL_4 = {
+  id: 4,
   title: 'Power Bank 能量爆发',
   titleEn: 'Power Bank Energy Burst',
-  icon: '⚡',
+  icon: '🔋',
+  category: 'advanced',
   intro: [
     '有些强力卡牌费用很高，一回合的能量不够用！',
     '但有一个秘密武器——Power Bank！',
@@ -455,21 +565,22 @@ export const LEVEL_3 = {
 }
 
 // ================================================================
-// 关卡4：事件卡与 SP 觉醒
+// 关卡5（进阶 2）：SP觉醒与阵营标记
 // ================================================================
-export const LEVEL_4 = {
-  id: 4,
-  title: '事件卡与 SP 觉醒',
-  titleEn: 'Event Cards & SP Awakening',
+export const LEVEL_5 = {
+  id: 5,
+  title: 'SP觉醒与阵营标记',
+  titleEn: 'SP Awakening & Faction Markers',
   icon: '🌟',
+  category: 'advanced',
   intro: [
-    '📜 事件卡是一种特殊卡牌，打出后效果立刻生效，然后进入弃牌堆！',
-    '🌟 SP 觉醒卡是超强的王牌，但它们不能直接从手牌出场——只能通过事件卡触发召唤！',
+    '📜 事件卡打出后效果立刻生效，还能触发 SP 觉醒卡召唤！',
+    '🌟 SP 觉醒卡是超强的王牌，只能通过事件卡触发！',
     '准备好见证最强生物的登场了吗？',
   ],
   introEn: [
-    '📜 Event cards are special — their effects activate instantly, then they go to the discard pile!',
-    '🌟 SP Awakening cards are your ultimate trump cards, but they can\'t be played from hand — only summoned through event cards!',
+    '📜 Event cards activate instantly and can trigger SP Awakening summons!',
+    '🌟 SP Awakening cards are your ultimate trump cards — only summoned through event cards!',
     'Ready to witness the mightiest creature enter the field?',
   ],
   summary: '🎓 你学会了：事件卡立即生效进弃牌堆、SP 卡只能通过事件卡召唤、SP 卡免费上场且有超强登场效果',
@@ -604,188 +715,10 @@ export const LEVEL_4 = {
 }
 
 // ================================================================
-// 关卡5：阵营标记与 SSR 出场条件
+// 导出
 // ================================================================
-export const LEVEL_5 = {
-  id: 5,
-  title: '阵营标记与 SSR 出场条件',
-  titleEn: 'Faction Markers & SSR Requirements',
-  icon: '🔒',
-  intro: [
-    '最强的 SSR 卡不是随时能出的——它们需要满足阵营标记条件！',
-    '弃牌堆中的卡会提供对应阵营的标记🌱。',
-    '当标记积累够了，被锁定的强力卡就能解锁出场！',
-  ],
-  introEn: [
-    "The strongest SSR cards can't be played anytime — they need faction markers!",
-    'Cards in the discard pile provide their faction marker 🌱.',
-    'Once you have enough markers, the locked powerful cards can be unlocked!',
-  ],
-  summary: '🎓 你学会了：弃牌堆的卡提供阵营标记、SSR 和高费 SR 需要标记才能出场、前期先用低费卡积累标记',
-  summaryEn: '🎓 You learned: discarded cards provide faction markers, SSR and expensive SR cards need markers to be played, use cheap cards early to build up markers',
-  playerEnergy: 3,
-  playerLeaderHp: 30000,
-  enemyLeaderHp: 12000,
-  getPlayerHand: () => [
-    cardById('ant_soldier'),      // 1费 🌱
-    cardById('bee_worker'),       // 1费 🌱
-    cardById('mimosa_timid'),     // 1费 🌱
-    cardById('orca_alpha'),       // 7费 SSR 🌱 (需要弃牌堆2个🌱标记)
-  ],
-  getEnemyField: () => {
-    const field = [null, null, null, null, null]
-    field[0] = weakCard('猎手A', 2500, 1800, 'pathogen', 'Hunter A')
-    field[2] = weakCard('猎手B', 2500, 1800, 'pathogen', 'Hunter B')
-    field[4] = weakCard('猎手C', 1000, 1800, 'pathogen', 'Hunter C')
-    return field
-  },
-  playerField: () => [null, null, null, null, null],
-  enemySpDeck: [],
-  playerSpDeck: [],
-  steps: [
-    {
-      id: 'show_ssr_locked',
-      highlight: 'hand_card_3',
-      text: '这张 SSR 虎鲸超强，但它 🔒 了！需要弃牌堆中有 2 个 🌱 自然系标记',
-      textEn: 'This SSR Orca is super strong, but it\'s 🔒 locked! You need 2 🌱 Nature markers in the discard pile',
-      arrow: 'up',
-      waitFor: 'acknowledge',
-    },
-    {
-      id: 'explain_markers',
-      highlight: 'discard_area',
-      text: '弃牌堆中的卡会提供阵营标记。你需要有 2 张 🌱 自然系卡进入弃牌堆',
-      textEn: 'Cards in the discard pile provide faction markers. You need 2 🌱 Nature cards in the discard pile',
-      arrow: 'none',
-      waitFor: 'acknowledge',
-    },
-    {
-      id: 'play_low_1',
-      highlight: 'hand_card_0',
-      text: '先出低费自然系卡上场战斗！它们被击败后会进入弃牌堆提供标记',
-      textEn: 'Play cheap Nature cards first! When defeated, they go to the discard pile and provide markers',
-      arrow: 'up',
-      waitFor: 'play_card',
-      targetCardIdx: 0,
-    },
-    {
-      id: 'play_low_2',
-      highlight: 'hand',
-      text: '再出一张！',
-      textEn: 'Play another one!',
-      arrow: 'up',
-      waitFor: 'play_card',
-    },
-    {
-      id: 'play_low_3',
-      highlight: 'hand',
-      text: '最后一张低费也出了！',
-      textEn: 'Play the last cheap card too!',
-      arrow: 'up',
-      waitFor: 'play_card',
-    },
-    {
-      id: 'end_turn_5a',
-      highlight: 'end_turn_btn',
-      text: '结束回合，等待对手攻击你的小卡',
-      textEn: 'End your turn — wait for the opponent to attack your small cards',
-      arrow: 'right',
-      waitFor: 'end_turn',
-    },
-    {
-      id: 'enemy_kills',
-      highlight: 'none',
-      text: '你的卡被击败了——但看！它进入了弃牌堆，🌱 标记 +1！',
-      textEn: 'Your cards were defeated — but look! They went to the discard pile, 🌱 marker +1!',
-      arrow: 'none',
-      waitFor: 'acknowledge',
-      autoAction: 'enemy_kill_cards', // 脚本：对手攻击杀死玩家的卡
-    },
-    {
-      id: 'marker_check',
-      highlight: 'discard_area',
-      text: '🌱 标记已经有 2 个了！虎鲸 🔒 解锁了！但你需要 7 点能量...',
-      textEn: '🌱 You have 2 markers now! The Orca is 🔒 unlocked! But you need 7 energy...',
-      arrow: 'none',
-      waitFor: 'acknowledge',
-    },
-    {
-      id: 'end_turn_5b',
-      highlight: 'end_turn_btn',
-      text: '攒几回合能量（Power Bank），然后释放出虎鲸！先结束回合',
-      textEn: 'Save energy for a few turns (Power Bank), then release the Orca! End your turn first',
-      arrow: 'right',
-      waitFor: 'end_turn',
-    },
-    {
-      id: 'enemy_turn_5b',
-      highlight: 'none',
-      text: '继续攒能量…',
-      textEn: 'Keep saving energy…',
-      arrow: 'none',
-      waitFor: 'acknowledge',
-      autoAction: 'enemy_pass',
-    },
-    {
-      id: 'break_and_play',
-      highlight: 'power_bank_break',
-      text: '打破 Power Bank，释放所有能量！然后出虎鲸！',
-      textEn: 'Break the Power Bank, release all energy! Then play the Orca!',
-      arrow: 'left',
-      waitFor: 'break_power_bank',
-    },
-    {
-      id: 'play_orca',
-      highlight: 'hand',
-      text: '出虎鲸！体验 SSR 的碾压力量！',
-      textEn: 'Play the Orca! Experience the power of SSR!',
-      arrow: 'up',
-      waitFor: 'play_card',
-    },
-    {
-      id: 'end_turn_5c',
-      highlight: 'end_turn_btn',
-      text: '结束回合，下回合用虎鲸碾压！',
-      textEn: 'End your turn — next turn, crush them with the Orca!',
-      arrow: 'right',
-      waitFor: 'end_turn',
-    },
-    {
-      id: 'enemy_turn_5c',
-      highlight: 'none',
-      text: '虎鲸的力量势不可挡！',
-      textEn: 'The Orca\'s power is unstoppable!',
-      arrow: 'none',
-      waitFor: 'acknowledge',
-      autoAction: 'enemy_pass',
-    },
-    {
-      id: 'orca_attack',
-      highlight: 'player_field',
-      text: '用虎鲸攻击敌方！',
-      textEn: 'Use the Orca to attack the enemy!',
-      arrow: 'up',
-      waitFor: 'attack',
-    },
-    {
-      id: 'direct_orca',
-      highlight: 'enemy_leader',
-      text: '点你的卡 → 点上方对手面板，直攻主人！SSR 就是这么强！',
-      textEn: "Tap your card → tap the enemy leader to attack directly! That's the power of SSR!",
-      arrow: 'up',
-      waitFor: 'direct_attack',
-    },
-    {
-      id: 'victory_5',
-      highlight: 'none',
-      text: '恭喜！你已经掌握了所有核心玩法！🎉',
-      textEn: 'Congratulations! You\'ve mastered all core mechanics! 🎉',
-      arrow: 'none',
-      waitFor: 'acknowledge',
-    },
-  ],
-}
-
+export const BASIC_LEVELS = [LEVEL_1, LEVEL_2, LEVEL_3]
+export const ADVANCED_LEVELS = [LEVEL_4, LEVEL_5]
 export const TUTORIAL_LEVELS = [LEVEL_1, LEVEL_2, LEVEL_3, LEVEL_4, LEVEL_5]
 
 export const TUTORIAL_STORAGE_KEY = 'bio-heroes-tutorial'

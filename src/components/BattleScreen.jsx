@@ -10,6 +10,7 @@ import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
 import DialogueBox from './DialogueBox'
+import { useBattleHints, BattleHintOverlay } from './BattleHints'
 import cards from '../data/cards'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -25,6 +26,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const battle = useBattle()
   const playerHand = useHand(playerDeckCards)
   const enemyHand = useHand(enemyDeckCards)
+
+  // 即时提示系统 (Sprint 21)
+  const { showHint, activeHint, dismissHint } = useBattleHints(lang)
 
   // 音效
   const [soundMuted, setSoundMuted] = useState(false)
@@ -686,6 +690,25 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const isMainPhase = battle.phase === 'main'
   const isBattlePhase = battle.phase === 'battle'
 
+  // === 即时提示触发（Sprint 21）===
+  const hintTurnRef = useRef(0)
+  useEffect(() => {
+    if (battle.turn <= hintTurnRef.current) return
+    hintTurnRef.current = battle.turn
+    // 第一次看到 Power Bank (turn 2+, PB intact)
+    if (battle.turn === 2 && battle.playerPowerBank?.intact) showHint('power_bank')
+    // 第一次手牌有锁定的 SSR
+    const hasLockedSSR = playerHand.hand.some(c => c.rarity === 'SSR' && c.factionRequirement)
+    if (hasLockedSSR) showHint('ssr_locked')
+  }, [battle.turn, battle.playerPowerBank, playerHand.hand, showHint])
+
+  useEffect(() => {
+    // 第一次遇到守护卡
+    if (isBattlePhase && battle.enemyField.some(c => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard'))) {
+      showHint('guard')
+    }
+  }, [isBattlePhase, battle.enemyField, showHint])
+
   // 攻击目标判定
   const hasEnemyGuard = battle.enemyField.some(c => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard'))
   const enemyLeaderTargetable = isBattlePhase && selectedAtkSlot !== null && !hasEnemyGuard
@@ -835,6 +858,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
   return (
     <div className="h-screen-d max-w-3xl mx-auto px-2 sm:px-4 flex flex-col overflow-hidden" data-battle-container="true">
+
+      {/* 即时提示 (Sprint 21) */}
+      <BattleHintOverlay hint={activeHint} onDismiss={dismissHint} />
 
       {/* 觉醒文字 */}
       {createPortal(

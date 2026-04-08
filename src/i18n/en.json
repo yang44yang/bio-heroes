@@ -158,6 +158,7 @@
   "campaign.back": "← Back",
   "campaign.nextReward": "Next: {target}⭐ ({reward})",
   "campaign.tutorialStage": "Tutorial stage",
+  "campaign.advancedStage": "Advanced (optional)",
   "campaign.recommend": "Recommended",
   "campaign.enemyHP": "Enemy HP",
   "campaign.bossMechanic": "⚠️ Boss mechanic",

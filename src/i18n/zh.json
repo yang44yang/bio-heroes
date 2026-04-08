@@ -158,6 +158,7 @@
   "campaign.back": "← 返回",
   "campaign.nextReward": "下个奖励: {target}⭐ ({reward})",
   "campaign.tutorialStage": "教学关卡",
+  "campaign.advancedStage": "进阶教学（可选）",
   "campaign.recommend": "推荐",
   "campaign.enemyHP": "敌方HP",
   "campaign.bossMechanic": "⚠️ Boss 特殊机制",

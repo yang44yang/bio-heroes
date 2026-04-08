@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 import { FACTIONS, MAX_FIELD_SLOTS, FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS } from '../data/deckRules'
 import {
-  TUTORIAL_LEVELS, loadTutorialProgress, saveTutorialProgress,
+  TUTORIAL_LEVELS, BASIC_LEVELS, ADVANCED_LEVELS,
+  loadTutorialProgress, saveTutorialProgress,
 } from '../data/tutorialData'
 import { useLanguage } from '../i18n/LanguageContext'
 
@@ -449,7 +450,39 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
   // 渲染：关卡选择
   // ================================================================
   if (currentLevelIdx === null) {
+    const basicDone = BASIC_LEVELS.every(lv => progress.completedLevels.includes(lv.id))
     const allDone = progress.completedLevels.length >= TUTORIAL_LEVELS.length
+
+    const renderLevelBtn = (lv, idx, unlocked) => {
+      const done = progress.completedLevels.includes(lv.id)
+      const isAdv = lv.category === 'advanced'
+      return (
+        <motion.button
+          key={lv.id}
+          className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 border transition-all ${
+            done
+              ? 'bg-green-900/30 border-green-700 text-green-300'
+              : unlocked
+              ? isAdv ? 'bg-purple-900/30 border-purple-700 hover:border-purple-400 text-white' : 'bg-gray-800 border-gray-600 hover:border-yellow-500 text-white'
+              : 'bg-gray-900 border-gray-800 text-gray-600 cursor-not-allowed'
+          }`}
+          whileHover={unlocked ? { scale: 1.02 } : {}}
+          whileTap={unlocked ? { scale: 0.98 } : {}}
+          onClick={() => unlocked && startLevel(TUTORIAL_LEVELS.indexOf(lv))}
+          disabled={!unlocked}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: idx * 0.1 }}
+        >
+          <span className="text-2xl">{done ? '✅' : unlocked ? lv.icon : '🔒'}</span>
+          <div>
+            <div className="font-bold text-sm">{loc(lv, 'title')}</div>
+            {done && <div className="text-xs text-green-500">{t('tutorial.completed')}</div>}
+          </div>
+        </motion.button>
+      )
+    }
+
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8">
         <motion.h1
@@ -461,39 +494,23 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
         </motion.h1>
         <p className="text-gray-400 text-sm mb-6">{t('tutorial.subtitle')}</p>
 
-        <div className="space-y-3 w-72">
-          {TUTORIAL_LEVELS.map((lv, idx) => {
-            const done = progress.completedLevels.includes(lv.id)
-            const unlocked = idx === 0 || progress.completedLevels.includes(TUTORIAL_LEVELS[idx - 1].id)
-            return (
-              <motion.button
-                key={lv.id}
-                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 border transition-all ${
-                  done
-                    ? 'bg-green-900/30 border-green-700 text-green-300'
-                    : unlocked
-                    ? 'bg-gray-800 border-gray-600 hover:border-yellow-500 text-white'
-                    : 'bg-gray-900 border-gray-800 text-gray-600 cursor-not-allowed'
-                }`}
-                whileHover={unlocked ? { scale: 1.02 } : {}}
-                whileTap={unlocked ? { scale: 0.98 } : {}}
-                onClick={() => unlocked && startLevel(idx)}
-                disabled={!unlocked}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.1 }}
-              >
-                <span className="text-2xl">{done ? '✅' : unlocked ? lv.icon : '🔒'}</span>
-                <div>
-                  <div className="font-bold text-sm">{t('tutorial.levelTitle', { id: lv.id, title: loc(lv, 'title') })}</div>
-                  {done && <div className="text-xs text-green-500">{t('tutorial.completed')}</div>}
-                </div>
-              </motion.button>
-            )
+        <div className="space-y-2 w-72">
+          {/* 📗 基础教学 */}
+          <div className="text-xs font-bold text-green-400 px-1">📗 {lang === 'en' ? 'Basic Training' : '基础教学'}</div>
+          {BASIC_LEVELS.map((lv, idx) => {
+            const unlocked = idx === 0 || progress.completedLevels.includes(BASIC_LEVELS[idx - 1].id)
+            return renderLevelBtn(lv, idx, unlocked)
+          })}
+
+          {/* 📙 进阶教学 */}
+          <div className="text-xs font-bold text-purple-400 px-1 pt-3">📙 {lang === 'en' ? 'Advanced (Optional)' : '进阶教学（可选）'}</div>
+          {ADVANCED_LEVELS.map((lv, idx) => {
+            const unlocked = basicDone && (idx === 0 || progress.completedLevels.includes(ADVANCED_LEVELS[idx - 1].id))
+            return renderLevelBtn(lv, BASIC_LEVELS.length + idx, unlocked)
           })}
         </div>
 
-        {allDone && !progress.graduated && (
+        {basicDone && !progress.graduated && (
           <motion.button
             className="mt-6 px-6 py-3 bg-yellow-500 text-black font-black rounded-xl"
             whileHover={{ scale: 1.05 }}

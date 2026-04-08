@@ -126,6 +126,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
         {campaignData.chapters.map((ch, idx) => {
           const chComplete = isChapterComplete(ch.id, progress)
           const chUnlocked = ch.unlockCondition === null ||
+            (ch.unlockCondition === 'ch1_basic_complete' && isChapterComplete('ch1', progress)) ||
             (ch.unlockCondition === 'ch1_complete' && isChapterComplete('ch1', progress)) ||
             (ch.unlockCondition === 'ch2_complete' && isChapterComplete('ch2', progress)) ||
             (ch.unlockCondition === 'ch3_complete' && isChapterComplete('ch3', progress))
@@ -159,70 +160,97 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
       {/* 关卡列表 */}
       <div className="flex-1 overflow-y-auto px-4 pb-4">
         <div className="space-y-2">
-          {campaignData.chapters[activeChapter].stages.map((stage, idx) => {
-            const unlocked = isStageUnlocked(stage.id, progress)
-            const stars = progress.stageStars[stage.id] || 0
-            const isBoss = stage.type === 'boss'
-            const isTutorial = stage.type === 'tutorial'
+          {(() => {
+            const chapter = campaignData.chapters[activeChapter]
+            const basicStages = chapter.stages.filter(s => s.category === 'basic')
+            const advancedStages = chapter.stages.filter(s => s.category === 'advanced')
+            const regularStages = chapter.stages.filter(s => !s.category)
+
+            const renderStage = (stage, idx) => {
+              const unlocked = isStageUnlocked(stage.id, progress)
+              const stars = progress.stageStars[stage.id] || 0
+              const isBoss = stage.type === 'boss'
+              const isTutorial = stage.type === 'tutorial'
+              const isAdvanced = stage.category === 'advanced'
+
+              return (
+                <motion.button
+                  key={stage.id}
+                  className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 border transition-all ${
+                    !unlocked
+                      ? 'bg-gray-900 border-gray-800 text-gray-700 cursor-not-allowed'
+                      : isBoss
+                      ? 'bg-red-950/40 border-red-800/60 hover:border-red-500 text-white'
+                      : isAdvanced
+                      ? 'bg-purple-950/40 border-purple-800/40 hover:border-purple-500 text-white'
+                      : 'bg-gray-800/80 border-gray-700 hover:border-yellow-600 text-white'
+                  }`}
+                  whileHover={unlocked ? { scale: 1.01 } : {}}
+                  whileTap={unlocked ? { scale: 0.99 } : {}}
+                  onClick={() => handleStageClick(stage, chapter)}
+                  disabled={!unlocked}
+                  initial={{ opacity: 0, x: -15 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-black ${
+                    !unlocked ? 'bg-gray-800 text-gray-600' :
+                    isBoss ? 'bg-red-800 text-red-200' :
+                    isAdvanced ? 'bg-purple-800 text-purple-200' :
+                    isTutorial ? 'bg-yellow-800 text-yellow-200' :
+                    'bg-gray-700 text-gray-200'
+                  }`}>
+                    {!unlocked ? '🔒' : isBoss ? '💀' : isTutorial ? (isAdvanced ? '📙' : '📗') : stage.id.split('-')[1]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-sm truncate">
+                      {isBoss && <span className="text-red-400 mr-1">BOSS</span>}
+                      {lang === 'en' ? (stage.nameEn || stage.name) : stage.name}
+                    </div>
+                    <div className="text-[10px] text-gray-500">
+                      {isTutorial ? (isAdvanced ? t('campaign.advancedStage') : t('campaign.tutorialStage')) :
+                       stage.enemyConfig ? `HP ${stage.enemyConfig.leaderHP.toLocaleString()}` : ''}
+                      {stage.playerConfig?.recommendedFactions &&
+                        <span className="ml-1">
+                          {t('campaign.recommend')} {stage.playerConfig.recommendedFactions.map(f => FACTIONS[f]?.icon).join('')}
+                        </span>
+                      }
+                    </div>
+                  </div>
+                  <div className="text-base whitespace-nowrap">
+                    {unlocked && (
+                      <>
+                        {[1, 2, 3].map(s => (
+                          <span key={s} className={s <= stars ? 'text-yellow-400' : 'text-gray-700'}>⭐</span>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </motion.button>
+              )
+            }
 
             return (
-              <motion.button
-                key={stage.id}
-                className={`w-full py-3 px-4 rounded-xl text-left flex items-center gap-3 border transition-all ${
-                  !unlocked
-                    ? 'bg-gray-900 border-gray-800 text-gray-700 cursor-not-allowed'
-                    : isBoss
-                    ? 'bg-red-950/40 border-red-800/60 hover:border-red-500 text-white'
-                    : 'bg-gray-800/80 border-gray-700 hover:border-yellow-600 text-white'
-                }`}
-                whileHover={unlocked ? { scale: 1.01 } : {}}
-                whileTap={unlocked ? { scale: 0.99 } : {}}
-                onClick={() => handleStageClick(stage, campaignData.chapters[activeChapter])}
-                disabled={!unlocked}
-                initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.05 }}
-              >
-                {/* 关卡图标 */}
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-black ${
-                  !unlocked ? 'bg-gray-800 text-gray-600' :
-                  isBoss ? 'bg-red-800 text-red-200' :
-                  isTutorial ? 'bg-yellow-800 text-yellow-200' :
-                  'bg-gray-700 text-gray-200'
-                }`}>
-                  {!unlocked ? '🔒' : isBoss ? '💀' : isTutorial ? '📚' : stage.id.split('-')[1]}
-                </div>
-
-                {/* 关卡信息 */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-sm truncate">
-                    {isBoss && <span className="text-red-400 mr-1">BOSS</span>}
-                    {lang === 'en' ? (stage.nameEn || stage.name) : stage.name}
-                  </div>
-                  <div className="text-[10px] text-gray-500">
-                    {isTutorial ? t('campaign.tutorialStage') :
-                     stage.enemyConfig ? `HP ${stage.enemyConfig.leaderHP.toLocaleString()}` : ''}
-                    {stage.playerConfig?.recommendedFactions &&
-                      <span className="ml-1">
-                        {t('campaign.recommend')} {stage.playerConfig.recommendedFactions.map(f => FACTIONS[f]?.icon).join('')}
-                      </span>
-                    }
-                  </div>
-                </div>
-
-                {/* 星数 */}
-                <div className="text-base whitespace-nowrap">
-                  {unlocked && (
-                    <>
-                      {[1, 2, 3].map(s => (
-                        <span key={s} className={s <= stars ? 'text-yellow-400' : 'text-gray-700'}>⭐</span>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </motion.button>
+              <>
+                {/* 基础教学区块 */}
+                {basicStages.length > 0 && (
+                  <>
+                    <div className="text-xs font-bold text-green-400 px-1 pt-1">📗 {lang === 'en' ? 'Basic Training' : '基础教学'}</div>
+                    {basicStages.map((s, i) => renderStage(s, i))}
+                  </>
+                )}
+                {/* 进阶教学区块 */}
+                {advancedStages.length > 0 && (
+                  <>
+                    <div className="text-xs font-bold text-purple-400 px-1 pt-3">📙 {lang === 'en' ? 'Advanced Training (Optional)' : '进阶教学（可选）'}</div>
+                    {advancedStages.map((s, i) => renderStage(s, basicStages.length + i))}
+                  </>
+                )}
+                {/* 普通闯关 */}
+                {regularStages.map((s, i) => renderStage(s, basicStages.length + advancedStages.length + i))}
+              </>
             )
-          })}
+          })()}
         </div>
       </div>
 
