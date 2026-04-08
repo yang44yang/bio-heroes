@@ -13,7 +13,9 @@ import { useLanguage } from '../i18n/LanguageContext'
 // ================================================================
 
 export default function TutorialScreen({ onExit, onGraduate, economy }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
+  // 英文时优先取 xxxEn 字段
+  const loc = (obj, field) => (lang === 'en' && obj[field + 'En']) ? obj[field + 'En'] : obj[field]
   // === 教学进度 ===
   const [progress, setProgress] = useState(() => loadTutorialProgress())
   const [currentLevelIdx, setCurrentLevelIdx] = useState(null) // null = 关卡选择界面
@@ -464,7 +466,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
               >
                 <span className="text-2xl">{done ? '✅' : unlocked ? lv.icon : '🔒'}</span>
                 <div>
-                  <div className="font-bold text-sm">{t('tutorial.levelTitle', { id: lv.id, title: lv.title })}</div>
+                  <div className="font-bold text-sm">{t('tutorial.levelTitle', { id: lv.id, title: loc(lv, 'title') })}</div>
                   {done && <div className="text-xs text-green-500">{t('tutorial.completed')}</div>}
                 </div>
               </motion.button>
@@ -575,10 +577,10 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         >
           <div className="text-5xl mb-4">{level.icon}</div>
           <h2 className="text-2xl font-black mb-4">
-            {t('tutorial.levelTitle', { id: level.id, title: level.title })}
+            {t('tutorial.levelTitle', { id: level.id, title: loc(level, 'title') })}
           </h2>
           <div className="space-y-2 text-gray-300 text-sm mb-8">
-            {level.intro.map((line, i) => (
+            {(lang === 'en' && level.introEn ? level.introEn : level.intro).map((line, i) => (
               <motion.p
                 key={i}
                 initial={{ opacity: 0, x: -10 }}
@@ -626,10 +628,10 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         >
           <div className="text-5xl mb-4">🏆</div>
           <h2 className="text-2xl font-black text-green-400 mb-2">
-            {t('tutorial.summaryTitle', { title: level.title })}
+            {t('tutorial.summaryTitle', { title: loc(level, 'title') })}
           </h2>
           <div className="bg-gray-800/80 rounded-xl p-4 text-sm text-gray-300 mb-6 border border-green-700/30">
-            {level.summary}
+            {loc(level, 'summary')}
           </div>
           <div className="flex gap-3 justify-center">
             <motion.button
@@ -716,7 +718,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
 
       {/* 关卡标题 */}
       <div className="text-center py-1 text-xs text-gray-500">
-        {t('tutorial.battleHeader', { id: level.id, title: level.title, turn })}
+        {t('tutorial.battleHeader', { id: level.id, title: loc(level, 'title'), turn })}
       </div>
 
       {/* === 敌方主人面板 === */}
@@ -1047,7 +1049,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
                 key={currentStep.id}
               >
                 <div className="bg-yellow-900/95 border-2 border-yellow-500 rounded-xl p-3 shadow-lg shadow-yellow-500/20">
-                  <p className="text-sm text-yellow-100 leading-relaxed">{currentStep.text}</p>
+                  <p className="text-sm text-yellow-100 leading-relaxed">{loc(currentStep, 'text')}</p>
 
                   {currentStep.waitFor === 'acknowledge' && (
                     <button
