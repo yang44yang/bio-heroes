@@ -1192,9 +1192,19 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 }}
               >
                 <BattleCard card={card} hp={card.hp} maxHp={card.hp} isPlayer={true} isActive={false} />
-                {card.factionRequirement && !canPlayWithMarkers(card, battle.playerDiscard) && (
-                  <div className="absolute top-1 right-1 text-sm">🔒</div>
-                )}
+                {card.factionRequirement && !canPlayWithMarkers(card, battle.playerDiscard) && (() => {
+                  const f = FACTIONS[card.factionRequirement.faction]
+                  const have = getFactionMarkers(battle.playerDiscard)[card.factionRequirement.faction] || 0
+                  const need = card.factionRequirement.count
+                  return (
+                    <div
+                      className="absolute top-0.5 right-0.5 text-[9px] bg-black/70 text-yellow-300 px-1 py-0.5 rounded font-bold whitespace-nowrap z-10"
+                      title={`弃牌堆需要 ${need} 张${f?.name}卡，当前 ${have} 张`}
+                    >
+                      🔒{f?.icon}{have}/{need}
+                    </div>
+                  )
+                })()}
               </div>
             )
           })}
