@@ -60,6 +60,7 @@ export default function App() {
     return 'title'
   })
   const [selectedDeck, setSelectedDeck] = useState(null)
+  const [tutorialStartLevel, setTutorialStartLevel] = useState(null) // 从闯关跳转时指定教学关卡
   const economy = useEconomy()
 
   // === 闯关战役状态 ===
@@ -287,7 +288,9 @@ export default function App() {
         )}
         {screen === 'tutorial' && (
           <TutorialScreen
-            onExit={() => setScreen('title')}
+            onExit={() => { setTutorialStartLevel(null); setScreen('title') }}
+            onExitToCampaign={() => { setTutorialStartLevel(null); setScreen('campaign') }}
+            initialLevel={tutorialStartLevel}
             onGraduate={handleTutorialGraduate}
             economy={economy}
           />
@@ -297,7 +300,7 @@ export default function App() {
             onBack={() => setScreen('title')}
             onStartBattle={handleCampaignBattle}
             onStartTutorial={(lvl) => {
-              // 跳转到教学模式
+              setTutorialStartLevel(lvl ?? null)
               setScreen('tutorial')
             }}
             economy={economy}

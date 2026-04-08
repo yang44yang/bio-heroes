@@ -12,10 +12,12 @@ import { useLanguage } from '../i18n/LanguageContext'
 //  5个渐进式教学关卡，预设手牌/场面/脚本AI
 // ================================================================
 
-export default function TutorialScreen({ onExit, onGraduate, economy }) {
+export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, economy, initialLevel }) {
   const { t, lang } = useLanguage()
   // 英文时优先取 xxxEn 字段
   const loc = (obj, field) => (lang === 'en' && obj[field + 'En']) ? obj[field + 'En'] : obj[field]
+  // 是否从闯关进入（有 initialLevel）
+  const fromCampaign = initialLevel != null
   // === 教学进度 ===
   const [progress, setProgress] = useState(() => loadTutorialProgress())
   const [currentLevelIdx, setCurrentLevelIdx] = useState(null) // null = 关卡选择界面
@@ -74,6 +76,17 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
     setFloatingDmgs([])
     setPhase('intro')
   }, [])
+
+  // === 从闯关跳转时自动开始指定关卡 ===
+  const initialLevelHandled = useRef(false)
+  useEffect(() => {
+    if (initialLevel != null && !initialLevelHandled.current) {
+      initialLevelHandled.current = true
+      // initialLevel 是 1-5，转为数组索引 0-4
+      const idx = TUTORIAL_LEVELS.findIndex(lv => lv.id === initialLevel)
+      if (idx >= 0) startLevel(idx)
+    }
+  }, [initialLevel, startLevel])
 
   // === 步骤推进 ===
   const advanceStep = useCallback(() => {
@@ -412,19 +425,25 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
     }
   }, [enemyLeaderHp, phase, level, stepIdx, currentStep])
 
+  // 退出到正确的界面（闯关来的回闯关，否则回主菜单）
+  const exitBack = useCallback(() => {
+    if (fromCampaign && onExitToCampaign) onExitToCampaign()
+    else onExit()
+  }, [fromCampaign, onExitToCampaign, onExit])
+
   // === 毕业 ===
   const handleGraduate = useCallback(() => {
     if (onGraduate) onGraduate()
-    onExit()
-  }, [onGraduate, onExit])
+    exitBack()
+  }, [onGraduate, exitBack])
 
   // === 跳过教学 ===
   const handleSkip = useCallback(() => {
     const p = { completedLevels: TUTORIAL_LEVELS.map(l => l.id), graduated: true }
     setProgress(p)
     saveTutorialProgress(p)
-    onExit()
-  }, [onExit])
+    exitBack()
+  }, [exitBack])
 
   // ================================================================
   // 渲染：关卡选择
@@ -496,7 +515,7 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
         <div className="flex gap-3 mt-6">
           <button
             className="text-gray-500 text-sm hover:text-gray-300"
-            onClick={onExit}
+            onClick={exitBack}
           >
             {t('tutorial.back')}
           </button>
@@ -656,9 +675,9 @@ export default function TutorialScreen({ onExit, onGraduate, economy }) {
             </motion.button>
             <button
               className="px-4 py-3 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-xl text-sm"
-              onClick={() => setCurrentLevelIdx(null)}
+              onClick={() => fromCampaign ? exitBack() : setCurrentLevelIdx(null)}
             >
-              {t('tutorial.backToSelect')}
+              {fromCampaign ? t('tutorial.back') : t('tutorial.backToSelect')}
             </button>
           </div>
         </motion.div>
