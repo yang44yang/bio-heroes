@@ -4,3 +4,6 @@ dist
 *.local
 .env
 .env.*
+
+# Claude Code 个人会话状态 — 不跟踪，避免多会话/协作者冲突
+.claude/SESSION.md
