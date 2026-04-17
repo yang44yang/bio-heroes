@@ -321,7 +321,44 @@ export const skillRegistry = {
   // ===========================================
 
   'Leaf Fold':          { timing: 'onHit', execute: (ctx) => T.onHitCounter(ctx, { effect: 'reduce_damage', amount: 0.5, is_ratio: true }) },
-  'Snap Trap':          { timing: 'onHit', execute: (ctx) => T.onHitCounter(ctx, { effect: 'counter_damage', amount: 0.5, is_ratio: true }) },
+  'Snap Trap': {
+    // Sprint 25: 重做为 onPlay 主动捕食
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const insectTags = ['insect', 'arachnid', 'arthropod', 'crustacean']
+      const validTargets = (ctx.enemyField || []).filter(c =>
+        c && c.currentHp > 0 && c.cost <= 1
+        && c.tags?.some(t => insectTags.includes(t))
+      )
+      if (validTargets.length > 0) {
+        const target = validTargets[0]
+        const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === target.uid)
+        return {
+          type: 'AOE_DAMAGE',
+          source: ctx.card.name,
+          targetSlot: slot,
+          targetName: target.name,
+          targetUid: target.uid,
+          damage: target.currentHp + 99999,  // 确保击杀
+          message: `🌿 ${ctx.card.name} 夹击陷阱！一口吞掉了 ${target.name}！`,
+        }
+      }
+      // fallback: cost 最低的敌方卡 -1500
+      const allEnemies = (ctx.enemyField || []).filter(c => c && c.currentHp > 0)
+      if (allEnemies.length === 0) return null
+      const lowest = [...allEnemies].sort((a, b) => a.cost - b.cost)[0]
+      const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === lowest.uid)
+      return {
+        type: 'AOE_DAMAGE',
+        source: ctx.card.name,
+        targetSlot: slot,
+        targetName: lowest.name,
+        targetUid: lowest.uid,
+        damage: 1500,
+        message: `🌿 ${ctx.card.name} 夹击陷阱！对 ${lowest.name} 造成 1500 伤害（消化液）`,
+      }
+    },
+  },
   'Thorn Counter':      { timing: 'onHit', execute: (ctx) => T.onHitCounter(ctx, { effect: 'counter_damage', amount: 500 }) },
   'Pseudopod Morph':    { timing: 'onHit', execute: (ctx) => T.onHitCounter(ctx, { effect: 'dodge', chance: 0.3 }) },
 
@@ -348,7 +385,43 @@ export const skillRegistry = {
 
   'Temperature Monitor':  { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 1, filter: 'highest_cost' }) },
   'Bioluminescence':      { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 1, filter: 'random' }) },
-  'Penetrating Scan':     { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all', bonus: { type: 'atk_boost', amount: 0.2, duration: 1 } }) },
+  'Penetrating Scan': {
+    // Sprint 25: 改为揭示 2 张 + 对守护卡 -2000 HP
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const enemyHand = ctx.enemyHand || []
+      const revealCount = Math.min(2, enemyHand.length)
+      if (revealCount > 0) {
+        const shuffled = [...enemyHand].sort(() => Math.random() - 0.5).slice(0, revealCount)
+        events.push({
+          type: 'REVEAL_HAND',
+          source: ctx.card.name,
+          cards: shuffled.map(c => c.name || '???'),
+          message: `📡 ${ctx.card.name} X光透视！看穿了对手 ${revealCount} 张手牌！`,
+        })
+      }
+      // 对守护卡造成伤害
+      const guards = (ctx.enemyField || []).filter(c =>
+        c && c.currentHp > 0 && c.skills?.some(s =>
+          s.nameEn === 'Guard' || s.nameEn === 'Physical Barrier' || s.nameEn === 'Shell Defense'
+        )
+      )
+      for (const guard of guards) {
+        const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === guard.uid)
+        events.push({
+          type: 'AOE_DAMAGE',
+          source: ctx.card.name,
+          targetSlot: slot,
+          targetName: guard.name,
+          targetUid: guard.uid,
+          damage: 2000,
+          message: `📡 ${ctx.card.name} 发现弱点！${guard.name} HP -2000`,
+        })
+      }
+      return events.length > 0 ? events : null
+    },
+  },
   'Micro Insight':        { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all' }) },
   'Rapid Test':           { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all' }) },
   '3D Scan':              { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all', deck_top: 3 }) },
@@ -634,15 +707,34 @@ export const skillRegistry = {
   },
 
   // Immune Memory / Immune Programming — 疫苗类：出场时给己方全体添加免疫状态
+  // Sprint 25: 新增抗"可疫苗预防"病原（天花/流感等）的 5000 伤害
   'Immune Memory': {
     timing: 'onPlay',
     execute: (ctx) => {
+      const events = []
       const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
-      if (allies.length === 0) return null
-      return allies.map(a => ({
-        type: 'APPLY_SHIELD', targetUid: a.uid, source: ctx.card.name, target: a.name,
-        amount: 2000, message: `💉 ${ctx.card.name} 免疫记忆！${a.name} 获得 2000 护盾！`,
-      }))
+      for (const a of allies) {
+        events.push({
+          type: 'APPLY_SHIELD', targetUid: a.uid, source: ctx.card.name, target: a.name,
+          amount: 2000, message: `💉 ${ctx.card.name} 免疫记忆！${a.name} 获得 2000 护盾！`,
+        })
+      }
+      // Sprint 25: 对可疫苗预防的病原卡造成 5000 伤害
+      const vaccineTargets = (ctx.enemyField || []).filter(c =>
+        c && c.currentHp > 0 &&
+        (c.id === 'smallpox_ghost' || c.id === 'flu_virus' ||
+          c.tags?.includes('vaccine_preventable'))
+      )
+      for (const t of vaccineTargets) {
+        const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === t.uid)
+        events.push({
+          type: 'AOE_DAMAGE', source: ctx.card.name,
+          targetSlot: slot, targetName: t.name, targetUid: t.uid,
+          damage: 5000,
+          message: `💉 ${ctx.card.name} 疫苗预防！对 ${t.name} 造成 5000 伤害！`,
+        })
+      }
+      return events.length > 0 ? events : null
     },
   },
   'Immune Programming': {
@@ -668,7 +760,29 @@ export const skillRegistry = {
   'Super Computation':    { timing: 'onTurnStart', execute: (ctx) => T.passiveAura(ctx, { effect: 'draw', amount: 1 }) },
   'Immune Bane':          { timing: 'onAttack', execute: (ctx) => T.conditionalAtk(ctx, { condition: 'vs_faction', faction_filter: 'pathogen', amount: 2, is_multiplier: true }) },
   'Drug Immunity':        { timing: 'passive',  execute: null },  // 由 damage.js 检查（类似 Antibiotic Resistance）
-  'Ecosystem Shelter':    { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'heal', scope: 'all_friendly', amount: 2000 }) },
+  // Sprint 25: Ecosystem Shelter 改为多 timing — onPlay 开启 3 回合时限 + onTurnEnd 只在时限内生效
+  'Ecosystem Shelter': {
+    timing: ['onPlay', 'onTurnEnd'],
+    execute: (ctx) => {
+      if (ctx._timing === 'onPlay') {
+        // 出场时给自身添加时限 status
+        return {
+          type: 'APPLY_STATUS',
+          targetUid: ctx.card.uid,
+          status: { type: 'ecosystem_shelter', turnsLeft: 3 },
+          source: ctx.card.name,
+          message: `🌳 ${ctx.card.name} 万灵庇护开启！持续 3 回合`,
+        }
+      }
+      if (ctx._timing === 'onTurnEnd') {
+        // 只在时限内触发回血
+        const shelter = ctx.card.statuses?.find(s => s.type === 'ecosystem_shelter')
+        if (!shelter || shelter.turnsLeft <= 0) return null
+        return T.passiveAura(ctx, { effect: 'heal', scope: 'all_friendly', amount: 2000 })
+      }
+      return null
+    },
+  },
   'Biofilm Shield':       { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'heal', scope: 'faction', faction_filter: 'pathogen', amount: 1500 }) },  // Guard/immune_tech 由 passive 处理
   'Abyssal Tentacles':    { timing: 'onPlay',   execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 4000, bonus: { type: 'debuff_atk', amount: 2000, duration: 2, scope: 'all_enemy' } }) },
 

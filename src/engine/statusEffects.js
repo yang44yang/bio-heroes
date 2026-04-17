@@ -128,6 +128,19 @@ export function processStatuses(card) {
         break
       }
 
+      case 'ecosystem_shelter': {
+        // 生态庇护时限（Sprint 25 SP·远古世界树）— 按回合递减
+        if (status.turnsLeft > 1) {
+          remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })
+        } else {
+          events.push({
+            type: 'ECOSYSTEM_SHELTER_CLEAR', target: card.name,
+            message: `🌳 ${card.name} 的万灵庇护结束了`,
+          })
+        }
+        break
+      }
+
       default:
         remaining.push(status) // 未知状态保留
     }

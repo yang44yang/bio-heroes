@@ -232,11 +232,11 @@ const cards = [
         name: "夹击陷阱",
         nameEn: "Snap Trap",
         type: "unique",
-        description: "被攻击时反击：对攻击者造成等同自身ATK 50%的伤害",
-        scienceNote: "捕蝇草的叶片在0.1秒内合拢，是植物界最快的运动之一，触发需要连续碰到两根感觉毛"
+        description: "出场时消灭一张敌方 cost≤1 的昆虫/蛛形卡；无合法目标时改为对 cost 最低的敌方卡造成 1500 伤害",
+        scienceNote: "捕蝇草的叶片在0.1秒内合拢，主动捕食小昆虫来补充氮元素——因为它生长在贫瘠沼泽地"
       }
     ],
-    scienceCard: "捕蝇草是会\"吃肉\"的植物！它的叶子像一个长满牙齿的大嘴巴，虫子碰到里面的小毛毛两次，嘴巴就\"啪\"地合上，然后用消化液慢慢把虫子化掉。它会数数——碰一次不关，必须碰两次才触发！",
+    scienceCard: "捕蝇草是会\"吃肉\"的植物！它的叶子像长满牙齿的大嘴巴，虫子碰到里面的小毛毛两次，'啪'地合上！它生长在贫瘠的沼泽地，土壤缺氮和磷，所以通过捕食昆虫来补充营养——这就是为什么它出场时能吞掉小虫子！",
     evolutionFrom: "含羞草·胆小勇士",
     evolutionTo: null,
     tags: ["carnivorous"],
@@ -654,7 +654,7 @@ const cards = [
     scienceCard: "流感病毒特别\"狡猾\"，它的外壳蛋白质一直在变化，就像不断换衣服的小偷，让你的免疫系统认不出它。这就是为什么你打了流感疫苗，第二年可能还会感冒！",
     evolutionFrom: null,
     evolutionTo: "H5N1·超级毒株",
-    tags: ["RNA_virus"],
+    tags: ["RNA_virus", "vaccine_preventable"],
   },
 
   {
@@ -1039,11 +1039,11 @@ const cards = [
         name: "透视扫描",
         nameEn: "Penetrating Scan",
         type: "unique",
-        description: "出场时，揭示对方所有手牌，且本回合友方卡攻击时伤害 +20%",
-        scienceNote: "X射线能穿透软组织但被骨骼阻挡，让医生\"看穿\"身体内部"
+        description: "出场时，揭示对方 2 张手牌，并对所有敌方守护卡造成 2000 伤害（X光看穿防线）",
+        scienceNote: "X射线能穿透软组织但被骨骼阻挡，让医生看穿身体内部——也能看穿守护卡的弱点"
       }
     ],
-    scienceCard: "X光也是意外发现的！1895年伦琴发现了一种神秘射线，他用X光拍了太太的手，能清楚看到骨头和戒指。伦琴因此获得了第一届诺贝尔物理学奖。",
+    scienceCard: "X光是1895年伦琴意外发现的神秘射线！它能穿透皮肤和肌肉，清楚显示骨头和硬组织——这就是为什么X光能看穿对方的防线，找到守护卡的弱点！伦琴因此获得了第一届诺贝尔物理学奖。",
     evolutionFrom: "体温计·发烧警报器",
     evolutionTo: null,
     tags: [],
@@ -2558,10 +2558,10 @@ const cards = [
                 "scienceNote": "天花是人类历史上最致命的传染病，曾在一个世纪内杀死5亿人"
           }
     ],
-    scienceCard: "天花是人类唯一完全消灭的传染病！1980年WHO宣布天花被根除。它曾经杀死了全人类约10%的人口。现在只有两个实验室保存着天花病毒样本。",
+    scienceCard: "天花是人类唯一完全消灭的传染病——靠的就是疫苗！英国医生詹纳发现牛痘能预防天花，开创了疫苗接种。1980年WHO宣布天花被根除，这是医学史上最伟大的胜利。在游戏里，如果对方有疫苗卡，天花就会受到巨大打击——这就是疫苗的威力！",
     evolutionFrom: null,
     evolutionTo: null,
-    tags: ["DNA_virus","eradicated"],
+    tags: ["DNA_virus","eradicated","vaccine_preventable"],
   },
 
   {

@@ -354,11 +354,11 @@ const spCards = [
                 "nameEn": "Ecosystem Shelter",
                 "type": "unique",
                 "timing": "onPlay",
-                "description": "出场时全队恢复 5000 HP，且每回合恢复 2000 HP（持续到世界树被击杀）",
+                "description": "出场时全队恢复 5000 HP，且每回合恢复 2000 HP（持续 3 回合）",
                 "scienceNote": "一棵大树能为数百种生物提供栖息地和食物，是整个生态系统的核心"
           }
     ],
-    scienceCard: "世界上最大的树是加州的谢尔曼将军巨杉，高84米，树干周长31米，已经活了2200年！一棵大树每年能吸收22公斤的二氧化碳。",
+    scienceCard: "世界上最大的树是加州的谢尔曼将军巨杉，高84米，树干周长31米，已经活了2200年！一棵大树每年能吸收22公斤的二氧化碳。巨树的庇护也有季节之分——春夏万物生长，秋冬休眠蓄力。3 回合的庇护，用好了能翻盘！",
     evolutionFrom: null,
     evolutionTo: null,
     tags: ["ancient","keystone_species"],
