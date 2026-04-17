@@ -342,32 +342,47 @@ export const skillRegistry = {
   // Phase 2+ — 占位（未来实现）
   // ===========================================
 
-  // Reveal 模板（需要 REVEAL_HAND event type）
-  'Temperature Monitor':  { timing: 'onPlay',   execute: null },
-  'Bioluminescence':      { timing: 'onPlay',   execute: null },
-  'Penetrating Scan':     { timing: 'onPlay',   execute: null },
-  'Micro Insight':        { timing: 'onPlay',   execute: null },
-  'Rapid Test':           { timing: 'onPlay',   execute: null },
-  '3D Scan':              { timing: 'onPlay',   execute: null },
+  // ===========================================
+  // Phase 2 — 模板 3: onPlayReveal（6 技能）
+  // ===========================================
 
-  // Mark 模板（需要 marked status type）
-  'Target Lock':          { timing: 'onPlay',   execute: null },
-  'Antigen Presentation': { timing: 'onPlay',   execute: null },
+  'Temperature Monitor':  { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 1, filter: 'highest_cost' }) },
+  'Bioluminescence':      { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 1, filter: 'random' }) },
+  'Penetrating Scan':     { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all', bonus: { type: 'atk_boost', amount: 0.2, duration: 1 } }) },
+  'Micro Insight':        { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all' }) },
+  'Rapid Test':           { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all' }) },
+  '3D Scan':              { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all', deck_top: 3 }) },
 
-  // Cleanse 模板（需要 removeNegativeStatuses）
-  'Heat Regulation':      { timing: 'onPlay',   execute: null },
-  'Toxin Filtration':     { timing: 'onPlay',   execute: null },
-  'Anti-inflammatory':    { timing: 'onPlay',   execute: null },
-  'Detoxification':       { timing: 'onTurnStart', execute: null },
-  'Hemodialysis':         { timing: 'onTurnStart', execute: null },
+  // ===========================================
+  // Phase 2 — 模板 4: onPlayMark（2 技能）
+  // ===========================================
 
-  // Revive from discard
-  'Elder Memory':         { timing: 'onPlay',   execute: null },
-  'Gene Repair':          { timing: 'onPlay',   execute: null },
-  'Electric Restart':     { timing: 'onPlay',   execute: null },
+  'Target Lock':          { timing: 'onPlay', execute: (ctx) => T.onPlayMark(ctx, { bonus_damage: 0.5, bonus_from: 'all' }) },
+  'Antigen Presentation': { timing: 'onPlay', execute: (ctx) => T.onPlayMark(ctx, { bonus_damage: 1000, bonus_from: 'faction', faction_filter: 'body' }) },
 
-  // Summon from hand
-  'Pheromone Rally':      { timing: 'onPlay',   execute: null },
+  // ===========================================
+  // Phase 2 — 模板 12: cleanse（5 技能）
+  // ===========================================
+
+  'Heat Regulation':      { timing: 'onPlay',      execute: (ctx) => T.cleanse(ctx, { scope: 'one_ally', status_filter: 'one_random' }) },
+  'Toxin Filtration':     { timing: 'onPlay',      execute: (ctx) => T.cleanse(ctx, { scope: 'all_allies', status_filter: 'poison' }) },
+  'Anti-inflammatory':    { timing: 'onPlay',      execute: (ctx) => T.cleanse(ctx, { scope: 'one_ally', status_filter: 'all_negative', bonus_heal: 1000 }) },
+  'Detoxification':       { timing: 'onTurnStart', execute: (ctx) => T.cleanse(ctx, { scope: 'all_allies', status_filter: 'one_random' }) },
+  'Hemodialysis':         { timing: 'onTurnStart', execute: (ctx) => T.cleanse(ctx, { scope: 'all_and_leader', status_filter: 'all_negative', bonus_heal: 1000, bonus_heal_target: 'leader' }) },
+
+  // ===========================================
+  // Phase 2 — 模板 13: reviveFromDiscard（3 技能）
+  // ===========================================
+
+  'Elder Memory':         { timing: 'onPlay', execute: (ctx) => T.reviveFromDiscard(ctx, { mode: 'to_hand', faction_filter: 'nature' }) },
+  'Gene Repair':          { timing: 'onPlay', execute: (ctx) => T.reviveFromDiscard(ctx, { mode: 'to_field', faction_filter: 'body', hp_percent: 0.5 }) },
+  'Electric Restart':     { timing: 'onPlay', execute: (ctx) => T.reviveFromDiscard(ctx, { mode: 'to_field', faction_filter: 'body', cost_max: 3, hp_percent: 0.3 }) },
+
+  // ===========================================
+  // Phase 2 — 模板 14: onPlaySummon（1 技能）
+  // ===========================================
+
+  'Pheromone Rally':      { timing: 'onPlay', execute: (ctx) => T.onPlaySummon(ctx, { condition: 'hand_has_same', card_filter: 'ant_', from: 'hand' }) },
 
   // Passive aura (complex — Phase 3)
   'Antibacterial Aura':   { timing: 'passive',  execute: null },

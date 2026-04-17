@@ -682,6 +682,240 @@ export function onHitCounter(ctx, params) {
 // Phase 1 passiveAura 简单部分
 // ============================================================
 
+// ============================================================
+// 模板 3: onPlayReveal — 出场时揭示对方手牌
+// timing: 'onPlay'  |  Phase 2
+// ============================================================
+
+export function onPlayReveal(ctx, params) {
+  const cardName = ctx.card?.name || '???'
+  const enemyHand = ctx.enemyHand || []
+  if (enemyHand.length === 0) return null
+
+  // 选定要揭示的卡
+  let revealed = []
+  if (params.count === 'all') {
+    revealed = enemyHand.map(c => c.name || '???')
+  } else {
+    const n = params.count || 1
+    if (params.filter === 'highest_cost') {
+      revealed = [...enemyHand].sort((a, b) => (b.cost || 0) - (a.cost || 0)).slice(0, n).map(c => c.name)
+    } else {
+      // random
+      const shuffled = [...enemyHand].sort(() => Math.random() - 0.5)
+      revealed = shuffled.slice(0, n).map(c => c.name)
+    }
+  }
+
+  const events = [{
+    type: 'REVEAL_HAND',
+    source: cardName,
+    cards: revealed,
+    message: `🔍 ${cardName} 揭示了敌方手牌：${revealed.join('、')}`,
+  }]
+
+  // bonus 效果
+  if (params.bonus) {
+    const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+    if (params.bonus.type === 'atk_boost' && allies.length > 0) {
+      for (const a of allies) {
+        const boost = Math.floor(a.atk * (params.bonus.amount || 0.2))
+        events.push({
+          type: 'BUFF', targetUid: a.uid, stat: 'atk', amount: boost, source: cardName,
+          message: `⬆️ ${a.name} ATK +${boost}！`,
+        })
+      }
+    }
+  }
+
+  return events
+}
+
+// ============================================================
+// 模板 4: onPlayMark — 出场时标记敌方卡
+// timing: 'onPlay'  |  Phase 2
+// ============================================================
+
+export function onPlayMark(ctx, params) {
+  const enemies = aliveEnemies(ctx)
+  const cardName = ctx.card?.name || '???'
+  if (enemies.length === 0) return null
+
+  // 选 ATK 最高的敌方卡
+  const target = [...enemies].sort((a, b) => b.atk - a.atk)[0]
+
+  return {
+    type: 'APPLY_MARK',
+    targetUid: target.uid,
+    source: cardName,
+    targetName: target.name,
+    bonus_damage: params.bonus_damage,
+    bonus_from: params.bonus_from,
+    faction_filter: params.faction_filter,
+    message: `🎯 ${cardName} 标记了 ${target.name}！后续攻击加伤！`,
+  }
+}
+
+// ============================================================
+// 模板 12: cleanse — 清除负面状态
+// timing: 'onPlay' or 'onTurnStart'  |  Phase 2
+// ============================================================
+
+export function cleanse(ctx, params) {
+  const cardName = ctx.card?.name || '???'
+  const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+  if (allies.length === 0) return null
+
+  const events = []
+  const { removeNegativeStatuses } = ctx._statusUtils || {}
+
+  // 选定目标
+  let targets = []
+  if (params.scope === 'one_ally') {
+    // 选负面状态最多的友方
+    const withNeg = allies.filter(c => c.statuses?.some(s => ['poison', 'sleep', 'deep_pressure'].includes(s.type)))
+    targets = withNeg.length > 0 ? [withNeg[0]] : [allies[0]]
+  } else {
+    targets = allies
+  }
+
+  for (const t of targets) {
+    if (!t.statuses || t.statuses.length === 0) continue
+    // 使用 engine 提供的清除函数，或 fallback 手动清除
+    const negTypes = ['poison', 'sleep', 'deep_pressure']
+    let removed = []
+    if (params.status_filter === 'poison') {
+      const before = t.statuses.length
+      t.statuses = t.statuses.filter(s => { if (s.type === 'poison') { removed.push('poison'); return false } return true })
+    } else if (params.status_filter === 'all_negative') {
+      t.statuses = t.statuses.filter(s => { if (negTypes.includes(s.type)) { removed.push(s.type); return false } return true })
+    } else if (params.status_filter === 'one_random') {
+      const negs = t.statuses.filter(s => negTypes.includes(s.type))
+      if (negs.length > 0) {
+        const pick = negs[Math.floor(Math.random() * negs.length)]
+        const idx = t.statuses.indexOf(pick)
+        if (idx >= 0) { t.statuses.splice(idx, 1); removed.push(pick.type) }
+      }
+    }
+    if (removed.length > 0) {
+      events.push({
+        type: 'RUSH_BOOST', source: cardName,
+        message: `✨ ${cardName} 清除了 ${t.name} 的 ${removed.join('+')} 状态！`,
+      })
+    }
+  }
+
+  // bonus heal
+  if (params.bonus_heal) {
+    if (params.bonus_heal_target === 'leader') {
+      events.push({
+        type: 'HEAL', targetUid: '__leader__', source: cardName, target: 'leader',
+        amount: params.bonus_heal, _leaderHeal: true,
+        message: `💚 ${cardName} 为主人回复 ${params.bonus_heal} HP`,
+      })
+    } else if (targets.length > 0) {
+      const t = targets[0]
+      const heal = Math.min(params.bonus_heal, t.maxHp - t.currentHp)
+      if (heal > 0) {
+        events.push({
+          type: 'HEAL', targetUid: t.uid, source: cardName, target: t.name,
+          amount: heal, message: `💚 ${cardName} 为 ${t.name} 回复 ${heal} HP`,
+        })
+      }
+    }
+  }
+
+  return events.length > 0 ? events : null
+}
+
+// ============================================================
+// 模板 13: reviveFromDiscard — 从弃牌堆取回卡
+// timing: 'onPlay'  |  Phase 2
+// ============================================================
+
+export function reviveFromDiscard(ctx, params) {
+  const cardName = ctx.card?.name || '???'
+  const discard = ctx.discardPile || []
+  if (discard.length === 0) return null
+
+  // 按条件过滤弃牌堆
+  let candidates = discard
+  if (params.faction_filter) candidates = candidates.filter(c => c.faction === params.faction_filter)
+  if (params.cost_max) candidates = candidates.filter(c => (c.cost || 0) <= params.cost_max)
+  if (candidates.length === 0) return null
+
+  // 选最强的（ATK 最高）
+  const picked = [...candidates].sort((a, b) => b.atk - a.atk)[0]
+
+  if (params.mode === 'to_hand') {
+    return {
+      type: 'RUSH_BOOST', source: cardName,
+      _reviveToHand: picked,
+      message: `🔄 ${cardName} 从弃牌堆取回 ${picked.name} 到手牌！`,
+    }
+  }
+
+  // to_field
+  const field = ctx.friendlyField || []
+  const slot = findEmptySlot(field)
+  if (slot < 0) return null
+
+  const hpPercent = params.hp_percent || 0.5
+  const revived = {
+    ...picked,
+    uid: picked.id + '_revived_' + Date.now() + '_' + Math.random(),
+    currentHp: Math.floor(picked.maxHp * hpPercent),
+    maxHp: picked.maxHp,
+    statuses: [],
+    summonSick: true,
+  }
+
+  return {
+    type: 'SUMMON_CARD', side: 'friendly', slot, card: revived, source: cardName,
+    message: `🔄 ${cardName} 从弃牌堆复活 ${picked.name}！（${Math.floor(hpPercent * 100)}% HP）`,
+  }
+}
+
+// ============================================================
+// 模板 14: onPlaySummon — 出场时从手牌召唤
+// timing: 'onPlay'  |  Phase 2
+// ============================================================
+
+export function onPlaySummon(ctx, params) {
+  const cardName = ctx.card?.name || '???'
+  const hand = ctx.playerHand || []
+  if (hand.length === 0) return null
+
+  if (params.condition === 'hand_has_same') {
+    const match = hand.find(c => c.id?.startsWith(params.card_filter || ''))
+    if (!match) return null
+
+    const field = ctx.friendlyField || []
+    const slot = findEmptySlot(field)
+    if (slot < 0) return null
+
+    const summoned = {
+      ...match,
+      uid: match.id + '_summoned_' + Date.now() + '_' + Math.random(),
+      currentHp: match.hp || match.maxHp,
+      maxHp: match.hp || match.maxHp,
+      statuses: [],
+      summonSick: true,
+    }
+
+    return [{
+      type: 'SUMMON_CARD', side: 'friendly', slot, card: summoned, source: cardName,
+      _removeFromHand: match.uid,
+      message: `📣 ${cardName} 信息素召集！${match.name} 从手牌直接上场！`,
+    }]
+  }
+  return null
+}
+
+// ============================================================
+// Phase 1+2 passiveAura 部分
+// ============================================================
+
 /**
  * passiveHeal — 每回合为友方卡/主人回血
  * timing: 'onTurnEnd'
