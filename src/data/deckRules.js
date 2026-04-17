@@ -49,20 +49,28 @@ export const POWER_CURVE = {
 }
 
 // === 子类型 ===
+// Sprint 26: 自然系/人体系 subType 升级为生物学分类（方案 2）
 export const SUBTYPES = {
   nature:   [
-    { key: 'plant',  name: '🌿 植物',     nameEn: 'Plant' },
-    { key: 'land',   name: '🐾 陆地动物', nameEn: 'Land' },
-    { key: 'marine', name: '🐋 海洋生物', nameEn: 'Marine' },
-    { key: 'aerial', name: '🦅 飞行生物', nameEn: 'Aerial' },
-    { key: 'micro',  name: '🔬 微生物',   nameEn: 'Micro' },
+    { key: 'plant',              name: '🌿 植物',        nameEn: 'Plant' },
+    { key: 'mammal',             name: '🦁 哺乳动物',    nameEn: 'Mammal' },
+    { key: 'bird',               name: '🦅 鸟类',        nameEn: 'Bird' },
+    { key: 'reptile_amphib',     name: '🦎 爬行/两栖',   nameEn: 'Reptile/Amphibian' },
+    { key: 'fish',               name: '🐟 鱼类',        nameEn: 'Fish' },
+    { key: 'arthropod',          name: '🐜 节肢动物',    nameEn: 'Arthropod' },
+    { key: 'invertebrate_other', name: '🐙 其他无脊椎',  nameEn: 'Other Invertebrate' },
+    { key: 'microbe',            name: '🔬 微生物',      nameEn: 'Microbe' },
   ],
   body:     [
-    { key: 'blood',     name: '🩸 血液免疫', nameEn: 'Blood' },
-    { key: 'organ',     name: '❤️ 器官',     nameEn: 'Organ' },
-    { key: 'nerve',     name: '⚡ 神经',     nameEn: 'Nerve' },
-    { key: 'structure', name: '🦴 结构',     nameEn: 'Structure' },
-    { key: 'cellmech',  name: '🧫 细胞机制', nameEn: 'Cell Mech' },
+    { key: 'circulatory',  name: '🩸 循环系统',   nameEn: 'Circulatory' },
+    { key: 'respiratory',  name: '🫁 呼吸系统',   nameEn: 'Respiratory' },
+    { key: 'digestive',    name: '🍽️ 消化系统',    nameEn: 'Digestive' },
+    { key: 'immune',       name: '🛡️ 免疫系统',   nameEn: 'Immune' },
+    { key: 'nervous',      name: '⚡ 神经系统',    nameEn: 'Nervous' },
+    { key: 'skeletal',     name: '🦴 运动系统',    nameEn: 'Skeletal' },
+    { key: 'urinary',      name: '💧 泌尿系统',    nameEn: 'Urinary' },
+    { key: 'integument',   name: '🧤 皮肤系统',    nameEn: 'Integumentary' },
+    { key: 'cellular',     name: '🧫 细胞级',      nameEn: 'Cellular' },
   ],
   pathogen: [
     { key: 'virus',    name: '🧫 病毒',   nameEn: 'Virus' },

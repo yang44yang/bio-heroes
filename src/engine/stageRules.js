@@ -76,7 +76,8 @@ const deepSeaRule = {
     setPlayerField(prev =>
       prev.map(c => {
         if (!c || c.currentHp <= 0) return c
-        if (c.subType === 'marine') return c
+        // Sprint 26: marine 迁移到 tags；海洋生物不受深海压力影响
+        if (c.tags?.includes('marine') || c.subType === 'fish') return c
         // 已经有深海压力 debuff 则跳过
         if (c.statuses?.some(s => s.type === 'deep_pressure')) return c
         affected++

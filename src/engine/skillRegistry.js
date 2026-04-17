@@ -1035,7 +1035,7 @@ export const skillRegistry = {
     execute: (ctx) => {
       const allies = (ctx.friendlyField || [])
         .filter(c => c && c.currentHp > 0 && c.uid !== ctx.card.uid
-          && c.faction === 'body' && c.subType === 'blood')
+          && c.faction === 'body' && (c.subType === 'immune' || c.subType === 'circulatory'))
       const count = allies.length
       if (count === 0) return null
       const hpBoost = count * 500
