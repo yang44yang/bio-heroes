@@ -384,15 +384,20 @@ export const skillRegistry = {
 
   'Pheromone Rally':      { timing: 'onPlay', execute: (ctx) => T.onPlaySummon(ctx, { condition: 'hand_has_same', card_filter: 'ant_', from: 'hand' }) },
 
-  // Passive aura (complex — Phase 3)
-  'Antibacterial Aura':   { timing: 'passive',  execute: null },
-  'Droplet Filter':       { timing: 'passive',  execute: null },
-  'Immune Collapse':      { timing: 'passive',  execute: null },
-  'Nutrient Drain':       { timing: 'onTurnEnd', execute: null },
-  'Nutrient Hijack':      { timing: 'passive',  execute: null },
-  'Resistance Crisis':    { timing: 'onTurnEnd', execute: null },
-  'T-Cell Training':      { timing: 'onTurnEnd', execute: null },
-  'Hematopoiesis':        { timing: 'onTurnEnd', execute: null },
+  // ===========================================
+  // Phase 3 — passiveAura 光环部分（3 技能 by damage.js 检查）
+  // ===========================================
+  // 这些技能 timing='passive'，伤害计算时自动检查（见 damage.js calcAuraEffects）
+  'Antibacterial Aura':   { timing: 'passive', execute: null },  // 友方受病原系伤害 -30%
+  'Droplet Filter':       { timing: 'passive', execute: null },  // 敌方病原系 ATK -500
+  'Immune Collapse':      { timing: 'passive', execute: null },  // 敌方人体系 ATK -20%
+
+  // Phase 3 — passiveAura 回合触发部分（4 技能）
+  'Nutrient Drain':       { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDrain(ctx, { amount: 500 }) },
+  'Nutrient Hijack':      { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDrain(ctx, { amount: 500 }) }, // 近似：也是吸血
+  'Resistance Crisis':    { timing: 'onTurnEnd',   execute: (ctx) => T.passiveSelfDebuff(ctx, { amount: 1000, min: 2000 }) },
+  'T-Cell Training':      { timing: 'onTurnEnd',   execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'body', amount: 500 }) }, // 简化
+  'Hematopoiesis':        { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDraw(ctx, { amount: 1, interval: 2 }) },
 
   // SPECIAL handlers (Phase 3)
   'Hyperspeed Dash':      { timing: 'onAttack', execute: null },

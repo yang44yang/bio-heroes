@@ -1377,12 +1377,17 @@ export function useBattle() {
     }
     pushSkillEvents(allPreEvents)
 
-    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus, defImmune } = calcCardBattle(atkCard, defCard, awakenOpts)
+    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus, defImmune, auraApplied } = calcCardBattle(atkCard, defCard, {
+      ...awakenOpts,
+      attackerField: playerFieldRef.current,
+      defenderField: enemyFieldRef.current,
+    })
     let defKilled = false, atkKilled = false
 
     if (defImmune) addLog(`🛡️ ${defCard.name} 免疫了攻击！`)
     if (atkFactionBonus) addLog(`⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
+    if (auraApplied) addLog(`🌀 光环效果生效！`)
 
     // 伤害计算（含护盾吸收）
     let defActualDmg = atkDmg
@@ -1598,7 +1603,10 @@ export function useBattle() {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }
 
-    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus } = calcCardBattle(atkCard, defCard)
+    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus } = calcCardBattle(atkCard, defCard, {
+      attackerField: enemyFieldRef.current,
+      defenderField: playerFieldRef.current,
+    })
     let defKilled = false, atkKilled = false
 
     if (atkFactionBonus) addLog(`🔴 ⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)

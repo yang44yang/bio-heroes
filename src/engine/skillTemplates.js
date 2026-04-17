@@ -1023,6 +1023,71 @@ export function passiveSummon(ctx, params) {
 }
 
 /**
+ * passiveDrain — 每回合吸取敌方主人 HP 给己方主人
+ * timing: 'onTurnEnd'
+ */
+export function passiveDrain(ctx, params) {
+  const card = ctx.card
+  if (!card || card.currentHp <= 0) return null
+  return [{
+    type: 'OVERFLOW_DAMAGE',
+    source: card.name,
+    target: 'enemyLeader',
+    damage: params.amount || 500,
+    message: `🩸 ${card.name} 吸取敌方主人 ${params.amount || 500} HP`,
+  }, {
+    type: 'HEAL',
+    targetUid: '__leader__',
+    source: card.name,
+    target: 'leader',
+    amount: params.amount || 500,
+    _leaderHeal: true,
+    message: `💚 己方主人回复 ${params.amount || 500} HP`,
+  }]
+}
+
+/**
+ * passiveSelfDebuff — 每回合自身 ATK 降低（有下限）
+ * timing: 'onTurnEnd'
+ * 用于 Resistance Crisis：每回合 ATK -1000，最低 2000
+ */
+export function passiveSelfDebuff(ctx, params) {
+  const card = ctx.card
+  if (!card || card.currentHp <= 0) return null
+  const min = params.min || 0
+  if (card.atk <= min) return null
+  const reduction = Math.min(params.amount || 1000, card.atk - min)
+  if (reduction <= 0) return null
+  return {
+    type: 'BUFF',
+    targetUid: card.uid,
+    stat: 'atk',
+    amount: -reduction,
+    source: card.name,
+    message: `⬇️ ${card.name} 耐药危机！ATK -${reduction}`,
+  }
+}
+
+/**
+ * passiveDraw — 每 N 回合抽一张牌
+ * timing: 'onTurnEnd'
+ * NOTE: 实际抽牌需要 useBattle 支持 DRAW_CARD event，暂用日志
+ */
+export function passiveDraw(ctx, params) {
+  const card = ctx.card
+  if (!card || card.currentHp <= 0) return null
+  // 简化：每回合都触发（interval 逻辑需要 turn 状态）
+  const turn = ctx.turn || 1
+  if (params.interval && turn % params.interval !== 0) return null
+  return {
+    type: 'RUSH_BOOST',
+    source: card.name,
+    _drawCard: params.amount || 1,
+    message: `📥 ${card.name} 造血：抽 ${params.amount || 1} 张牌！`,
+  }
+}
+
+/**
  * passiveRandomBuff — 每回合随机 buff ATK 或 HP
  * timing: 'onTurnStart'
  */
