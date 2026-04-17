@@ -892,11 +892,76 @@ export const skillRegistry = {
     },
   },
 
-  // Remaining card skills not yet categorized
-  'Synaptic Relay':       { timing: 'passive',  execute: null },  // 迅击变体
-  'Immune Activation':    { timing: 'onPlay',   execute: null },
-  'Behavior Override':    { timing: 'onAttack', execute: null },
-  'Precision Pierce':     { timing: 'onAttack', execute: null },
+  // ===========================================
+  // Sprint 25 — 4 个剩余技能
+  // ===========================================
+
+  // 1.1 Synaptic Relay (神经元·闪电信使) — 攻击后随机一张友方获得迅击
+  'Synaptic Relay': {
+    timing: 'onAttack',
+    execute: (ctx) => {
+      if (ctx.target === 'leader') return null
+      const allies = (ctx.friendlyField || [])
+        .filter(c => c && c.currentHp > 0 && c.uid !== ctx.card.uid)
+      if (allies.length === 0) return null
+      const target = allies[Math.floor(Math.random() * allies.length)]
+      return {
+        type: 'APPLY_STATUS',
+        targetUid: target.uid,
+        status: { type: 'swift_boost', turnsLeft: 1 },
+        source: ctx.card.name,
+        message: `⚡ ${ctx.card.name} 突触传递！${target.name} 获得迅击！`,
+      }
+    },
+  },
+
+  // 1.2 Immune Activation (淋巴结·过滤站) — onPlay: 每个其他血液免疫友方 +500 HP
+  'Immune Activation': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || [])
+        .filter(c => c && c.currentHp > 0 && c.uid !== ctx.card.uid
+          && c.faction === 'body' && c.subType === 'blood')
+      const count = allies.length
+      if (count === 0) return null
+      const hpBoost = count * 500
+      const actualHeal = Math.min(hpBoost, (ctx.card.maxHp || ctx.card.hp) - (ctx.card.currentHp || ctx.card.hp))
+      if (actualHeal <= 0) return null
+      return {
+        type: 'HEAL',
+        targetUid: ctx.card.uid,
+        source: ctx.card.name,
+        target: ctx.card.name,
+        amount: actualHeal,
+        message: `🛡️ ${ctx.card.name} 免疫激活！检测到 ${count} 个血液免疫卡，HP +${actualHeal}`,
+      }
+    },
+  },
+
+  // 1.3 Behavior Override (弓形虫·心智操控者) — 25% 概率使目标下回合不能行动（sleep 简化）
+  'Behavior Override': {
+    timing: 'onAttack',
+    execute: (ctx) => {
+      if (ctx.target === 'leader') return null
+      if (Math.random() > 0.25) return null
+      const defender = ctx.defender
+      if (!defender || defender.currentHp <= 0) return null
+      return {
+        type: 'APPLY_SLEEP',
+        targetUid: defender.uid,
+        source: ctx.card.name,
+        targetName: defender.name,
+        turnsLeft: 1,
+        message: `🧠 ${ctx.card.name} 行为改写！${defender.name} 被操控，下回合无法行动！`,
+      }
+    },
+  },
+
+  // 1.4 Precision Pierce (机器人手术刀) — 复用 Piercing Strike
+  'Precision Pierce': {
+    timing: 'onKill',
+    execute: (ctx) => skillRegistry['Piercing Strike'].execute(ctx),
+  },
 }
 
 // Sprint 24: Gene Rewrite 复用 Gene Edit（延迟绑定避免引用顺序问题）
