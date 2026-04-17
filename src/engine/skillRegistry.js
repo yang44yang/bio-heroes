@@ -1096,7 +1096,8 @@ export const skillRegistry = {
     },
   },
 
-  // 1.3 Behavior Override (弓形虫·心智操控者) — 25% 概率使目标下回合不能行动（sleep 简化）
+  // 1.3 Behavior Override (弓形虫·心智操控者) — Sprint 26: 真正的心智操控
+  // 25% 概率使目标下回合攻击随机友方
   'Behavior Override': {
     timing: 'onAttack',
     execute: (ctx) => {
@@ -1105,12 +1106,12 @@ export const skillRegistry = {
       const defender = ctx.defender
       if (!defender || defender.currentHp <= 0) return null
       return {
-        type: 'APPLY_SLEEP',
+        type: 'APPLY_STATUS',
         targetUid: defender.uid,
+        status: { type: 'confused', turnsLeft: 1 },
         source: ctx.card.name,
-        targetName: defender.name,
-        turnsLeft: 1,
-        message: `🧠 ${ctx.card.name} 行为改写！${defender.name} 被操控，下回合无法行动！`,
+        _side: 'enemy',
+        message: `🧠 ${ctx.card.name} 行为改写！${defender.name} 被操控，下回合将攻击自己人！`,
       }
     },
   },

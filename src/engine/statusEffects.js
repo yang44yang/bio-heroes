@@ -128,6 +128,24 @@ export function processStatuses(card) {
         break
       }
 
+      case 'confused': {
+        // Sprint 26: 心智操控（弓形虫 Behavior Override）
+        // 攻击时改为攻击随机友方，按回合递减
+        if (status.turnsLeft > 1) {
+          remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })
+          events.push({
+            type: 'CONFUSED_TICK', target: card.name,
+            message: `🧠 ${card.name} 仍处于混乱状态...（剩余${status.turnsLeft - 1}回合）`,
+          })
+        } else {
+          events.push({
+            type: 'CONFUSED_CLEAR', target: card.name,
+            message: `💡 ${card.name} 恢复了理智！`,
+          })
+        }
+        break
+      }
+
       case 'ecosystem_shelter': {
         // 生态庇护时限（Sprint 25 SP·远古世界树）— 按回合递减
         if (status.turnsLeft > 1) {

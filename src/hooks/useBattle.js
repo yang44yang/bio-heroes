@@ -1400,6 +1400,24 @@ export function useBattle() {
       addLog(`${atkCard.name} 正在沉睡中，无法攻击`)
       return null
     }
+    // Sprint 26: 混乱状态 — 玩家的卡被操控，自动攻击随机友方
+    if (atkCard.statuses?.some(s => s.type === 'confused')) {
+      const friendlyTargets = playerField
+        .map((c, i) => ({ c, i }))
+        .filter(({ c, i }) => c && c.currentHp > 0 && c.uid !== atkCard.uid)
+      if (friendlyTargets.length > 0) {
+        const pick = friendlyTargets[Math.floor(Math.random() * friendlyTargets.length)]
+        addLog(`🧠 ${atkCard.name} 被操控了！攻击了自己人 ${pick.c.name}！`)
+        const dmg = atkCard.atk
+        setPlayerField(prev => {
+          const next = prev.map(c => c ? { ...c } : null)
+          if (next[pick.i]) next[pick.i].currentHp = Math.max(0, next[pick.i].currentHp - dmg)
+          return next
+        })
+        attackedThisTurn.current.add(atkCard.uid)
+        return { confusedHit: true }
+      }
+    }
     // 召唤疲劳
     const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack')
     if (summonedThisTurn.current.has(atkCard.uid) && !hasSwift) {
@@ -1647,6 +1665,24 @@ export function useBattle() {
     if (atkCard.statuses?.some(s => s.type === 'sleep')) {
       addLog(`🔴 ${atkCard.name} 正在沉睡中，无法攻击`)
       return { skipped: true }
+    }
+    // Sprint 26: 混乱状态 — 攻击目标改为随机友方（攻击自己人）
+    if (atkCard.statuses?.some(s => s.type === 'confused')) {
+      const friendlyTargets = eField
+        .map((c, i) => ({ c, i }))
+        .filter(({ c, i }) => c && c.currentHp > 0 && c.uid !== atkCard.uid)
+      if (friendlyTargets.length > 0) {
+        const pick = friendlyTargets[Math.floor(Math.random() * friendlyTargets.length)]
+        addLog(`🧠 ${atkCard.name} 被操控了！攻击了自己人 ${pick.c.name}！`)
+        // 简化实现：直接扣友方 HP + 攻击者反击受伤（符合普通卡牌对打规则）
+        const dmg = atkCard.atk
+        setEnemyField(prev => {
+          const next = prev.map(c => c ? { ...c } : null)
+          if (next[pick.i]) next[pick.i].currentHp = Math.max(0, next[pick.i].currentHp - dmg)
+          return next
+        })
+        return { skipped: false, confusedHit: true }
+      }
     }
     // 召唤疲劳检查
     const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack')

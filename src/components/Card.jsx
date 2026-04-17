@@ -48,6 +48,7 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
   const statuses = card.statuses || []
   const isPoisoned = statuses.some(s => s.type === 'poison')
   const isSleeping = statuses.some(s => s.type === 'sleep')
+  const isConfused = statuses.some(s => s.type === 'confused')
   const hasShield = statuses.some(s => s.type === 'shield')
   const shieldAmount = statuses.filter(s => s.type === 'shield').reduce((sum, s) => sum + (s.amount || 0), 0)
 
@@ -111,6 +112,17 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
           transition={{ duration: 1.5, repeat: Infinity }}
         >
           💤
+        </motion.div>
+      )}
+
+      {/* Sprint 26: 混乱状态（弓形虫心智操控） */}
+      {isConfused && !isDead && (
+        <motion.div
+          className="absolute -top-1 -right-1 text-sm pointer-events-none z-10"
+          animate={{ rotate: [-10, 10, -10], opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 1, repeat: Infinity }}
+        >
+          🧠
         </motion.div>
       )}
 
