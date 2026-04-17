@@ -676,19 +676,221 @@ export const skillRegistry = {
   'Gene Rewrite':         { timing: 'onPlay',   execute: null /* 由下方 init 绑定到 Gene Edit */ },
 
   // ===========================================
-  // Sprint 24 Step 3 — 10 个新 handler（暂占位，本步之后填充）
+  // Sprint 24 Step 3 — 10 个新 handler
   // ===========================================
 
-  'Universal Revival':    { timing: 'onPlay',   execute: null },
-  'Precision Kill':       { timing: 'onPlay',   execute: null },
-  'Omniscient Eye':       { timing: 'onPlay',   execute: null },
-  'Cytokine Storm':       { timing: 'onPlay',   execute: null },
-  'Calcified Armor':      { timing: 'onHit',    execute: null },
-  'Infection Spread':     { timing: 'onPlay',   execute: null },
-  'Resistance Barrier':   { timing: 'onPlay',   execute: null },
-  'Quantum Repair':       { timing: 'onPlay',   execute: null },
-  'Herd Immunity':        { timing: 'onPlay',   execute: null },
-  'Full Repair':          { timing: 'onPlay',   execute: null },
+  // 1. Universal Revival (SP·世界树) — 全队 +3000 HP + 修复 Power Bank
+  'Universal Revival': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      for (const ally of allies) {
+        const heal = Math.min(3000, ally.maxHp - ally.currentHp)
+        if (heal > 0) {
+          events.push({
+            type: 'HEAL', targetUid: ally.uid, source: ctx.card.name, target: ally.name, amount: heal,
+            message: `🌳 ${ctx.card.name} 万物复苏！${ally.name} 回复 ${heal} HP`,
+          })
+        }
+      }
+      events.push({
+        type: 'REPAIR_POWER_BANK', source: ctx.card.name,
+        message: `🔋 ${ctx.card.name} 修复了 Power Bank！`,
+      })
+      return events
+    },
+  },
+
+  // 2. Precision Kill (SP·CAR-T) — 消灭对方一张病原系（无视 HP）
+  'Precision Kill': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const enemies = (ctx.enemyField || []).filter(c => c && c.currentHp > 0 && c.faction === 'pathogen')
+      if (enemies.length === 0) return null
+      const target = [...enemies].sort((a, b) => b.atk - a.atk)[0]
+      const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === target.uid)
+      return {
+        type: 'AOE_DAMAGE',
+        source: ctx.card.name,
+        targetSlot: slot,
+        targetName: target.name,
+        targetUid: target.uid,
+        damage: target.currentHp + 99999,  // 确保击杀
+        message: `🎯 ${ctx.card.name} 精准猎杀！${target.name} 被消灭！`,
+      }
+    },
+  },
+
+  // 3. Omniscient Eye (SP·大脑) — 揭示全部手牌 + 全队迅击 1 回合
+  'Omniscient Eye': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const enemyHand = ctx.enemyHand || []
+      events.push({
+        type: 'REVEAL_HAND', source: ctx.card.name,
+        cards: enemyHand.map(c => c.name || '???'),
+        message: `🧠 ${ctx.card.name} 全知之眼！看穿了对手所有手牌！`,
+      })
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      for (const ally of allies) {
+        events.push({
+          type: 'APPLY_STATUS', targetUid: ally.uid,
+          status: { type: 'swift_boost', turnsLeft: 1 },
+          message: `⚡ ${ally.name} 获得迅击效果！`,
+        })
+      }
+      return events
+    },
+  },
+
+  // 4. Cytokine Storm (SP·免疫风暴) — 全队 ATK +3000 + 2 回合免疫
+  'Cytokine Storm': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      for (const ally of allies) {
+        events.push({
+          type: 'BUFF', targetUid: ally.uid, stat: 'atk', amount: 3000, source: ctx.card.name,
+          message: `🔥 ${ally.name} ATK +3000！`,
+        })
+        events.push({
+          type: 'APPLY_STATUS', targetUid: ally.uid,
+          status: { type: 'immune', turnsLeft: 2 },
+          message: `🛡️ ${ally.name} 获得 2 回合免疫！`,
+        })
+      }
+      return events
+    },
+  },
+
+  // 5. Calcified Armor (SP·骨骼巨人) — 多 timing: onHit 减伤 30% + onDeath 主人 5000 盾
+  'Calcified Armor': {
+    timing: ['onHit', 'onDeath'],
+    execute: (ctx) => {
+      if (ctx._timing === 'onHit') {
+        // 减伤 30%（通过 ctx.damageReduction 传递给伤害计算）
+        if (ctx.attacker) {
+          const reduction = Math.floor((ctx.attacker.atk || 0) * 0.3)
+          ctx.damageReduction = (ctx.damageReduction || 0) + reduction
+          return {
+            type: 'RUSH_BOOST', source: ctx.card?.name,
+            message: `🦴 ${ctx.card?.name} 钙化铠甲减免 ${reduction} 伤害！`,
+          }
+        }
+        return null
+      }
+      if (ctx._timing === 'onDeath') {
+        // 给主人留 5000 盾 — 通过 APPLY_STATUS 给"主人"不可行，改为直接给主人回血（近似）
+        return {
+          type: 'HEAL_LEADER',
+          amount: 5000,
+          source: ctx.card?.name,
+          message: `🦴 ${ctx.card?.name} 倒下！为主人留下 5000 护盾（回血）！`,
+        }
+      }
+      return null
+    },
+  },
+
+  // 6. Infection Spread (SP·僵尸瘟疫) — 所有敌方百分比 DOT 3 回合
+  'Infection Spread': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const enemies = (ctx.enemyField || []).filter(c => c && c.currentHp > 0)
+      if (enemies.length === 0) return null
+      return enemies.map(enemy => ({
+        type: 'APPLY_POISON',
+        targetUid: enemy.uid,
+        damage: Math.max(500, Math.floor(enemy.currentHp * 0.15 / 500) * 500),
+        turnsLeft: 3,
+        source: ctx.card.name,
+        targetName: enemy.name,
+        message: `☠️ ${enemy.name} 被感染！每回合损失 15% HP！`,
+      }))
+    },
+  },
+
+  // 7. Resistance Barrier (SP·超级细菌) — 清除敌方护盾 + 科技系 ATK -50%
+  'Resistance Barrier': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const enemies = (ctx.enemyField || []).filter(c => c && c.currentHp > 0)
+      const events = []
+      for (const enemy of enemies) {
+        if (enemy.statuses?.some(s => s.type === 'shield')) {
+          events.push({
+            type: 'REMOVE_SHIELD', targetUid: enemy.uid, source: ctx.card.name,
+            message: `💥 ${enemy.name} 的护盾被耐药屏障摧毁！`,
+          })
+        }
+        if (enemy.faction === 'tech') {
+          const reduction = Math.floor(enemy.atk * 0.5 / 500) * 500
+          events.push({
+            type: 'BUFF', targetUid: enemy.uid, stat: 'atk', amount: -reduction,
+            source: ctx.card.name, _side: 'enemy',
+            message: `⚠️ ${enemy.name} ATK -${reduction}！科技系武器对超级细菌无效！`,
+          })
+        }
+      }
+      return events.length > 0 ? events : null
+    },
+  },
+
+  // 8. Quantum Repair (SP·量子医疗) — 主人满血 + 批量复活
+  'Quantum Repair': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      return [
+        {
+          type: 'HEAL_LEADER', amount: 30000, source: ctx.card.name,
+          message: `✨ ${ctx.card.name} 量子修复！主人 HP 完全恢复！`,
+        },
+        {
+          type: 'MASS_REVIVE', hp_percent: 0.5, source: ctx.card.name,
+          message: `✨ 所有倒下的战友重新站起来！`,
+        },
+      ]
+    },
+  },
+
+  // 9. Herd Immunity (SP·疫苗之盾) — 全队免死一次
+  'Herd Immunity': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      if (allies.length === 0) return null
+      return allies.map(ally => ({
+        type: 'APPLY_STATUS', targetUid: ally.uid,
+        status: { type: 'herd_immunity', uses: 1 },
+        source: ctx.card.name,
+        message: `🛡️ ${ally.name} 获得群体免疫护盾！可抵消一次致死伤害`,
+      }))
+    },
+  },
+
+  // 10. Full Repair (SP·纳米机器人) — 全队清负面 + 2000 盾
+  'Full Repair': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      const events = []
+      for (const ally of allies) {
+        events.push({
+          type: 'CLEANSE', targetUid: ally.uid, source: ctx.card.name,
+          message: `🔧 ${ally.name} 负面状态已清除！`,
+        })
+        events.push({
+          type: 'APPLY_SHIELD', targetUid: ally.uid, amount: 2000,
+          source: ctx.card.name, target: ally.name,
+          message: `🛡️ ${ally.name} 获得 2000 护盾`,
+        })
+      }
+      return events.length > 0 ? events : null
+    },
+  },
 
   // Remaining card skills not yet categorized
   'Synaptic Relay':       { timing: 'passive',  execute: null },  // 迅击变体
