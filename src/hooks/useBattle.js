@@ -227,8 +227,14 @@ export function useBattle() {
   //  统一技能事件执行器
   //  friendlySetter: 技能拥有者所在场的 setter
   //  enemySetter: 对面场的 setter
+  //  side: 'player' | 'enemy'（技能拥有者，用于 leader / powerBank 事件）
   // ----------------------------------------------------------------
-  function applySkillEvents(events, friendlySetter, enemySetter) {
+  function applySkillEvents(events, friendlySetter, enemySetter, side = 'player') {
+    // 技能拥有者视角的 leader / powerBank setter
+    const selfLeaderSetter = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
+    const enemyLeaderSetter = side === 'player' ? setEnemyLeaderHp : setPlayerLeaderHp
+    const selfPowerBankSetter = side === 'player' ? setPlayerPowerBank : setEnemyPowerBank
+    const selfDiscardRef = side === 'player' ? playerDiscardRef : enemyDiscardRef
     for (const evt of events) {
       switch (evt.type) {
         case 'HEAL': {
@@ -351,6 +357,93 @@ export function useBattle() {
           addLog(evt.message)
           break
         }
+        // === Sprint 24 新增 ===
+        case 'REPAIR_POWER_BANK': {
+          selfPowerBankSetter(pb => ({ ...pb, intact: true }))
+          if (evt.message) addLog(evt.message)
+          break
+        }
+        case 'APPLY_STATUS': {
+          // 通用添加状态（onFriendly/self，默认给友方）
+          const setter = evt._side === 'enemy' ? enemySetter : friendlySetter
+          setter(prev => {
+            const next = prev.map(c =>
+              c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null
+            )
+            const target = next.find(c => c && c.uid === evt.targetUid)
+            if (target && evt.status) {
+              target.statuses.push({ ...evt.status })
+            }
+            return next
+          })
+          if (evt.message) addLog(evt.message)
+          break
+        }
+        case 'REMOVE_SHIELD': {
+          enemySetter(prev => {
+            const next = prev.map(c =>
+              c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null
+            )
+            const target = next.find(c => c && c.uid === evt.targetUid)
+            if (target) {
+              target.statuses = target.statuses.filter(s => s.type !== 'shield')
+            }
+            return next
+          })
+          if (evt.message) addLog(evt.message)
+          break
+        }
+        case 'HEAL_LEADER': {
+          selfLeaderSetter(hp => Math.min(LEADER_HP, hp + (evt.amount || 0)))
+          if (evt.message) addLog(evt.message)
+          break
+        }
+        case 'MASS_REVIVE': {
+          // 从弃牌堆复活所有角色卡到空位（最多到 5 位）
+          const hpPercent = evt.hp_percent || 0.5
+          const discard = selfDiscardRef.current || []
+          const chars = discard.filter(c => c && (c.type === 'character' || !c.type))
+          if (chars.length === 0) { if (evt.message) addLog(evt.message); break }
+          friendlySetter(prev => {
+            const next = [...prev]
+            for (const killed of chars) {
+              // 找空位
+              const emptyIdx = next.findIndex(c => !c || c.currentHp <= 0)
+              if (emptyIdx < 0) break
+              const maxHp = killed.maxHp || killed.hp || 1000
+              const revived = {
+                ...killed,
+                uid: (killed.id || 'rev') + '_mass_revive_' + Date.now() + '_' + Math.random(),
+                currentHp: Math.floor(maxHp * hpPercent),
+                maxHp,
+                statuses: [],
+                summonSick: true,
+              }
+              next[emptyIdx] = revived
+              summonedThisTurn.current.add(revived.uid)
+            }
+            return next
+          })
+          if (evt.message) addLog(evt.message)
+          break
+        }
+        case 'CLEANSE': {
+          // 移除负面状态（poison/sleep/deep_pressure）
+          const setter = evt._side === 'enemy' ? enemySetter : friendlySetter
+          setter(prev => {
+            const next = prev.map(c =>
+              c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null
+            )
+            const target = next.find(c => c && c.uid === evt.targetUid)
+            if (target) {
+              const neg = ['poison', 'sleep', 'deep_pressure']
+              target.statuses = target.statuses.filter(s => !neg.includes(s.type))
+            }
+            return next
+          })
+          if (evt.message) addLog(evt.message)
+          break
+        }
         // OVERFLOW_DAMAGE / PIERCING_DAMAGE 由 handlePostAttackSkills 单独处理
       }
     }
@@ -416,7 +509,7 @@ export function useBattle() {
     // 执行 BUFF / HEAL 等事件（如吞噬攻击 ATK +500）
     const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
     const enemySetter = side === 'player' ? setEnemyField : setPlayerField
-    applySkillEvents(allEvents, friendlySetter, enemySetter)
+    applySkillEvents(allEvents, friendlySetter, enemySetter, side)
 
     // 记录技能事件
     for (const evt of allEvents) {
@@ -920,7 +1013,7 @@ export function useBattle() {
       friendlyField: friendlyFieldCards,
       enemyField: enemyFieldCards,
     })
-    applySkillEvents(playEvents, friendlySetter, enemySetter)
+    applySkillEvents(playEvents, friendlySetter, enemySetter, side)
     for (const evt of playEvents) {
       if (evt.message) addLog(`🌟 ${evt.message}`)
     }
@@ -1259,7 +1352,7 @@ export function useBattle() {
       friendlyField: playerFieldRef.current.filter(Boolean),
       enemyField: enemyFieldRef.current.filter(Boolean),
     })
-    applySkillEvents(playEvents, setPlayerField, setEnemyField)
+    applySkillEvents(playEvents, setPlayerField, setEnemyField, 'player')
     for (const evt of playEvents) {
       if (evt.message) addLog(evt.message)
     }
@@ -1371,7 +1464,7 @@ export function useBattle() {
     })
     const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard })
     const allPreEvents = [...preAtkEvents, ...preHitEvents]
-    applySkillEvents(allPreEvents, setPlayerField, setEnemyField)
+    applySkillEvents(allPreEvents, setPlayerField, setEnemyField, 'player')
     for (const evt of allPreEvents) {
       if (evt.message) addLog(evt.message)
     }
@@ -1518,7 +1611,7 @@ export function useBattle() {
       friendlyField: enemyFieldRef.current.filter(Boolean),
       enemyField: playerFieldRef.current.filter(Boolean),
     })
-    applySkillEvents(playEvents, setEnemyField, setPlayerField)
+    applySkillEvents(playEvents, setEnemyField, setPlayerField, 'enemy')
     for (const evt of playEvents) {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }
@@ -1598,7 +1691,7 @@ export function useBattle() {
     })
     const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard })
     const allPreEvents = [...preAtkEvents, ...preHitEvents]
-    applySkillEvents(allPreEvents, setEnemyField, setPlayerField)
+    applySkillEvents(allPreEvents, setEnemyField, setPlayerField, 'enemy')
     for (const evt of allPreEvents) {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }

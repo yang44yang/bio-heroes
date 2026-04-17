@@ -57,9 +57,12 @@ export function triggerSkills(timing, context) {
     if (!card || !card.skills) continue
     for (const skill of card.skills) {
       const handler = skillRegistry[skill.nameEn]
-      if (!handler || handler.timing !== timing || !handler.execute) continue
+      if (!handler || !handler.execute) continue
+      // 支持多 timing（Sprint 24）：handler.timing 可以是字符串或数组
+      const timings = Array.isArray(handler.timing) ? handler.timing : [handler.timing]
+      if (!timings.includes(timing)) continue
       try {
-        const result = handler.execute({ ...context, card })
+        const result = handler.execute({ ...context, card, _timing: timing })
         if (result) {
           const arr = Array.isArray(result) ? result : [result]
           events.push(...arr)

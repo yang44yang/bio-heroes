@@ -39,12 +39,27 @@ export function applyFactionAdvantage(attacker, defender, baseDmg) {
  * 检查卡牌是否免疫该次攻击
  * - immune: 完全免疫所有伤害
  * - immune_tech: 免疫科技系伤害
+ * - Drug Immunity 技能（Sprint 24 SP·超级细菌）: 免疫科技系
  */
 function isImmune(defender, attacker) {
   if (!defender.statuses) return false
   if (defender.statuses.some(s => s.type === 'immune')) return true
   if (defender.statuses.some(s => s.type === 'immune_tech') && attacker?.faction === 'tech') return true
+  // Drug Immunity 技能等同于免疫科技系
+  if (attacker?.faction === 'tech' && defender.skills?.some(s => s.nameEn === 'Drug Immunity')) return true
   return false
+}
+
+/**
+ * 检查卡牌是否有群体免疫（Herd Immunity）— 致死伤害保留 1 HP
+ * 调用方: useBattle 在扣血前检查
+ * @returns {boolean} true 如果应该消耗一次 herd_immunity
+ */
+export function checkHerdImmunity(card, incomingDamage) {
+  if (!card?.statuses) return false
+  const hi = card.statuses.find(s => s.type === 'herd_immunity' && s.uses > 0)
+  if (!hi) return false
+  return card.currentHp - incomingDamage <= 0
 }
 
 /**

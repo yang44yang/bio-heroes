@@ -103,6 +103,31 @@ export function processStatuses(card) {
         break
       }
 
+      case 'swift_boost': {
+        // 迅击临时加成（Sprint 24 Omniscient Eye）— 按回合递减
+        if (status.turnsLeft > 1) {
+          remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })
+        } else {
+          events.push({
+            type: 'SWIFT_CLEAR', target: card.name,
+            message: `⚡ ${card.name} 的迅击效果消失了`,
+          })
+        }
+        break
+      }
+
+      case 'herd_immunity': {
+        // 群体免疫（Sprint 24 Herd Immunity）— 不按回合递减，按使用次数
+        remaining.push(status)
+        break
+      }
+
+      case 'marked': {
+        // 标记状态（Sprint 23 Phase 2）— 不递减，持续到卡死亡
+        remaining.push(status)
+        break
+      }
+
       default:
         remaining.push(status) // 未知状态保留
     }
