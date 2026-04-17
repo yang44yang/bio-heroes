@@ -98,7 +98,7 @@ const environmentEvents = [
     name: "栖息地破坏",
     emoji: "🏭",
     description: "双方 HP 最高的卡 ATK -25%",
-    scienceNote: "人类活动导致的栖息地破坏是生物多样性丧失的最大原因。每年有数千种物种因为失去家园而走向灭绝。",
+    scienceNote: "人类活动导致的栖息地破坏是生物多样性丧失的最大原因。每年有数千种物种因为失去家园而走向灭绝。越是站在食物链顶端的动物，往往越容易受到栖息地破坏的影响——因为它们需要最大的活动范围。",
     duration: 0,
     apply(playerField, enemyField) {
       const affected = []
