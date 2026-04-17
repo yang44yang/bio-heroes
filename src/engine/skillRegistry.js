@@ -657,32 +657,47 @@ export const skillRegistry = {
     },
   },
 
-  // SP card skills (most are passive or special)
-  'Extinction Roar':      { timing: 'onPlay',   execute: null },
+  // ===========================================
+  // Sprint 24 — SP 卡技能（模板复用，11 条）
+  // ===========================================
+
+  'Extinction Roar':      { timing: 'onPlay',   execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 3000 }) },
+  'Frozen Release':       { timing: 'onPlay',   execute: (ctx) => T.onPlayDamage(ctx, { target: 'leader', amount: 5000 }) },
+  'Plague Spread':        { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'aoe_damage', scope: 'all_enemy', amount: 1000 }) },
+  'Continuous Maintenance': { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'heal', scope: 'one_lowest_hp', amount: 2000 }) },
+  'Super Computation':    { timing: 'onTurnStart', execute: (ctx) => T.passiveAura(ctx, { effect: 'draw', amount: 1 }) },
+  'Immune Bane':          { timing: 'onAttack', execute: (ctx) => T.conditionalAtk(ctx, { condition: 'vs_faction', faction_filter: 'pathogen', amount: 2, is_multiplier: true }) },
+  'Drug Immunity':        { timing: 'passive',  execute: null },  // 由 damage.js 检查（类似 Antibiotic Resistance）
+  'Ecosystem Shelter':    { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'heal', scope: 'all_friendly', amount: 2000 }) },
+  'Biofilm Shield':       { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'heal', scope: 'faction', faction_filter: 'pathogen', amount: 1500 }) },  // Guard/immune_tech 由 passive 处理
+  'Abyssal Tentacles':    { timing: 'onPlay',   execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 4000, bonus: { type: 'debuff_atk', amount: 2000, duration: 2, scope: 'all_enemy' } }) },
+
+  // Gene Rewrite 复用 Gene Edit（需在定义后引用，见下方延迟绑定）
+  'Gene Rewrite':         { timing: 'onPlay',   execute: null /* 由下方 init 绑定到 Gene Edit */ },
+
+  // ===========================================
+  // Sprint 24 Step 3 — 10 个新 handler（暂占位，本步之后填充）
+  // ===========================================
+
   'Universal Revival':    { timing: 'onPlay',   execute: null },
-  'Precision Kill':       { timing: 'onAttack', execute: null },
-  'Immune Bane':          { timing: 'passive',  execute: null },
+  'Precision Kill':       { timing: 'onPlay',   execute: null },
   'Omniscient Eye':       { timing: 'onPlay',   execute: null },
-  'Super Computation':    { timing: 'onPlay',   execute: null },
-  'Resistance Barrier':   { timing: 'passive',  execute: null },
-  'Drug Immunity':        { timing: 'passive',  execute: null },
-  'Frozen Release':       { timing: 'onPlay',   execute: null },
-  'Plague Spread':        { timing: 'onPlay',   execute: null },
-  'Full Repair':          { timing: 'onPlay',   execute: null },
-  'Continuous Maintenance': { timing: 'onTurnEnd', execute: null },
-  'Gene Rewrite':         { timing: 'onPlay',   execute: null },
-  'Ecosystem Shelter':    { timing: 'onPlay',   execute: null },
-  'Abyssal Tentacles':    { timing: 'onPlay',   execute: null },
   'Cytokine Storm':       { timing: 'onPlay',   execute: null },
-  'Calcified Armor':      { timing: 'passive',  execute: null },
-  'Infection Spread':     { timing: 'onKill',   execute: null },
-  'Biofilm Shield':       { timing: 'passive',  execute: null },
+  'Calcified Armor':      { timing: 'onHit',    execute: null },
+  'Infection Spread':     { timing: 'onPlay',   execute: null },
+  'Resistance Barrier':   { timing: 'onPlay',   execute: null },
   'Quantum Repair':       { timing: 'onPlay',   execute: null },
-  'Herd Immunity':        { timing: 'passive',  execute: null },
+  'Herd Immunity':        { timing: 'onPlay',   execute: null },
+  'Full Repair':          { timing: 'onPlay',   execute: null },
 
   // Remaining card skills not yet categorized
   'Synaptic Relay':       { timing: 'passive',  execute: null },  // 迅击变体
   'Immune Activation':    { timing: 'onPlay',   execute: null },
   'Behavior Override':    { timing: 'onAttack', execute: null },
   'Precision Pierce':     { timing: 'onAttack', execute: null },
+}
+
+// Sprint 24: Gene Rewrite 复用 Gene Edit（延迟绑定避免引用顺序问题）
+if (skillRegistry['Gene Edit']?.execute) {
+  skillRegistry['Gene Rewrite'].execute = skillRegistry['Gene Edit'].execute
 }

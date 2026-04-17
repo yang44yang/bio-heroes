@@ -919,6 +919,7 @@ export function onPlaySummon(ctx, params) {
 /**
  * passiveHeal — 每回合为友方卡/主人回血
  * timing: 'onTurnEnd'
+ * scope: leader | faction | self | one_lowest_hp | all_friendly（默认）
  */
 export function passiveHeal(ctx, params) {
   const card = ctx.card
@@ -944,7 +945,13 @@ export function passiveHeal(ctx, params) {
     )
   } else if (params.scope === 'self') {
     targets = [card]
+  } else if (params.scope === 'one_lowest_hp') {
+    const pool = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+    if (pool.length === 0) return null
+    const t = [...pool].sort((a, b) => (a.currentHp / a.maxHp) - (b.currentHp / b.maxHp))[0]
+    targets = [t]
   } else {
+    // all_friendly（默认）
     targets = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
   }
 
@@ -963,6 +970,45 @@ export function passiveHeal(ctx, params) {
     }
   }
   return events.length > 0 ? events : null
+}
+
+/**
+ * passiveAOEDamage — 每回合对全场敌方造成伤害
+ * timing: 'onTurnEnd'
+ */
+export function passiveAOEDamage(ctx, params) {
+  const card = ctx.card
+  if (!card || card.currentHp <= 0) return null
+  const enemies = aliveEnemies(ctx)
+  if (enemies.length === 0) return null
+
+  return enemies.map(e => {
+    const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === e.uid)
+    return {
+      type: 'AOE_DAMAGE',
+      source: card.name,
+      targetSlot: slot,
+      targetName: e.name,
+      targetUid: e.uid,
+      damage: params.amount || 1000,
+      message: `☣️ ${card.name} 瘟疫蔓延！${e.name} 损失 ${params.amount || 1000} HP`,
+    }
+  })
+}
+
+/**
+ * passiveAura — 通用 aura dispatcher（Sprint 24）
+ * 按 params.effect 分派到具体实现
+ */
+export function passiveAura(ctx, params) {
+  switch (params.effect) {
+    case 'heal':       return passiveHeal(ctx, params)
+    case 'aoe_damage': return passiveAOEDamage(ctx, params)
+    case 'draw':       return passiveDraw(ctx, params)
+    case 'energy':     return passiveEnergy(ctx, params)
+    case 'summon':     return passiveSummon(ctx, params)
+    default: return null
+  }
 }
 
 /**
