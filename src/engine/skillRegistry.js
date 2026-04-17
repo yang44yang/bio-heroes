@@ -784,7 +784,51 @@ export const skillRegistry = {
     },
   },
   'Biofilm Shield':       { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'heal', scope: 'faction', faction_filter: 'pathogen', amount: 1500 }) },  // Guard/immune_tech 由 passive 处理
-  'Abyssal Tentacles':    { timing: 'onPlay',   execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 4000, bonus: { type: 'debuff_atk', amount: 2000, duration: 2, scope: 'all_enemy' } }) },
+  // Sprint 26: Abyssal Tentacles 重做 — 选 ATK 最高 2 张各造成 5000，不足 2 张剩余打主人
+  'Abyssal Tentacles': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const enemies = (ctx.enemyField || [])
+        .filter(c => c && c.currentHp > 0)
+        .sort((a, b) => b.atk - a.atk)
+      const events = []
+      const targets = enemies.slice(0, 2)
+      for (const t of targets) {
+        const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === t.uid)
+        events.push({
+          type: 'AOE_DAMAGE',
+          source: ctx.card.name,
+          targetSlot: slot,
+          targetName: t.name,
+          targetUid: t.uid,
+          damage: 5000,
+          message: `🦑 ${ctx.card.name} 深渊触手缠绕 ${t.name}！造成 5000 伤害！`,
+        })
+      }
+      // 不足 2 个目标时，剩余的触手打主人
+      const remaining = 2 - targets.length
+      if (remaining > 0) {
+        events.push({
+          type: 'OVERFLOW_DAMAGE',
+          source: ctx.card.name,
+          target: 'enemyLeader',
+          damage: remaining * 5000,
+          message: `🦑 ${ctx.card.name} 触手席卷！对主人造成 ${remaining * 5000} 伤害！`,
+        })
+      }
+      return events.length > 0 ? events : null
+    },
+  },
+
+  // Sprint 26 新增：Abyssal Eye（大王乌贼第二技能）
+  'Abyssal Eye': {
+    timing: 'onAttack',
+    execute: (ctx) => T.conditionalAtk(ctx, {
+      condition: 'vs_highest_hp',
+      amount: 1.5,
+      is_multiplier: true,
+    }),
+  },
 
   // Gene Rewrite 复用 Gene Edit（需在定义后引用，见下方延迟绑定）
   'Gene Rewrite':         { timing: 'onPlay',   execute: null /* 由下方 init 绑定到 Gene Edit */ },

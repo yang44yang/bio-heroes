@@ -237,6 +237,23 @@ export function conditionalAtk(ctx, params) {
       }
       break
     }
+    case 'vs_highest_hp': {
+      // Sprint 26: 攻击 HP 最高的目标时加伤（大王乌贼 Abyssal Eye）
+      const enemies = (ctx.enemyField || []).filter(c => c && c.currentHp > 0)
+      if (enemies.length > 0 && defender) {
+        const highest = [...enemies].sort((a, b) => b.currentHp - a.currentHp)[0]
+        if (highest && defender.uid === highest.uid) {
+          triggered = true
+          if (params.is_multiplier) {
+            msg = `👁️ ${attacker.name} 深海巨眼锁定 ${defender.name}！伤害 ×${params.amount}！`
+          } else {
+            bonusDmg = params.amount
+            msg = `👁️ ${attacker.name} 锁定最大猎物！+${params.amount} 伤害！`
+          }
+        }
+      }
+      break
+    }
   }
 
   if (!triggered) return null

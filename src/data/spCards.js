@@ -378,16 +378,23 @@ const spCards = [
     hp: 12000,
     factionRequirement: null,
     skills: [
-          {
-                "name": "深渊触手",
-                "nameEn": "Abyssal Tentacles",
-                "type": "unique",
-                "timing": "onPlay",
-                "description": "出场时对所有敌方卡造成 4000 伤害，并使其 ATK -2000 持续 2 回合",
-                "scienceNote": "大王乌贼有10条触手，最长可达13米，能同时缠住多个猎物"
-          }
+      {
+        name: "深渊触手",
+        nameEn: "Abyssal Tentacles",
+        type: "unique",
+        timing: "onPlay",
+        description: "出场时选择对方 ATK 最高的 2 张卡，各造成 5000 伤害（对应大王乌贼的 2 条攻击触手）。若场上不足 2 张，剩余伤害打向主人",
+        scienceNote: "大王乌贼有 10 条触手，其中 2 条特别长的'攻击触手'用于捕猎"
+      },
+      {
+        name: "深海巨眼",
+        nameEn: "Abyssal Eye",
+        type: "unique",
+        description: "攻击 HP 最高的目标时，ATK ×1.5（深海中用巨眼锁定最大的猎物）",
+        scienceNote: "大王乌贼的眼睛直径达 27 厘米，是动物界最大的眼睛，能在深海黑暗中捕捉微弱光线"
+      }
     ],
-    scienceCard: "大王乌贼是地球上最大的无脊椎动物，眼睛直径达27厘米——比篮球还大！它们生活在深海1000米处，直到2004年才第���次被活体拍摄到。",
+    scienceCard: "大王乌贼是地球上最大的无脊椎动物，10 条触手中有 2 条特别长的'攻击触手'专门用来捕猎。它的眼睛直径达 27 厘米——比篮球还大——是深海黑暗中的超级探照灯！直到 2004 年，人类才第一次拍到活的大王乌贼。它们生活在 1000 米深的海底，跟抹香鲸是天敌。",
     evolutionFrom: null,
     evolutionTo: null,
     tags: ["cephalopod","deep_sea","marine"],
