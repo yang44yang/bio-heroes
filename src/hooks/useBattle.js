@@ -319,6 +319,38 @@ export function useBattle() {
           }
           break
         }
+        case 'REVEAL_HAND': {
+          // 揭示敌方手牌（视觉效果 + 日志，不修改状态）
+          // evt.cards: 被揭示的卡名列表
+          addLog(evt.message)
+          break
+        }
+        case 'APPLY_MARK': {
+          // 给敌方卡添加标记状态
+          enemySetter(prev => {
+            const next = prev.map(c =>
+              c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null
+            )
+            const target = next.find(c => c && c.uid === evt.targetUid)
+            if (target) {
+              target.statuses.push({
+                type: 'marked',
+                bonus_damage: evt.bonus_damage,
+                bonus_from: evt.bonus_from,
+                faction_filter: evt.faction_filter,
+                source: evt.source,
+              })
+            }
+            return next
+          })
+          break
+        }
+        case 'ENERGY_BOOST': {
+          // 能量增加（由 passiveEnergy 模板触发）
+          // 实际能量增加需要 setPlayerEnergy — 暂用日志
+          addLog(evt.message)
+          break
+        }
         // OVERFLOW_DAMAGE / PIERCING_DAMAGE 由 handlePostAttackSkills 单独处理
       }
     }

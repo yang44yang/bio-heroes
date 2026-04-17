@@ -113,6 +113,44 @@ export function processStatuses(card) {
 }
 
 /**
+ * 移除负面状态
+ * @param {Object} card - 场上卡牌
+ * @param {string} filter - 'poison' | 'all_negative' | 'one_random'
+ * @returns {Array} 被移除的状态名列表（供日志使用）
+ */
+export function removeNegativeStatuses(card, filter) {
+  if (!card || !card.statuses || card.statuses.length === 0) return []
+
+  const NEGATIVE_TYPES = ['poison', 'sleep', 'deep_pressure']
+  const removed = []
+
+  if (filter === 'poison') {
+    const before = card.statuses.length
+    card.statuses = card.statuses.filter(s => {
+      if (s.type === 'poison') { removed.push('poison'); return false }
+      return true
+    })
+  } else if (filter === 'all_negative') {
+    card.statuses = card.statuses.filter(s => {
+      if (NEGATIVE_TYPES.includes(s.type)) { removed.push(s.type); return false }
+      return true
+    })
+  } else if (filter === 'one_random') {
+    const negatives = card.statuses.filter(s => NEGATIVE_TYPES.includes(s.type))
+    if (negatives.length > 0) {
+      const pick = negatives[Math.floor(Math.random() * negatives.length)]
+      const idx = card.statuses.indexOf(pick)
+      if (idx >= 0) {
+        card.statuses.splice(idx, 1)
+        removed.push(pick.type)
+      }
+    }
+  }
+
+  return removed
+}
+
+/**
  * 护盾伤害吸收（在伤害计算后、扣 HP 前调用）
  * @param {Object} card - 受伤的卡牌
  * @param {number} incomingDamage - 原始伤害

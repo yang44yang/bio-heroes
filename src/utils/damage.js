@@ -73,12 +73,27 @@ export function calcCardBattle(attacker, defender, opts = {}) {
   const atkResult = applyFactionAdvantage(attacker, defender, rawAtkDmg)
   const defResult = applyFactionAdvantage(defender, attacker, rawDefDmg)
 
+  // 标记加伤检查（Sprint 23 Phase 2）
+  let markBonus = 0
+  const markStatus = defender.statuses?.find(s => s.type === 'marked')
+  if (markStatus) {
+    if (markStatus.bonus_from === 'all') {
+      // 所有友方攻击加伤（乘法）
+      markBonus = Math.floor(atkResult.dmg * (markStatus.bonus_damage || 0))
+    } else if (markStatus.bonus_from === 'faction') {
+      if (attacker.faction === markStatus.faction_filter) {
+        markBonus = markStatus.bonus_damage || 0
+      }
+    }
+  }
+
   return {
-    atkDmg: atkResult.dmg,
+    atkDmg: atkResult.dmg + markBonus,
     defDmg: defResult.dmg,
     atkFactionBonus: atkResult.factionBonus,
     defFactionBonus: defResult.factionBonus,
     defImmune: false,
+    markBonus: markBonus > 0,
   }
 }
 
