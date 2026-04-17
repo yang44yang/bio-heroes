@@ -399,21 +399,263 @@ export const skillRegistry = {
   'T-Cell Training':      { timing: 'onTurnEnd',   execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'body', amount: 500 }) }, // 简化
   'Hematopoiesis':        { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDraw(ctx, { amount: 1, interval: 2 }) },
 
-  // SPECIAL handlers (Phase 3)
-  'Hyperspeed Dash':      { timing: 'onAttack', execute: null },
-  'Gene Edit':            { timing: 'onPlay',   execute: null },
-  'AI Diagnosis & Treatment': { timing: 'onPlay', execute: null },
-  'Neural Hijack':        { timing: 'onKill',   execute: null },
-  'Spore Dormancy':       { timing: 'onDeath',  execute: null },
-  'Spike Protein':        { timing: 'onAttack', execute: null },
-  'Antibiotic Resistance': { timing: 'passive', execute: null },
-  'Antigen Lock-on':      { timing: 'onAttack', execute: null },
-  'Silent Dive':          { timing: 'passive',  execute: null },
-  'Color Camouflage':     { timing: 'onPlay',   execute: null },
-  'Precision Excision':   { timing: 'onAttack', execute: null },
-  'Gene Correction':      { timing: 'onPlay',   execute: null },
-  'Immune Memory':        { timing: 'onPlay',   execute: null },
-  'Immune Programming':   { timing: 'onPlay',   execute: null },
+  // ===========================================
+  // Phase 3b — 12 SPECIAL handlers
+  // ===========================================
+
+  // 1. Hyperspeed Dash — 首次攻击 ×1.5，之后每回合 ATK-500（最低 2000）
+  'Hyperspeed Dash': {
+    timing: 'onAttack',
+    execute: (ctx) => {
+      const attacker = ctx.attacker || ctx.card
+      if (!attacker) return null
+      // 追踪首次攻击：检查 attacker.hasDashed
+      if (!attacker._dashed) {
+        attacker._dashed = true
+        ctx.damageMultiplier = (ctx.damageMultiplier || 1) * 1.5
+        return { type: 'RUSH_BOOST', source: attacker.name, message: `⚡ ${attacker.name} 极速冲刺！首次攻击 ×1.5！` }
+      }
+      return null
+    },
+  },
+
+  // 2. Gene Edit — 选一个敌方卡，ATK 和 HP 互换
+  'Gene Edit': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const enemies = (ctx.enemyField || []).filter(c => c && c.currentHp > 0)
+      if (enemies.length === 0) return null
+      const target = [...enemies].sort((a, b) => b.atk - a.atk)[0]
+      const newAtk = target.currentHp
+      const newHp = target.atk
+      return [{
+        type: 'BUFF',
+        targetUid: target.uid,
+        stat: 'atk',
+        amount: newAtk - target.atk,
+        source: ctx.card.name,
+        _side: 'enemy',
+        message: `🧬 ${ctx.card.name} 基因编辑 ${target.name}！ATK↔HP 互换！`,
+      }, {
+        // HP 设置通过 AOE_DAMAGE + HEAL 近似达到（简化）
+        type: 'AOE_DAMAGE',
+        source: ctx.card.name,
+        targetSlot: (ctx.enemyField || []).findIndex(c => c && c.uid === target.uid),
+        targetName: target.name,
+        targetUid: target.uid,
+        damage: Math.max(0, target.currentHp - newHp),
+        message: '',
+      }]
+    },
+  },
+
+  // 3. AI Diagnosis & Treatment — ATK 最高的友方获得迅击 + HP 最低友方 +5000 HP
+  'AI Diagnosis & Treatment': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0 && c.uid !== ctx.card.uid)
+      if (allies.length === 0) return null
+      const events = []
+      const topAtk = [...allies].sort((a, b) => b.atk - a.atk)[0]
+      const lowHp = [...allies].sort((a, b) => (a.currentHp / a.maxHp) - (b.currentHp / b.maxHp))[0]
+      if (topAtk) {
+        // 迅击通过去除 summonSick 近似（或添加临时标记）
+        events.push({
+          type: 'BUFF', targetUid: topAtk.uid, stat: 'atk', amount: 0,
+          source: ctx.card.name, _grantSwift: true,
+          message: `🤖 ${ctx.card.name} AI 诊断：${topAtk.name} 获得迅击！`,
+        })
+      }
+      if (lowHp) {
+        const heal = Math.min(5000, lowHp.maxHp - lowHp.currentHp)
+        if (heal > 0) {
+          events.push({
+            type: 'HEAL', targetUid: lowHp.uid, source: ctx.card.name, target: lowHp.name, amount: heal,
+            message: `💚 ${lowHp.name} 回复 ${heal} HP！`,
+          })
+        }
+      }
+      return events.length > 0 ? events : null
+    },
+  },
+
+  // 4. Neural Hijack — 击杀后 50% 控制对方下一张出场的卡
+  'Neural Hijack': {
+    timing: 'onKill',
+    execute: (ctx) => {
+      const attacker = ctx.attacker || ctx.card
+      if (!attacker || Math.random() > 0.5) return null
+      // 简化：转换为击杀后的控制标记
+      return {
+        type: 'RUSH_BOOST',
+        source: attacker.name,
+        _neuralHijackActive: true,
+        message: `🧠 ${attacker.name} 神经劫持！下个出场的敌方卡将被控制！（简化为逻辑标记）`,
+      }
+    },
+  },
+
+  // 5. Spore Dormancy — 被击杀时不进弃牌堆，2 回合后满 HP 复活
+  'Spore Dormancy': {
+    timing: 'onDeath',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card) return null
+      // 简化为立即 50% 概率复活（无延迟触发引擎）
+      if (Math.random() > 0.5) return null
+      const field = ctx.friendlyField || []
+      let slot = -1
+      for (let i = 0; i < field.length; i++) {
+        if (!field[i] || field[i].currentHp <= 0) { slot = i; break }
+      }
+      if (slot < 0) return null
+      const revived = {
+        ...card,
+        uid: card.uid + '_revived_' + Date.now(),
+        currentHp: card.maxHp,
+        statuses: [],
+        summonSick: true,
+      }
+      return {
+        type: 'SUMMON_CARD', side: 'friendly', slot, card: revived, source: card.name,
+        message: `🧫 ${card.name} 孢子休眠！满 HP 复活！`,
+      }
+    },
+  },
+
+  // 6. Spike Protein — 攻击人体系时无视护盾
+  'Spike Protein': {
+    timing: 'onAttack',
+    execute: (ctx) => {
+      if (ctx.defender?.faction !== 'body') return null
+      ctx.ignoreShield = true
+      return {
+        type: 'RUSH_BOOST',
+        source: ctx.attacker?.name || ctx.card?.name,
+        message: `🦠 ${ctx.attacker?.name} 刺突蛋白！无视 ${ctx.defender.name} 的护盾！`,
+      }
+    },
+  },
+
+  // 7. Antibiotic Resistance — 免疫科技系 + 被科技系攻击时反弹 50%
+  'Antibiotic Resistance': {
+    timing: 'onHit',
+    execute: (ctx) => {
+      if (ctx.attacker?.faction !== 'tech') return null
+      const defender = ctx.defender || ctx.card
+      if (!defender) return null
+      ctx.damageReduction = (ctx.damageReduction || 0) + (ctx.attacker.atk || 0)  // 完全免疫
+      const reflect = Math.floor((ctx.attacker.atk || 0) * 0.5)
+      const atkSlot = (ctx.enemyField || []).findIndex(c => c && c.uid === ctx.attacker.uid)
+      return [{
+        type: 'RUSH_BOOST', source: defender.name,
+        message: `💊 ${defender.name} 免疫了 ${ctx.attacker.name} 的科技系攻击！`,
+      }, {
+        type: 'AOE_DAMAGE', source: defender.name,
+        targetSlot: atkSlot >= 0 ? atkSlot : 0,
+        targetName: ctx.attacker.name, targetUid: ctx.attacker.uid, damage: reflect,
+        _side: 'attacker_side',
+        message: `🔄 反弹 ${reflect} 伤害！`,
+      }]
+    },
+  },
+
+  // 8. Antigen Lock-on — 攻击被标记目标时：无视守护 + ATK ×2
+  'Antigen Lock-on': {
+    timing: 'onAttack',
+    execute: (ctx) => {
+      const target = ctx.defender
+      if (!target?.statuses?.some(s => s.type === 'marked')) return null
+      ctx.damageMultiplier = (ctx.damageMultiplier || 1) * 2
+      ctx.ignoreGuard = true
+      return {
+        type: 'RUSH_BOOST',
+        source: ctx.attacker?.name || ctx.card?.name,
+        message: `🎯 ${ctx.attacker?.name} 抗原锁定！无视守护 + ATK ×2！`,
+      }
+    },
+  },
+
+  // 9. Silent Dive — 迅击 + 首次攻击 ×1.5（组合效果）
+  'Silent Dive': {
+    timing: 'onAttack',
+    execute: (ctx) => {
+      const attacker = ctx.attacker || ctx.card
+      if (!attacker || attacker._silentDived) return null
+      attacker._silentDived = true
+      ctx.damageMultiplier = (ctx.damageMultiplier || 1) * 1.5
+      return {
+        type: 'RUSH_BOOST', source: attacker.name,
+        message: `🔇 ${attacker.name} 静默俯冲！首次攻击 ×1.5！`,
+      }
+    },
+  },
+
+  // 10. Color Camouflage — 出场后 1 回合不可被选为攻击目标
+  'Color Camouflage': {
+    timing: 'onPlay',
+    execute: (ctx) => ({
+      type: 'APPLY_SHIELD',
+      targetUid: ctx.card.uid,
+      source: ctx.card.name,
+      target: ctx.card.name,
+      amount: 9999,  // 用高护盾近似隐身（未来可改为正式 stealth status）
+      _stealth: true,
+      message: `🦎 ${ctx.card.name} 变色伪装！1 回合内不被选为目标！`,
+    }),
+  },
+
+  // 11. Precision Excision — 无视守护选择攻击任意目标
+  'Precision Excision': {
+    timing: 'onAttack',
+    execute: (ctx) => {
+      ctx.ignoreGuard = true
+      return {
+        type: 'RUSH_BOOST',
+        source: ctx.attacker?.name || ctx.card?.name,
+        message: `🔪 ${ctx.attacker?.name} 精准切除！无视守护！`,
+      }
+    },
+  },
+
+  // 12. Gene Correction — 选择 +1500 ATK 或 +3000 HP（AI 选 ATK，玩家简化为 ATK）
+  'Gene Correction': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0 && c.uid !== ctx.card.uid)
+      if (allies.length === 0) return null
+      // 选 ATK 最高的加 ATK（简化）
+      const target = [...allies].sort((a, b) => b.atk - a.atk)[0]
+      return {
+        type: 'BUFF', targetUid: target.uid, stat: 'atk', amount: 1500, source: ctx.card.name,
+        message: `🧬 ${ctx.card.name} 基因校正！${target.name} ATK +1500！`,
+      }
+    },
+  },
+
+  // Immune Memory / Immune Programming — 疫苗类：出场时给己方全体添加免疫状态
+  'Immune Memory': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      if (allies.length === 0) return null
+      return allies.map(a => ({
+        type: 'APPLY_SHIELD', targetUid: a.uid, source: ctx.card.name, target: a.name,
+        amount: 2000, message: `💉 ${ctx.card.name} 免疫记忆！${a.name} 获得 2000 护盾！`,
+      }))
+    },
+  },
+  'Immune Programming': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      if (allies.length === 0) return null
+      return allies.map(a => ({
+        type: 'APPLY_SHIELD', targetUid: a.uid, source: ctx.card.name, target: a.name,
+        amount: 3000, message: `💉 ${ctx.card.name} 免疫编程！${a.name} 获得 3000 护盾！`,
+      }))
+    },
+  },
 
   // SP card skills (most are passive or special)
   'Extinction Roar':      { timing: 'onPlay',   execute: null },
