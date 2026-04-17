@@ -379,6 +379,22 @@ export function useBattle() {
           if (evt.message) addLog(evt.message)
           break
         }
+        case 'REMOVE_STATUS': {
+          // Sprint 26: 移除指定类型的 status（通用版，REMOVE_SHIELD 的泛化）
+          const setter = evt._side === 'enemy' ? enemySetter : friendlySetter
+          setter(prev => {
+            const next = prev.map(c =>
+              c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null
+            )
+            const target = next.find(c => c && c.uid === evt.targetUid)
+            if (target && evt.statusType) {
+              target.statuses = target.statuses.filter(s => s.type !== evt.statusType)
+            }
+            return next
+          })
+          if (evt.message) addLog(evt.message)
+          break
+        }
         case 'REMOVE_SHIELD': {
           enemySetter(prev => {
             const next = prev.map(c =>

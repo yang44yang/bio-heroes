@@ -257,7 +257,47 @@ export const skillRegistry = {
 
   'Emergency Bandage':  { timing: 'onPlay', execute: (ctx) => T.onPlayHeal(ctx, { effect: 'heal', target: 'one_lowest_hp', amount: 1500, bonus: { type: 'guard', duration: 1 } }) },
   'Hemostasis Wrap':    { timing: 'onPlay', execute: (ctx) => T.onPlayHeal(ctx, { effect: 'heal', target: 'one_lowest_hp', amount: 1500 }) },
-  'Diagnostic Analysis': { timing: 'onPlay', execute: (ctx) => T.onPlayHeal(ctx, { effect: 'heal', target: 'one_faction', faction_filter: 'body', amount: 1000 }) },
+  // Sprint 26: Diagnostic Analysis 差异化 — 增强循环/呼吸系统卡
+  'Diagnostic Analysis': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const targets = (ctx.friendlyField || []).filter(c =>
+        c && c.currentHp > 0 && c.uid !== ctx.card.uid
+        && (c.subType === 'circulatory' || c.subType === 'respiratory')
+      )
+      if (targets.length > 0) {
+        for (const t of targets) {
+          const heal = Math.min(1000, t.maxHp - t.currentHp)
+          if (heal > 0) {
+            events.push({
+              type: 'HEAL', targetUid: t.uid, source: ctx.card.name, target: t.name,
+              amount: heal,
+              message: `🩺 ${ctx.card.name} 听诊分析！${t.name} HP +${heal}`,
+            })
+          }
+          events.push({
+            type: 'BUFF', targetUid: t.uid, stat: 'atk', amount: 500, source: ctx.card.name,
+            message: `🩺 ${t.name} 功能增强！ATK +500`,
+          })
+        }
+      } else {
+        // 无循环/呼吸卡时回退：任意 HP 最低友方 +1000 HP
+        const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0 && c.uid !== ctx.card.uid)
+        if (allies.length > 0) {
+          const lowest = [...allies].sort((a, b) => a.currentHp - b.currentHp)[0]
+          const heal = Math.min(1000, lowest.maxHp - lowest.currentHp)
+          if (heal > 0) {
+            events.push({
+              type: 'HEAL', targetUid: lowest.uid, source: ctx.card.name, target: lowest.name,
+              amount: heal, message: `🩺 ${ctx.card.name} 基础检查！${lowest.name} HP +${heal}`,
+            })
+          }
+        }
+      }
+      return events.length > 0 ? events : null
+    },
+  },
 
   // ===========================================
   // Phase 1 — 模板 6: conditionalAtk（9 技能）
@@ -383,7 +423,45 @@ export const skillRegistry = {
   // Phase 2 — 模板 3: onPlayReveal（6 技能）
   // ===========================================
 
-  'Temperature Monitor':  { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 1, filter: 'highest_cost' }) },
+  // Sprint 26: Temperature Monitor 差异化 — 揭示 1 张 + 清除敌方 1 个 buff
+  'Temperature Monitor': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const enemyHand = ctx.enemyHand || []
+      // 揭示 1 张最高费用
+      if (enemyHand.length > 0) {
+        const top = [...enemyHand].sort((a, b) => (b.cost || 0) - (a.cost || 0))[0]
+        events.push({
+          type: 'REVEAL_HAND', source: ctx.card.name, cards: [top.name || '???'],
+          message: `🌡️ ${ctx.card.name} 体温检测！发现对手一张手牌：${top.name}`,
+        })
+      }
+      // 检测敌方 buff 并清除一个
+      const enemies = (ctx.enemyField || []).filter(c => c && c.currentHp > 0)
+      for (const enemy of enemies) {
+        const buff = enemy.statuses?.find(s =>
+          s.type === 'immune' || s.type === 'immune_tech' || s.type === 'swift_boost' || s.type === 'shield'
+        )
+        if (buff) {
+          if (buff.type === 'shield') {
+            events.push({
+              type: 'REMOVE_SHIELD', targetUid: enemy.uid, source: ctx.card.name,
+              message: `🌡️ ${ctx.card.name} 检测到异常！清除了 ${enemy.name} 的护盾！`,
+            })
+          } else {
+            events.push({
+              type: 'REMOVE_STATUS', targetUid: enemy.uid, _side: 'enemy',
+              statusType: buff.type, source: ctx.card.name,
+              message: `🌡️ ${ctx.card.name} 检测到异常！清除了 ${enemy.name} 的 ${buff.type} 状态！`,
+            })
+          }
+          break
+        }
+      }
+      return events.length > 0 ? events : null
+    },
+  },
   'Bioluminescence':      { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 1, filter: 'random' }) },
   'Penetrating Scan': {
     // Sprint 25: 改为揭示 2 张 + 对守护卡 -2000 HP
@@ -422,8 +500,63 @@ export const skillRegistry = {
       return events.length > 0 ? events : null
     },
   },
-  'Micro Insight':        { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all' }) },
-  'Rapid Test':           { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all' }) },
+  // Sprint 26: Micro Insight 差异化 — 揭示全部 + 对微生物/病原卡造成 1500 伤害
+  'Micro Insight': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const enemyHand = ctx.enemyHand || []
+      if (enemyHand.length > 0) {
+        events.push({
+          type: 'REVEAL_HAND', source: ctx.card.name,
+          cards: enemyHand.map(c => c.name || '???'),
+          message: `🔬 ${ctx.card.name} 微观洞察！看穿了对手全部手牌！`,
+        })
+      }
+      const microTargets = (ctx.enemyField || []).filter(c =>
+        c && c.currentHp > 0
+        && (c.subType === 'virus' || c.subType === 'bacteria' || c.subType === 'fungus' || c.subType === 'microbe')
+      )
+      for (const target of microTargets) {
+        const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === target.uid)
+        events.push({
+          type: 'AOE_DAMAGE', source: ctx.card.name,
+          targetSlot: slot, targetName: target.name, targetUid: target.uid,
+          damage: 1500,
+          message: `🔬 ${ctx.card.name} 发现微生物！${target.name} 暴露了！-1500 HP`,
+        })
+      }
+      return events.length > 0 ? events : null
+    },
+  },
+  // Sprint 26: Rapid Test 差异化 — 揭示 + 标记病原 ATK 最高（+1000 攻击该目标）
+  'Rapid Test': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const events = []
+      const enemyHand = ctx.enemyHand || []
+      if (enemyHand.length > 0) {
+        events.push({
+          type: 'REVEAL_HAND', source: ctx.card.name,
+          cards: enemyHand.map(c => c.name || '???'),
+          message: `🔬 ${ctx.card.name} 快速检测！看穿了对手全部手牌！`,
+        })
+      }
+      const pathogens = (ctx.enemyField || []).filter(c =>
+        c && c.currentHp > 0 && c.faction === 'pathogen'
+      )
+      if (pathogens.length > 0) {
+        const target = [...pathogens].sort((a, b) => b.atk - a.atk)[0]
+        events.push({
+          type: 'APPLY_MARK', targetUid: target.uid, source: ctx.card.name,
+          targetName: target.name,
+          bonus_damage: 1000, bonus_from: 'all',
+          message: `🩸 ${ctx.card.name} 检测到 ${target.name}！所有攻击该目标 +1000 伤害！`,
+        })
+      }
+      return events.length > 0 ? events : null
+    },
+  },
   '3D Scan':              { timing: 'onPlay', execute: (ctx) => T.onPlayReveal(ctx, { count: 'all', deck_top: 3 }) },
 
   // ===========================================
