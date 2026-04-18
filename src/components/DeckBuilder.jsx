@@ -8,7 +8,7 @@ import { FACTIONS, SUBTYPES, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP
 import { useLanguage } from '../i18n/LanguageContext'
 
 const STORAGE_KEY = 'bio-heroes-decks'
-const MAX_SLOTS = 3
+const MAX_SLOTS = 10
 
 // allMainCards 包含所有卡（用于 resolveCard / costCurve 等需要查找已入组卡牌的场景）
 const allMainCards = [...cards, ...eventCards]
@@ -20,9 +20,14 @@ const allSpCards = spCards
 function loadDecks() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const padded = [...parsed]
+      while (padded.length < MAX_SLOTS) padded.push(null)
+      return padded.slice(0, MAX_SLOTS)
+    }
   } catch (e) { /* ignore */ }
-  return [null, null, null]
+  return Array(MAX_SLOTS).fill(null)
 }
 
 function saveDecks(decks) {
@@ -229,6 +234,8 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   const [activeSlot, setActiveSlot] = useState(0)
   const [editing, setEditing] = useState(false)
   const [detailCard, setDetailCard] = useState(null) // 卡牌详情弹窗
+  const [editingNameIdx, setEditingNameIdx] = useState(null)
+  const [nameDraft, setNameDraft] = useState('')
 
   // Current deck being edited
   const [mainDeck, setMainDeck] = useState([]) // array of card ids
@@ -260,11 +267,21 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   const saveToSlot = useCallback(() => {
     if (mainDeck.length !== DECK_SIZE) return
     const newSlots = [...deckSlots]
-    newSlots[activeSlot] = { main: mainDeck, sp: spDeck, savedAt: Date.now() }
+    const existing = deckSlots[activeSlot]
+    newSlots[activeSlot] = { main: mainDeck, sp: spDeck, name: existing?.name, savedAt: Date.now() }
     setDeckSlots(newSlots)
     saveDecks(newSlots)
     setEditing(false)
   }, [mainDeck, spDeck, activeSlot, deckSlots])
+
+  const renameSlot = useCallback((i, newName) => {
+    const trimmed = (newName || '').trim()
+    if (!deckSlots[i]) return
+    const newSlots = [...deckSlots]
+    newSlots[i] = { ...newSlots[i], name: trimmed || undefined }
+    setDeckSlots(newSlots)
+    saveDecks(newSlots)
+  }, [deckSlots])
 
   // Add card to deck
   const addCard = useCallback((cardId) => {
@@ -389,7 +406,32 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-lg font-bold text-white">{t('deck.slot', { n: i + 1 })}</span>
+                  {slot ? (
+                    editingNameIdx === i ? (
+                      <input
+                        autoFocus
+                        value={nameDraft}
+                        onChange={e => setNameDraft(e.target.value)}
+                        onBlur={() => { renameSlot(i, nameDraft); setEditingNameIdx(null) }}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { renameSlot(i, nameDraft); setEditingNameIdx(null) }
+                          if (e.key === 'Escape') setEditingNameIdx(null)
+                        }}
+                        maxLength={20}
+                        className="text-lg font-bold text-white bg-gray-700 px-2 py-0.5 rounded outline-none border border-cyan-400"
+                      />
+                    ) : (
+                      <button
+                        className="text-lg font-bold text-white hover:text-cyan-300 cursor-text text-left"
+                        onClick={() => { setNameDraft(slot.name || ''); setEditingNameIdx(i) }}
+                        title="点击重命名"
+                      >
+                        {slot.name || t('deck.slot', { n: i + 1 })}
+                      </button>
+                    )
+                  ) : (
+                    <span className="text-lg font-bold text-white">{t('deck.slot', { n: i + 1 })}</span>
+                  )}
                   {slot ? (
                     <span className="text-xs text-gray-400 ml-3">
                       {t('deck.mainCount', { n: slot.main.length, total: DECK_SIZE })} | {t('deck.spCount', { n: slot.sp.length })}
