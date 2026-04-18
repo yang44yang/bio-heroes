@@ -46,6 +46,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   }, [playerHand.hand, enemyHand.hand, playerHand.draw, enemyHand.draw, battle.setHandRefs])
 
   // Sprint 27: 监听 skillEvents，遇到 REVEAL_HAND 时显示浮窗
+  // Sprint 28 bugfix: 玩家触发的浮窗不自动消失（等用户点确认）；AI 触发的 3 秒自动消失
   const lastRevealRef = useRef(0)
   useEffect(() => {
     const events = battle.skillEvents || []
@@ -53,8 +54,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       const evt = events[i]
       if (evt.type === 'REVEAL_HAND' && evt.cards && evt.cards.length > 0) {
         const normalized = evt.cards.map(c => typeof c === 'string' ? { name: c } : c)
-        setRevealedCards({ cards: normalized, source: evt.source })
-        setTimeout(() => setRevealedCards(null), 4000)
+        const initiator = evt._initiatorSide || 'player'
+        setRevealedCards({ cards: normalized, source: evt.source, initiator })
+        if (initiator === 'enemy') {
+          // 敌方触发：玩家已知自己手牌，3 秒自动消失
+          setTimeout(() => setRevealedCards(null), 3000)
+        }
+        // 玩家触发：等用户点击"我看好了 ✓"按钮
       }
     }
     lastRevealRef.current = events.length
@@ -892,20 +898,24 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       {/* 即时提示 (Sprint 21) */}
       <BattleHintOverlay hint={activeHint} onDismiss={dismissHint} />
 
-      {/* Sprint 27: 揭示手牌浮窗 */}
+      {/* Sprint 27 / 28: 揭示手牌浮窗 — 玩家触发需点击确认，AI 触发 3 秒自动消失 */}
       <AnimatePresence>
         {revealedCards && (
           <motion.div
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-[85] max-w-md w-[90%] pointer-events-none"
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-[85] max-w-md w-[90%]"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
             <div className="bg-gray-900/95 border border-cyan-500/60 rounded-xl px-4 py-3 shadow-lg shadow-cyan-900/40">
               <div className="text-xs text-cyan-300 mb-2 text-center">
-                🔍 {revealedCards.source} {lang === 'en' ? 'revealed enemy hand' : '揭示了对方手牌'}！
+                🔍 {revealedCards.source} {
+                  revealedCards.initiator === 'enemy'
+                    ? (lang === 'en' ? 'revealed YOUR hand' : '揭示了你的手牌')
+                    : (lang === 'en' ? 'revealed enemy hand' : '揭示了对方手牌')
+                }！
               </div>
-              <div className="flex gap-2 flex-wrap justify-center">
+              <div className="flex gap-2 flex-wrap justify-center mb-3">
                 {revealedCards.cards.map((card, i) => (
                   <div key={i} className="bg-gray-800 rounded-lg px-2.5 py-1.5 border border-gray-600 text-center min-w-[72px]">
                     <div className="text-lg">{FACTIONS[card.faction]?.icon || '❓'}</div>
@@ -918,6 +928,17 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   </div>
                 ))}
               </div>
+              {/* 玩家触发时显示确认按钮 — Sprint 28 */}
+              {revealedCards.initiator !== 'enemy' && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => setRevealedCards(null)}
+                    className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold transition shadow-md"
+                  >
+                    {lang === 'en' ? 'Got it ✓' : '我看好了 ✓'}
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

@@ -334,6 +334,8 @@ export function useBattle() {
         }
         case 'REVEAL_HAND': {
           // Sprint 27: 揭示敌方手牌 — 不仅打日志，还推送 skillEvents 供 BattleScreen 显示浮窗
+          // Sprint 28: 标注 initiator side 以便 UI 判断是玩家还是 AI 触发
+          evt._initiatorSide = side
           addLog(evt.message)
           break
         }
