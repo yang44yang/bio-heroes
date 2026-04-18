@@ -33,7 +33,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   // Sprint 27: 揭示手牌浮窗状态
   const [revealedCards, setRevealedCards] = useState(null)
 
-  // Sprint 27: 把手牌引用注入 useBattle（让 onPlay 技能能读到对方手牌 + 支持技能抽牌）
+  // Sprint 27: 把手牌引用注入 useBattle
   useEffect(() => {
     if (battle.setHandRefs) {
       battle.setHandRefs({
@@ -52,7 +52,6 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
     for (let i = lastRevealRef.current; i < events.length; i++) {
       const evt = events[i]
       if (evt.type === 'REVEAL_HAND' && evt.cards && evt.cards.length > 0) {
-        // evt.cards 可能是字符串数组（旧） or 对象数组 — 统一转对象
         const normalized = evt.cards.map(c => typeof c === 'string' ? { name: c } : c)
         setRevealedCards({ cards: normalized, source: evt.source })
         setTimeout(() => setRevealedCards(null), 4000)
