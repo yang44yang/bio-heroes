@@ -358,6 +358,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
       // AI 强度参数（0.0-1.0，越高越聪明）
       const aiStr = campaignConfig?.aiStrength ?? 0.5
+      // Sprint 28: AI 行为倾向（aggressive/balanced/defensive）
+      // 教学关（无 campaignConfig）默认 defensive，避免冲脸打扰教学
+      const aiPersonality = campaignConfig?.aiPersonality || (campaignConfig ? 'balanced' : 'defensive')
 
       // --- 3. AI 出牌阶段 ---
       const MAX_CARDS_PER_TURN = 2
@@ -509,22 +512,47 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           // T1: 必须打守护
           defSlot = guardCards[0].slot
         } else if (pAlive.length === 0) {
-          // T3: 直攻主人
+          // T2: 场上零卡，直攻主人
           defSlot = -1
-        } else if (Math.random() < aiStr) {
-          // 最优攻击：尝试一击杀 → 打最大威胁
-          const killable = pAlive
-            .filter(c => atkCard.atk >= c.currentHp)
-            .sort((a, b) => b.atk - a.atk)
-
-          if (killable.length > 0) {
-            defSlot = killable[0].slot
-          } else {
-            defSlot = pAlive.reduce((max, c) => c.atk > max.atk ? c : max, pAlive[0]).slot
-          }
         } else {
-          // 随机攻击（弱 AI 有时打随机目标）
-          defSlot = pAlive[Math.floor(Math.random() * pAlive.length)].slot
+          // Sprint 28: T3 — 基于 aiPersonality 决定是否直攻主人
+          const leaderHp = battle.playerLeaderHpRef?.current ?? battle.playerLeaderHp ?? LEADER_HP
+          const leaderHpPercent = leaderHp / LEADER_HP
+          let faceChance = 0
+
+          if (aiPersonality === 'aggressive') {
+            // 激进：基础 35% 直攻；残血时更激进；一击必杀几乎必推
+            faceChance = 0.35
+            if (leaderHpPercent < 0.5) faceChance = 0.5
+            if (leaderHpPercent < 0.3) faceChance = 0.7
+            if (atkCard.atk >= leaderHp) faceChance = 0.95
+          } else if (aiPersonality === 'balanced') {
+            // 平衡：10% 偶尔推；能一击杀主人时大概率推
+            faceChance = 0.1
+            if (atkCard.atk >= leaderHp) faceChance = 0.8
+          } else {
+            // defensive：基本不主动直攻；能一击秒主人时才推
+            faceChance = 0
+            if (atkCard.atk >= leaderHp) faceChance = 0.6
+          }
+
+          if (Math.random() < faceChance) {
+            // 直攻主人
+            defSlot = -1
+          } else if (Math.random() < aiStr) {
+            // T4: 最优攻击 — 尝试一击杀 → 打最大威胁
+            const killable = pAlive
+              .filter(c => atkCard.atk >= c.currentHp)
+              .sort((a, b) => b.atk - a.atk)
+            if (killable.length > 0) {
+              defSlot = killable[0].slot
+            } else {
+              defSlot = pAlive.reduce((max, c) => c.atk > max.atk ? c : max, pAlive[0]).slot
+            }
+          } else {
+            // T5: 随机攻击（弱 AI 有时打随机目标）
+            defSlot = pAlive[Math.floor(Math.random() * pAlive.length)].slot
+          }
         }
 
         const result = battle.aiAttack(atkSlot, defSlot)

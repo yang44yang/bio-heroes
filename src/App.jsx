@@ -90,6 +90,7 @@ export default function App() {
           spDeck: enemySpDeck,
           leaderHP: stageConfig.enemyConfig.leaderHP,
           aiStrength: stageConfig.enemyConfig.aiStrength,
+          aiPersonality: stageConfig.enemyConfig.aiPersonality,  // Sprint 28: 传递 personality
           bossMechanic: stageConfig.enemyConfig.bossMechanic,
           bossPreplaced: stageConfig.enemyConfig.bossPreplaced,
           stageRule: stageConfig.enemyConfig.stageRule,
