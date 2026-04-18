@@ -333,8 +333,8 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               {/* 奖励 */}
               {selectedStage.rewards && (
                 <div className="bg-gray-800/40 rounded-lg p-2 mb-3 text-xs text-gray-400">
-                  <div>{t('campaign.firstClear')}: {formatReward(selectedStage.rewards.firstClear)}</div>
-                  <div>{t('campaign.threeStars')}: {formatReward(selectedStage.rewards.threeStars)}</div>
+                  <div>{t('campaign.firstClear')}: {formatReward(selectedStage.rewards.firstClear, lang)}</div>
+                  <div>{t('campaign.threeStars')}: {formatReward(selectedStage.rewards.threeStars, lang)}</div>
                 </div>
               )}
 
@@ -381,11 +381,11 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
   )
 }
 
-function formatReward(r) {
+function formatReward(r, lang = 'zh') {
   if (!r) return ''
   const parts = []
   if (r.coins) parts.push(`${r.coins}🪙`)
   if (r.diamonds) parts.push(`${r.diamonds}💎`)
-  if (r.ssrTicket) parts.push('SSR保底券🎫')
+  if (r.ssrTicket) parts.push(lang === 'en' ? 'SSR Ticket🎫' : 'SSR保底券🎫')
   return parts.join(' + ') || '-'
 }
