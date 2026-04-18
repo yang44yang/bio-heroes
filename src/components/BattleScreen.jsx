@@ -10,6 +10,7 @@ import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
 import DialogueBox from './DialogueBox'
+import BattleLogPanel from './BattleLogPanel'
 import { useBattleHints, BattleHintOverlay } from './BattleHints'
 import cards from '../data/cards'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -81,6 +82,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const [selectedAtkSlot, setSelectedAtkSlot] = useState(null)  // 战场中选中的攻击者
   const [awakenOpts, setAwakenOpts] = useState({})
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showBattleLog, setShowBattleLog] = useState(false)
   const [lockToast, setLockToast] = useState(null)
 
   // === 换卡（Mulligan）===
@@ -1015,6 +1017,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           </button>
           <button
             className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
+            onClick={() => setShowBattleLog(true)}
+            title="查看战斗记录"
+          >
+            📜
+          </button>
+          <button
+            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
             onClick={() => setShowExitConfirm(true)}
           >
             🚪
@@ -1677,6 +1686,12 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           />
         )}
       </AnimatePresence>
+
+      <BattleLogPanel
+        logs={battle.battleLog}
+        open={showBattleLog}
+        onClose={() => setShowBattleLog(false)}
+      />
 
       {/* 退出确认弹窗 */}
       {showExitConfirm && createPortal(
