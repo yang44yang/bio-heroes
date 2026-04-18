@@ -83,7 +83,7 @@ bio-heroes/
 ├── CLAUDE.md
 ├── CHANGELOG.md               # Sprint 1-21 完成记录
 ├── .claude/
-│   ├── SESSION.md             # 当前会话状态（不跟踪 git）
+│   ├── SESSION.md             # 当前会话状态（git 跟踪，供远程同步读取）
 │   └── rules/                 # 详细规则（按需加载）
 ├── package.json
 └── vite.config.js
