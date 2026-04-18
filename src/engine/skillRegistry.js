@@ -12,6 +12,15 @@
 
 import * as T from './skillTemplates'
 
+// Sprint 27: 揭示卡对象辅助函数 — 只传必要信息到 UI
+const revealObj = (c) => ({
+  name: c?.name,
+  nameEn: c?.nameEn,
+  cost: c?.cost,
+  faction: c?.faction,
+  rarity: c?.rarity,
+})
+
 export const skillRegistry = {
 
   // ===========================================
@@ -433,7 +442,7 @@ export const skillRegistry = {
       if (enemyHand.length > 0) {
         const top = [...enemyHand].sort((a, b) => (b.cost || 0) - (a.cost || 0))[0]
         events.push({
-          type: 'REVEAL_HAND', source: ctx.card.name, cards: [top.name || '???'],
+          type: 'REVEAL_HAND', source: ctx.card.name, cards: [revealObj(top)],
           message: `🌡️ ${ctx.card.name} 体温检测！发现对手一张手牌：${top.name}`,
         })
       }
@@ -475,7 +484,7 @@ export const skillRegistry = {
         events.push({
           type: 'REVEAL_HAND',
           source: ctx.card.name,
-          cards: shuffled.map(c => c.name || '???'),
+          cards: shuffled.map(revealObj),
           message: `📡 ${ctx.card.name} X光透视！看穿了对手 ${revealCount} 张手牌！`,
         })
       }
@@ -509,7 +518,7 @@ export const skillRegistry = {
       if (enemyHand.length > 0) {
         events.push({
           type: 'REVEAL_HAND', source: ctx.card.name,
-          cards: enemyHand.map(c => c.name || '???'),
+          cards: enemyHand.map(revealObj),
           message: `🔬 ${ctx.card.name} 微观洞察！看穿了对手全部手牌！`,
         })
       }
@@ -538,7 +547,7 @@ export const skillRegistry = {
       if (enemyHand.length > 0) {
         events.push({
           type: 'REVEAL_HAND', source: ctx.card.name,
-          cards: enemyHand.map(c => c.name || '???'),
+          cards: enemyHand.map(revealObj),
           message: `🔬 ${ctx.card.name} 快速检测！看穿了对手全部手牌！`,
         })
       }
@@ -1021,7 +1030,7 @@ export const skillRegistry = {
       const enemyHand = ctx.enemyHand || []
       events.push({
         type: 'REVEAL_HAND', source: ctx.card.name,
-        cards: enemyHand.map(c => c.name || '???'),
+        cards: enemyHand.map(revealObj),
         message: `🧠 ${ctx.card.name} 全知之眼！看穿了对手所有手牌！`,
       })
       const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)

@@ -62,6 +62,13 @@ export function useBattle() {
   const enemyDiscardRef = useRef(enemyDiscard)
   enemyDiscardRef.current = enemyDiscard
 
+  // Sprint 27: 手牌引用（由 BattleScreen 通过 setHandRefs 注入）
+  // 用于 REVEAL_HAND 以及需要读取手牌的技能
+  const handsRef = useRef({ playerHand: [], enemyHand: [], drawCards: null, aiDrawCards: null })
+  const setHandRefs = useCallback((refs) => {
+    handsRef.current = { ...handsRef.current, ...refs }
+  }, [])
+
   // === SP 卡组 ===
   const [playerSpDeck, setPlayerSpDeck] = useState([])
   const [enemySpDeck, setEnemySpDeck] = useState([])
@@ -326,8 +333,7 @@ export function useBattle() {
           break
         }
         case 'REVEAL_HAND': {
-          // 揭示敌方手牌（视觉效果 + 日志，不修改状态）
-          // evt.cards: 被揭示的卡名列表
+          // Sprint 27: 揭示敌方手牌 — 不仅打日志，还推送 skillEvents 供 BattleScreen 显示浮窗
           addLog(evt.message)
           break
         }
@@ -1028,6 +1034,10 @@ export function useBattle() {
       card: fieldCard,
       friendlyField: friendlyFieldCards,
       enemyField: enemyFieldCards,
+      playerHand: side === 'player' ? handsRef.current.playerHand : handsRef.current.enemyHand,
+      enemyHand: side === 'player' ? handsRef.current.enemyHand : handsRef.current.playerHand,
+      discardPile: side === 'player' ? playerDiscardRef.current : enemyDiscardRef.current,
+      turn,
     })
     applySkillEvents(playEvents, friendlySetter, enemySetter, side)
     for (const evt of playEvents) {
@@ -1367,6 +1377,10 @@ export function useBattle() {
       card: makeFieldCard(card),
       friendlyField: playerFieldRef.current.filter(Boolean),
       enemyField: enemyFieldRef.current.filter(Boolean),
+      playerHand: handsRef.current.playerHand,
+      enemyHand: handsRef.current.enemyHand,
+      discardPile: playerDiscardRef.current,
+      turn,
     })
     applySkillEvents(playEvents, setPlayerField, setEnemyField, 'player')
     for (const evt of playEvents) {
@@ -1644,6 +1658,10 @@ export function useBattle() {
       card: makeFieldCard(card),
       friendlyField: enemyFieldRef.current.filter(Boolean),
       enemyField: playerFieldRef.current.filter(Boolean),
+      playerHand: handsRef.current.enemyHand,
+      enemyHand: handsRef.current.playerHand,
+      discardPile: enemyDiscardRef.current,
+      turn,
     })
     applySkillEvents(playEvents, setEnemyField, setPlayerField, 'enemy')
     for (const evt of playEvents) {
@@ -1985,6 +2003,7 @@ export function useBattle() {
     setAnimating, restorePhase,
     setPlayerField, setEnemyField, addLog,
     pushSkillEvents, clearSkillEvents, cleanupDeadCards,
+    setHandRefs,  // Sprint 27: BattleScreen 注入手牌引用
     // Refs
     playerFieldRef, enemyFieldRef, playerLeaderHpRef, enemyLeaderHpRef,
     playerPowerBankRef, enemyPowerBankRef, playerSpDeckRef, enemySpDeckRef,

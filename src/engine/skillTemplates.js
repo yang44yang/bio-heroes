@@ -709,18 +709,24 @@ export function onPlayReveal(ctx, params) {
   const enemyHand = ctx.enemyHand || []
   if (enemyHand.length === 0) return null
 
-  // 选定要揭示的卡
+  // 选定要揭示的卡 — Sprint 27: 传完整卡信息（name/nameEn/cost/faction/rarity）而非只字符串
+  const asRevealObj = c => ({
+    name: c.name,
+    nameEn: c.nameEn,
+    cost: c.cost,
+    faction: c.faction,
+    rarity: c.rarity,
+  })
   let revealed = []
   if (params.count === 'all') {
-    revealed = enemyHand.map(c => c.name || '???')
+    revealed = enemyHand.map(asRevealObj)
   } else {
     const n = params.count || 1
     if (params.filter === 'highest_cost') {
-      revealed = [...enemyHand].sort((a, b) => (b.cost || 0) - (a.cost || 0)).slice(0, n).map(c => c.name)
+      revealed = [...enemyHand].sort((a, b) => (b.cost || 0) - (a.cost || 0)).slice(0, n).map(asRevealObj)
     } else {
-      // random
       const shuffled = [...enemyHand].sort(() => Math.random() - 0.5)
-      revealed = shuffled.slice(0, n).map(c => c.name)
+      revealed = shuffled.slice(0, n).map(asRevealObj)
     }
   }
 
@@ -728,7 +734,7 @@ export function onPlayReveal(ctx, params) {
     type: 'REVEAL_HAND',
     source: cardName,
     cards: revealed,
-    message: `🔍 ${cardName} 揭示了敌方手牌：${revealed.join('、')}`,
+    message: `🔍 ${cardName} 揭示了敌方手牌：${revealed.map(c => c.name).join('、')}`,
   }]
 
   // bonus 效果

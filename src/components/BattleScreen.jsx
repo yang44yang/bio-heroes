@@ -30,6 +30,37 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   // 即时提示系统 (Sprint 21)
   const { showHint, activeHint, dismissHint } = useBattleHints(lang)
 
+  // Sprint 27: 揭示手牌浮窗状态
+  const [revealedCards, setRevealedCards] = useState(null)
+
+  // Sprint 27: 把手牌引用注入 useBattle（让 onPlay 技能能读到对方手牌 + 支持技能抽牌）
+  useEffect(() => {
+    if (battle.setHandRefs) {
+      battle.setHandRefs({
+        playerHand: playerHand.hand,
+        enemyHand: enemyHand.hand,
+        drawCards: playerHand.draw,
+        aiDrawCards: enemyHand.draw,
+      })
+    }
+  }, [playerHand.hand, enemyHand.hand, playerHand.draw, enemyHand.draw, battle.setHandRefs])
+
+  // Sprint 27: 监听 skillEvents，遇到 REVEAL_HAND 时显示浮窗
+  const lastRevealRef = useRef(0)
+  useEffect(() => {
+    const events = battle.skillEvents || []
+    for (let i = lastRevealRef.current; i < events.length; i++) {
+      const evt = events[i]
+      if (evt.type === 'REVEAL_HAND' && evt.cards && evt.cards.length > 0) {
+        // evt.cards 可能是字符串数组（旧） or 对象数组 — 统一转对象
+        const normalized = evt.cards.map(c => typeof c === 'string' ? { name: c } : c)
+        setRevealedCards({ cards: normalized, source: evt.source })
+        setTimeout(() => setRevealedCards(null), 4000)
+      }
+    }
+    lastRevealRef.current = events.length
+  }, [battle.skillEvents])
+
   // 音效
   const [soundMuted, setSoundMuted] = useState(false)
   const audioInitialized = useRef(false)
@@ -861,6 +892,37 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
       {/* 即时提示 (Sprint 21) */}
       <BattleHintOverlay hint={activeHint} onDismiss={dismissHint} />
+
+      {/* Sprint 27: 揭示手牌浮窗 */}
+      <AnimatePresence>
+        {revealedCards && (
+          <motion.div
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-[85] max-w-md w-[90%] pointer-events-none"
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <div className="bg-gray-900/95 border border-cyan-500/60 rounded-xl px-4 py-3 shadow-lg shadow-cyan-900/40">
+              <div className="text-xs text-cyan-300 mb-2 text-center">
+                🔍 {revealedCards.source} {lang === 'en' ? 'revealed enemy hand' : '揭示了对方手牌'}！
+              </div>
+              <div className="flex gap-2 flex-wrap justify-center">
+                {revealedCards.cards.map((card, i) => (
+                  <div key={i} className="bg-gray-800 rounded-lg px-2.5 py-1.5 border border-gray-600 text-center min-w-[72px]">
+                    <div className="text-lg">{FACTIONS[card.faction]?.icon || '❓'}</div>
+                    <div className="text-[11px] text-white font-bold truncate max-w-[96px]">
+                      {lang === 'en' && card.nameEn ? card.nameEn : (card.name || '?')}
+                    </div>
+                    <div className="text-[9px] text-gray-400">
+                      {card.cost != null ? `⚡${card.cost}` : ''}{card.rarity ? ` · ${card.rarity}` : ''}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 觉醒文字 */}
       {createPortal(
