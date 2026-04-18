@@ -1030,7 +1030,9 @@ export function useBattle() {
     })
 
     // SP cards with Swift Attack can attack immediately, otherwise summoning sickness
-    const hasSwift = spCard.skills?.some(s => s.nameEn === 'Swift Attack')
+    // Sprint 27: Swift Attack / Silent Dive / swift_boost status 都跳过召唤疲劳
+    const hasSwift = spCard.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
+      || fieldCard.statuses?.some(s => s.type === 'swift_boost')
     if (!hasSwift) {
       summonedThisTurn.current.add(fieldCard.uid)
     }
@@ -1423,7 +1425,9 @@ export function useBattle() {
     const card = playerField[slotIdx]
     if (!card || card.currentHp <= 0) return false
     if (attackedThisTurn.current.has(card.uid)) return false
-    const hasSwift = card.skills?.some(s => s.nameEn === 'Swift Attack')
+    // Sprint 27: swift_boost status 也算迅击
+    const hasSwift = card.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
+      || card.statuses?.some(s => s.type === 'swift_boost')
     if (summonedThisTurn.current.has(card.uid) && !hasSwift) return false
     // 沉睡状态无法攻击
     if (card.statuses?.some(s => s.type === 'sleep')) return false
@@ -1462,8 +1466,9 @@ export function useBattle() {
         return { confusedHit: true }
       }
     }
-    // 召唤疲劳
-    const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack')
+    // 召唤疲劳（Sprint 27: swift_boost / Silent Dive 也跳过疲劳）
+    const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
+      || atkCard.statuses?.some(s => s.type === 'swift_boost')
     if (summonedThisTurn.current.has(atkCard.uid) && !hasSwift) {
       addLog(`${atkCard.name} 刚上场，不能攻击（召唤疲劳）`)
       return null
@@ -1732,8 +1737,9 @@ export function useBattle() {
         return { skipped: false, confusedHit: true }
       }
     }
-    // 召唤疲劳检查
-    const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack')
+    // 召唤疲劳检查（Sprint 27: swift_boost / Silent Dive 也跳过疲劳）
+    const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
+      || atkCard.statuses?.some(s => s.type === 'swift_boost')
     if (summonedThisTurn.current.has(atkCard.uid) && !hasSwift) {
       addLog(`🔴 ${atkCard.name} 召唤疲劳，无法攻击`)
       return { skipped: true }
