@@ -1138,20 +1138,18 @@ export function passiveSelfDebuff(ctx, params) {
 }
 
 /**
- * passiveDraw — 每 N 回合抽一张牌
+ * passiveDraw — 每 N 回合抽一张牌（Sprint 27: 发射正式 DRAW_CARD event）
  * timing: 'onTurnEnd'
- * NOTE: 实际抽牌需要 useBattle 支持 DRAW_CARD event，暂用日志
  */
 export function passiveDraw(ctx, params) {
   const card = ctx.card
   if (!card || card.currentHp <= 0) return null
-  // 简化：每回合都触发（interval 逻辑需要 turn 状态）
   const turn = ctx.turn || 1
   if (params.interval && turn % params.interval !== 0) return null
   return {
-    type: 'RUSH_BOOST',
+    type: 'DRAW_CARD',
     source: card.name,
-    _drawCard: params.amount || 1,
+    amount: params.amount || 1,
     message: `📥 ${card.name} 造血：抽 ${params.amount || 1} 张牌！`,
   }
 }

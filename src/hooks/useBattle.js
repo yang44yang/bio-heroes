@@ -358,9 +358,23 @@ export function useBattle() {
           break
         }
         case 'ENERGY_BOOST': {
-          // 能量增加（由 passiveEnergy 模板触发）
-          // 实际能量增加需要 setPlayerEnergy — 暂用日志
-          addLog(evt.message)
+          // Sprint 27: 实际增加能量（不再只打日志）
+          const setEnergy = side === 'player' ? setPlayerEnergy : setEnemyEnergy
+          setEnergy(prev => Math.min(ENERGY_CAP, prev + (evt.amount || 1)))
+          if (evt.message) addLog(evt.message)
+          break
+        }
+        case 'DRAW_CARD': {
+          // Sprint 27: 技能抽牌（Hematopoiesis / Super Computation）
+          const drawFn = side === 'player' ? handsRef.current.drawCards : handsRef.current.aiDrawCards
+          if (typeof drawFn === 'function') {
+            const drawn = drawFn(evt.amount || 1)
+            if (drawn && drawn.length > 0 && evt.message) {
+              addLog(evt.message)
+            }
+          } else if (evt.message) {
+            addLog(evt.message)
+          }
           break
         }
         // === Sprint 24 新增 ===
