@@ -200,7 +200,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                     isTutorial ? 'bg-yellow-800 text-yellow-200' :
                     'bg-gray-700 text-gray-200'
                   }`}>
-                    {!unlocked ? '🔒' : isBoss ? '💀' : isTutorial ? (isAdvanced ? '📙' : '📗') : stage.id.split('-')[1]}
+                    {!unlocked ? '🔒' : isBoss ? '💀' : isTutorial ? (isAdvanced ? '📙' : '📗') : (idx + 1)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">
