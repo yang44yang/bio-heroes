@@ -248,6 +248,45 @@ export function useEconomy() {
     setState(prev => ({ ...prev, pityCounter: SSR_PITY - 1 }))
   }, [])
 
+  // === 碎片商店 ===
+  const FRAGMENT_TO_COIN_RATE = 2  // 1 碎片 = 2 金币
+
+  const sellFragments = useCallback((cardId, count) => {
+    setState(prev => {
+      const have = prev.fragments[cardId] || 0
+      const sellCount = Math.min(have, Math.max(0, Math.floor(count)))
+      if (sellCount <= 0) return prev
+      const newFragments = { ...prev.fragments }
+      const remaining = have - sellCount
+      if (remaining > 0) newFragments[cardId] = remaining
+      else delete newFragments[cardId]
+      return {
+        ...prev,
+        fragments: newFragments,
+        coins: prev.coins + sellCount * FRAGMENT_TO_COIN_RATE,
+      }
+    })
+  }, [])
+
+  // 一键卖出所有"无进化路径"的碎片
+  const sellAllUnusedFragments = useCallback(() => {
+    setState(prev => {
+      const newFragments = { ...prev.fragments }
+      let totalCoins = 0
+      for (const cardId of Object.keys(prev.fragments)) {
+        if (getEvolutionTarget(cardId)) continue  // 有进化路径的保留
+        totalCoins += prev.fragments[cardId] * FRAGMENT_TO_COIN_RATE
+        delete newFragments[cardId]
+      }
+      if (totalCoins === 0) return prev
+      return {
+        ...prev,
+        fragments: newFragments,
+        coins: prev.coins + totalCoins,
+      }
+    })
+  }, [])
+
   // 清除新玩家标记
   const dismissNewPlayer = useCallback(() => {
     setState(prev => {
@@ -275,10 +314,13 @@ export function useEconomy() {
     evolveCard,
     dismissNewPlayer,
     useSSRTicket,
+    sellFragments,
+    sellAllUnusedFragments,
 
     SINGLE_COST,
     MULTI_COST,
     SSR_PITY,
     MAX_COPIES_PER_CARD,
+    FRAGMENT_TO_COIN_RATE,
   }
 }
