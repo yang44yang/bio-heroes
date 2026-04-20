@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
 import BattleCard from './Card'
@@ -34,7 +34,7 @@ export default function GachaScreen({ onBack, economy }) {
     setResults([])
 
     setTimeout(() => {
-      const { pulled: newCards, newPityCounter } = pull(count, economy.pityCounter, economy.SSR_PITY)
+      const { pulled: newCards } = pull(count, economy.pityCounter, economy.SSR_PITY)
       const enriched = economy.pullCards(newCards)
       setPulled(newCards)
       setResults(enriched)
@@ -90,51 +90,44 @@ export default function GachaScreen({ onBack, economy }) {
       </div>
 
       {/* Pull results */}
-      <AnimatePresence mode="wait">
-        {pulling && (
-          <motion.div
-            key="pulling"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="text-2xl text-yellow-400 animate-bounce"
-          >
-            {t('gacha.pulling')}
-          </motion.div>
-        )}
-        {results.length > 0 && (
-          <motion.div
-            key="results"
-            className="flex gap-3 flex-wrap justify-center max-w-2xl"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            {results.map((card, i) => {
-              const faction = FACTIONS[card.faction]
-              return (
-                <motion.div
-                  key={card.instanceId}
-                  className={`relative rounded-xl border-2 ${rarityBg[card.rarity]} overflow-hidden`}
-                  initial={{ opacity: 0, y: 40, rotateY: 180 }}
-                  animate={{ opacity: 1, y: 0, rotateY: 0 }}
-                  transition={{ delay: i * 0.15, type: 'spring', damping: 12 }}
-                >
-                  <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
-                  {card.isNew ? (
-                    <div className="absolute top-0 left-0 bg-green-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-lg">
-                      NEW!
-                    </div>
-                  ) : (
-                    <div className="absolute top-0 left-0 bg-gray-600 text-gray-300 text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">
-                      {t('gacha.fragments', { n: card.fragments })}
-                    </div>
-                  )}
-                </motion.div>
-              )
-            })}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {pulling && (
+        <motion.div
+          key="pulling"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="text-2xl text-yellow-400 animate-bounce"
+        >
+          {t('gacha.pulling')}
+        </motion.div>
+      )}
+      {!pulling && results.length > 0 && (
+        <motion.div
+          key="results"
+          className="flex gap-3 flex-wrap justify-center max-w-2xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          {results.map((card, i) => (
+            <motion.div
+              key={card.instanceId || `${card.id}_${i}`}
+              className={`relative rounded-xl border-2 ${rarityBg[card.rarity] || ''} overflow-hidden`}
+              initial={{ opacity: 0, y: 40, rotateY: 180 }}
+              animate={{ opacity: 1, y: 0, rotateY: 0 }}
+              transition={{ delay: i * 0.15, type: 'spring', damping: 12 }}
+            >
+              <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
+              {card.isNew ? (
+                <div className="absolute top-0 left-0 bg-green-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-lg">NEW!</div>
+              ) : card.isDupe ? (
+                <div className="absolute top-0 left-0 bg-amber-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">{t('gacha.fragments', { n: card.fragments })}</div>
+              ) : (
+                <div className="absolute top-0 left-0 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">×{card.count}</div>
+              )}
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
 
       {/* Back button */}
       <motion.button

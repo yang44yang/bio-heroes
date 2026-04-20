@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { getEvolutionTarget } from '../data/evolutions'
 import { migrateData } from '../utils/saveManager'
 
@@ -84,9 +84,11 @@ function saveEconomy(state) {
  */
 export function useEconomy() {
   const [state, setState] = useState(() => loadEconomy())
+  const stateRef = useRef(state)
 
-  // Auto-save on state change
+  // Auto-save on state change + 同步最新 state 到 ref（供 pullCards 同步计算结果使用）
   useEffect(() => {
+    stateRef.current = state
     saveEconomy(state)
   }, [state])
 
@@ -140,55 +142,54 @@ export function useEconomy() {
   const MAX_COPIES_PER_CARD = 3  // 与卡组同名上限一致
 
   const pullCards = useCallback((pulledCards) => {
-    // Process pulled cards: 持有量未达 MAX_COPIES_PER_CARD → 入库 +1; 否则转碎片
-    // 同步计算 results 后返回，调用方据此渲染 UI
-    let computedResults
-    setState(prev => {
-      const newCollection = { ...prev.collection }
-      const newFragments = { ...prev.fragments }
-      let newPity = prev.pityCounter
-      const results = []
+    // 持有量未达 MAX_COPIES_PER_CARD → 入库 +1; 否则转碎片
+    // 用 stateRef 读当前 state 同步算 results，再 setState 更新；保证返回值一定有效（不依赖 setState updater 的执行时机）
+    const prev = stateRef.current
+    const newCollection = { ...prev.collection }
+    const newFragments = { ...prev.fragments }
+    let newPity = prev.pityCounter
+    const results = []
 
-      for (const card of pulledCards) {
-        newPity++
-        const currentCount = newCollection[card.id] || 0
+    for (const card of pulledCards) {
+      newPity++
+      const currentCount = newCollection[card.id] || 0
 
-        if (currentCount < MAX_COPIES_PER_CARD) {
-          newCollection[card.id] = currentCount + 1
-          results.push({
-            ...card,
-            isNew: currentCount === 0,
-            isDupe: false,
-            count: currentCount + 1,
-            fragments: 0,
-          })
-        } else {
-          const fragCount = card.rarity === 'SSR' ? 50 : card.rarity === 'SR' ? 20 : FRAGMENTS_PER_DUPE
-          newFragments[card.id] = (newFragments[card.id] || 0) + fragCount
-          results.push({
-            ...card,
-            isNew: false,
-            isDupe: true,
-            count: MAX_COPIES_PER_CARD,
-            fragments: fragCount,
-          })
-        }
-
-        if (card.rarity === 'SSR') {
-          newPity = 0
-        }
+      if (currentCount < MAX_COPIES_PER_CARD) {
+        newCollection[card.id] = currentCount + 1
+        results.push({
+          ...card,
+          isNew: currentCount === 0,
+          isDupe: false,
+          count: currentCount + 1,
+          fragments: 0,
+        })
+      } else {
+        const fragCount = card.rarity === 'SSR' ? 50 : card.rarity === 'SR' ? 20 : FRAGMENTS_PER_DUPE
+        newFragments[card.id] = (newFragments[card.id] || 0) + fragCount
+        results.push({
+          ...card,
+          isNew: false,
+          isDupe: true,
+          count: MAX_COPIES_PER_CARD,
+          fragments: fragCount,
+        })
       }
 
-      computedResults = results
-      return {
-        ...prev,
-        collection: newCollection,
-        fragments: newFragments,
-        pityCounter: newPity,
-        totalPulls: prev.totalPulls + pulledCards.length,
+      if (card.rarity === 'SSR') {
+        newPity = 0
       }
-    })
-    return computedResults
+    }
+
+    const nextState = {
+      ...prev,
+      collection: newCollection,
+      fragments: newFragments,
+      pityCounter: newPity,
+      totalPulls: prev.totalPulls + pulledCards.length,
+    }
+    stateRef.current = nextState
+    setState(nextState)
+    return results
   }, [])
 
   // === 进化 ===
