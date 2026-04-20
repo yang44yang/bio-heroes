@@ -22,6 +22,7 @@ export default function Collection({ onBack, economy }) {
   const [selectedCard, setSelectedCard] = useState(null)
   const [showEvolutionChain, setShowEvolutionChain] = useState(null) // chain id
   const [evolving, setEvolving] = useState(false) // 进化动画中
+  const [sellAmount, setSellAmount] = useState(1)
 
   const owned = economy.collection // { cardId: count } map
   const isOwn = (id) => !!owned[id]
@@ -83,12 +84,34 @@ export default function Collection({ onBack, economy }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-black text-yellow-400">{t('collection.title')}</h1>
-        <button
-          className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg"
-          onClick={onBack}
-        >
-          {t('collection.back')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            className="text-xs px-3 py-1.5 bg-yellow-600/80 hover:bg-yellow-500 text-white rounded-lg font-bold"
+            onClick={() => {
+              const fragMap = economy.fragments
+              let total = 0
+              for (const id of Object.keys(fragMap)) {
+                if (!getEvolutionTarget(id)) total += fragMap[id] * economy.FRAGMENT_TO_COIN_RATE
+              }
+              if (total === 0) {
+                alert('没有可卖的碎片（有进化路径的碎片会保留）')
+                return
+              }
+              if (confirm(`将卖出所有不能进化的碎片，换 ${total} 🪙。继续？`)) {
+                economy.sellAllUnusedFragments()
+              }
+            }}
+            title="卖出所有不能用于进化的碎片"
+          >
+            💰 出售余碎片
+          </button>
+          <button
+            className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg"
+            onClick={onBack}
+          >
+            {t('collection.back')}
+          </button>
+        </div>
       </div>
 
       {/* Progress bar */}
@@ -289,6 +312,11 @@ export default function Collection({ onBack, economy }) {
                       >
                         <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
                         {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
+                        {isOwned && (
+                          <div className={`absolute top-1 left-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full z-20 ${owned[card.id] >= economy.MAX_COPIES_PER_CARD ? 'bg-green-600 text-white' : 'bg-gray-900/80 text-white'}`}>
+                            ×{owned[card.id]}{owned[card.id] >= economy.MAX_COPIES_PER_CARD && ' ✓'}
+                          </div>
+                        )}
                         {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">{t('collection.fragments', { n: fragments })}</div>}
                         {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
                       </motion.div>
@@ -321,6 +349,11 @@ export default function Collection({ onBack, economy }) {
                       >
                         <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
                         {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
+                        {isOwned && (
+                          <div className={`absolute top-1 left-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full z-20 ${owned[card.id] >= economy.MAX_COPIES_PER_CARD ? 'bg-green-600 text-white' : 'bg-gray-900/80 text-white'}`}>
+                            ×{owned[card.id]}{owned[card.id] >= economy.MAX_COPIES_PER_CARD && ' ✓'}
+                          </div>
+                        )}
                         {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">{t('collection.fragments', { n: fragments })}</div>}
                         {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
                       </motion.div>
@@ -348,6 +381,11 @@ export default function Collection({ onBack, economy }) {
               >
                 <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
                 {!isOwned && <div className="absolute inset-0 flex items-center justify-center"><span className="text-3xl">❓</span></div>}
+                {isOwned && (
+                  <div className={`absolute top-1 left-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full z-20 ${owned[card.id] >= economy.MAX_COPIES_PER_CARD ? 'bg-green-600 text-white' : 'bg-gray-900/80 text-white'}`}>
+                    ×{owned[card.id]}{owned[card.id] >= economy.MAX_COPIES_PER_CARD && ' ✓'}
+                  </div>
+                )}
                 {isOwned && fragments > 0 && <div className="absolute bottom-1 right-1 text-[9px] bg-gray-900/80 text-amber-400 px-1 rounded">{t('collection.fragments', { n: fragments })}</div>}
                 {canEvolve && <motion.div className="absolute -top-1 -right-1 text-sm z-30" animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>🧬</motion.div>}
               </motion.div>
@@ -530,6 +568,44 @@ export default function Collection({ onBack, economy }) {
                   </div>
                 </div>
               )}
+
+              {/* 持有数量 + 碎片商店 */}
+              <div className="mb-3 bg-gray-800/40 rounded-lg p-2.5">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-gray-300">持有数量</span>
+                  <span className="text-white font-bold">
+                    {owned[selectedCard.id] || 0} / {economy.MAX_COPIES_PER_CARD}
+                    {(owned[selectedCard.id] || 0) >= economy.MAX_COPIES_PER_CARD && (
+                      <span className="ml-2 text-green-400 text-[10px]">✓ 已齐</span>
+                    )}
+                  </span>
+                </div>
+                {(economy.fragments[selectedCard.id] || 0) > 0 && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] text-amber-400 shrink-0">碎片 {economy.fragments[selectedCard.id]}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={economy.fragments[selectedCard.id]}
+                      value={Math.min(sellAmount, economy.fragments[selectedCard.id])}
+                      onChange={e => {
+                        const v = parseInt(e.target.value, 10) || 1
+                        setSellAmount(Math.max(1, Math.min(v, economy.fragments[selectedCard.id])))
+                      }}
+                      className="flex-1 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white text-xs"
+                    />
+                    <button
+                      onClick={() => {
+                        const amt = Math.min(sellAmount, economy.fragments[selectedCard.id] || 0)
+                        if (amt > 0) economy.sellFragments(selectedCard.id, amt)
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded text-[11px] text-white font-bold whitespace-nowrap"
+                    >
+                      卖 → {Math.min(sellAmount, economy.fragments[selectedCard.id] || 0) * economy.FRAGMENT_TO_COIN_RATE} 🪙
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* 进化按钮 */}
               {selectedEvoInfo && (
