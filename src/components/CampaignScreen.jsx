@@ -166,6 +166,11 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
             const advancedStages = chapter.stages.filter(s => s.category === 'advanced')
             const regularStages = chapter.stages.filter(s => !s.category)
 
+            // 显示编号只对"普通可编号关卡"计数（排除 boss / tutorial），
+            // 这样无论 BOSS 在哪、教学关混合多少，普通关都从 1 连续编号
+            const numberedStages = chapter.stages.filter(s => s.type !== 'boss' && s.type !== 'tutorial')
+            const stageNumber = (stage) => numberedStages.indexOf(stage) + 1
+
             const renderStage = (stage, idx) => {
               const unlocked = isStageUnlocked(stage.id, progress)
               const stars = progress.stageStars[stage.id] || 0
@@ -200,7 +205,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                     isTutorial ? 'bg-yellow-800 text-yellow-200' :
                     'bg-gray-700 text-gray-200'
                   }`}>
-                    {!unlocked ? '🔒' : isBoss ? '💀' : isTutorial ? (isAdvanced ? '📙' : '📗') : (idx + 1)}
+                    {!unlocked ? '🔒' : isBoss ? '💀' : isTutorial ? (isAdvanced ? '📙' : '📗') : stageNumber(stage)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-bold text-sm truncate">
