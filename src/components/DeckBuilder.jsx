@@ -223,12 +223,12 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   const { t, cardName, lang } = useLanguage()
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
-    if (!collection || collection.length === 0) return selectableMainCards
-    return selectableMainCards.filter(c => collection.includes(c.id))
+    if (!collection || Object.keys(collection).length === 0) return selectableMainCards
+    return selectableMainCards.filter(c => collection[c.id])
   }, [collection])
   const ownedSpCards = useMemo(() => {
-    if (!collection || collection.length === 0) return allSpCards
-    return allSpCards.filter(c => collection.includes(c.id))
+    if (!collection || Object.keys(collection).length === 0) return allSpCards
+    return allSpCards.filter(c => collection[c.id])
   }, [collection])
   const [deckSlots, setDeckSlots] = useState(() => loadDecks())
   const [activeSlot, setActiveSlot] = useState(0)

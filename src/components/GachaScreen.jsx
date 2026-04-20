@@ -38,8 +38,8 @@ export default function GachaScreen({ onBack, economy }) {
       economy.pullCards(newCards)
       const enriched = newCards.map(card => ({
         ...card,
-        isNew: !economy.collection.includes(card.id),
-        fragments: economy.collection.includes(card.id)
+        isNew: !economy.collection[card.id],
+        fragments: economy.collection[card.id]
           ? (card.rarity === 'SSR' ? 50 : card.rarity === 'SR' ? 20 : 10)
           : 0,
       }))
@@ -60,7 +60,7 @@ export default function GachaScreen({ onBack, economy }) {
       <div className="flex gap-4 mb-6 text-sm">
         <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
         <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
-        <span className="text-gray-500">{t('gacha.collected', { n: economy.collection.length })}</span>
+        <span className="text-gray-500">{t('gacha.collected', { n: Object.keys(economy.collection).length })}</span>
         <span className="text-gray-600">{t('gacha.pity', { n: pityDisplay })}</span>
       </div>
 

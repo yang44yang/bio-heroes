@@ -38,13 +38,19 @@ const STARTER_EVENT_CARDS = [
 ]
 
 const DEFAULT_STATE = {
-  saveVersion: 3,
+  saveVersion: 4,
   coins: INITIAL_COINS,     // 新玩家初始金币
   diamonds: 10,             // 钻石（稀有，后期扩展）
-  collection: [],           // 拥有的卡牌 id 列表（去重）
+  collection: {},           // 拥有的卡牌 { cardId: count }
   fragments: {},             // 碎片 { cardId: count }
   pityCounter: 0,           // SSR 保底计数器
   totalPulls: 0,
+}
+
+function arrayToCollectionMap(ids) {
+  const map = {}
+  for (const id of ids) map[id] = (map[id] || 0) + 1
+  return map
 }
 
 function loadEconomy() {
@@ -63,7 +69,7 @@ function loadEconomy() {
   // 全新玩家：给初始卡牌礼包
   return {
     ...DEFAULT_STATE,
-    collection: [...STARTER_COLLECTION, ...STARTER_EVENT_CARDS],
+    collection: arrayToCollectionMap([...STARTER_COLLECTION, ...STARTER_EVENT_CARDS]),
     isNewPlayer: true, // 标记用于显示欢迎提示
   }
 }
@@ -135,17 +141,17 @@ export function useEconomy() {
   const pullCards = useCallback((pulledCards) => {
     // Process pulled cards: new cards → collection, dupes → fragments
     setState(prev => {
-      const newCollection = [...prev.collection]
+      const newCollection = { ...prev.collection }
       const newFragments = { ...prev.fragments }
       let newPity = prev.pityCounter
       const results = []
 
       for (const card of pulledCards) {
         newPity++
-        const isNew = !newCollection.includes(card.id)
+        const isNew = !newCollection[card.id]
 
         if (isNew) {
-          newCollection.push(card.id)
+          newCollection[card.id] = 1
           results.push({ ...card, isNew: true, fragments: 0 })
         } else {
           // Duplicate → fragments
@@ -180,7 +186,7 @@ export function useEconomy() {
     const evo = getEvolutionTarget(cardId)
     if (!evo) return null
     // 必须拥有当前卡
-    if (!state.collection.includes(cardId)) return null
+    if (!state.collection[cardId]) return null
     const have = state.fragments[cardId] || 0
     return {
       canEvolve: have >= evo.fragmentCost,
@@ -200,16 +206,16 @@ export function useEconomy() {
 
     let success = false
     setState(prev => {
-      if (!prev.collection.includes(cardId)) return prev
+      if (!prev.collection[cardId]) return prev
       const have = prev.fragments[cardId] || 0
       if (have < evo.fragmentCost) return prev
 
       const newFragments = { ...prev.fragments }
       newFragments[cardId] = have - evo.fragmentCost
 
-      const newCollection = [...prev.collection]
-      if (!newCollection.includes(evo.targetCardId)) {
-        newCollection.push(evo.targetCardId)
+      const newCollection = { ...prev.collection }
+      if (!newCollection[evo.targetCardId]) {
+        newCollection[evo.targetCardId] = 1
       }
 
       success = true

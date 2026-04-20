@@ -23,8 +23,9 @@ export default function Collection({ onBack, economy }) {
   const [showEvolutionChain, setShowEvolutionChain] = useState(null) // chain id
   const [evolving, setEvolving] = useState(false) // 进化动画中
 
-  const owned = economy.collection // array of card ids
-  const ownedCount = owned.length
+  const owned = economy.collection // { cardId: count } map
+  const isOwn = (id) => !!owned[id]
+  const ownedCount = Object.keys(owned).length
   const progress = Math.round((ownedCount / TOTAL_CARDS) * 100)
 
   const filtered = useMemo(() => {
@@ -33,8 +34,8 @@ export default function Collection({ onBack, economy }) {
     if (filterType !== 'all') pool = pool.filter(c => c.type === filterType)
     // Sort: owned first, then by cost
     return pool.sort((a, b) => {
-      const aOwned = owned.includes(a.id) ? 0 : 1
-      const bOwned = owned.includes(b.id) ? 0 : 1
+      const aOwned = isOwn(a.id) ? 0 : 1
+      const bOwned = isOwn(b.id) ? 0 : 1
       if (aOwned !== bOwned) return aOwned - bOwned
       return (a.cost || a.spCost || 0) - (b.cost || b.spCost || 0)
     })
@@ -45,7 +46,7 @@ export default function Collection({ onBack, economy }) {
     const stats = {}
     for (const [key] of Object.entries(FACTIONS)) {
       const total = allCards.filter(c => c.faction === key).length
-      const have = allCards.filter(c => c.faction === key && owned.includes(c.id)).length
+      const have = allCards.filter(c => c.faction === key && isOwn(c.id)).length
       stats[key] = { total, have }
     }
     return stats
@@ -150,7 +151,7 @@ export default function Collection({ onBack, economy }) {
                 <div className="flex items-center gap-1 text-xs">
                   {chain.steps.map((step, i) => {
                     const card = cardMap[step.cardId]
-                    const isOwned = owned.includes(step.cardId)
+                    const isOwned = isOwn(step.cardId)
                     return (
                       <React.Fragment key={step.cardId}>
                         <span className={`${isOwned ? rarityLabel[step.rarity] : 'text-gray-600'} font-bold`}>
@@ -180,7 +181,7 @@ export default function Collection({ onBack, economy }) {
                       <div className="flex items-center justify-center gap-3 mt-3 pt-3 border-t border-gray-700">
                         {chain.steps.map((step, i) => {
                           const card = cardMap[step.cardId]
-                          const isOwned = owned.includes(step.cardId)
+                          const isOwned = isOwn(step.cardId)
                           const fragments = economy.fragments[step.cardId] || 0
                           const evo = getEvolutionTarget(step.cardId)
 
@@ -275,7 +276,7 @@ export default function Collection({ onBack, economy }) {
                 <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">{st.name}</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {groupCards.map(card => {
-                    const isOwned = owned.includes(card.id)
+                    const isOwned = isOwn(card.id)
                     const fragments = economy.fragments[card.id] || 0
                     const evo = getEvolutionTarget(card.id)
                     const canEvolve = evo && isOwned && fragments >= evo.fragmentCost
@@ -307,7 +308,7 @@ export default function Collection({ onBack, economy }) {
                 <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">{t('collection.detail.eventCards')}</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {ungrouped.map(card => {
-                    const isOwned = owned.includes(card.id)
+                    const isOwned = isOwn(card.id)
                     const fragments = economy.fragments[card.id] || 0
                     const evo = getEvolutionTarget(card.id)
                     const canEvolve = evo && isOwned && fragments >= evo.fragmentCost
@@ -334,7 +335,7 @@ export default function Collection({ onBack, economy }) {
         // Flat grid (no faction selected)
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
           {filtered.map(card => {
-            const isOwned = owned.includes(card.id)
+            const isOwned = isOwn(card.id)
             const fragments = economy.fragments[card.id] || 0
             const evo = getEvolutionTarget(card.id)
             const canEvolve = evo && isOwned && fragments >= evo.fragmentCost
@@ -490,7 +491,7 @@ export default function Collection({ onBack, economy }) {
                   <div className="flex items-center justify-center gap-2">
                     {selectedChain.steps.map((step, i) => {
                       const card = cardMap[step.cardId]
-                      const isOwned = owned.includes(step.cardId)
+                      const isOwned = isOwn(step.cardId)
                       const isCurrent = step.cardId === selectedCard.id
                       const evo = getEvolutionTarget(step.cardId)
                       return (

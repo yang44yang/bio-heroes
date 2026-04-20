@@ -2,7 +2,7 @@
  * 存档管理器 — 版本迁移 + 导入/导出
  */
 
-const SAVE_VERSION = 3  // 当前存档版本
+const SAVE_VERSION = 4  // 当前存档版本
 
 // 新玩家初始卡牌（与 useEconomy 同步）
 const STARTER_CARDS = [
@@ -30,6 +30,21 @@ const MIGRATIONS = {
       d.collection = [...STARTER_CARDS]
       d.coins = (d.coins || 0) + 2500 // 补差额（旧默认500 + 2500 = 3000）
       d.isNewPlayer = true
+    }
+    return d
+  },
+  // v3 → v4: collection 从 string[] 改为 { cardId: count } Map
+  // 老玩家每张已收藏的卡按 1 份迁移
+  3: (data) => {
+    const d = { ...data, saveVersion: 4 }
+    if (Array.isArray(d.collection)) {
+      const map = {}
+      for (const id of d.collection) {
+        map[id] = (map[id] || 0) + 1
+      }
+      d.collection = map
+    } else if (!d.collection || typeof d.collection !== 'object') {
+      d.collection = {}
     }
     return d
   },

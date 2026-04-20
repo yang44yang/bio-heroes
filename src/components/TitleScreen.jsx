@@ -63,7 +63,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         >
           <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
           <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
-          <span className="text-gray-500">{t('menu.collected', { n: economy.collection.length })}</span>
+          <span className="text-gray-500">{t('menu.collected', { n: Object.keys(economy.collection).length })}</span>
         </motion.div>
       )}
 
