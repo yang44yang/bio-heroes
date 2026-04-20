@@ -35,14 +35,7 @@ export default function GachaScreen({ onBack, economy }) {
 
     setTimeout(() => {
       const { pulled: newCards, newPityCounter } = pull(count, economy.pityCounter, economy.SSR_PITY)
-      economy.pullCards(newCards)
-      const enriched = newCards.map(card => ({
-        ...card,
-        isNew: !economy.collection[card.id],
-        fragments: economy.collection[card.id]
-          ? (card.rarity === 'SSR' ? 50 : card.rarity === 'SR' ? 20 : 10)
-          : 0,
-      }))
+      const enriched = economy.pullCards(newCards)
       setPulled(newCards)
       setResults(enriched)
       setPulling(false)

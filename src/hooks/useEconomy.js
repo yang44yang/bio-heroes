@@ -137,9 +137,12 @@ export function useEconomy() {
   const MULTI_COST = 900  // 十连 = 9 次价格
   const SSR_PITY = 50
   const FRAGMENTS_PER_DUPE = 10
+  const MAX_COPIES_PER_CARD = 3  // 与卡组同名上限一致
 
   const pullCards = useCallback((pulledCards) => {
-    // Process pulled cards: new cards → collection, dupes → fragments
+    // Process pulled cards: 持有量未达 MAX_COPIES_PER_CARD → 入库 +1; 否则转碎片
+    // 同步计算 results 后返回，调用方据此渲染 UI
+    let computedResults
     setState(prev => {
       const newCollection = { ...prev.collection }
       const newFragments = { ...prev.fragments }
@@ -148,24 +151,35 @@ export function useEconomy() {
 
       for (const card of pulledCards) {
         newPity++
-        const isNew = !newCollection[card.id]
+        const currentCount = newCollection[card.id] || 0
 
-        if (isNew) {
-          newCollection[card.id] = 1
-          results.push({ ...card, isNew: true, fragments: 0 })
+        if (currentCount < MAX_COPIES_PER_CARD) {
+          newCollection[card.id] = currentCount + 1
+          results.push({
+            ...card,
+            isNew: currentCount === 0,
+            isDupe: false,
+            count: currentCount + 1,
+            fragments: 0,
+          })
         } else {
-          // Duplicate → fragments
           const fragCount = card.rarity === 'SSR' ? 50 : card.rarity === 'SR' ? 20 : FRAGMENTS_PER_DUPE
           newFragments[card.id] = (newFragments[card.id] || 0) + fragCount
-          results.push({ ...card, isNew: false, fragments: fragCount })
+          results.push({
+            ...card,
+            isNew: false,
+            isDupe: true,
+            count: MAX_COPIES_PER_CARD,
+            fragments: fragCount,
+          })
         }
 
-        // Reset pity on SSR
         if (card.rarity === 'SSR') {
           newPity = 0
         }
       }
 
+      computedResults = results
       return {
         ...prev,
         collection: newCollection,
@@ -174,6 +188,7 @@ export function useEconomy() {
         totalPulls: prev.totalPulls + pulledCards.length,
       }
     })
+    return computedResults
   }, [])
 
   // === 进化 ===
@@ -264,5 +279,6 @@ export function useEconomy() {
     SINGLE_COST,
     MULTI_COST,
     SSR_PITY,
+    MAX_COPIES_PER_CARD,
   }
 }
