@@ -125,6 +125,16 @@ export function useHand(deckCards) {
     return discarded
   }, [])
 
+  // 直接追加到手牌（Conundrum 起手奖励用，绕过抽牌堆）
+  const addToHand = useCallback((extraCards) => {
+    if (!extraCards || extraCards.length === 0) return
+    const stamped = extraCards.map((c, i) => ({
+      ...c,
+      uid: `bonus_${c.id}_${Date.now()}_${i}`,
+    }))
+    setHand(prev => [...prev, ...stamped])
+  }, [])
+
   return {
     hand,
     drawPile,
@@ -136,5 +146,6 @@ export function useHand(deckCards) {
     discardCard,
     mulligan,
     trimHand,
+    addToHand,
   }
 }

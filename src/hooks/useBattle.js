@@ -1283,7 +1283,7 @@ export function useBattle() {
     setTurn(1)
     setPlayerEnergy(1)
     setEnemyEnergy(1)
-    setPlayerLeaderHp(LEADER_HP)
+    setPlayerLeaderHp(spDecks.playerLeaderHP || LEADER_HP)
     setEnemyLeaderHp(spDecks.enemyLeaderHP || LEADER_HP)
     setPlayerField(emptyField())
     setEnemyField(emptyField())

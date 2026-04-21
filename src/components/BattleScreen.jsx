@@ -11,6 +11,7 @@ import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
 import DialogueBox from './DialogueBox'
 import BattleLogPanel from './BattleLogPanel'
+import ConundrumModal from './ConundrumModal'
 import { useBattleHints, BattleHintOverlay } from './BattleHints'
 import cards from '../data/cards'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -83,6 +84,9 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const [awakenOpts, setAwakenOpts] = useState({})
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showBattleLog, setShowBattleLog] = useState(false)
+  // Conundrum：如果关卡有 conundrum 配置且尚未完成，先弹 modal 阻塞战斗初始化
+  const [conundrumPending, setConundrumPending] = useState(campaignConfig?.conundrum || null)
+  const [conundrumEffect, setConundrumEffect] = useState(null)
   const [lockToast, setLockToast] = useState(null)
 
   // === 换卡（Mulligan）===
@@ -198,6 +202,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const initialized = useRef(false)
   useEffect(() => {
     if (initialized.current) return
+    // Conundrum 未完成 → 等用户做完选择再初始化（modal onComplete 后再触发本 effect）
+    if (conundrumPending) return
     initialized.current = true
     playerHand.initHand()
     enemyHand.initHand()
@@ -210,14 +216,35 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         bossPreplacedCard = { ...found, uid: `boss_${found.id}_0` }
       }
     }
+    // 应用 Conundrum effect（HP bonus）到 startBattle 入参
+    const eff = conundrumEffect || {}
     battle.startBattle({
       player: playerSpDeckCards || playerTestSpDeck,
       enemy: enemySp,
-      enemyLeaderHP: campaignConfig?.leaderHP,
+      enemyLeaderHP: (campaignConfig?.leaderHP || 0) + (eff.enemyLeaderHpBonus || 0) || campaignConfig?.leaderHP,
+      playerLeaderHP: eff.playerLeaderHpBonus ? LEADER_HP + eff.playerLeaderHpBonus : undefined,
       campaignConfig,
       bossPreplaced: bossPreplacedCard,
     })
-  }, [])
+    // Conundrum 起手手牌奖励：在 initHand 之后追加
+    if (eff.playerStartingBonus?.card) {
+      const found = cards.find(c => c.id === eff.playerStartingBonus.card)
+      if (found) {
+        const count = eff.playerStartingBonus.count || 1
+        const extras = Array(count).fill(null).map(() => ({ ...found }))
+        if (playerHand.addToHand) playerHand.addToHand(extras)
+      }
+    }
+    if (eff.playerStartingHandBonus?.filter) {
+      const { filter, count = 1 } = eff.playerStartingHandBonus
+      // 从玩家卡库（playerDeckCards）里筛选指定阵营的卡，补到起手
+      const candidates = (playerDeckCards || []).filter(c => c.faction === filter)
+      if (candidates.length > 0) {
+        const extras = Array(count).fill(null).map((_, i) => ({ ...candidates[i % candidates.length] }))
+        if (playerHand.addToHand) playerHand.addToHand(extras)
+      }
+    }
+  }, [conundrumPending, conundrumEffect])
 
   // === 闯关对话 ===
   const [dialoguePhase, setDialoguePhase] = useState(campaignConfig?.dialogue?.before ? 'before' : null)
@@ -1692,6 +1719,17 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         open={showBattleLog}
         onClose={() => setShowBattleLog(false)}
       />
+
+      {conundrumPending && (
+        <ConundrumModal
+          conundrum={conundrumPending}
+          lang={lang}
+          onComplete={(effect) => {
+            setConundrumEffect(effect || {})
+            setConundrumPending(null)
+          }}
+        />
+      )}
 
       {/* 退出确认弹窗 */}
       {showExitConfirm && createPortal(
