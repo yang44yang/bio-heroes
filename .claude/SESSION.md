@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-04-21（Sprint 29 / 30 / 30a 完成 + hotfix）
+> 更新时间: 2026-04-21（Sprint 29 / 30 / 30a / 30b 完成 + hotfix）
 
 ## 项目位置
 - **实际路径**: `/Users/yangyang_macair15/Projects/bio-heroes/`
@@ -9,6 +9,22 @@
 ---
 
 ## 最近完成
+
+### Sprint 30b: SP 双系统 + ch2 Conundrum 新关 ✅（7 step + hotfix）
+- **Step 1 SP unlockMode**: 14 张 'gacha' / 2 张 'campaign_only'（sp_vaccine_shield 2-4, sp_quantum_healer 4-4）
+- **Step 2 SP 抽卡档位**: 2% 基础概率（齐齐反馈"抽不到 SP" → 修），SP 池排除 campaign_only，重置 pity，_gachaSlot 标记
+- **Step 3 useEconomy.unlockedSPs + unlockCampaignSP**: 通关解锁列表（幂等）
+- **Step 4 SpUnlockModal + Boss 触发**: App.SP_UNLOCK_MAP，handleExitBattle 在 won 时检查并触发庆祝弹窗
+- **Step 5 ConundrumModal**: 两段式 UI（选项 → 后果+科学），中英文双语，localStorage 记录选择
+- **Step 6 BattleScreen 集成**: conundrumPending 阻塞 init，effect 应用 playerLeaderHpBonus / enemyLeaderHpBonus / playerStartingBonus / playerStartingHandBonus；useHand 加 addToHand；useBattle.startBattle 加 playerLeaderHP 入参
+- **Step 7 ch2 +2 关**:
+  - stage_2_7_vaccine_dilemma 疫苗两难（22000 HP，3 选项含真实公共卫生伦理）
+  - stage_2_8_antibiotic_abuse 抗生素滥用（24000 HP，3 选项含 WHO Antibiotic Stewardship）
+  - ch2 stages 6 → 8，BOSS 自动后移
+- **Hotfix Conundrum 链路**（3 bug 连锁）:
+  1. CampaignScreen.handleStartStage 漏传 conundrum 字段
+  2. App._campaignEnemy 漏传 conundrum 字段
+  3. ConundrumModal AnimatePresence mode="wait" exit 卡死（同 Sprint 30a 抽卡 bug）→ 拆掉
 
 ### Sprint 30a: 卡片持有量系统 + 关卡编号修复 ✅
 - **Step 1 collection 数据迁移**: `string[]` → `{ cardId: count }` Map
@@ -60,7 +76,7 @@
 
 ---
 
-## 累计战果（Sprint 23-30a，8 个 Sprint）
+## 累计战果（Sprint 23-30b，9 个 Sprint）
 
 | 维度 | 数字 |
 |------|------|
@@ -73,12 +89,14 @@
 | 战斗日志面板 | 9 类分色（Sprint 29）|
 | 卡组槽系统 | 3→10 + 自定义命名（Sprint 30）|
 | 卡片持有量系统 | MAX=3 + 碎片商店（Sprint 30a）|
-| Bugfix | 4 个实测 bug（Sprint 28/30a）|
+| SP 双系统 | gacha 2% + Boss 解锁（Sprint 30b）|
+| Conundrum 关卡 | 2 个（疫苗两难 + 抗生素滥用）|
+| Bugfix | 6 个实测 bug |
 
 ---
 
 ## 进行中
-（无 — Sprint 30a 已完成，等下次规划）
+（无 — Sprint 30b 已完成，等下次规划）
 
 ---
 
@@ -87,47 +105,56 @@
 ### 小问题
 - 战斗日志 message 文本硬编码中文（100+ 条，spec 方案 A：不翻译）
 - Vite dev 偶尔 504（已用 optimizeDeps.include 修复主要路径）
+- Conundrum effect `enemyExtraTurns` / `globalEffect: antibiotic_weakened` 仅文字呈现，未真实生效（spec 30b 简化策略）
+- 已解锁但未通关的关卡 UI 显示满星 ⭐⭐⭐（疫苗两难没玩过但显示满星）— 排查 CampaignScreen 渲染逻辑
 
 ### 未覆盖功能
-- 深度战役测试：Sprint 23-30a 的改动在真实对战中可能有边缘 bug
-- Card-designer skill 需在 Claude.ai 侧手动更新（反映 Sprint 26 新 subType）
+- 深度战役测试：Sprint 23-30b 的改动需要实战暴露 bug
+- Card-designer skill 需在 Claude.ai 侧手动更新（反映 Sprint 26 新 subType + 30b SP unlockMode）
 - bio-heroes-knowledge-map.md（KP_ID + NGSS + 中国课标对应表）尚未创建
+- ch3 Boss SP（sp_gaia_restoration 地球生态复原）未设计 — 当前 ch3 Boss 通关无 SP 解锁
 
 ### 遗留数据层问题
-- 关卡 ID 数据层仍混用 `stage_2_2` vs `2-2`（Sprint 30a 只修 UI 显示，底层没清理）
+- 关卡 ID 数据层仍混用 `stage_2_2` vs `2-2` vs `stage_2_7_vaccine_dilemma`（UI 已用 stageNumber 解耦）
 
 ---
 
 ## 下次启动时优先
 
 ### 推荐方向 A：齐齐实测反馈循环（最高优先级）
-1. **齐齐玩各关卡，父母记 bug**：Sprint 29-30a 改动大，需要实战暴露新问题
-2. **卡片持有量系统实战**：抽到已齐的卡 → 碎片；碎片商店用得顺不顺手
-3. **10 卡组槽 + 命名**：齐齐真的用得上 10 个吗？命名体验如何？
-4. **Boss 战实战测试**：3 个 Boss（新冠/蓝鲸/超级细菌）unit-test 通过但没走完整战斗
-5. **aiPersonality 体感**：aggressive 关是不是真的"紧张"？数值还要再调吗？
+1. **新内容首发实测**：
+   - 疫苗两难 / 抗生素滥用：Conundrum 三选一好玩吗？齐齐能理解科学注释吗？
+   - SP 抽卡 2%：连抽 50 次能不能至少抽到 1 张？
+   - Boss 解锁 SP：打赢新冠 → 庆祝弹窗有没有仪式感？
+2. **修小 bug**：星数 UI 显示满星 bug — 5-10 分钟
+3. **Boss 战实战测试**：3 个 Boss（新冠/蓝鲸/超级细菌）unit-test 通过但没走完整战斗
+4. **aiPersonality 体感**：aggressive 关是不是真的"紧张"？数值还要再调吗？
 
-### 推荐方向 B：Sprint 30a spec 里 defer 的内容
-- SP 双系统（spec 里提到但本 sprint 没做）
-- ch2 新关卡（spec 里提到但本 sprint 没做）
-- Conundrum 组件
+### 推荐方向 B：Sprint 30b 留尾 → 完整化
+- **enemyExtraTurns 真实实现**（疫苗两难选项 C 用得上）
+- **globalEffect: antibiotic_weakened**：本局抗生素卡伤害减半（抗生素滥用 A）
+- **ch3 Boss SP 设计**：sp_gaia_restoration 地球生态复原 + ch3 Boss 通关解锁
 
-### 推荐方向 C：新功能
+### 推荐方向 C：扩展 Conundrum 内容
+- ch3 / ch4 各加 2 个 Conundrum 关（先看 ch2 反应再决定）
+- Conundrum 选择数据分析：齐齐的"价值观倾向"统计
+
+### 推荐方向 D：新功能
 - 成就系统（收集/战斗/答题三类勋章）
 - 可选主人（生物学家/医生/猎人三种被动）
 - 每日挑战
 
-### 推荐方向 D：卡池扩展（中长期）
+### 推荐方向 E：卡池扩展（中长期）
 - Phase 2 扩展包 ~160 张（OCEAN 海洋深渊 + MICRO 微观战场）
 - 进化链扩展（2 → 10+）
 
-### 推荐方向 E：工程支撑
+### 推荐方向 F：工程支撑
 - card-designer skill 更新（Claude.ai 侧）
 - bio-heroes-knowledge-map.md
 
 ---
 
-## 关键文件变更（Sprint 29-30a）
+## 关键文件变更（Sprint 29-30b）
 
 ### Sprint 29
 - `src/components/BattleLogPanel.jsx` — 新建
@@ -144,6 +171,19 @@
 - `src/components/DeckBuilder.jsx` — collection 读取从数组改对象
 - `src/components/TitleScreen.jsx` — collection 计数用 Object.keys
 - `src/components/CampaignScreen.jsx` — stageNumber() 解耦显示号
+
+### Sprint 30b
+- `src/data/spCards.js` — 16 张 SP 全部加 unlockMode（14 gacha + 2 campaign_only）
+- `src/hooks/useGacha.js` — SP 档位 2% + gachaSpCards 池 + _gachaSlot 标记
+- `src/hooks/useEconomy.js` — unlockedSPs + unlockCampaignSP
+- `src/hooks/useHand.js` — addToHand（Conundrum bonus 用）
+- `src/hooks/useBattle.js` — startBattle 加 playerLeaderHP 入参
+- `src/components/SpUnlockModal.jsx` — 新建（Boss 解锁庆祝）
+- `src/components/ConundrumModal.jsx` — 新建（两段式选项+后果 UI）
+- `src/components/BattleScreen.jsx` — Conundrum 集成 + effect 应用
+- `src/components/CampaignScreen.jsx` — handleStartStage 传 conundrum
+- `src/data/campaignData.js` — ch2 +2 关含完整 Conundrum 数据
+- `src/App.jsx` — SP_UNLOCK_MAP + handleExitBattle 触发解锁 + SpUnlockModal 渲染 + _campaignEnemy 加 conundrum
 
 ---
 
