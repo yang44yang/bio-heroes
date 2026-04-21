@@ -12,6 +12,13 @@ import cards from './data/cards'
 import eventCards from './data/eventCards'
 import spCards from './data/spCards'
 import IntroModal from './components/IntroModal'
+import SpUnlockModal from './components/SpUnlockModal'
+
+// Boss 关 ID → 通关解锁的 SP 卡 ID
+const SP_UNLOCK_MAP = {
+  '2-4': 'sp_vaccine_shield',   // ch2 Boss (新冠) → 疫苗之盾
+  '4-4': 'sp_quantum_healer',   // ch4 Boss (超级细菌) → 量子医疗
+}
 
 // 懒加载重型组件 — 代码分割
 const BattleScreen = lazy(() => import('./components/BattleScreen'))
@@ -61,6 +68,7 @@ export default function App() {
   })
   const [selectedDeck, setSelectedDeck] = useState(null)
   const [tutorialStartLevel, setTutorialStartLevel] = useState(null) // 从闯关跳转时指定教学关卡
+  const [pendingSpUnlock, setPendingSpUnlock] = useState(null) // Boss 通关后弹解锁庆祝
   const economy = useEconomy()
 
   // === 闯关战役状态 ===
@@ -138,6 +146,15 @@ export default function App() {
             if (r?.coins) economy.addCoins(r.coins)
             if (r?.ssrTicket) economy.useSSRTicket()
           }
+        }
+      }
+
+      // SP 解锁（Boss 通关）— 不依赖首通：每次通关都尝试解锁，unlockCampaignSP 幂等
+      if (battleResult.won) {
+        const unlockableId = SP_UNLOCK_MAP[stageConfig.stageId]
+        if (unlockableId && !(economy.unlockedSPs || []).includes(unlockableId)) {
+          economy.unlockCampaignSP(unlockableId)
+          setPendingSpUnlock(unlockableId)
         }
       }
 
@@ -308,6 +325,15 @@ export default function App() {
           />
         )}
       </Suspense>
+
+      <AnimatePresence>
+        {pendingSpUnlock && (
+          <SpUnlockModal
+            spId={pendingSpUnlock}
+            onClose={() => setPendingSpUnlock(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
     </LanguageProvider>
   )
