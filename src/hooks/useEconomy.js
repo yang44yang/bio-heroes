@@ -45,6 +45,7 @@ const DEFAULT_STATE = {
   fragments: {},             // 碎片 { cardId: count }
   pityCounter: 0,           // SSR 保底计数器
   totalPulls: 0,
+  unlockedSPs: [],          // 已通关解锁的 campaign_only SP 卡 ID 列表
 }
 
 function arrayToCollectionMap(ids) {
@@ -296,6 +297,15 @@ export function useEconomy() {
     })
   }, [])
 
+  // 通关解锁 campaign_only SP 卡（幂等：已解锁则不变）
+  const unlockCampaignSP = useCallback((spId) => {
+    setState(prev => {
+      const list = prev.unlockedSPs || []
+      if (list.includes(spId)) return prev
+      return { ...prev, unlockedSPs: [...list, spId] }
+    })
+  }, [])
+
   return {
     coins: state.coins,
     diamonds: state.diamonds,
@@ -304,6 +314,7 @@ export function useEconomy() {
     pityCounter: state.pityCounter,
     totalPulls: state.totalPulls,
     isNewPlayer: !!state.isNewPlayer,
+    unlockedSPs: state.unlockedSPs || [],
 
     addCoins,
     spendCoins,
@@ -317,6 +328,7 @@ export function useEconomy() {
     useSSRTicket,
     sellFragments,
     sellAllUnusedFragments,
+    unlockCampaignSP,
 
     SINGLE_COST,
     MULTI_COST,
