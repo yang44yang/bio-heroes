@@ -12,6 +12,7 @@ const spCards = [
 
   {
     id: "sp_trex",
+    unlockMode: "gacha",
     name: "SP·霸王龙·远古霸主",
     nameEn: "SP: T-Rex: Ancient Apex",
     type: "sp",
@@ -55,6 +56,7 @@ const spCards = [
 
   {
     id: "sp_world_tree",
+    unlockMode: "gacha",
     name: "SP·世界树·生命之源",
     nameEn: "SP: World Tree: Source of Life",
     type: "sp",
@@ -102,6 +104,7 @@ const spCards = [
 
   {
     id: "sp_car_t_cell",
+    unlockMode: "gacha",
     name: "SP·CAR-T细胞·基因战士",
     nameEn: "SP: CAR-T Cell: Gene Warrior",
     type: "sp",
@@ -138,6 +141,7 @@ const spCards = [
 
   {
     id: "sp_brain_awakening",
+    unlockMode: "gacha",
     name: "SP·大脑·意识觉醒",
     nameEn: "SP: Brain: Consciousness Awakening",
     type: "sp",
@@ -178,6 +182,7 @@ const spCards = [
 
   {
     id: "sp_super_bacteria",
+    unlockMode: "gacha",
     name: "SP·超级细菌·耐药终结者",
     nameEn: "SP: Super Bacteria: Resistance Ender",
     type: "sp",
@@ -214,6 +219,7 @@ const spCards = [
 
   {
     id: "sp_ancient_virus",
+    unlockMode: "gacha",
     name: "SP·远古病毒·冰封复苏",
     nameEn: "SP: Ancient Virus: Frozen Resurrection",
     type: "sp",
@@ -261,6 +267,7 @@ const spCards = [
 
   {
     id: "sp_nanobot",
+    unlockMode: "gacha",
     name: "SP·纳米机器人·微观军团",
     nameEn: "SP: Nanobot: Micro Legion",
     type: "sp",
@@ -297,6 +304,7 @@ const spCards = [
 
   {
     id: "sp_crispr",
+    unlockMode: "gacha",
     name: "SP·基因编辑器·CRISPR之力",
     nameEn: "SP: Gene Editor: Power of CRISPR",
     type: "sp",
@@ -337,6 +345,7 @@ const spCards = [
 
   {
     id: "sp_world_tree_ancient",
+    unlockMode: "gacha",
     name: "SP·远古世界树·万灵庇护",
     nameEn: "SP: Ancient World Tree - Universal Shelter",
     type: "sp",
@@ -366,6 +375,7 @@ const spCards = [
 
   {
     id: "sp_kraken",
+    unlockMode: "gacha",
     name: "SP·大王乌贼·深渊之王",
     nameEn: "SP: Giant Squid - Abyssal King",
     type: "sp",
@@ -402,6 +412,7 @@ const spCards = [
 
   {
     id: "sp_immune_overdrive",
+    unlockMode: "gacha",
     name: "SP·免疫风暴·全系统协同",
     nameEn: "SP: Immune Storm - Full System Sync",
     type: "sp",
@@ -431,6 +442,7 @@ const spCards = [
 
   {
     id: "sp_bone_titan",
+    unlockMode: "gacha",
     name: "SP·骨骼巨人·钢铁之躯",
     nameEn: "SP: Bone Titan - Iron Body",
     type: "sp",
@@ -460,6 +472,7 @@ const spCards = [
 
   {
     id: "sp_zombie_plague",
+    unlockMode: "gacha",
     name: "SP·��尸瘟疫·末日病原",
     nameEn: "SP: Zombie Plague - Doomsday Pathogen",
     type: "sp",
@@ -489,6 +502,7 @@ const spCards = [
 
   {
     id: "sp_biofilm_fortress",
+    unlockMode: "gacha",
     name: "SP·生物膜·细菌堡垒",
     nameEn: "SP: Biofilm Fortress",
     type: "sp",
@@ -518,6 +532,8 @@ const spCards = [
 
   {
     id: "sp_quantum_healer",
+    unlockMode: "campaign_only",
+    unlockStage: "4-4",
     name: "SP·量子医疗·未来之光",
     nameEn: "SP: Quantum Healer - Future Light",
     type: "sp",
@@ -547,6 +563,8 @@ const spCards = [
 
   {
     id: "sp_vaccine_shield",
+    unlockMode: "campaign_only",
+    unlockStage: "2-4",
     name: "SP·全民免疫·疫苗之盾",
     nameEn: "SP: Herd Immunity Shield",
     type: "sp",
