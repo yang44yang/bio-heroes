@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 /**
  * ConundrumModal — 关卡前置两难选择
@@ -35,14 +35,12 @@ export default function ConundrumModal({ conundrum, lang = 'zh', onComplete }) {
         initial={{ scale: 0.9, y: 20 }}
         animate={{ scale: 1, y: 0 }}
       >
-        <AnimatePresence mode="wait">
-          {!showConsequence ? (
+        {!showConsequence ? (
             <motion.div
               key="choices"
               className="p-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
             >
               <div className="text-center mb-6">
                 <div className="text-5xl mb-3">🤔</div>
@@ -77,7 +75,6 @@ export default function ConundrumModal({ conundrum, lang = 'zh', onComplete }) {
               className="p-6"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
             >
               <div className="mb-4">
                 <div className="text-xs text-gray-400 mb-1">{lang === 'en' ? 'Your choice' : '你的选择'}</div>
@@ -108,7 +105,6 @@ export default function ConundrumModal({ conundrum, lang = 'zh', onComplete }) {
               </button>
             </motion.div>
           )}
-        </AnimatePresence>
       </motion.div>
     </motion.div>
   )

@@ -105,6 +105,7 @@ export default function App() {
           dialogue: stageConfig.dialogue,
           stageType: stageConfig.stageType,
           stageName: stageConfig.stageName,
+          conundrum: stageConfig.conundrum,  // Sprint 30b: 关卡前置两难选择
         },
       }))
     }

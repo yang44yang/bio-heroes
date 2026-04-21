@@ -93,6 +93,7 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
         dialogue: stage.dialogue,
         rewards: stage.rewards,
         starConditions: stage.starConditions,
+        conundrum: stage.conundrum,  // Sprint 30b: 关卡前置两难
       })
     }
     setSelectedStage(null)
