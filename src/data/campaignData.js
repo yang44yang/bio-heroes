@@ -621,7 +621,9 @@ export const campaignData = {
           type: 'battle',
           enemyConfig: {
             leaderHP: 22000,
-            deck: ['hiv_hunter','flu_virus','flu_virus','plasmodium_parasite','plasmodium_parasite','event_gene_mutation','event_gene_mutation','event_infection_outbreak','event_infection_outbreak','event_drug_resistance'],
+            // 重平衡：hiv_hunter 需要 body 标记，本组没有 body 卡 → 永远打不出。
+            // 用 anthrax_spore (c4 SR 无 req) 替代填补该 slot。
+            deck: ['anthrax_spore','flu_virus','flu_virus','plasmodium_parasite','plasmodium_parasite','event_gene_mutation','event_gene_mutation','event_infection_outbreak','event_infection_outbreak','event_drug_resistance'],
             spDeck: [],
             aiStrength: 0.7,
             aiPersonality: 'defensive',
@@ -673,7 +675,10 @@ export const campaignData = {
           type: 'battle',
           enemyConfig: {
             leaderHP: 28000,
-            deck: ['ebola_terror','ebola_terror','smallpox_ghost','anthrax_spore','dengue_mosquito','norovirus_storm','hiv_hunter','event_global_pandemic','event_drug_resistance','event_gene_mutation'],
+            // 重平衡：原本 smallpox_ghost(c7+pathogen 2 marker) 永远打不出，
+            // hiv_hunter 需要 body 标记但本组没 body 卡 → 也打不出。
+            // 同时低费过少 AI 早期手牌全是死卡。
+            deck: ['ebola_terror','dengue_mosquito','dengue_mosquito','anthrax_spore','norovirus_storm','norovirus_storm','common_cold_virus','event_global_pandemic','event_drug_resistance','event_gene_mutation'],
             spDeck: ['sp_zombie_plague'],
             aiStrength: 0.7,
             aiPersonality: 'aggressive',
@@ -700,7 +705,10 @@ export const campaignData = {
           type: 'boss',
           enemyConfig: {
             leaderHP: 30000,
-            deck: ['hiv_hunter','covid_invader','ecoli_thug','ecoli_thug','ecoli_thug','event_global_pandemic','event_drug_resistance','event_drug_resistance','event_drug_resistance','event_gene_mutation','event_gene_mutation'],
+            // 重平衡：原本 hiv_hunter 与 covid_invader 都需要 body 标记
+            // 但本组没有 body 卡 → AI 永远打不出。
+            // 改用 mrsa(可由 2 张 ecoli 死亡触发 pathogen 标记) + anthrax + ebola。
+            deck: ['mrsa_superbug','anthrax_spore','ebola_terror','ecoli_thug','ecoli_thug','ecoli_thug','event_global_pandemic','event_drug_resistance','event_drug_resistance','event_drug_resistance','event_gene_mutation'],
             spDeck: ['sp_super_bacteria', 'sp_ancient_virus'],
             aiStrength: 0.8,
             aiPersonality: 'balanced',
