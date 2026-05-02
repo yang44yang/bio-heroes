@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-04-21（Sprint 29 / 30 / 30a / 30b 完成 + hotfix）
+> 更新时间: 2026-05-02（Sprint 30b 留尾完成 + 实测 bug 5 连修）
 
 ## 项目位置
 - **实际路径**: `/Users/yangyang_macair15/Projects/bio-heroes/`
@@ -9,6 +9,29 @@
 ---
 
 ## 最近完成
+
+### 2026-05-02 实测 bug 5 连修 + Sprint 30b 留尾完成 ✅
+齐齐 iPad 实测报 bug，逐个排查修复：
+
+- **Bug A (锁链断裂)**: 老存档 ch2/ch3 中间关卡被锁，后面关卡却开。
+  根因：Sprint 19 在已通关老 ID 间插入新 ID，新关 0 星 → 老关 prev 检查失败。
+  修：`isStageUnlocked` 加"本关已有星就放行"防御逻辑。
+- **Bug B (章节 tab 锁)**: 老玩家进 ch2 后 ch3 仍锁。
+  根因：章节 tab 用 `isChapterComplete`（每关满星）→ 新关 0 星永远不满。
+  修：章节 tab 用"第一关可解锁"判定（复用 isStageUnlocked）。
+- **Bug C (AI 不出牌)**: 疫苗两难 / 抗生素滥用 + 4-2/stage_4_4/4-4 共 5 关 AI 卡死手牌。
+  根因：smallpox_ghost (c7+pathogen 2) / hiv_hunter (c4+body 1, 但敌组无 body) 等
+  factionRequirement 永远凑不齐。低费过少 → AI 早期手牌全废。
+  修：写审计脚本 `src/data/cards × campaignData` 扫所有 18 关，重平衡 5 关敌方牌组。
+- **Bug D (假满星)**: 没玩过的关卡显示 ⭐⭐⭐ 都是黄的。
+  根因：emoji ⭐ 颜色由系统字体决定，CSS `text-gray-700` 对 emoji 无效。
+  修：未得星用 `filter: grayscale(1) brightness(0.4)` + `opacity: 0.5`。
+- **Bug E (Conundrum 留尾)**: enemyExtraTurns / antibiotic_weakened 仅文字未生效。
+  实现：
+  - `preplaceEnemyCards: ['flu_virus', 'flu_virus']` → startBattle 预置敌方场上单位
+    （不加召唤疲劳，可立刻攻击）。修了起手敌方出牌覆盖预置卡的隐藏 bug。
+  - `globalEffectsRef` + makeFieldCard 检查 `tags.includes('antibiotic')` → ATK 砍半。
+  - leader maxHP 显示加 conundrum bonus 修正。
 
 ### Sprint 30b: SP 双系统 + ch2 Conundrum 新关 ✅（7 step + hotfix）
 - **Step 1 SP unlockMode**: 14 张 'gacha' / 2 张 'campaign_only'（sp_vaccine_shield 2-4, sp_quantum_healer 4-4）
@@ -76,13 +99,13 @@
 
 ---
 
-## 累计战果（Sprint 23-30b，9 个 Sprint）
+## 累计战果（Sprint 23-30b + 实测修复，9 个 Sprint + 5 bug）
 
 | 维度 | 数字 |
 |------|------|
 | 实现技能 | ~113 个（接近 100%）|
 | 新模板函数 | 15+ 个 |
-| 引擎扩展 | 14 个 event type / status type |
+| 引擎扩展 | 14 个 event type / status type + globalEffects |
 | scienceCard 修复 | 18 张 |
 | 机制重做（First-Principle 锚定）| 8 张卡 |
 | subType 重构 | 52 卡 + 8 SP |
@@ -90,8 +113,9 @@
 | 卡组槽系统 | 3→10 + 自定义命名（Sprint 30）|
 | 卡片持有量系统 | MAX=3 + 碎片商店（Sprint 30a）|
 | SP 双系统 | gacha 2% + Boss 解锁（Sprint 30b）|
-| Conundrum 关卡 | 2 个（疫苗两难 + 抗生素滥用）|
-| Bugfix | 6 个实测 bug |
+| Conundrum 关卡 | 2 个 + 真实 effect 应用（HP/起手卡/预置敌方/抗生素减伤）|
+| 敌方牌组审计 | 18 关全扫，修 5 关 AI 卡死 |
+| Bugfix 实测 | 11 个 |
 
 ---
 
@@ -105,8 +129,8 @@
 ### 小问题
 - 战斗日志 message 文本硬编码中文（100+ 条，spec 方案 A：不翻译）
 - Vite dev 偶尔 504（已用 optimizeDeps.include 修复主要路径）
-- Conundrum effect `enemyExtraTurns` / `globalEffect: antibiotic_weakened` 仅文字呈现，未真实生效（spec 30b 简化策略）
-- 已解锁但未通关的关卡 UI 显示满星 ⭐⭐⭐（疫苗两难没玩过但显示满星）— 排查 CampaignScreen 渲染逻辑
+- ~~Conundrum effect enemyExtraTurns / antibiotic_weakened 未生效~~ ✅ 已修
+- ~~星数 UI 显示满星~~ ✅ 已修
 
 ### 未覆盖功能
 - 深度战役测试：Sprint 23-30b 的改动需要实战暴露 bug
@@ -121,28 +145,29 @@
 
 ## 下次启动时优先
 
-### 推荐方向 A：齐齐实测反馈循环（最高优先级）
-1. **新内容首发实测**：
-   - 疫苗两难 / 抗生素滥用：Conundrum 三选一好玩吗？齐齐能理解科学注释吗？
-   - SP 抽卡 2%：连抽 50 次能不能至少抽到 1 张？
-   - Boss 解锁 SP：打赢新冠 → 庆祝弹窗有没有仪式感？
-2. **修小 bug**：星数 UI 显示满星 bug — 5-10 分钟
-3. **Boss 战实战测试**：3 个 Boss（新冠/蓝鲸/超级细菌）unit-test 通过但没走完整战斗
-4. **aiPersonality 体感**：aggressive 关是不是真的"紧张"？数值还要再调吗？
+### 推荐方向 A：齐齐持续实测反馈（永远最高优先级）
+- 现在游戏内容已全面就绪 + 实测发现的 5 个 bug 都修了
+- 让齐齐刷新 → 重玩各章节 → 验证：
+  - 疫苗两难 / 抗生素滥用：Conundrum 三选一是否有思考价值？
+  - 选 C 后真的看到 2 个病毒在敌方场上吗？
+  - 选 A 后青霉素真的只造一半伤害吗？
+  - SP 抽卡 2% 连抽 50 次能不能至少抽到 1 张 SP？
+  - Boss 通关 SP 解锁庆祝有没有仪式感？
 
-### 推荐方向 B：Sprint 30b 留尾 → 完整化
-- **enemyExtraTurns 真实实现**（疫苗两难选项 C 用得上）
-- **globalEffect: antibiotic_weakened**：本局抗生素卡伤害减半（抗生素滥用 A）
+### 推荐方向 B：扩展 Conundrum 内容（最有教育价值）
+ch2 模板验证 OK 之后，复制扩展：
+- **ch3 加 2 个 Conundrum 关**：生态危机主题（如"该不该砍这片森林？"、"濒危物种 vs 经济发展"）
+- **ch4 加 2 个 Conundrum 关**：科技伦理（如"基因编辑要不要做？"、"AI 诊断 vs 医生诊断"）
+- 每章 Conundrum 是高 ROI 教育内容，开发成本低
+
+### 推荐方向 C：完整化 SP 系统
 - **ch3 Boss SP 设计**：sp_gaia_restoration 地球生态复原 + ch3 Boss 通关解锁
-
-### 推荐方向 C：扩展 Conundrum 内容
-- ch3 / ch4 各加 2 个 Conundrum 关（先看 ch2 反应再决定）
-- Conundrum 选择数据分析：齐齐的"价值观倾向"统计
+- 当前 ch3 Boss 通关无 SP 解锁是个空洞 — 蓝鲸 Boss 应该有专属 SP
 
 ### 推荐方向 D：新功能
-- 成就系统（收集/战斗/答题三类勋章）
-- 可选主人（生物学家/医生/猎人三种被动）
-- 每日挑战
+- 成就系统（收集/战斗/答题三类勋章）— 给齐齐目标感
+- 可选主人（生物学家/医生/猎人三种被动）— 增加玩法多样性
+- 每日挑战 — 让齐齐每天有理由打开游戏
 
 ### 推荐方向 E：卡池扩展（中长期）
 - Phase 2 扩展包 ~160 张（OCEAN 海洋深渊 + MICRO 微观战场）
@@ -150,7 +175,7 @@
 
 ### 推荐方向 F：工程支撑
 - card-designer skill 更新（Claude.ai 侧）
-- bio-heroes-knowledge-map.md
+- bio-heroes-knowledge-map.md（KP_ID + NGSS + 中国课标）
 
 ---
 
