@@ -180,11 +180,16 @@ export const campaignData = {
           nameEn: 'The Vaccine Dilemma',
           type: 'battle',
           enemyConfig: {
+            // 牌组重平衡（修 AI 不出牌 bug）：原本 2 张 smallpox_ghost(cost 7+marker req) AI 永远打不出
+            // 改为 0/1/2/3/4 cost 渐进，AI 每回合都能出牌
             leaderHP: 22000,
             deck: [
-              'smallpox_ghost', 'smallpox_ghost',
-              'flu_virus', 'flu_virus',
-              'cavity_bacteria', 'cavity_bacteria',
+              'common_cold_virus',                          // 0 cost 开局垫场
+              'flu_virus', 'flu_virus',                     // 1 cost ×2
+              'cavity_bacteria',                            // 1 cost
+              'rabies_virus',                               // 2 cost SR
+              'plasmodium_parasite',                        // 3 cost SR
+              'anthrax_spore',                              // 4 cost SR（疫苗对抗经典）
               'event_drug_resistance', 'event_infection_outbreak',
             ],
             spDeck: [],
@@ -257,11 +262,15 @@ export const campaignData = {
           nameEn: 'Antibiotic Overuse',
           type: 'battle',
           enemyConfig: {
+            // 牌组重平衡：原本 2 张 mrsa_superbug(cost 6+marker req) AI 打不出
+            // 改为细菌为主，1 张 mrsa 当 finale，前期低费走量
             leaderHP: 24000,
             deck: [
-              'mrsa_superbug', 'mrsa_superbug',
-              'ecoli_thug', 'ecoli_thug', 'ecoli_thug',
-              'cavity_bacteria', 'cavity_bacteria',
+              'cavity_bacteria', 'cavity_bacteria',         // 1 cost ×2
+              'ecoli_thug', 'ecoli_thug', 'ecoli_thug',     // 2 cost ×3
+              'salmonella_poison',                          // 2 cost
+              'anthrax_spore',                              // 4 cost SR（细菌主题）
+              'mrsa_superbug',                              // 6 cost SSR（保留 1 张 finale）
               'event_drug_resistance', 'event_drug_resistance',
             ],
             spDeck: [],
@@ -754,6 +763,10 @@ export function saveCampaignProgress(progress) {
 export function isStageUnlocked(stageId, progress) {
   const { stageStars } = progress
   if (stageId === '1-1') return true
+
+  // 老存档保护：如果这一关已经有星（之前通关过），直接放行。
+  // 防止 Sprint 19/30b 在已通关关卡之间插入新 ID 后，老关卡因新 prev 无星被锁。
+  if ((stageStars[stageId] || 0) >= 1) return true
 
   for (const chapter of campaignData.chapters) {
     for (let i = 0; i < chapter.stages.length; i++) {
