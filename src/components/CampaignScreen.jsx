@@ -126,11 +126,11 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
       <div className="flex border-b border-gray-800 overflow-x-auto">
         {campaignData.chapters.map((ch, idx) => {
           const chComplete = isChapterComplete(ch.id, progress)
-          const chUnlocked = ch.unlockCondition === null ||
-            (ch.unlockCondition === 'ch1_basic_complete' && isChapterComplete('ch1', progress)) ||
-            (ch.unlockCondition === 'ch1_complete' && isChapterComplete('ch1', progress)) ||
-            (ch.unlockCondition === 'ch2_complete' && isChapterComplete('ch2', progress)) ||
-            (ch.unlockCondition === 'ch3_complete' && isChapterComplete('ch3', progress))
+          // 章节 tab 解锁 = 该章节第一关可解锁（统一用 isStageUnlocked）
+          // 修复：原本要求"前章 every stage starred"，但 Sprint 19/30b 插新关后老玩家"无法补打"→后章永远锁
+          // 用 first-stage unlock 检查，自然兼容老存档（前章 BOSS 有星即放行）
+          const firstStage = ch.stages[0]
+          const chUnlocked = ch.unlockCondition === null || (firstStage && isStageUnlocked(firstStage.id, progress))
 
           return (
             <button
