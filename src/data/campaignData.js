@@ -236,9 +236,10 @@ export const campaignData = {
                 labelEn: 'Wait for more vaccine, then vaccinate everyone',
                 effect: {
                   enemyLeaderHpBonus: 3000,
+                  preplaceEnemyCards: ['flu_virus', 'flu_virus'],  // 等待期间病毒扩散到战场
                 },
-                consequence: '等待期间病毒继续扩散，敌人更强了。敌方 HP +3000。但你在一个输不起的决策里坚持了公平。',
-                consequenceEn: 'Virus spread during the wait. Enemy HP +3000. But you upheld fairness in an impossible choice.',
+                consequence: '等待期间病毒继续扩散，敌人更强了。敌方 HP +3000，并且 2 个病毒已经入侵了战场。但你在一个输不起的决策里坚持了公平。',
+                consequenceEn: 'Virus spread during the wait. Enemy HP +3000 and 2 viruses have already invaded the field. But you upheld fairness in an impossible choice.',
                 scienceNote: '公平 vs 效率是真实的两难。科学家至今还在争论哪种策略更好，因为没有标准答案。',
                 scienceNoteEn: 'Fairness vs efficiency is a real dilemma. Scientists still debate which strategy is better, because there is no standard answer.',
               },

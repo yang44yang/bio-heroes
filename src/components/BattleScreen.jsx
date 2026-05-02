@@ -216,8 +216,17 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         bossPreplacedCard = { ...found, uid: `boss_${found.id}_0` }
       }
     }
-    // 应用 Conundrum effect（HP bonus）到 startBattle 入参
+    // 应用 Conundrum effect（HP bonus + 预置敌方单位）到 startBattle 入参
     const eff = conundrumEffect || {}
+    // preplaceEnemyCards: 把 ID 数组转成卡牌对象数组（等待期间病毒已扩散到战场）
+    const preplaceEnemyCards = Array.isArray(eff.preplaceEnemyCards)
+      ? eff.preplaceEnemyCards.map(id => {
+          const found = cards.find(c => c.id === id)
+          return found ? { ...found } : null
+        }).filter(Boolean)
+      : null
+    // Conundrum globalEffect: 字符串 → 数组（startBattle 接受数组）
+    const globalEffects = eff.globalEffect ? [eff.globalEffect] : []
     battle.startBattle({
       player: playerSpDeckCards || playerTestSpDeck,
       enemy: enemySp,
@@ -225,6 +234,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       playerLeaderHP: eff.playerLeaderHpBonus ? LEADER_HP + eff.playerLeaderHpBonus : undefined,
       campaignConfig,
       bossPreplaced: bossPreplacedCard,
+      preplaceEnemyCards,
+      globalEffects,
     })
     // Conundrum 起手手牌奖励：在 initHand 之后追加
     if (eff.playerStartingBonus?.card) {
@@ -352,14 +363,26 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         return // Boss 已预置，不再额外出牌
       }
 
+      // Sprint 30b: 如果 Conundrum preplaceEnemyCards 已经放了敌方单位，跳过额外起手出牌
+      if (Array.isArray(conundrumEffect?.preplaceEnemyCards) && conundrumEffect.preplaceEnemyCards.length > 0) {
+        return
+      }
+
       const hand = enemyHand.hand
       // 回合1能量=1，只能出费用≤1的卡，最多1张
       const affordable = hand.filter(c => c.cost <= 1)
       const toPlace = affordable.slice(0, 1) // 最多1张（能量只够1）
       if (toPlace.length > 0) {
+        // Sprint 30b: 不要覆盖已存在的 field card（preplaceEnemyCards 占了 0/1 slot）
         toPlace.forEach((c, i) => {
-          battle.aiPlayToField(c, i)
-          enemyHand.playCard(c.uid)
+          // 找首个空 slot
+          const enemyField = battle.enemyFieldRef?.current || []
+          let slotIdx = i
+          while (slotIdx < enemyField.length && enemyField[slotIdx]) slotIdx++
+          if (slotIdx < (enemyField.length || 5)) {
+            battle.aiPlayToField(c, slotIdx)
+            enemyHand.playCard(c.uid)
+          }
         })
       }
     }
@@ -1116,7 +1139,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       <LeaderPanel
         isEnemy={true}
         currentHP={battle.enemyLeaderHp}
-        maxHP={campaignConfig?.leaderHP || LEADER_HP}
+        maxHP={(campaignConfig?.leaderHP || LEADER_HP) + Math.max(0, conundrumEffect?.enemyLeaderHpBonus || 0)}
         isAttackTarget={enemyLeaderTargetable}
         dimmed={isBattlePhase && selectedAtkSlot !== null && hasEnemyGuard}
         onClick={handleAttackLeader}
@@ -1259,7 +1282,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       <LeaderPanel
         isEnemy={false}
         currentHP={battle.playerLeaderHp}
-        maxHP={LEADER_HP}
+        maxHP={LEADER_HP + Math.max(0, conundrumEffect?.playerLeaderHpBonus || 0)}
         isAttackTarget={false}
         dimmed={false}
         onClick={null}

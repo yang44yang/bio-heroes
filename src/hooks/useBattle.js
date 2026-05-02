@@ -37,6 +37,8 @@ export function useBattle() {
   // === 召唤疲劳 & 已攻击（uid Set）===
   const summonedThisTurn = useRef(new Set())
   const attackedThisTurn = useRef(new Set())
+  // Sprint 30b: Conundrum globalEffects（如 'antibiotic_weakened' = 抗生素卡 ATK 减半）
+  const globalEffectsRef = useRef([])
 
   // === 日志 & 问答 & 胜负 ===
   const [battleLog, setBattleLog] = useState([])
@@ -152,7 +154,12 @@ export function useBattle() {
   //  辅助
   // ----------------------------------------------------------------
   function makeFieldCard(card) {
-    return { ...card, currentHp: card.hp, maxHp: card.hp, statuses: [] }
+    let atk = card.atk
+    // Sprint 30b: antibiotic_weakened global effect → 抗生素卡 ATK 减半
+    if (globalEffectsRef.current.includes('antibiotic_weakened') && card.tags?.includes('antibiotic')) {
+      atk = Math.floor(atk / 2)
+    }
+    return { ...card, atk, currentHp: card.hp, maxHp: card.hp, statuses: [] }
   }
 
   function hasGuard(field) {
@@ -1319,6 +1326,11 @@ export function useBattle() {
     const mechId = spDecks.campaignConfig?.bossMechanic
     bossMechanicRef.current = mechId ? getBossMechanic(mechId) : null
     setBossMechanicEvents([])
+    // Sprint 30b: Conundrum globalEffects 初始化（必须在 makeFieldCard 调用前设置）
+    globalEffectsRef.current = Array.isArray(spDecks.globalEffects) ? spDecks.globalEffects : []
+    if (globalEffectsRef.current.includes('antibiotic_weakened')) {
+      addLog('🦠 细菌已耐药：本局所有抗生素卡 ATK 减半')
+    }
     // 关卡特殊规则初始化
     const ruleId = spDecks.campaignConfig?.stageRule
     stageRuleRef.current = ruleId ? getStageRule(ruleId) : null
@@ -1331,6 +1343,24 @@ export function useBattle() {
         return next
       })
       summonedThisTurn.current.add(bossCard.uid)
+    }
+    // Sprint 30b: preplaceEnemyCards (Conundrum enemyExtraTurns 等价实现)
+    // 等待期间病毒扩散 → 战场上已经有 N 个敌方单位，且无召唤疲劳（可以立刻攻击）
+    if (Array.isArray(spDecks.preplaceEnemyCards) && spDecks.preplaceEnemyCards.length > 0) {
+      const cards = spDecks.preplaceEnemyCards.map(c => makeFieldCard(c)).filter(Boolean)
+      setEnemyField(prev => {
+        const next = [...prev]
+        let slot = spDecks.bossPreplaced ? 1 : 0
+        for (const c of cards) {
+          while (slot < next.length && next[slot]) slot++
+          if (slot >= next.length) break
+          next[slot] = c
+          slot++
+        }
+        return next
+      })
+      addLog(`🦠 等待期间，${cards.length} 个敌方单位已经入侵了战场！`)
+      // 不加入 summonedThisTurn → 它们可以立刻攻击
     }
     setPhase('mulligan')
   }, [])

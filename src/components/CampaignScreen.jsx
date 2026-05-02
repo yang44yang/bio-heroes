@@ -227,7 +227,14 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
                     {unlocked && (
                       <>
                         {[1, 2, 3].map(s => (
-                          <span key={s} className={s <= stars ? 'text-yellow-400' : 'text-gray-700'}>⭐</span>
+                          // emoji ⭐ 颜色由系统字体决定，CSS text 颜色无效
+                          // 用 opacity + grayscale filter 区分已得/未得
+                          <span
+                            key={s}
+                            style={s <= stars
+                              ? { filter: 'none', opacity: 1 }
+                              : { filter: 'grayscale(1) brightness(0.4)', opacity: 0.5 }}
+                          >⭐</span>
                         ))}
                       </>
                     )}
@@ -322,9 +329,16 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               {/* 星数 */}
               <div className="text-center mb-3">
                 <span className="text-gray-500 text-xs">{t('campaign.bestStars')}</span>
-                {[1, 2, 3].map(s => (
-                  <span key={s} className={`text-lg ${s <= (progress.stageStars[selectedStage.id] || 0) ? 'text-yellow-400' : 'text-gray-700'}`}>⭐</span>
-                ))}
+                {[1, 2, 3].map(s => {
+                  const earned = s <= (progress.stageStars[selectedStage.id] || 0)
+                  return (
+                    <span
+                      key={s}
+                      className="text-lg"
+                      style={earned ? { filter: 'none', opacity: 1 } : { filter: 'grayscale(1) brightness(0.4)', opacity: 0.5 }}
+                    >⭐</span>
+                  )
+                })}
               </div>
 
               {/* 星数条件 */}
