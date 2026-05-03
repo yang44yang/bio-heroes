@@ -5,6 +5,7 @@ import { FACTIONS } from '../data/deckRules'
 import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
 import GachaAnimation from './GachaAnimation'
+import CardShowcase from './CardShowcase'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const rarityColors = {
@@ -27,6 +28,7 @@ export default function GachaScreen({ onBack, economy }) {
   const [results, setResults] = useState([])
   const [detailCard, setDetailCard] = useState(null)
   const [animatingCards, setAnimatingCards] = useState(null)
+  const [showcaseCards, setShowcaseCards] = useState(null)
 
   const doPull = (count) => {
     const cost = count === 1 ? economy.SINGLE_COST : economy.MULTI_COST
@@ -44,9 +46,12 @@ export default function GachaScreen({ onBack, economy }) {
   }
 
   const handleAnimationDone = () => {
-    setResults(animatingCards || [])
+    const finished = animatingCards || []
+    setResults(finished)
     setAnimatingCards(null)
     setPulling(false)
+    const newCards = finished.filter(c => c.isNew)
+    if (newCards.length > 0) setShowcaseCards(newCards)
   }
 
   const pityDisplay = economy.SSR_PITY - economy.pityCounter
@@ -141,6 +146,9 @@ export default function GachaScreen({ onBack, economy }) {
       <AnimatePresence>
         {animatingCards && (
           <GachaAnimation cards={animatingCards} onDone={handleAnimationDone} />
+        )}
+        {showcaseCards && (
+          <CardShowcase cards={showcaseCards} onDone={() => setShowcaseCards(null)} />
         )}
       </AnimatePresence>
 
