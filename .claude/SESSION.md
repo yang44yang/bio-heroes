@@ -1,14 +1,41 @@
 # Bio Heroes Session State
-> 更新时间: 2026-05-02（Sprint 30b 留尾完成 + 实测 bug 5 连修）
+> 更新时间: 2026-05-03（Sprint 31a + 31b 抽卡爽感升级 Phase A 全部落地）
 
 ## 项目位置
-- **实际路径**: `/Users/yangyang_macair15/Projects/bio-heroes/`
+- **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（已切回 Mac mini）
 - **GitHub**: github.com/yang44yang/bio-heroes (main 分支)
 - **工作流**: 直接在 main 工作和 push，不开 feature branch（详见 memory `feedback_git_workflow.md`）
 
 ---
 
 ## 最近完成
+
+### 2026-05-03 Sprint 31b: 抽卡爽感升级 Phase A ✅（8 step）
+把抽卡从"交易"变成"事件"。齐齐 iPad 实测目标：抽到 SR 时"哦"，
+抽到 SSR 时"哇"，抽到 SP 时叫出声。
+
+- **Step 1 GachaAnimation 容器**: 胶囊出现 0.7s + 旋转 + 咔嚓裂开 → 卡牌依次翻面 → onDone
+- **Step 2 翻面差异化**: RARITY_EFFECTS 表，R 400ms 蓝光快翻 / SR 600ms 紫晕停顿 220ms /
+  SSR 800ms 金晕停顿 420ms / SP 1100ms 粉晕停顿 1.5s
+- **Step 3 全屏事件层**: SSR 6px 震屏 + 50 金粒子，SP 0.45s 全屏白闪 + 紫红脉冲背景 +
+  100 粉粒子 + 14px 强震 + "⚡ SP 觉醒卡!" banner，新建 ParticleBurst 子组件
+- **Step 4 CardShowcase**: isNew 卡自动全屏秀，TypewriterText 逐字打 scienceCard，
+  支持"下一张/跳过全部"+ 多张轮播
+- **Step 5 网格强化**: NEW 脉冲渐变角标，dupe 显示"→ N 碎片"，每张卡底"ℹ️ 点看详情"
+- **Step 6 音效升级**: capsuleCrack / cardFlip{Normal,Sr,Ssr,Sp} 五个 Web Audio 合成音
+- **Step 7 整体打磨**: showcase/animation 背景从 bg-black/85-92 改 radial gradient 100%
+  不透明，避免 gacha 内容透出；CardShowcase/CardDetailModal SP 卡 type 判定显示 "⚡ SP"
+- **Step 8 修两个 bug**:
+  1. SR 粒子从未渲染（blast 触发条件排除了 SR）→ 改用 particleCount>0 触发
+  2. 跳过/完成按钮无效（AnimatePresence 包多条件 → Sprint 30a 同款 exit 卡死）→ 拆掉
+
+### 2026-05-03 Sprint 31a: 抽卡详情 + 教学气泡 ✅
+- **Bug #1 抽卡结果可点击查看详情**: 新建 CardDetailModal.jsx 复用组件；
+  GachaScreen 卡片 onClick 触发，右下"ℹ️"角标提示。Sprint 31b CardShowcase
+  作为 isNew 的 primary 流程，detail modal 留作非 isNew 复习用
+- **Bug #2 教学气泡定位修复**: TutorialScreen 反转 lowerAreas 逻辑，只有
+  enemy_leader/enemy_field 高亮才把气泡放底部 22%，其它一律放顶部 8%。
+  教学 5/5 SP·霸王龙登场时主角卡 ATK/HP/技能不再被遮
 
 ### 2026-05-02 实测 bug 5 连修 + Sprint 30b 留尾完成 ✅
 齐齐 iPad 实测报 bug，逐个排查修复：
@@ -99,7 +126,7 @@
 
 ---
 
-## 累计战果（Sprint 23-30b + 实测修复，9 个 Sprint + 5 bug）
+## 累计战果（Sprint 23-31b + 实测修复，11 个 Sprint + 7 bug）
 
 | 维度 | 数字 |
 |------|------|
@@ -115,12 +142,13 @@
 | SP 双系统 | gacha 2% + Boss 解锁（Sprint 30b）|
 | Conundrum 关卡 | 2 个 + 真实 effect 应用（HP/起手卡/预置敌方/抗生素减伤）|
 | 敌方牌组审计 | 18 关全扫，修 5 关 AI 卡死 |
-| Bugfix 实测 | 11 个 |
+| Bugfix 实测 | 13 个（含 Sprint 31a 抽卡详情/教学气泡 + 31b SR粒子/AnimatePresence 卡死）|
+| 抽卡爽感 Phase A | 胶囊+翻牌差异化+SP 全屏事件+isNew 卡片秀+音效（Sprint 31b）|
 
 ---
 
 ## 进行中
-（无 — Sprint 30b 已完成，等下次规划）
+（无 — Sprint 31b 抽卡爽感升级 Phase A 已完成，等齐齐 iPad 实测反馈决定 Phase B/C）
 
 ---
 
@@ -146,13 +174,18 @@
 ## 下次启动时优先
 
 ### 推荐方向 A：齐齐持续实测反馈（永远最高优先级）
-- 现在游戏内容已全面就绪 + 实测发现的 5 个 bug 都修了
-- 让齐齐刷新 → 重玩各章节 → 验证：
-  - 疫苗两难 / 抗生素滥用：Conundrum 三选一是否有思考价值？
-  - 选 C 后真的看到 2 个病毒在敌方场上吗？
-  - 选 A 后青霉素真的只造一半伤害吗？
-  - SP 抽卡 2% 连抽 50 次能不能至少抽到 1 张 SP？
-  - Boss 通关 SP 解锁庆祝有没有仪式感？
+- 现在游戏内容已全面就绪 + 抽卡爽感 Phase A 已上线
+- 让齐齐刷新 → 重玩抽卡 → 验证：
+  - **抽卡 Phase A 反应**: SR 时"哦"，SSR 时"哇"，SP 时叫出声？
+  - **isNew 卡片秀**: 不再说"我不知道这卡有什么用"？scienceCard 逐字打速度合适？
+  - **教学 5/5**: SP·霸王龙登场气泡不挡卡了？
+  - **闯关**：疫苗两难 / 抗生素滥用 Conundrum 三选一是否有思考价值？
+
+### 推荐方向 A+：抽卡 Phase B（实测反馈良好的话）
+spec 已规划：
+- 抽卡页加"本期推荐池"展示 + 概率公示（R 68% / SR 25% ...）
+- 图鉴未拥有进度条
+- 抽完 SR+ 后弹"加入卡组吗?"按钮联动 DeckBuilder
 
 ### 推荐方向 B：扩展 Conundrum 内容（最有教育价值）
 ch2 模板验证 OK 之后，复制扩展：
@@ -176,6 +209,21 @@ ch2 模板验证 OK 之后，复制扩展：
 ### 推荐方向 F：工程支撑
 - card-designer skill 更新（Claude.ai 侧）
 - bio-heroes-knowledge-map.md（KP_ID + NGSS + 中国课标）
+
+---
+
+## 关键文件变更（Sprint 31a-31b）
+
+### Sprint 31a
+- `src/components/CardDetailModal.jsx` — 新建（复用卡详情弹窗）
+- `src/components/GachaScreen.jsx` — 卡片 onClick + ℹ️ 角标
+- `src/components/TutorialScreen.jsx` — 气泡定位反转：upperAreas 才下沉
+
+### Sprint 31b
+- `src/components/GachaAnimation.jsx` — 新建（胶囊+翻牌+RARITY_EFFECTS+ParticleBurst）
+- `src/components/CardShowcase.jsx` — 新建（isNew 全屏秀+TypewriterText）
+- `src/components/GachaScreen.jsx` — animatingCards/showcaseCards state，handleAnimationDone
+- `src/audio/soundManager.js` — capsuleCrack + cardFlip{Normal,Sr,Ssr,Sp} 五个新音
 
 ---
 
