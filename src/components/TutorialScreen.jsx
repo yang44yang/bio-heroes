@@ -1069,17 +1069,19 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
           )}
 
           {/* 提示框定位规则：
-              只有 enemy_leader/enemy_field 高亮时气泡放底部（避开顶部目标）
-              其它情况一律放顶部 8% — 关键是不能遮 player_field 上的主角卡
-              （SP·霸王龙登场时尤其重要）*/}
+              - enemy_leader/enemy_field 高亮 → 气泡放底部 (bottom-32 避开手牌区, 又不挡敌方目标)
+              - player_field/sp_area 高亮 → 气泡放底部 bottom-32 (Sprint 31a Bug #2)
+                关键: 上次试过 top 8% 但 iPad 实测仍会挡到 SP·霸王龙
+              - 其它情况(none, hand, energy, end_turn_btn) → 顶部 top 8%
+              */}
           {(() => {
-            const upperAreas = ['enemy_leader', 'enemy_field']
-            const isTargetUpper = upperAreas.some(a => currentStep.highlight?.startsWith(a))
+            const lowerHandledAreas = ['enemy_leader', 'enemy_field', 'player_field', 'sp_area']
+            const useBottom = lowerHandledAreas.some(a => currentStep.highlight?.startsWith(a))
             return (
               <motion.div
                 className="absolute left-1/2 -translate-x-1/2 z-50 max-w-xs"
-                style={isTargetUpper
-                  ? { bottom: '22%', top: 'auto' }
+                style={useBottom
+                  ? { bottom: '8rem', top: 'auto' }
                   : { top: '8%', bottom: 'auto' }
                 }
                 initial={{ opacity: 0, y: 10 }}
