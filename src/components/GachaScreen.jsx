@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
 import cardsData from '../data/cards'
+import spCardsData from '../data/spCards'
 import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
 import GachaAnimation from './GachaAnimation'
@@ -12,6 +13,7 @@ import { loadCampaignProgress } from '../data/campaignData'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const cardById = (id) => cardsData.find(c => c.id === id)
+const TOTAL_OBTAINABLE = cardsData.length + spCardsData.filter(s => s.unlockMode === 'gacha').length
 
 const rarityColors = {
   R: 'text-blue-400',
@@ -101,12 +103,48 @@ export default function GachaScreen({ onBack, economy }) {
       )}
 
       {/* Currency display */}
-      <div className="flex gap-4 mb-6 text-sm">
+      <div className="flex gap-4 mb-3 text-sm">
         <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
         <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
-        <span className="text-gray-500">{t('gacha.collected', { n: Object.keys(economy.collection).length })}</span>
         <span className="text-gray-600">{t('gacha.pity', { n: pityDisplay })}</span>
       </div>
+
+      {/* 图鉴进度条 */}
+      {(() => {
+        const owned = Object.keys(economy.collection).length
+        const pct = Math.min(100, (owned / TOTAL_OBTAINABLE) * 100)
+        const remaining = Math.max(0, TOTAL_OBTAINABLE - owned)
+        return (
+          <div className="bg-gray-800/40 rounded-lg p-3 mb-3 max-w-md w-full">
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-gray-300">📖 图鉴进度</span>
+              <span className="text-cyan-300 font-bold">{owned} / {TOTAL_OBTAINABLE}</span>
+            </div>
+            <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
+              <motion.div
+                className="h-full bg-gradient-to-r from-cyan-500 to-purple-500"
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+            <div className="text-[10px] text-gray-400 mt-1.5 text-center">
+              {remaining > 0 ? <>还差 <span className="text-yellow-300 font-bold">{remaining}</span> 张完成图鉴</> : '🏆 图鉴已收集完整！'}
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 概率公示 */}
+      <details className="text-xs text-gray-400 mb-3 max-w-md w-full">
+        <summary className="cursor-pointer hover:text-white text-center py-1">📊 概率公示</summary>
+        <div className="bg-gray-800/50 rounded p-3 mt-2 grid grid-cols-2 gap-1">
+          <div>R 普通: 68%</div>
+          <div>SR 稀有: 25%</div>
+          <div>SSR 史诗: 5%</div>
+          <div className="text-yellow-300">SP 觉醒: 2%</div>
+          <div className="col-span-2 text-[10px] text-gray-500 mt-1">十连保底:至少 1 张 SR+ · {economy.SSR_PITY} 抽必出 SSR</div>
+        </div>
+      </details>
 
       {/* Pull buttons */}
       <div className="flex gap-4 mb-6">
