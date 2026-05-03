@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
 import BattleCard from './Card'
@@ -149,14 +149,12 @@ export default function GachaScreen({ onBack, economy }) {
         {t('gacha.back')}
       </motion.button>
 
-      <AnimatePresence>
-        {animatingCards && (
-          <GachaAnimation cards={animatingCards} onDone={handleAnimationDone} />
-        )}
-        {showcaseCards && (
-          <CardShowcase cards={showcaseCards} onDone={() => setShowcaseCards(null)} />
-        )}
-      </AnimatePresence>
+      {animatingCards && (
+        <GachaAnimation cards={animatingCards} onDone={handleAnimationDone} />
+      )}
+      {showcaseCards && (
+        <CardShowcase cards={showcaseCards} onDone={() => setShowcaseCards(null)} />
+      )}
 
       {detailCard && (
         <CardDetailModal

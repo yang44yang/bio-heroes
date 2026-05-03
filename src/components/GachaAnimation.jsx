@@ -36,7 +36,7 @@ const RARITY_EFFECTS = {
     glowRing: 'shadow-purple-400/60 shadow-lg',
     pauseAfter: 220,
     haloDuration: 500,
-    particleCount: 16,
+    particleCount: 20,
     particleColor: 'rgba(216,180,254,0.95)',
     shake: 0,
     fullScreenFlash: false,
@@ -48,7 +48,7 @@ const RARITY_EFFECTS = {
     glowRing: 'shadow-yellow-400/80 shadow-2xl',
     pauseAfter: 420,
     haloDuration: 900,
-    particleCount: 36,
+    particleCount: 50,
     particleColor: 'rgba(253,224,71,0.95)',
     shake: 6,
     fullScreenFlash: false,
@@ -60,7 +60,7 @@ const RARITY_EFFECTS = {
     glowRing: 'shadow-pink-400/90 shadow-2xl',
     pauseAfter: 1500,
     haloDuration: 1400,
-    particleCount: 80,
+    particleCount: 100,
     particleColor: 'rgba(255,180,220,1)',
     shake: 14,
     fullScreenFlash: true,
@@ -104,11 +104,10 @@ export default function GachaAnimation({ cards, onDone }) {
       playSound(SOUND_FOR_RARITY[rarity] || 'cardFlipNormal')
     }
 
-    // SSR/SP 触发屏幕震动 + 全屏闪
-    if (justEff && (justEff.shake > 0 || justEff.fullScreenFlash)) {
+    // SR+ 触发粒子爆发；SSR/SP 还附带震屏 + 全屏闪
+    if (justEff && justEff.particleCount > 0) {
       setActiveBlast({ effect: justEff, key: revealedCount })
-      const clear = setTimeout(() => setActiveBlast(null), justEff.haloDuration + 200)
-      // 清理订阅
+      const clear = setTimeout(() => setActiveBlast(null), justEff.haloDuration + 300)
       const next = setTimeout(() => setRevealedCount(c => c + 1), 160 + justEff.pauseAfter)
       return () => { clearTimeout(clear); clearTimeout(next) }
     }
