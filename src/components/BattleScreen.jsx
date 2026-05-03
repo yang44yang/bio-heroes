@@ -2,6 +2,7 @@ import React, { useCallback, useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
+import CardDetailModal from './CardDetailModal'
 import QuizModal from './QuizModal'
 import { useBattle } from '../hooks/useBattle'
 import { useHand } from '../hooks/useHand'
@@ -83,6 +84,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   const [selectedAtkSlot, setSelectedAtkSlot] = useState(null)  // 战场中选中的攻击者
   const [awakenOpts, setAwakenOpts] = useState({})
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [detailCard, setDetailCard] = useState(null)
   const [showBattleLog, setShowBattleLog] = useState(false)
   // Conundrum：如果关卡有 conundrum 配置且尚未完成，先弹 modal 阻塞战斗初始化
   const [conundrumPending, setConundrumPending] = useState(campaignConfig?.conundrum || null)
@@ -1167,7 +1169,16 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             onClick={() => isTargeting && isValid && card && card.currentHp > 0 && handleSelectTarget(i)}
           >
             {card && card.currentHp > 0 ? (
-              <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={false} isActive={false} />
+              <>
+                <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={false} isActive={false} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
+                  className="absolute top-0.5 right-0.5 z-30 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyan-600/90 hover:bg-cyan-500 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center shadow-lg border border-cyan-300/60"
+                  aria-label="详情"
+                >
+                  ⓘ
+                </button>
+              </>
             ) : (
               <span className="text-gray-700 text-[9px] sm:text-xs">{t('battle.empty')}</span>
             )}
@@ -1236,7 +1247,16 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               </span>
             )}
             {card && card.currentHp > 0 ? (
-              <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={true} isActive={isAttacker} />
+              <>
+                <BattleCard card={card} hp={card.currentHp} maxHp={card.maxHp} isPlayer={true} isActive={isAttacker} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
+                  className="absolute top-0.5 right-0.5 z-30 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyan-600/90 hover:bg-cyan-500 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center shadow-lg border border-cyan-300/60"
+                  aria-label="详情"
+                >
+                  ⓘ
+                </button>
+              </>
             ) : (
               <span className="text-gray-700 text-[9px] sm:text-xs">{i + 1}</span>
             )}
@@ -1786,6 +1806,15 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             </div>
           </div>
         </div>,
+        document.body
+      )}
+
+      {detailCard && createPortal(
+        <CardDetailModal
+          card={detailCard}
+          context="battle"
+          onClose={() => setDetailCard(null)}
+        />,
         document.body
       )}
 
