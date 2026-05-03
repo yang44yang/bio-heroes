@@ -1068,17 +1068,19 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
             />
           )}
 
-          {/* 提示框（根据目标位置动态定位：目标在下半→提示在上，目标在上半→提示在下） */}
+          {/* 提示框定位规则：
+              只有 enemy_leader/enemy_field 高亮时气泡放底部（避开顶部目标）
+              其它情况一律放顶部 8% — 关键是不能遮 player_field 上的主角卡
+              （SP·霸王龙登场时尤其重要）*/}
           {(() => {
-            // 目标在屏幕下半部分的区域
-            const lowerAreas = ['hand', 'hand_card_0', 'hand_card_1', 'hand_card_2', 'hand_card_3', 'hand_card_4', 'end_turn_btn', 'power_bank', 'power_bank_break', 'discard_area']
-            const isTargetLower = lowerAreas.some(a => currentStep.highlight?.startsWith(a))
+            const upperAreas = ['enemy_leader', 'enemy_field']
+            const isTargetUpper = upperAreas.some(a => currentStep.highlight?.startsWith(a))
             return (
               <motion.div
                 className="absolute left-1/2 -translate-x-1/2 z-50 max-w-xs"
-                style={isTargetLower
-                  ? { top: '8%', bottom: 'auto' }
-                  : { bottom: '30%', top: 'auto' }
+                style={isTargetUpper
+                  ? { bottom: '22%', top: 'auto' }
+                  : { top: '8%', bottom: 'auto' }
                 }
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
