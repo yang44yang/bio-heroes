@@ -1,7 +1,7 @@
 # Bio Heroes CHANGELOG
 
 Bio Heroes 历史 Sprint 完成记录，最新在最上。
-当前进度 / 下次优先事项请看 `.claude/SESSION.md`。
+当前进度 / 下次优先事项请看 `SESSION.md`。
 
 ---
 
