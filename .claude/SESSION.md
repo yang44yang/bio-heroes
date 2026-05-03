@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-05-03（Sprint 31a + 31b 抽卡爽感升级 Phase A 全部落地）
+> 更新时间: 2026-05-03（Sprint 31a + 31b + 31c 抽卡完整 Phase A/B/C 全部落地）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（已切回 Mac mini）
@@ -9,6 +9,22 @@
 ---
 
 ## 最近完成
+
+### 2026-05-03 Sprint 31c: 抽卡爽感升级 Phase B + C ✅（10 step）
+把抽卡升级为完整的"期待→事件→学习→联动→成就"闭环。
+
+**Phase B（期待感 + 联动）**:
+- **Step 1 章节 banner**: gachaBanners.js + GachaScreen 顶部明星卡 +"+50%"角标（仅显示不实际加权）
+- **Step 2 进度+概率公示**: 图鉴进度条（cyan→purple 渐变）+ 📊 概率公示折叠（R 68/SR 25/SSR 5/SP 2）
+- **Step 3 联动 DeckBuilder**: 抽到 SR+ 弹"立刻去组队"按钮，DeckBuilder 高亮新卡（黄环+脉冲+NEW 角标），30s 自动取消
+- **Step 4 里程碑庆祝**: MilestoneModal 6 档（10/25/50/75/100/120），各档专属 emoji + 鼓励文案
+
+**Phase C（学习节点 + 主题成就）**:
+- **Step 5+6 中场小测验**: GachaQuizModal + 十连第 5 张后插入（单抽不打断节奏），关联刚抽到的卡，答对答错都不影响抽卡。selectQuizForPull 优先级：cardId+easy → cardId 任意 → faction+easy → 随机 easy
+- **Step 7 成就数据**: achievements.js 5 个主题（抗生素小专家/免疫战士/微观探险家/顶级猎手/海洋巨兽），useEconomy 加 unlockedAchievements 字段（向后兼容空数组）+ markAchievementsUnlocked API
+- **Step 8 成就弹窗**: AchievementModal 金橙渐变 + 科学知识包卷动文本。**重要修复**：原直接函数推进读 stale closure，改用 useEffect 监听各 modal/pending state 自动推进，弹窗顺序 showcase→milestone→achievements
+- **Step 9 Collection 成就栏**: 顶部 5 列网格，已解锁高亮可点开重读，未解锁灰色显示进度
+- **Step 10 整体调试**: HMR 警告确认是历史残留（reload 后不累积新错误），多 modal 链路验证通过
 
 ### 2026-05-03 Sprint 31b: 抽卡爽感升级 Phase A ✅（8 step）
 把抽卡从"交易"变成"事件"。齐齐 iPad 实测目标：抽到 SR 时"哦"，
@@ -126,7 +142,7 @@
 
 ---
 
-## 累计战果（Sprint 23-31b + 实测修复，11 个 Sprint + 7 bug）
+## 累计战果（Sprint 23-31c + 实测修复，12 个 Sprint + 8 bug）
 
 | 维度 | 数字 |
 |------|------|
@@ -144,11 +160,12 @@
 | 敌方牌组审计 | 18 关全扫，修 5 关 AI 卡死 |
 | Bugfix 实测 | 13 个（含 Sprint 31a 抽卡详情/教学气泡 + 31b SR粒子/AnimatePresence 卡死）|
 | 抽卡爽感 Phase A | 胶囊+翻牌差异化+SP 全屏事件+isNew 卡片秀+音效（Sprint 31b）|
+| 抽卡爽感 Phase B/C | 章节 banner+进度条+概率公示+联动 DeckBuilder+里程碑+小测验+成就（Sprint 31c）|
 
 ---
 
 ## 进行中
-（无 — Sprint 31b 抽卡爽感升级 Phase A 已完成，等齐齐 iPad 实测反馈决定 Phase B/C）
+（无 — Sprint 31a/b/c 全部完成，抽卡完整闭环上线。等齐齐 iPad 实测反馈）
 
 ---
 
@@ -174,18 +191,20 @@
 ## 下次启动时优先
 
 ### 推荐方向 A：齐齐持续实测反馈（永远最高优先级）
-- 现在游戏内容已全面就绪 + 抽卡爽感 Phase A 已上线
+- 抽卡完整闭环（Phase A+B+C）已上线
 - 让齐齐刷新 → 重玩抽卡 → 验证：
-  - **抽卡 Phase A 反应**: SR 时"哦"，SSR 时"哇"，SP 时叫出声？
-  - **isNew 卡片秀**: 不再说"我不知道这卡有什么用"？scienceCard 逐字打速度合适？
+  - **Phase A 视觉**: SR 时"哦"，SSR 时"哇"，SP 时叫出声？
+  - **Phase B 期待感**: 看到 banner 会问"那是什么卡"？看到进度条会想多抽？
+  - **Phase B 联动**: 抽到 SR+ 后会点"立刻去组队"吗？
+  - **Phase C 小测验**: 十连第 5 张后的小测，是认真读还是随便点？
+  - **Phase C 成就**: 解锁"抗生素小专家"会去看科学包内容吗？
   - **教学 5/5**: SP·霸王龙登场气泡不挡卡了？
-  - **闯关**：疫苗两难 / 抗生素滥用 Conundrum 三选一是否有思考价值？
 
-### 推荐方向 A+：抽卡 Phase B（实测反馈良好的话）
-spec 已规划：
-- 抽卡页加"本期推荐池"展示 + 概率公示（R 68% / SR 25% ...）
-- 图鉴未拥有进度条
-- 抽完 SR+ 后弹"加入卡组吗?"按钮联动 DeckBuilder
+### 推荐方向 A+：抽卡 Phase D / E（实测反馈良好后）
+spec 已为后续预留：
+- **Phase D**: 抽到稀有卡的"分享"功能（截图给妈妈/老师）
+- **Phase E**: 限时活动 banner（按真实日期切换主题，比如世界免疫日）
+- **boostFactor 真实加权**: 当前 Phase B 只显示不实际加权，等抽卡平衡测试通过后再开
 
 ### 推荐方向 B：扩展 Conundrum 内容（最有教育价值）
 ch2 模板验证 OK 之后，复制扩展：
@@ -212,7 +231,7 @@ ch2 模板验证 OK 之后，复制扩展：
 
 ---
 
-## 关键文件变更（Sprint 31a-31b）
+## 关键文件变更（Sprint 31a-31c）
 
 ### Sprint 31a
 - `src/components/CardDetailModal.jsx` — 新建（复用卡详情弹窗）
@@ -224,6 +243,19 @@ ch2 模板验证 OK 之后，复制扩展：
 - `src/components/CardShowcase.jsx` — 新建（isNew 全屏秀+TypewriterText）
 - `src/components/GachaScreen.jsx` — animatingCards/showcaseCards state，handleAnimationDone
 - `src/audio/soundManager.js` — capsuleCrack + cardFlip{Normal,Sr,Ssr,Sp} 五个新音
+
+### Sprint 31c
+- `src/data/gachaBanners.js` — 新建（4 章 banner + selectBanner 选择逻辑）
+- `src/data/achievements.js` — 新建（5 个主题成就 + detectNewlyUnlocked）
+- `src/components/MilestoneModal.jsx` — 新建（6 档里程碑庆祝）
+- `src/components/AchievementModal.jsx` — 新建（成就解锁+科学包卷动）
+- `src/components/GachaQuizModal.jsx` — 新建（中场小测 + selectQuizForPull）
+- `src/components/GachaAnimation.jsx` — 加 paused/onMidpointReached/midpointAt props
+- `src/components/GachaScreen.jsx` — banner UI + 进度条 + 概率公示 + onGotoDeckBuilder + 弹窗 useEffect 链
+- `src/components/DeckBuilder.jsx` — 接收 highlightCardIds + onHighlightExpire（30s 自动取消）
+- `src/components/Collection.jsx` — 顶部成就栏 + 详情可点开
+- `src/hooks/useEconomy.js` — unlockedAchievements 字段 + markAchievementsUnlocked API
+- `src/App.jsx` — highlightCardIds state + GachaScreen → DeckBuilder 跳转传 ID 数组
 
 ---
 
