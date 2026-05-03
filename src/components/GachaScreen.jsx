@@ -1,12 +1,17 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
+import cardsData from '../data/cards'
 import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
 import GachaAnimation from './GachaAnimation'
 import CardShowcase from './CardShowcase'
+import { selectBanner } from '../data/gachaBanners'
+import { loadCampaignProgress } from '../data/campaignData'
 import { useLanguage } from '../i18n/LanguageContext'
+
+const cardById = (id) => cardsData.find(c => c.id === id)
 
 const rarityColors = {
   R: 'text-blue-400',
@@ -29,6 +34,15 @@ export default function GachaScreen({ onBack, economy }) {
   const [detailCard, setDetailCard] = useState(null)
   const [animatingCards, setAnimatingCards] = useState(null)
   const [showcaseCards, setShowcaseCards] = useState(null)
+
+  const banner = useMemo(() => {
+    const prog = loadCampaignProgress()
+    return selectBanner(prog.stageStars || {})
+  }, [])
+  const featuredCards = useMemo(
+    () => (banner.featuredCardIds || []).map(cardById).filter(Boolean),
+    [banner]
+  )
 
   const doPull = (count) => {
     const cost = count === 1 ? economy.SINGLE_COST : economy.MULTI_COST
@@ -60,6 +74,31 @@ export default function GachaScreen({ onBack, economy }) {
     <div className="min-h-screen flex flex-col items-center py-8 px-4">
       <h1 className="text-3xl font-black text-yellow-400 mb-1">{t('gacha.title')}</h1>
       <p className="text-gray-400 text-sm mb-4">{t('gacha.subtitle')}</p>
+
+      {/* 本期推荐 banner */}
+      {banner.id !== 'default' && featuredCards.length > 0 && (
+        <motion.div
+          className="bg-gradient-to-br from-purple-900/70 to-indigo-900/70 rounded-2xl p-3 mb-4 border border-purple-500/40 max-w-md w-full"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="text-[10px] text-purple-300 mb-1">⭐ 本期推荐</div>
+          <div className="text-base font-bold text-white mb-2">{banner.title}</div>
+          <div className="flex gap-2 justify-center mb-2">
+            {featuredCards.map(card => (
+              <div key={card.id} className="relative w-[68px] h-[92px]">
+                <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
+                {banner.boostFactor && (
+                  <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-[8px] px-1 rounded-full font-black shadow">
+                    +{Math.round((banner.boostFactor - 1) * 100)}%
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="text-[10px] text-purple-200 text-center">{banner.description}</div>
+        </motion.div>
+      )}
 
       {/* Currency display */}
       <div className="flex gap-4 mb-6 text-sm">
