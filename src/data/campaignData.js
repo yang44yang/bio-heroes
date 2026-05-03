@@ -524,9 +524,10 @@ export const campaignData = {
           enemyConfig: {
             leaderHP: 30000,
             deck: ['blue_whale_titan','orca_alpha','orca_alpha','cheetah_sprinter','cheetah_sprinter','sunflower_charger','sunflower_charger','event_food_chain_burst','event_food_chain_burst','event_cambrian_explosion','event_ecosystem_recovery','event_ecosystem_recovery'],
-            // 去掉 sp_trex（陆地恐龙不该出现在海洋 boss 关）
-            // 只留 sp_world_tree（自愈+守护），强化"蓝鲸不可击杀"的持久战恐怖感
-            spDeck: ['sp_world_tree'],
+            // SP 全部拿掉：sp_trex（陆地恐龙不该在海洋 boss 关），sp_world_tree（spCost 4 给 15000 HP
+            // +守护+全队回 3000+自愈 1500+修 PB，数值塞不进 cost 4 框架，普遍 OP）。
+            // 蓝鲸登场已是高潮，不需要 SP 火上浇油。AI event_food_chain_burst 因 spDeck 空不再触发 SP。
+            spDeck: [],
             aiStrength: 0.7,
             aiPersonality: 'defensive',
             bossMechanic: 'whale_boss',
