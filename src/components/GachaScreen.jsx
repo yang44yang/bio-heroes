@@ -122,13 +122,19 @@ export default function GachaScreen({ onBack, economy }) {
             >
               <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
               {card.isNew ? (
-                <div className="absolute top-0 left-0 bg-green-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-lg">NEW!</div>
+                <motion.div
+                  className="absolute top-0 left-0 bg-gradient-to-r from-green-400 to-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-br-lg shadow-md"
+                  animate={{ scale: [1, 1.12, 1] }}
+                  transition={{ duration: 1.4, repeat: Infinity }}
+                >🆕 NEW!</motion.div>
               ) : card.isDupe ? (
-                <div className="absolute top-0 left-0 bg-amber-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">{t('gacha.fragments', { n: card.fragments })}</div>
+                <div className="absolute top-0 left-0 bg-amber-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">→ {card.fragments} 碎片</div>
               ) : (
                 <div className="absolute top-0 left-0 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">×{card.count}</div>
               )}
-              <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-cyan-600/90 text-white text-[11px] font-bold flex items-center justify-center shadow pointer-events-none">i</div>
+              <div className="absolute bottom-0 right-0 left-0 bg-gradient-to-t from-cyan-700/90 to-cyan-700/0 text-cyan-100 text-[10px] font-bold text-center py-1 pointer-events-none">
+                ℹ️ 点看详情
+              </div>
             </motion.div>
           ))}
         </motion.div>
