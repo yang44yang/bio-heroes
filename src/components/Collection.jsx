@@ -6,6 +6,8 @@ import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES } from '../data/deckRules'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
+import { COLLECTION_ACHIEVEMENTS } from '../data/achievements'
+import AchievementModal from './AchievementModal'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const allCards = [...cards, ...eventCards, ...spCards]
@@ -23,6 +25,7 @@ export default function Collection({ onBack, economy }) {
   const [showEvolutionChain, setShowEvolutionChain] = useState(null) // chain id
   const [evolving, setEvolving] = useState(false) // 进化动画中
   const [sellAmount, setSellAmount] = useState(1)
+  const [achievementDetail, setAchievementDetail] = useState(null)
 
   const owned = economy.collection // { cardId: count } map
   const isOwn = (id) => !!owned[id]
@@ -127,6 +130,36 @@ export default function Collection({ onBack, economy }) {
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.8 }}
           />
+        </div>
+      </div>
+
+      {/* 成就进度栏 */}
+      <div className="bg-gray-800/40 rounded-xl p-3 mb-4">
+        <div className="text-xs text-gray-300 mb-2">🏆 主题成就</div>
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+          {COLLECTION_ACHIEVEMENTS.map(ach => {
+            const unlockedList = economy.unlockedAchievements || []
+            const unlocked = unlockedList.includes(ach.id)
+            const have = ach.requiredCards.filter(id => owned[id] > 0).length
+            const total = ach.requiredCards.length
+            return (
+              <button
+                key={ach.id}
+                onClick={() => unlocked && setAchievementDetail(ach)}
+                disabled={!unlocked}
+                className={`rounded-lg p-2 text-center transition ${
+                  unlocked
+                    ? 'bg-yellow-600/30 border border-yellow-500/60 hover:bg-yellow-600/50 cursor-pointer'
+                    : 'bg-gray-700/40 border border-gray-700 cursor-default'
+                }`}
+                title={unlocked ? '点查看科学知识包' : `还差 ${total - have} 张`}
+              >
+                <div className={`text-2xl ${unlocked ? '' : 'grayscale opacity-40'}`}>{ach.icon}</div>
+                <div className={`text-[10px] truncate ${unlocked ? 'text-yellow-100' : 'text-gray-400'}`}>{ach.name}</div>
+                <div className="text-[10px] text-gray-400">{have}/{total}</div>
+              </button>
+            )
+          })}
         </div>
       </div>
 
@@ -392,6 +425,11 @@ export default function Collection({ onBack, economy }) {
             )
           })}
         </div>
+      )}
+
+      {/* 成就详情弹窗（已解锁的可点开重读知识包） */}
+      {achievementDetail && (
+        <AchievementModal achievement={achievementDetail} onClose={() => setAchievementDetail(null)} />
       )}
 
       {/* Card detail modal */}
