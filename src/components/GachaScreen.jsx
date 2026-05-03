@@ -320,15 +320,17 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
       {detailCard && (
         <CardDetailModal
           card={detailCard}
+          context="gacha"
+          isNew={!!detailCard.isNew}
+          ownership={{
+            count: detailCard.count ?? 0,
+            fragments: detailCard.fragments ?? 0,
+          }}
           onClose={() => setDetailCard(null)}
           badge={
-            detailCard.isNew ? (
-              <span className="text-[10px] font-black bg-green-500 text-white px-2 py-0.5 rounded-full">NEW!</span>
-            ) : detailCard.isDupe ? (
+            detailCard.isDupe ? (
               <span className="text-[10px] font-bold bg-amber-600 text-white px-2 py-0.5 rounded-full">{t('gacha.fragments', { n: detailCard.fragments })}</span>
-            ) : (
-              <span className="text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">×{detailCard.count}</span>
-            )
+            ) : null
           }
         />
       )}
