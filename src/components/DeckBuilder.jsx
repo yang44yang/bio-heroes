@@ -84,7 +84,7 @@ function getSkillIcon(skillName) {
 }
 
 // 卡牌详情弹窗组件
-function CardDetailModal({ card, onClose, onAdd, canAdd }) {
+function CardDetailModal({ card, onClose, onAdd, canAdd, ownedCount = 0 }) {
   const { t, cardName, skillName, lang } = useLanguage()
   if (!card) return null
   const faction = FACTIONS[card.faction]
@@ -181,6 +181,17 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
               {t('deck.detail.reqText', { icon: FACTIONS[card.factionRequirement.faction]?.icon, count: card.factionRequirement.count })}
               {card.factionRequirement.type === 'consume' && t('deck.detail.consume')}
             </div>
+          </div>
+        )}
+
+        {/* 持有数量 */}
+        {ownedCount > 0 && (
+          <div className="mb-3 bg-gray-800/50 rounded p-2 flex justify-between items-center text-xs">
+            <span className="text-gray-400">{lang === 'en' ? 'Owned' : '持有'}</span>
+            <span className="text-white font-bold">
+              {ownedCount} / 3
+              {ownedCount >= 3 && <span className="ml-2 text-green-400 text-[10px]">✓ {lang === 'en' ? 'Full' : '已齐'}</span>}
+            </span>
           </div>
         )}
 
@@ -762,6 +773,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
             card={detailCard}
             onClose={() => setDetailCard(null)}
             onAdd={(id) => addCard(id)}
+            ownedCount={collection?.[detailCard.id] || 0}
             canAdd={(() => {
               const isSp = detailCard.type === 'sp'
               const deck = isSp ? spDeck : mainDeck
