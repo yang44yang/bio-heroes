@@ -11,12 +11,20 @@ const rarityColor = {
   SP: 'text-pink-300',
 }
 
-export default function CardDetailModal({ card, onClose, badge }) {
+export default function CardDetailModal({
+  card,
+  onClose,
+  badge,
+  context = 'collection',
+  ownership = null,
+  isNew = false,
+}) {
   const { t, lang, cardName, skillName } = useLanguage()
   if (!card) return null
 
   const faction = FACTIONS[card.faction]
   const cost = card.cost ?? card.spCost
+  const showOwnership = ownership && (context === 'gacha' || context === 'deck' || context === 'collection')
 
   return (
     <AnimatePresence>
@@ -45,6 +53,13 @@ export default function CardDetailModal({ card, onClose, badge }) {
           </div>
 
           {badge && <div className="text-center mb-2">{badge}</div>}
+          {isNew && (
+            <div className="text-center mb-2">
+              <span className="inline-block px-2 py-0.5 rounded-full bg-yellow-500/90 text-black text-[10px] font-black animate-pulse">
+                ✨ NEW
+              </span>
+            </div>
+          )}
 
           <h3 className="text-lg font-bold text-white text-center mb-0.5">{cardName(card)}</h3>
           <p className="text-xs text-gray-500 text-center mb-2">
@@ -106,6 +121,24 @@ export default function CardDetailModal({ card, onClose, badge }) {
                   #{tag}
                 </span>
               ))}
+            </div>
+          )}
+
+          {showOwnership && (
+            <div className="mb-3 bg-gray-800/40 rounded-lg p-2.5">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-300">{lang === 'en' ? 'Owned' : '持有'}</span>
+                <span className="text-white font-bold">
+                  {ownership.count ?? 0} / 3
+                  {(ownership.count ?? 0) >= 3 && <span className="ml-2 text-green-400 text-[10px]">✓ {lang === 'en' ? 'Full' : '已齐'}</span>}
+                </span>
+              </div>
+              {ownership.fragments > 0 && (
+                <div className="flex justify-between items-center text-xs mt-1">
+                  <span className="text-gray-300">{lang === 'en' ? 'Fragments' : '碎片'}</span>
+                  <span className="text-yellow-300 font-bold">{ownership.fragments}</span>
+                </div>
+              )}
             </div>
           )}
 
