@@ -244,6 +244,57 @@ const sounds = {
     setTimeout(() => playTone(660, 0.08, 'square', 0.18), 50)
   },
 
+  /** 抽卡：胶囊咔嚓裂开 */
+  capsuleCrack() {
+    playNoise(0.12, 0.32, { type: 'highpass', freq: 1500 })
+    playTone(900, 0.08, 'square', 0.2)
+    setTimeout(() => playTone(1400, 0.06, 'square', 0.15), 50)
+  },
+
+  /** 抽卡：R 卡翻面 — 短促 */
+  cardFlipNormal() {
+    playTone(620, 0.07, 'square', 0.2)
+    setTimeout(() => playTone(880, 0.05, 'square', 0.15), 35)
+  },
+
+  /** 抽卡：SR 卡翻面 — 较亮的"叮" */
+  cardFlipSr() {
+    playTone(880, 0.08, 'sine', 0.22)
+    setTimeout(() => playTone(1320, 0.12, 'sine', 0.25), 60)
+    setTimeout(() => playTone(1760, 0.18, 'sine', 0.18), 130)
+  },
+
+  /** 抽卡：SSR 卡翻面 — 大鼓 + 喇叭 */
+  cardFlipSsr() {
+    playTone(80, 0.25, 'sawtooth', 0.4)
+    playNoise(0.15, 0.3, { type: 'lowpass', freq: 600 })
+    setTimeout(() => {
+      const notes = [440, 660, 880, 1100]
+      notes.forEach((f, i) => setTimeout(() => playTone(f, 0.12, 'square', 0.22), i * 60))
+    }, 120)
+    setTimeout(() => playTone(1760, 0.2, 'sine', 0.2), 400)
+  },
+
+  /** 抽卡：SP 卡翻面 — 长鸣 + 重低音 */
+  cardFlipSp() {
+    // 重低音冲击
+    playTone(55, 0.6, 'sawtooth', 0.5)
+    playNoise(0.4, 0.35, { type: 'lowpass', freq: 400 })
+    // 上升号角
+    setTimeout(() => {
+      const notes = [220, 330, 440, 554, 660, 880, 1100]
+      notes.forEach((f, i) => {
+        setTimeout(() => {
+          playTone(f, 0.15, 'square', 0.25)
+          playTone(f * 2, 0.12, 'sine', 0.18)
+        }, i * 70)
+      })
+    }, 200)
+    // 终极闪光
+    setTimeout(() => playTone(2200, 0.3, 'square', 0.3), 800)
+    setTimeout(() => playTone(2640, 0.2, 'sine', 0.22), 950)
+  },
+
   /** SP 觉醒召唤 — 史诗登场音 */
   spSummon() {
     // 低频震动开场

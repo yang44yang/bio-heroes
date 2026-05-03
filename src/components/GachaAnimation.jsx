@@ -1,6 +1,14 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
+import { playSound } from '../audio/soundManager'
+
+const SOUND_FOR_RARITY = {
+  R: 'cardFlipNormal',
+  SR: 'cardFlipSr',
+  SSR: 'cardFlipSsr',
+  SP: 'cardFlipSp',
+}
 
 // Phase A: 抽卡爽感 — 不同稀有度有不同翻面节奏 + 光效
 //
@@ -75,7 +83,7 @@ export default function GachaAnimation({ cards, onDone }) {
   const containerRef = useRef(null)
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('crack'), 700)
+    const t1 = setTimeout(() => { setPhase('crack'); playSound('capsuleCrack') }, 700)
     const t2 = setTimeout(() => setPhase('reveal'), 1000)
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [])
@@ -89,6 +97,12 @@ export default function GachaAnimation({ cards, onDone }) {
     // 当前刚翻完的卡（如果有）的 pauseAfter 决定下一张延迟
     const justRevealed = cards[revealedCount - 1]
     const justEff = justRevealed ? effectFor(justRevealed) : null
+
+    // 翻面音效
+    if (justRevealed) {
+      const rarity = justRevealed.type === 'sp' ? 'SP' : justRevealed.rarity
+      playSound(SOUND_FOR_RARITY[rarity] || 'cardFlipNormal')
+    }
 
     // SSR/SP 触发屏幕震动 + 全屏闪
     if (justEff && (justEff.shake > 0 || justEff.fullScreenFlash)) {
