@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
 import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
+import GachaAnimation from './GachaAnimation'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const rarityColors = {
@@ -25,6 +26,7 @@ export default function GachaScreen({ onBack, economy }) {
   const [pulling, setPulling] = useState(false)
   const [results, setResults] = useState([])
   const [detailCard, setDetailCard] = useState(null)
+  const [animatingCards, setAnimatingCards] = useState(null)
 
   const doPull = (count) => {
     const cost = count === 1 ? economy.SINGLE_COST : economy.MULTI_COST
@@ -35,13 +37,16 @@ export default function GachaScreen({ onBack, economy }) {
     setPulled([])
     setResults([])
 
-    setTimeout(() => {
-      const { pulled: newCards } = pull(count, economy.pityCounter, economy.SSR_PITY)
-      const enriched = economy.pullCards(newCards)
-      setPulled(newCards)
-      setResults(enriched)
-      setPulling(false)
-    }, 600)
+    const { pulled: newCards } = pull(count, economy.pityCounter, economy.SSR_PITY)
+    const enriched = economy.pullCards(newCards)
+    setPulled(newCards)
+    setAnimatingCards(enriched)
+  }
+
+  const handleAnimationDone = () => {
+    setResults(animatingCards || [])
+    setAnimatingCards(null)
+    setPulling(false)
   }
 
   const pityDisplay = economy.SSR_PITY - economy.pityCounter
@@ -92,17 +97,6 @@ export default function GachaScreen({ onBack, economy }) {
       </div>
 
       {/* Pull results */}
-      {pulling && (
-        <motion.div
-          key="pulling"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="text-2xl text-yellow-400 animate-bounce"
-        >
-          {t('gacha.pulling')}
-        </motion.div>
-      )}
       {!pulling && results.length > 0 && (
         <motion.div
           key="results"
@@ -143,6 +137,12 @@ export default function GachaScreen({ onBack, economy }) {
       >
         {t('gacha.back')}
       </motion.button>
+
+      <AnimatePresence>
+        {animatingCards && (
+          <GachaAnimation cards={animatingCards} onDone={handleAnimationDone} />
+        )}
+      </AnimatePresence>
 
       {detailCard && (
         <CardDetailModal
