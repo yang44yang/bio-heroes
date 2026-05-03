@@ -8,6 +8,7 @@ import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
 import GachaAnimation from './GachaAnimation'
 import CardShowcase from './CardShowcase'
+import MilestoneModal, { MILESTONES } from './MilestoneModal'
 import { selectBanner } from '../data/gachaBanners'
 import { loadCampaignProgress } from '../data/campaignData'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -36,6 +37,8 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
   const [detailCard, setDetailCard] = useState(null)
   const [animatingCards, setAnimatingCards] = useState(null)
   const [showcaseCards, setShowcaseCards] = useState(null)
+  const [pendingMilestone, setPendingMilestone] = useState(null)
+  const [activeMilestone, setActiveMilestone] = useState(null)
 
   const banner = useMemo(() => {
     const prog = loadCampaignProgress()
@@ -50,6 +53,7 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
     const cost = count === 1 ? economy.SINGLE_COST : economy.MULTI_COST
     if (!economy.canAfford(cost)) return
 
+    const beforeCount = Object.keys(economy.collection).length
     economy.spendCoins(cost)
     setPulling(true)
     setPulled([])
@@ -57,6 +61,10 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
 
     const { pulled: newCards } = pull(count, economy.pityCounter, economy.SSR_PITY)
     const enriched = economy.pullCards(newCards)
+    const newOwned = enriched.filter(c => c.isNew).length
+    const afterCount = beforeCount + newOwned
+    const crossed = MILESTONES.find(m => beforeCount < m && afterCount >= m)
+    setPendingMilestone(crossed || null)
     setPulled(newCards)
     setAnimatingCards(enriched)
   }
@@ -68,6 +76,18 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
     setPulling(false)
     const newCards = finished.filter(c => c.isNew)
     if (newCards.length > 0) setShowcaseCards(newCards)
+    else if (pendingMilestone) {
+      setActiveMilestone(pendingMilestone)
+      setPendingMilestone(null)
+    }
+  }
+
+  const handleShowcaseDone = () => {
+    setShowcaseCards(null)
+    if (pendingMilestone) {
+      setActiveMilestone(pendingMilestone)
+      setPendingMilestone(null)
+    }
   }
 
   const pityDisplay = economy.SSR_PITY - economy.pityCounter
@@ -253,7 +273,10 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
         <GachaAnimation cards={animatingCards} onDone={handleAnimationDone} />
       )}
       {showcaseCards && (
-        <CardShowcase cards={showcaseCards} onDone={() => setShowcaseCards(null)} />
+        <CardShowcase cards={showcaseCards} onDone={handleShowcaseDone} />
+      )}
+      {activeMilestone && (
+        <MilestoneModal milestone={activeMilestone} onClose={() => setActiveMilestone(null)} />
       )}
 
       {detailCard && (
