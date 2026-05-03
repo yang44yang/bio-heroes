@@ -125,7 +125,8 @@ export default function GachaAnimation({ cards, onDone }) {
   return (
     <motion.div
       ref={containerRef}
-      className="fixed inset-0 z-[120] bg-black/85 flex items-center justify-center overflow-hidden"
+      className="fixed inset-0 z-[120] flex items-center justify-center overflow-hidden"
+      style={{ background: 'radial-gradient(circle at center, #1e1b4b 0%, #020617 80%)' }}
       initial={{ opacity: 0 }}
       animate={{
         opacity: 1,

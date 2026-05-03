@@ -57,9 +57,11 @@ export default function CardDetailModal({ card, onClose, badge }) {
                 {faction.icon} {lang === 'en' && faction.nameEn ? faction.nameEn : faction.name}
               </span>
             )}
-            {card.rarity && (
-              <span className={`px-2 py-0.5 bg-gray-800 rounded-full font-bold ${rarityColor[card.rarity] || 'text-gray-300'}`}>
-                {card.rarity}
+            {(card.type === 'sp' || card.rarity) && (
+              <span className={`px-2 py-0.5 bg-gray-800 rounded-full font-bold ${
+                card.type === 'sp' ? rarityColor.SP : (rarityColor[card.rarity] || 'text-gray-300')
+              }`}>
+                {card.type === 'sp' ? '⚡ SP' : card.rarity}
               </span>
             )}
             {card.subType && (

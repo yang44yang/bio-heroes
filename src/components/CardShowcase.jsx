@@ -47,7 +47,8 @@ export default function CardShowcase({ cards, onDone }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[110] bg-black/92 flex flex-col"
+      className="fixed inset-0 z-[110] flex flex-col"
+      style={{ background: 'radial-gradient(circle at center, #1e1b4b 0%, #0f172a 50%, #020617 100%)' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -97,9 +98,11 @@ export default function CardShowcase({ cards, onDone }) {
                   {faction.icon} {lang === 'en' && faction.nameEn ? faction.nameEn : faction.name}
                 </span>
               )}
-              {card.rarity && (
-                <span className={`px-2 py-0.5 rounded-full font-bold ${rarityColor[card.rarity] || 'bg-gray-800 text-gray-300'}`}>
-                  {card.rarity}
+              {(card.type === 'sp' || card.rarity) && (
+                <span className={`px-2 py-0.5 rounded-full font-bold ${
+                  card.type === 'sp' ? rarityColor.SP : (rarityColor[card.rarity] || 'bg-gray-800 text-gray-300')
+                }`}>
+                  {card.type === 'sp' ? '⚡ SP' : card.rarity}
                 </span>
               )}
               {card.subType && (
