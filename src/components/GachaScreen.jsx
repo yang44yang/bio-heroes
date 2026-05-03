@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
@@ -10,6 +10,8 @@ import GachaAnimation from './GachaAnimation'
 import CardShowcase from './CardShowcase'
 import MilestoneModal, { MILESTONES } from './MilestoneModal'
 import GachaQuizModal, { selectQuizForPull } from './GachaQuizModal'
+import AchievementModal from './AchievementModal'
+import { detectNewlyUnlocked } from '../data/achievements'
 import { selectBanner } from '../data/gachaBanners'
 import { loadCampaignProgress } from '../data/campaignData'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -41,6 +43,8 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
   const [pendingMilestone, setPendingMilestone] = useState(null)
   const [activeMilestone, setActiveMilestone] = useState(null)
   const [activeQuiz, setActiveQuiz] = useState(null)
+  const [pendingAchievements, setPendingAchievements] = useState([])
+  const [activeAchievement, setActiveAchievement] = useState(null)
 
   const banner = useMemo(() => {
     const prog = loadCampaignProgress()
@@ -76,21 +80,35 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
     setResults(finished)
     setAnimatingCards(null)
     setPulling(false)
+    const newlyUnlocked = detectNewlyUnlocked(economy.collection, economy.unlockedAchievements)
+    if (newlyUnlocked.length > 0) {
+      setPendingAchievements(newlyUnlocked)
+      economy.markAchievementsUnlocked(newlyUnlocked.map(a => a.id))
+    }
     const newCards = finished.filter(c => c.isNew)
     if (newCards.length > 0) setShowcaseCards(newCards)
-    else if (pendingMilestone) {
-      setActiveMilestone(pendingMilestone)
-      setPendingMilestone(null)
-    }
+    // 否则等下面的 useEffect 链推进
   }
 
-  const handleShowcaseDone = () => {
-    setShowcaseCards(null)
+  // 弹窗排队：showcase(isNew) → milestone → achievements (依次)
+  // 用 useEffect 替代直接函数调用，避免 setState 闭包陷阱（pendingAchievements 等读到旧值）
+  useEffect(() => {
+    if (showcaseCards || activeMilestone || activeAchievement) return // 当前有弹窗，不推进
+    if (animatingCards) return // 动画进行中
     if (pendingMilestone) {
       setActiveMilestone(pendingMilestone)
       setPendingMilestone(null)
+      return
     }
-  }
+    if (pendingAchievements.length > 0) {
+      setActiveAchievement(pendingAchievements[0])
+      setPendingAchievements(prev => prev.slice(1))
+    }
+  }, [showcaseCards, activeMilestone, activeAchievement, animatingCards, pendingMilestone, pendingAchievements])
+
+  const handleShowcaseDone = () => setShowcaseCards(null)
+  const handleMilestoneClose = () => setActiveMilestone(null)
+  const handleAchievementClose = () => setActiveAchievement(null)
 
   const pityDisplay = economy.SSR_PITY - economy.pityCounter
 
@@ -293,7 +311,10 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
         <CardShowcase cards={showcaseCards} onDone={handleShowcaseDone} />
       )}
       {activeMilestone && (
-        <MilestoneModal milestone={activeMilestone} onClose={() => setActiveMilestone(null)} />
+        <MilestoneModal milestone={activeMilestone} onClose={handleMilestoneClose} />
+      )}
+      {activeAchievement && (
+        <AchievementModal achievement={activeAchievement} onClose={handleAchievementClose} />
       )}
 
       {detailCard && (
