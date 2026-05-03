@@ -524,7 +524,9 @@ export const campaignData = {
           enemyConfig: {
             leaderHP: 30000,
             deck: ['blue_whale_titan','orca_alpha','cheetah_sprinter','cheetah_sprinter','sunflower_charger','sunflower_charger','event_food_chain_burst','event_food_chain_burst','event_cambrian_explosion','event_ecosystem_recovery','event_ecosystem_recovery'],
-            spDeck: ['sp_trex', 'sp_world_tree'],
+            // 去掉 sp_trex（陆地恐龙不该出现在海洋 boss 关，而且迅击+10000 ATK+压制+灭世咆哮组合会瞬间清场）
+            // 只留 sp_world_tree（自愈+守护），强化"蓝鲸不可击杀"的持久战恐怖感
+            spDeck: ['sp_world_tree'],
             aiStrength: 0.7,
             aiPersonality: 'defensive',
             bossMechanic: 'whale_boss',
