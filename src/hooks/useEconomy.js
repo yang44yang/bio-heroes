@@ -46,6 +46,7 @@ const DEFAULT_STATE = {
   pityCounter: 0,           // SSR 保底计数器
   totalPulls: 0,
   unlockedSPs: [],          // 已通关解锁的 campaign_only SP 卡 ID 列表
+  unlockedAchievements: [], // 已解锁的主题成就 ID 列表（向后兼容：老存档默认空数组）
 }
 
 function arrayToCollectionMap(ids) {
@@ -306,6 +307,17 @@ export function useEconomy() {
     })
   }, [])
 
+  // 标记成就为已解锁（幂等，支持批量）
+  const markAchievementsUnlocked = useCallback((achievementIds) => {
+    if (!achievementIds || achievementIds.length === 0) return
+    setState(prev => {
+      const list = prev.unlockedAchievements || []
+      const toAdd = achievementIds.filter(id => !list.includes(id))
+      if (toAdd.length === 0) return prev
+      return { ...prev, unlockedAchievements: [...list, ...toAdd] }
+    })
+  }, [])
+
   return {
     coins: state.coins,
     diamonds: state.diamonds,
@@ -315,6 +327,7 @@ export function useEconomy() {
     totalPulls: state.totalPulls,
     isNewPlayer: !!state.isNewPlayer,
     unlockedSPs: state.unlockedSPs || [],
+    unlockedAchievements: state.unlockedAchievements || [],
 
     addCoins,
     spendCoins,
@@ -329,6 +342,7 @@ export function useEconomy() {
     sellFragments,
     sellAllUnusedFragments,
     unlockCampaignSP,
+    markAchievementsUnlocked,
 
     SINGLE_COST,
     MULTI_COST,
