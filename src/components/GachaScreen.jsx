@@ -27,7 +27,7 @@ const rarityBg = {
   SSR: 'border-yellow-400/50 shadow-yellow-400/30 shadow-xl',
 }
 
-export default function GachaScreen({ onBack, economy }) {
+export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
   const { t } = useLanguage()
   const { pull } = useGacha()
   const [pulled, setPulled] = useState([])
@@ -216,6 +216,29 @@ export default function GachaScreen({ onBack, economy }) {
           ))}
         </motion.div>
       )}
+
+      {/* 抽到 SR+ 后联动 DeckBuilder 提示 */}
+      {(() => {
+        const srPlus = results.filter(c => c.rarity === 'SR' || c.rarity === 'SSR' || c.type === 'sp')
+        if (srPlus.length === 0 || !onGotoDeckBuilder) return null
+        return (
+          <motion.div
+            className="mt-6 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-4 max-w-md w-full"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="text-white text-sm mb-3">
+              🎉 抽到了 {srPlus.length} 张强力卡！现在就加入卡组试试？
+            </div>
+            <button
+              onClick={() => onGotoDeckBuilder(srPlus.map(c => c.id))}
+              className="w-full bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-yellow-50"
+            >
+              立刻去组队 →
+            </button>
+          </motion.div>
+        )
+      })()}
 
       {/* Back button */}
       <motion.button

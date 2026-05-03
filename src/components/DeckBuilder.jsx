@@ -219,7 +219,7 @@ function CardDetailModal({ card, onClose, onAdd, canAdd }) {
   )
 }
 
-export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
+export default function DeckBuilder({ onBack, onSelectDeck, collection, highlightCardIds = [], onHighlightExpire }) {
   const { t, cardName, lang } = useLanguage()
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
@@ -248,6 +248,13 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
   const [filterSubType, setFilterSubType] = useState('all')
   const [sortBy, setSortBy] = useState('cost') // cost | atk | rarity
   const [showSp, setShowSp] = useState(false)
+
+  // 30s 后自动取消高亮
+  React.useEffect(() => {
+    if (highlightCardIds.length === 0) return
+    const t = setTimeout(() => onHighlightExpire?.(), 30000)
+    return () => clearTimeout(t)
+  }, [highlightCardIds, onHighlightExpire])
 
   // Load deck from slot
   const loadSlot = useCallback((slotIdx) => {
@@ -713,14 +720,21 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection }) {
 
             const canAdd = !atLimit && !deckFull
 
+            const isHighlighted = highlightCardIds.includes(card.id)
+
             return (
               <motion.div
                 key={card.id}
-                className={`relative ${canAdd ? 'cursor-pointer' : 'cursor-default'} ${atLimit ? 'opacity-50' : ''}`}
+                className={`relative ${canAdd ? 'cursor-pointer' : 'cursor-default'} ${atLimit ? 'opacity-50' : ''} ${isHighlighted ? 'ring-4 ring-yellow-400 rounded-xl' : ''}`}
                 whileHover={canAdd ? { scale: 1.05 } : {}}
                 whileTap={canAdd ? { scale: 0.95 } : {}}
+                animate={isHighlighted ? { boxShadow: ['0 0 0 0 rgba(250,204,21,0.0)', '0 0 18px 4px rgba(250,204,21,0.7)', '0 0 0 0 rgba(250,204,21,0.0)'] } : {}}
+                transition={isHighlighted ? { duration: 1.6, repeat: Infinity } : {}}
                 onClick={() => canAdd && addCard(card.id)}
               >
+                {isHighlighted && (
+                  <div className="absolute -top-2 left-1/2 -translate-x-1/2 z-30 bg-yellow-400 text-black text-[9px] font-black px-1.5 py-0.5 rounded-full shadow">NEW</div>
+                )}
                 <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
                 {/* ℹ️ 详情按钮 — 右下角，始终可点 */}
                 <button

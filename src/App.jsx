@@ -67,6 +67,7 @@ export default function App() {
     return 'title'
   })
   const [selectedDeck, setSelectedDeck] = useState(null)
+  const [highlightCardIds, setHighlightCardIds] = useState([])
   const [tutorialStartLevel, setTutorialStartLevel] = useState(null) // 从闯关跳转时指定教学关卡
   const [pendingSpUnlock, setPendingSpUnlock] = useState(null) // Boss 通关后弹解锁庆祝
   const economy = useEconomy()
@@ -286,11 +287,19 @@ export default function App() {
           />
         )}
         {screen === 'gacha' && (
-          <GachaScreen onBack={() => setScreen('title')} economy={economy} />
+          <GachaScreen
+            onBack={() => setScreen('title')}
+            economy={economy}
+            onGotoDeckBuilder={(cardIds) => {
+              setHighlightCardIds(cardIds || [])
+              setScreen('deckBuilder')
+            }}
+          />
         )}
         {screen === 'deckBuilder' && (
           <DeckBuilder
             onBack={() => {
+              setHighlightCardIds([])
               if (pendingCampaignRef.current) {
                 pendingCampaignRef.current = null
                 setScreen('campaign')
@@ -300,6 +309,8 @@ export default function App() {
             }}
             onSelectDeck={handleSelectDeck}
             collection={economy.collection}
+            highlightCardIds={highlightCardIds}
+            onHighlightExpire={() => setHighlightCardIds([])}
           />
         )}
         {screen === 'collection' && (
