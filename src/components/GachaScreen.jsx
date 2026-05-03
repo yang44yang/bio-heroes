@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
 import BattleCard from './Card'
+import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const rarityColors = {
@@ -23,6 +24,7 @@ export default function GachaScreen({ onBack, economy }) {
   const [pulled, setPulled] = useState([])
   const [pulling, setPulling] = useState(false)
   const [results, setResults] = useState([])
+  const [detailCard, setDetailCard] = useState(null)
 
   const doPull = (count) => {
     const cost = count === 1 ? economy.SINGLE_COST : economy.MULTI_COST
@@ -111,10 +113,13 @@ export default function GachaScreen({ onBack, economy }) {
           {results.map((card, i) => (
             <motion.div
               key={card.instanceId || `${card.id}_${i}`}
-              className={`relative rounded-xl border-2 ${rarityBg[card.rarity] || ''} overflow-hidden`}
+              className={`relative rounded-xl border-2 ${rarityBg[card.rarity] || ''} overflow-hidden cursor-pointer`}
               initial={{ opacity: 0, y: 40, rotateY: 180 }}
               animate={{ opacity: 1, y: 0, rotateY: 0 }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.97 }}
               transition={{ delay: i * 0.15, type: 'spring', damping: 12 }}
+              onClick={() => setDetailCard(card)}
             >
               <BattleCard card={card} hp={card.hp || 0} maxHp={card.hp || 1} isPlayer={true} isActive={false} />
               {card.isNew ? (
@@ -124,6 +129,7 @@ export default function GachaScreen({ onBack, economy }) {
               ) : (
                 <div className="absolute top-0 left-0 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">×{card.count}</div>
               )}
+              <div className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-cyan-600/90 text-white text-[11px] font-bold flex items-center justify-center shadow pointer-events-none">i</div>
             </motion.div>
           ))}
         </motion.div>
@@ -137,6 +143,22 @@ export default function GachaScreen({ onBack, economy }) {
       >
         {t('gacha.back')}
       </motion.button>
+
+      {detailCard && (
+        <CardDetailModal
+          card={detailCard}
+          onClose={() => setDetailCard(null)}
+          badge={
+            detailCard.isNew ? (
+              <span className="text-[10px] font-black bg-green-500 text-white px-2 py-0.5 rounded-full">NEW!</span>
+            ) : detailCard.isDupe ? (
+              <span className="text-[10px] font-bold bg-amber-600 text-white px-2 py-0.5 rounded-full">{t('gacha.fragments', { n: detailCard.fragments })}</span>
+            ) : (
+              <span className="text-[10px] font-bold bg-blue-600 text-white px-2 py-0.5 rounded-full">×{detailCard.count}</span>
+            )
+          }
+        />
+      )}
     </div>
   )
 }
