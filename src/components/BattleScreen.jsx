@@ -1409,6 +1409,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 }}
               >
                 <BattleCard card={card} hp={card.hp} maxHp={card.hp} isPlayer={true} isActive={false} />
+                <button
+                  onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
+                  className="absolute -top-1 -right-1 z-30 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyan-600/90 hover:bg-cyan-500 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center shadow-lg border border-cyan-300/60"
+                  aria-label="详情"
+                >
+                  ⓘ
+                </button>
                 {card.factionRequirement && !canPlayWithMarkers(card, battle.playerDiscard) && (() => {
                   const f = FACTIONS[card.factionRequirement.faction]
                   const have = getFactionMarkers(battle.playerDiscard)[card.factionRequirement.faction] || 0
