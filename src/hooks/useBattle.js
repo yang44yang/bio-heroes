@@ -766,28 +766,35 @@ export function useBattle() {
         return { success: true }
       }
       case 'buff': {
-        // ATK buff
-        const field = friendlyFieldRef.current
+        // ATK buff — 加 atk_boost status 标记 buff 来源 + turnsLeft
+        // 同时立即把 amount 加到 c.atk（让攻击/显示逻辑无需改）
+        // 回合结束 processStatuses 会回退 atk 并移除 status
         const target = card.effectTarget
         if (target.startsWith('all_friendly')) {
-          // Buff all friendly (optionally faction-filtered)
           const factionFilter = target.includes('nature') ? 'nature'
             : target.includes('body') ? 'body'
             : target.includes('pathogen') ? 'pathogen'
             : target.includes('tech') ? 'tech' : null
+          const turns = card.effectTurns || 1
           friendlySetter(prev => {
             return prev.map(c => {
               if (!c || c.currentHp <= 0) return c
               if (c.type === 'sp' || c.type === 'character') {
                 if (factionFilter && c.faction !== factionFilter) return c
-                return { ...c, atk: c.atk + card.effectValue }
+                const statuses = c.statuses ? [...c.statuses] : []
+                statuses.push({
+                  type: 'atk_boost',
+                  amount: card.effectValue,
+                  turnsLeft: turns,
+                  source: card.id,
+                })
+                return { ...c, atk: c.atk + card.effectValue, statuses }
               }
               return c
             })
           })
           const fName = factionFilter ? FACTIONS[factionFilter]?.name : ''
-          addLog(`✨ ${card.name}：所有己方${fName}生物卡 ATK +${card.effectValue}！`)
-          // Handle "with cost" (fever response: also HP -500)
+          addLog(`✨ ${card.name}：所有己方${fName}生物卡 ATK +${card.effectValue}（持续${turns}回合）！`)
           if (target.includes('with_cost')) {
             friendlySetter(prev => prev.map(c => {
               if (!c || c.currentHp <= 0) return c
@@ -953,13 +960,21 @@ export function useBattle() {
             addLog(`🛡️ ${card.name}：${chosen.name} 获得1回合科技系免疫！`)
           }
         } else if (target === 'all_friendly_buff_and_powerbank') {
-          // ATK +2000 to all + Power Bank +5
+          // ATK +2000 to all + Power Bank +5（持续 N 回合，加 atk_boost status）
+          const turns = card.effectTurns || 2
           friendlySetter(prev => prev.map(c => {
             if (!c || c.currentHp <= 0) return c
-            return { ...c, atk: c.atk + card.effectValue }
+            const statuses = c.statuses ? [...c.statuses] : []
+            statuses.push({
+              type: 'atk_boost',
+              amount: card.effectValue,
+              turnsLeft: turns,
+              source: card.id,
+            })
+            return { ...c, atk: c.atk + card.effectValue, statuses }
           }))
           setPB(prev => ({ ...prev, stored: prev.stored + 5 }))
-          addLog(`✨ ${card.name}：全队 ATK +${card.effectValue}，Power Bank +5！`)
+          addLog(`✨ ${card.name}：全队 ATK +${card.effectValue}（持续${turns}回合），Power Bank +5！`)
         }
         return { success: true }
       }

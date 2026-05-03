@@ -146,6 +146,22 @@ export function processStatuses(card) {
         break
       }
 
+      case 'atk_boost': {
+        // ATK 临时加成（如食物链爆发 / 免疫应答）— 按回合递减
+        // buff 时已经把 amount 加到 card.atk，到期时减回去
+        if (status.turnsLeft > 1) {
+          remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })
+        } else {
+          card.atk = Math.max(0, card.atk - status.amount)
+          events.push({
+            type: 'ATK_BOOST_CLEAR',
+            target: card.name,
+            message: `💪 ${card.name} 的攻击加成（+${status.amount}）消失了`,
+          })
+        }
+        break
+      }
+
       case 'ecosystem_shelter': {
         // 生态庇护时限（Sprint 25 SP·远古世界树）— 按回合递减
         if (status.turnsLeft > 1) {

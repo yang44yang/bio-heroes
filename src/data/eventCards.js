@@ -49,6 +49,7 @@ const eventCards = [
     effectType: "buff",
     effectDescription: "所有己方自然系生物卡 ATK +1500 持续1回合",
     effectValue: 1500,
+    effectTurns: 1,
     effectTarget: "all_friendly_nature",
     spSummonRule: {
       type: "faction_only",
@@ -189,6 +190,7 @@ const eventCards = [
     effectType: "buff",
     effectDescription: "所有己方人体系卡 ATK +1000 持续2回合，但所有己方卡 HP -500",
     effectValue: 1000,
+    effectTurns: 2,
     effectTarget: "all_friendly_body_buff_with_cost",
     spSummonRule: {
       type: "cost_limit",
@@ -437,6 +439,7 @@ const eventCards = [
     effectType: "special",
     effectDescription: "所有己方卡 ATK +2000 持续2回合，Power Bank +5 能量",
     effectValue: 2000,
+    effectTurns: 2,
     effectTarget: "all_friendly_buff_and_powerbank",
     spSummonRule: {
       type: "discard_check",
