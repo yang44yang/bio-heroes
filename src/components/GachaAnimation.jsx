@@ -2,15 +2,51 @@ import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 
-// Phase A Step 1: 基础胶囊 + 翻牌容器（差异化在 Step 2 添加）
+// Phase A: 抽卡爽感 — 不同稀有度有不同翻面节奏 + 光效
 //
-// 时序（单抽约 2s，十连约 3s）：
+// 时序：
 //   capsule  : 胶囊出现 + 旋转
 //   crack    : 胶囊咔嚓裂开
-//   reveal   : 卡牌依次翻面
+//   reveal   : 卡牌依次翻面（SR+ 翻到时停顿 + 闪光）
 //   done     : 调用 onDone 回到 GachaScreen
 
-const FALLBACK_FLIP = { flipDuration: 500, glowColor: 'cyan' }
+const RARITY_EFFECTS = {
+  R: {
+    flipDuration: 400,
+    glowColor: 'rgba(96,165,250,0.55)',
+    glowRing: 'shadow-blue-400/40',
+    pauseAfter: 0,
+    haloDuration: 0,
+  },
+  SR: {
+    flipDuration: 600,
+    glowColor: 'rgba(192,132,252,0.7)',
+    glowRing: 'shadow-purple-400/60 shadow-lg',
+    pauseAfter: 220,
+    haloDuration: 500,
+  },
+  SSR: {
+    flipDuration: 800,
+    glowColor: 'rgba(250,204,21,0.85)',
+    glowRing: 'shadow-yellow-400/80 shadow-2xl',
+    pauseAfter: 420,
+    haloDuration: 900,
+  },
+  SP: {
+    flipDuration: 1100,
+    glowColor: 'rgba(244,114,182,0.95)',
+    glowRing: 'shadow-pink-400/90 shadow-2xl',
+    pauseAfter: 1200,
+    haloDuration: 1400,
+  },
+}
+
+const FALLBACK_FLIP = RARITY_EFFECTS.R
+
+const effectFor = (card) => {
+  if (card?.type === 'sp') return RARITY_EFFECTS.SP
+  return RARITY_EFFECTS[card?.rarity] || FALLBACK_FLIP
+}
 
 export default function GachaAnimation({ cards, onDone }) {
   const [phase, setPhase] = useState('capsule')
@@ -26,12 +62,16 @@ export default function GachaAnimation({ cards, onDone }) {
   useEffect(() => {
     if (phase !== 'reveal') return
     if (revealedCount >= cards.length) {
-      const t = setTimeout(() => onDone(), 600)
+      const t = setTimeout(() => onDone(), 700)
       return () => clearTimeout(t)
     }
-    const t = setTimeout(() => setRevealedCount(c => c + 1), revealedCount === 0 ? 200 : 180)
+    // 当前刚翻完的卡（如果有）的 pauseAfter 决定下一张延迟
+    const justRevealed = cards[revealedCount - 1]
+    const baseDelay = revealedCount === 0 ? 200 : 160
+    const extraPause = justRevealed ? effectFor(justRevealed).pauseAfter : 0
+    const t = setTimeout(() => setRevealedCount(c => c + 1), baseDelay + extraPause)
     return () => clearTimeout(t)
-  }, [phase, revealedCount, cards.length, onDone])
+  }, [phase, revealedCount, cards, onDone])
 
   return (
     <motion.div
@@ -72,7 +112,7 @@ export default function GachaAnimation({ cards, onDone }) {
                 key={i}
                 card={card}
                 flipped={flipped}
-                effect={FALLBACK_FLIP}
+                effect={effectFor(card)}
               />
             )
           })}
@@ -85,8 +125,24 @@ export default function GachaAnimation({ cards, onDone }) {
 function CardFlip({ card, flipped, effect }) {
   return (
     <div className="relative" style={{ perspective: 800 }}>
+      {/* 翻面瞬间的光晕扫过 */}
+      <AnimatePresence>
+        {flipped && effect.haloDuration > 0 && (
+          <motion.div
+            key="halo"
+            className="absolute -inset-3 rounded-2xl pointer-events-none"
+            initial={{ opacity: 0, scale: 0.6 }}
+            animate={{ opacity: [0, 0.9, 0], scale: [0.6, 1.4, 1.7] }}
+            transition={{ duration: effect.haloDuration / 1000, ease: 'easeOut' }}
+            style={{
+              background: `radial-gradient(circle, ${effect.glowColor} 0%, transparent 70%)`,
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       <motion.div
-        className="relative w-[88px] h-[120px]"
+        className={`relative w-[88px] h-[120px] rounded-xl ${flipped ? effect.glowRing : ''}`}
         style={{ transformStyle: 'preserve-3d' }}
         animate={{ rotateY: flipped ? 180 : 0 }}
         transition={{ duration: effect.flipDuration / 1000, ease: 'easeInOut' }}
