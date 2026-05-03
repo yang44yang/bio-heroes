@@ -9,6 +9,7 @@ import CardDetailModal from './CardDetailModal'
 import GachaAnimation from './GachaAnimation'
 import CardShowcase from './CardShowcase'
 import MilestoneModal, { MILESTONES } from './MilestoneModal'
+import GachaQuizModal, { selectQuizForPull } from './GachaQuizModal'
 import { selectBanner } from '../data/gachaBanners'
 import { loadCampaignProgress } from '../data/campaignData'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -39,6 +40,7 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
   const [showcaseCards, setShowcaseCards] = useState(null)
   const [pendingMilestone, setPendingMilestone] = useState(null)
   const [activeMilestone, setActiveMilestone] = useState(null)
+  const [activeQuiz, setActiveQuiz] = useState(null)
 
   const banner = useMemo(() => {
     const prog = loadCampaignProgress()
@@ -270,7 +272,22 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
       </motion.button>
 
       {animatingCards && (
-        <GachaAnimation cards={animatingCards} onDone={handleAnimationDone} />
+        <GachaAnimation
+          cards={animatingCards}
+          onDone={handleAnimationDone}
+          paused={!!activeQuiz}
+          midpointAt={5}
+          onMidpointReached={() => {
+            // 仅十连触发：基于已翻出的前 5 张选关联题
+            if (animatingCards.length >= 10) {
+              const quiz = selectQuizForPull(animatingCards.slice(0, 5))
+              if (quiz) setActiveQuiz(quiz)
+            }
+          }}
+        />
+      )}
+      {activeQuiz && (
+        <GachaQuizModal quiz={activeQuiz} onComplete={() => setActiveQuiz(null)} />
       )}
       {showcaseCards && (
         <CardShowcase cards={showcaseCards} onDone={handleShowcaseDone} />

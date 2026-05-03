@@ -75,10 +75,11 @@ const effectFor = (card) => {
   return RARITY_EFFECTS[card?.rarity] || FALLBACK_FLIP
 }
 
-export default function GachaAnimation({ cards, onDone }) {
+export default function GachaAnimation({ cards, onDone, paused = false, onMidpointReached, midpointAt = 5 }) {
   const [phase, setPhase] = useState('capsule')
   const [revealedCount, setRevealedCount] = useState(0)
   const [activeBlast, setActiveBlast] = useState(null) // 当前正在闪的高稀有卡 effect
+  const [midpointFired, setMidpointFired] = useState(false)
   const isMulti = cards.length > 1
   const containerRef = useRef(null)
 
@@ -90,6 +91,19 @@ export default function GachaAnimation({ cards, onDone }) {
 
   useEffect(() => {
     if (phase !== 'reveal') return
+    if (paused) return // 父组件暂停（如插入小测验）— 翻牌停在当前数量
+    // 中场点：十连第 N 张翻完后通知父组件，父组件决定是否设 paused=true
+    if (
+      onMidpointReached &&
+      !midpointFired &&
+      isMulti &&
+      revealedCount === midpointAt &&
+      revealedCount < cards.length
+    ) {
+      setMidpointFired(true)
+      onMidpointReached()
+      return
+    }
     if (revealedCount >= cards.length) {
       const t = setTimeout(() => onDone(), 700)
       return () => clearTimeout(t)
