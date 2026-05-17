@@ -8,6 +8,7 @@ import { FACTIONS, SUBTYPES } from '../data/deckRules'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
 import { COLLECTION_ACHIEVEMENTS } from '../data/achievements'
 import AchievementModal from './AchievementModal'
+import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const allCards = [...cards, ...eventCards, ...spCards]
@@ -432,284 +433,215 @@ export default function Collection({ onBack, economy }) {
         <AchievementModal achievement={achievementDetail} onClose={() => setAchievementDetail(null)} />
       )}
 
-      {/* Card detail modal */}
-      <AnimatePresence>
-        {selectedCard && (
-          <motion.div
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => { if (!evolving) setSelectedCard(null) }}
-          >
-            <motion.div
-              className="bg-gray-900 rounded-2xl p-6 mx-4 max-w-md w-full border border-gray-700 max-h-[90vh] overflow-y-auto"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-              onClick={e => e.stopPropagation()}
-            >
-              {/* 进化动画覆盖层 */}
-              <AnimatePresence>
-                {evolving && (
-                  <motion.div
-                    className="absolute inset-0 z-50 flex items-center justify-center rounded-2xl overflow-hidden"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  >
-                    {/* 闪光背景 */}
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-amber-300 to-orange-500"
-                      animate={{
-                        opacity: [0, 1, 1, 0.8, 0],
-                        scale: [0.5, 1.2, 1, 1.1, 1],
-                      }}
-                      transition={{ duration: 1.4, times: [0, 0.3, 0.5, 0.7, 1] }}
-                    />
-                    {/* 中心光芒 */}
-                    <motion.div
-                      className="absolute w-24 h-24 rounded-full"
-                      style={{
-                        background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,215,0,0.8) 40%, transparent 70%)',
-                      }}
-                      animate={{
-                        scale: [0, 3, 5],
-                        opacity: [1, 0.8, 0],
-                      }}
-                      transition={{ duration: 1.2, ease: 'easeOut' }}
-                    />
-                    {/* 进化文字 */}
-                    <motion.div
-                      className="relative text-3xl font-black text-white z-10"
-                      style={{ textShadow: '0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,165,0,0.5)' }}
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: [0, 1.3, 1], opacity: [0, 1, 1] }}
-                      transition={{ duration: 0.8, delay: 0.3 }}
-                    >
-                      {t('collection.detail.evoSuccess')}
-                    </motion.div>
-                    {/* 粒子效果（CSS 模拟） */}
-                    {[...Array(8)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="absolute w-2 h-2 rounded-full bg-yellow-300"
-                        initial={{ x: 0, y: 0, opacity: 1 }}
-                        animate={{
-                          x: Math.cos(i * Math.PI / 4) * 120,
-                          y: Math.sin(i * Math.PI / 4) * 120,
-                          opacity: 0,
-                          scale: [1, 0.5],
-                        }}
-                        transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex justify-center mb-4">
+      {/* 卡牌详情弹窗 — 通用 CardDetailModal + 图鉴专属：进化链/碎片商店/进化按钮 */}
+      {selectedCard && (
+        <CardDetailModal
+          card={selectedCard}
+          context="collection"
+          closeOnBackdrop={!evolving}
+          onClose={() => { if (!evolving) setSelectedCard(null) }}
+          cardAnimate={evolving ? {
+            scale: [1, 1.2, 0.8, 1.1, 1],
+            rotate: [0, 5, -5, 3, 0],
+            filter: ['brightness(1)', 'brightness(2)', 'brightness(3)', 'brightness(1.5)', 'brightness(1)'],
+          } : undefined}
+          overlay={
+            <AnimatePresence>
+              {evolving && (
                 <motion.div
-                  animate={evolving ? {
-                    scale: [1, 1.2, 0.8, 1.1, 1],
-                    rotate: [0, 5, -5, 3, 0],
-                    filter: ['brightness(1)', 'brightness(2)', 'brightness(3)', 'brightness(1.5)', 'brightness(1)'],
-                  } : {}}
-                  transition={{ duration: 1.2 }}
+                  className="absolute inset-0 z-50 flex items-center justify-center rounded-2xl overflow-hidden"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
                 >
-                  <BattleCard
-                    card={selectedCard}
-                    hp={selectedCard.hp || 0}
-                    maxHp={selectedCard.hp || 1}
-                    isPlayer={true}
-                    isActive={false}
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-br from-yellow-400 via-amber-300 to-orange-500"
+                    animate={{ opacity: [0, 1, 1, 0.8, 0], scale: [0.5, 1.2, 1, 1.1, 1] }}
+                    transition={{ duration: 1.4, times: [0, 0.3, 0.5, 0.7, 1] }}
                   />
-                </motion.div>
-              </div>
-              <h3 className="text-lg font-bold text-white text-center mb-1">{cardName(selectedCard)}</h3>
-              <p className="text-xs text-gray-500 text-center mb-3">{lang === 'en' ? selectedCard.name : selectedCard.nameEn}</p>
-
-              {/* Stats */}
-              <div className="flex justify-center gap-4 text-sm mb-3">
-                {selectedCard.atk != null && <span className="text-red-400">⚔️ {selectedCard.atk}</span>}
-                {selectedCard.hp != null && <span className="text-green-400">❤️ {selectedCard.hp}</span>}
-                <span className="text-blue-400">{t('collection.detail.cost', { n: selectedCard.cost || selectedCard.spCost })}</span>
-              </div>
-
-              {/* Skills */}
-              {selectedCard.skills?.length > 0 && (
-                <div className="mb-3">
-                  {selectedCard.skills.map((s, i) => (
-                    <div key={i} className="text-xs text-gray-300 mb-1">
-                      <span className="text-yellow-400 font-bold">{skillName(s)}</span>
-                      <span className="text-gray-500 ml-1">— {s.description}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Event effect */}
-              {selectedCard.effectDescription && (
-                <div className="text-xs text-emerald-300 mb-3">
-                  📜 {selectedCard.effectDescription}
-                </div>
-              )}
-
-              {/* Science card */}
-              <div className="bg-gray-800/80 rounded-xl p-3 text-xs text-gray-400 leading-relaxed mb-3">
-                📖 {selectedCard.scienceCard} {t('science.chineseOnly')}
-              </div>
-
-              {/* 进化链可视化 */}
-              {selectedChain && (
-                <div className="bg-gray-800/50 rounded-xl p-3 mb-3 border border-amber-500/20">
-                  <div className="text-xs font-bold text-amber-400 mb-2">🧬 {selectedChain.name}</div>
-                  <div className="flex items-center justify-center gap-2">
-                    {selectedChain.steps.map((step, i) => {
-                      const card = cardMap[step.cardId]
-                      const isOwned = isOwn(step.cardId)
-                      const isCurrent = step.cardId === selectedCard.id
-                      const evo = getEvolutionTarget(step.cardId)
-                      return (
-                        <React.Fragment key={step.cardId}>
-                          <div
-                            className={`flex flex-col items-center px-2 py-1 rounded-lg transition-all
-                              ${isCurrent ? 'bg-amber-500/20 ring-1 ring-amber-400' : ''}
-                              ${!isOwned ? 'opacity-40' : ''}
-                              ${isOwned && !isCurrent ? 'cursor-pointer hover:bg-gray-700/50' : ''}
-                            `}
-                            onClick={() => {
-                              if (isOwned && card && !isCurrent) setSelectedCard(card)
-                            }}
-                          >
-                            <span className={`text-xs font-bold ${rarityLabel[step.rarity]}`}>
-                              {card?.name?.split('·')[0] || '???'}
-                            </span>
-                            <span className="text-[9px] text-gray-500">{step.rarity}</span>
-                            {isOwned ? (
-                              <span className="text-[9px] text-green-400">✓</span>
-                            ) : (
-                              <span className="text-[9px] text-gray-600">🔒</span>
-                            )}
-                          </div>
-                          {i < selectedChain.steps.length - 1 && (
-                            <div className="flex flex-col items-center">
-                              <span className="text-amber-500 text-sm font-bold">→</span>
-                              <span className="text-[8px] text-gray-500">
-                                {evo ? t('collection.fragCost', { n: evo.fragmentCost }) : ''}
-                              </span>
-                            </div>
-                          )}
-                        </React.Fragment>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* 持有数量 + 碎片商店 */}
-              <div className="mb-3 bg-gray-800/40 rounded-lg p-2.5">
-                <div className="flex items-center justify-between text-xs mb-1.5">
-                  <span className="text-gray-300">持有数量</span>
-                  <span className="text-white font-bold">
-                    {owned[selectedCard.id] || 0} / {economy.MAX_COPIES_PER_CARD}
-                    {(owned[selectedCard.id] || 0) >= economy.MAX_COPIES_PER_CARD && (
-                      <span className="ml-2 text-green-400 text-[10px]">✓ 已齐</span>
-                    )}
-                  </span>
-                </div>
-                {(economy.fragments[selectedCard.id] || 0) > 0 && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] text-amber-400 shrink-0">碎片 {economy.fragments[selectedCard.id]}</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={economy.fragments[selectedCard.id]}
-                      value={Math.min(sellAmount, economy.fragments[selectedCard.id])}
-                      onChange={e => {
-                        const v = parseInt(e.target.value, 10) || 1
-                        setSellAmount(Math.max(1, Math.min(v, economy.fragments[selectedCard.id])))
-                      }}
-                      className="flex-1 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white text-xs"
-                    />
-                    <button
-                      onClick={() => {
-                        const amt = Math.min(sellAmount, economy.fragments[selectedCard.id] || 0)
-                        if (amt > 0) economy.sellFragments(selectedCard.id, amt)
-                      }}
-                      className="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded text-[11px] text-white font-bold whitespace-nowrap"
-                    >
-                      卖 → {Math.min(sellAmount, economy.fragments[selectedCard.id] || 0) * economy.FRAGMENT_TO_COIN_RATE} 🪙
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* 进化按钮 */}
-              {selectedEvoInfo && (
-                <div className="mb-3">
-                  <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
-                    <span>
-                      碎片: <span className={selectedEvoInfo.canEvolve ? 'text-amber-400' : 'text-red-400'}>
-                        {selectedEvoInfo.fragmentsHave}
-                      </span>
-                      /{selectedEvoInfo.fragmentsNeed}
-                    </span>
-                    <span className="text-gray-500">
-                      {t('collection.detail.evolveTo')} <span className={rarityLabel[selectedEvoInfo.target.targetRarity]}>
-                        {cardName(cardMap[selectedEvoInfo.target.targetCardId]) || selectedEvoInfo.target.targetCardId}
-                      </span>
-                    </span>
-                  </div>
-                  {/* 碎片进度条 */}
-                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-2">
-                    <motion.div
-                      className={`h-full rounded-full ${selectedEvoInfo.canEvolve
-                        ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
-                        : 'bg-gradient-to-r from-gray-600 to-gray-500'
-                      }`}
-                      initial={{ width: 0 }}
-                      animate={{
-                        width: `${Math.min(100, (selectedEvoInfo.fragmentsHave / selectedEvoInfo.fragmentsNeed) * 100)}%`
-                      }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  </div>
-                  <motion.button
-                    className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all
-                      ${selectedEvoInfo.canEvolve && !evolving
-                        ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 shadow-lg shadow-amber-500/30'
-                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                      }
-                    `}
-                    whileHover={selectedEvoInfo.canEvolve && !evolving ? { scale: 1.02 } : {}}
-                    whileTap={selectedEvoInfo.canEvolve && !evolving ? { scale: 0.98 } : {}}
-                    onClick={() => {
-                      if (selectedEvoInfo.canEvolve && !evolving) {
-                        handleEvolve(selectedCard.id)
-                      }
-                    }}
-                    disabled={!selectedEvoInfo.canEvolve || evolving}
+                  <motion.div
+                    className="absolute w-24 h-24 rounded-full"
+                    style={{ background: 'radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,215,0,0.8) 40%, transparent 70%)' }}
+                    animate={{ scale: [0, 3, 5], opacity: [1, 0.8, 0] }}
+                    transition={{ duration: 1.2, ease: 'easeOut' }}
+                  />
+                  <motion.div
+                    className="relative text-3xl font-black text-white z-10"
+                    style={{ textShadow: '0 0 20px rgba(255,215,0,0.8), 0 0 40px rgba(255,165,0,0.5)' }}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: [0, 1.3, 1], opacity: [0, 1, 1] }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
                   >
-                    {evolving ? t('collection.detail.evolving') : selectedEvoInfo.canEvolve
-                      ? t('collection.detail.evolveBtn', { n: selectedEvoInfo.fragmentsNeed })
-                      : t('collection.detail.evolveInsufficient', { have: selectedEvoInfo.fragmentsHave, need: selectedEvoInfo.fragmentsNeed })
-                    }
-                  </motion.button>
-                </div>
+                    {t('collection.detail.evoSuccess')}
+                  </motion.div>
+                  {[...Array(8)].map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-2 h-2 rounded-full bg-yellow-300"
+                      initial={{ x: 0, y: 0, opacity: 1 }}
+                      animate={{
+                        x: Math.cos(i * Math.PI / 4) * 120,
+                        y: Math.sin(i * Math.PI / 4) * 120,
+                        opacity: 0,
+                        scale: [1, 0.5],
+                      }}
+                      transition={{ duration: 0.8, delay: 0.4, ease: 'easeOut' }}
+                    />
+                  ))}
+                </motion.div>
               )}
+            </AnimatePresence>
+          }
+          actions={
+            <button
+              className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 mt-1"
+              onClick={() => { if (!evolving) setSelectedCard(null) }}
+              disabled={evolving}
+            >
+              {t('collection.detail.close')}
+            </button>
+          }
+        >
+          {/* 进化链可视化 */}
+          {selectedChain && (
+            <div className="bg-gray-800/50 rounded-xl p-3 mb-3 border border-amber-500/20">
+              <div className="text-xs font-bold text-amber-400 mb-2">🧬 {selectedChain.name}</div>
+              <div className="flex items-center justify-center gap-2">
+                {selectedChain.steps.map((step, i) => {
+                  const card = cardMap[step.cardId]
+                  const isOwned = isOwn(step.cardId)
+                  const isCurrent = step.cardId === selectedCard.id
+                  const evo = getEvolutionTarget(step.cardId)
+                  return (
+                    <React.Fragment key={step.cardId}>
+                      <div
+                        className={`flex flex-col items-center px-2 py-1 rounded-lg transition-all
+                          ${isCurrent ? 'bg-amber-500/20 ring-1 ring-amber-400' : ''}
+                          ${!isOwned ? 'opacity-40' : ''}
+                          ${isOwned && !isCurrent ? 'cursor-pointer hover:bg-gray-700/50' : ''}
+                        `}
+                        onClick={() => {
+                          if (isOwned && card && !isCurrent) setSelectedCard(card)
+                        }}
+                      >
+                        <span className={`text-xs font-bold ${rarityLabel[step.rarity]}`}>
+                          {card?.name?.split('·')[0] || '???'}
+                        </span>
+                        <span className="text-[9px] text-gray-500">{step.rarity}</span>
+                        {isOwned ? (
+                          <span className="text-[9px] text-green-400">✓</span>
+                        ) : (
+                          <span className="text-[9px] text-gray-600">🔒</span>
+                        )}
+                      </div>
+                      {i < selectedChain.steps.length - 1 && (
+                        <div className="flex flex-col items-center">
+                          <span className="text-amber-500 text-sm font-bold">→</span>
+                          <span className="text-[8px] text-gray-500">
+                            {evo ? t('collection.fragCost', { n: evo.fragmentCost }) : ''}
+                          </span>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
-              <button
-                className="w-full py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300"
-                onClick={() => { if (!evolving) setSelectedCard(null) }}
-                disabled={evolving}
+          {/* 持有数量 + 碎片商店 */}
+          <div className="mb-3 bg-gray-800/40 rounded-lg p-2.5">
+            <div className="flex items-center justify-between text-xs mb-1.5">
+              <span className="text-gray-300">持有数量</span>
+              <span className="text-white font-bold">
+                {owned[selectedCard.id] || 0} / {economy.MAX_COPIES_PER_CARD}
+                {(owned[selectedCard.id] || 0) >= economy.MAX_COPIES_PER_CARD && (
+                  <span className="ml-2 text-green-400 text-[10px]">✓ 已齐</span>
+                )}
+              </span>
+            </div>
+            {(economy.fragments[selectedCard.id] || 0) > 0 && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[10px] text-amber-400 shrink-0">碎片 {economy.fragments[selectedCard.id]}</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={economy.fragments[selectedCard.id]}
+                  value={Math.min(sellAmount, economy.fragments[selectedCard.id])}
+                  onChange={e => {
+                    const v = parseInt(e.target.value, 10) || 1
+                    setSellAmount(Math.max(1, Math.min(v, economy.fragments[selectedCard.id])))
+                  }}
+                  className="flex-1 bg-gray-900 border border-gray-600 rounded px-2 py-1 text-white text-xs"
+                />
+                <button
+                  onClick={() => {
+                    const amt = Math.min(sellAmount, economy.fragments[selectedCard.id] || 0)
+                    if (amt > 0) economy.sellFragments(selectedCard.id, amt)
+                  }}
+                  className="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded text-[11px] text-white font-bold whitespace-nowrap"
+                >
+                  卖 → {Math.min(sellAmount, economy.fragments[selectedCard.id] || 0) * economy.FRAGMENT_TO_COIN_RATE} 🪙
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 进化按钮 */}
+          {selectedEvoInfo && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
+                <span>
+                  碎片: <span className={selectedEvoInfo.canEvolve ? 'text-amber-400' : 'text-red-400'}>
+                    {selectedEvoInfo.fragmentsHave}
+                  </span>
+                  /{selectedEvoInfo.fragmentsNeed}
+                </span>
+                <span className="text-gray-500">
+                  {t('collection.detail.evolveTo')} <span className={rarityLabel[selectedEvoInfo.target.targetRarity]}>
+                    {cardName(cardMap[selectedEvoInfo.target.targetCardId]) || selectedEvoInfo.target.targetCardId}
+                  </span>
+                </span>
+              </div>
+              <div className="h-2 bg-gray-800 rounded-full overflow-hidden mb-2">
+                <motion.div
+                  className={`h-full rounded-full ${selectedEvoInfo.canEvolve
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400'
+                    : 'bg-gradient-to-r from-gray-600 to-gray-500'
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{
+                    width: `${Math.min(100, (selectedEvoInfo.fragmentsHave / selectedEvoInfo.fragmentsNeed) * 100)}%`
+                  }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+              <motion.button
+                className={`w-full py-2.5 rounded-lg text-sm font-bold transition-all
+                  ${selectedEvoInfo.canEvolve && !evolving
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black hover:from-amber-400 hover:to-yellow-300 shadow-lg shadow-amber-500/30'
+                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  }
+                `}
+                whileHover={selectedEvoInfo.canEvolve && !evolving ? { scale: 1.02 } : {}}
+                whileTap={selectedEvoInfo.canEvolve && !evolving ? { scale: 0.98 } : {}}
+                onClick={() => {
+                  if (selectedEvoInfo.canEvolve && !evolving) {
+                    handleEvolve(selectedCard.id)
+                  }
+                }}
+                disabled={!selectedEvoInfo.canEvolve || evolving}
               >
-                {t('collection.detail.close')}
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                {evolving ? t('collection.detail.evolving') : selectedEvoInfo.canEvolve
+                  ? t('collection.detail.evolveBtn', { n: selectedEvoInfo.fragmentsNeed })
+                  : t('collection.detail.evolveInsufficient', { have: selectedEvoInfo.fragmentsHave, need: selectedEvoInfo.fragmentsNeed })
+                }
+              </motion.button>
+            </div>
+          )}
+        </CardDetailModal>
+      )}
+
     </div>
   )
 }

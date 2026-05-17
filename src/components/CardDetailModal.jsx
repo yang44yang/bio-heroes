@@ -11,6 +11,14 @@ const rarityColor = {
   SP: 'text-pink-300',
 }
 
+// 通用卡牌详情弹窗 — 战斗 / 抽卡 / 卡组 / 图鉴 全场景共用
+//
+// 场景专属内容通过 slot 注入：
+//   actions   — 自定义底部按钮行（如"加入卡组"/"进化"）。不传则渲染默认"关闭"按钮
+//   children  — 额外内容块（如进化链、碎片商店），渲染在 tags / ownership 之后
+//   overlay   — 绝对定位覆盖层（如 Collection 的进化动画）
+//   cardAnimate — forwarded 给卡牌视觉外层 motion.div 的 animate（进化抖动等）
+//   closeOnBackdrop — 点背景是否关闭（Collection 进化动画进行时设 false）
 export default function CardDetailModal({
   card,
   onClose,
@@ -18,6 +26,11 @@ export default function CardDetailModal({
   context = 'collection',
   ownership = null,
   isNew = false,
+  actions = null,
+  children = null,
+  overlay = null,
+  cardAnimate = null,
+  closeOnBackdrop = true,
 }) {
   const { t, lang, cardName, skillName } = useLanguage()
   if (!card) return null
@@ -25,6 +38,7 @@ export default function CardDetailModal({
   const faction = FACTIONS[card.faction]
   const cost = card.cost ?? card.spCost
   const showOwnership = ownership && (context === 'gacha' || context === 'deck' || context === 'collection')
+  const req = card.factionRequirement
 
   return (
     <AnimatePresence>
@@ -33,23 +47,28 @@ export default function CardDetailModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={onClose}
+        onClick={closeOnBackdrop ? onClose : undefined}
       >
         <motion.div
-          className="bg-gray-900 rounded-2xl p-5 max-w-md w-full border border-gray-700 max-h-[90vh] overflow-y-auto"
+          className="relative bg-gray-900 rounded-2xl p-5 max-w-md w-full border border-gray-700 max-h-[90vh] overflow-y-auto"
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.85, opacity: 0 }}
           onClick={e => e.stopPropagation()}
         >
+          {/* 场景专属覆盖层（如进化动画） */}
+          {overlay}
+
           <div className="flex justify-center mb-3">
-            <BattleCard
-              card={card}
-              hp={card.hp || 0}
-              maxHp={card.hp || 1}
-              isPlayer={true}
-              isActive={false}
-            />
+            <motion.div animate={cardAnimate || undefined}>
+              <BattleCard
+                card={card}
+                hp={card.hp || 0}
+                maxHp={card.hp || 1}
+                isPlayer={true}
+                isActive={false}
+              />
+            </motion.div>
           </div>
 
           {badge && <div className="text-center mb-2">{badge}</div>}
@@ -96,6 +115,9 @@ export default function CardDetailModal({
                 <div key={i} className="bg-purple-900/30 border-l-4 border-purple-400 rounded p-2.5">
                   <div className="text-sm font-bold text-purple-200 mb-0.5">🎯 {skillName(s)}</div>
                   <div className="text-xs text-gray-200 leading-relaxed">{s.description}</div>
+                  {s.scienceNote && (
+                    <div className="text-[10px] text-blue-300/70 mt-1">💡 {s.scienceNote}</div>
+                  )}
                 </div>
               ))}
             </div>
@@ -104,6 +126,13 @@ export default function CardDetailModal({
           {card.effectDescription && (
             <div className="mb-3 bg-amber-900/20 border-l-4 border-amber-400 rounded p-2.5 text-xs text-amber-100 leading-relaxed">
               📜 {card.effectDescription}
+            </div>
+          )}
+
+          {req && (
+            <div className="mb-3 bg-yellow-900/20 border-l-4 border-yellow-500 rounded p-2.5 text-xs text-yellow-200 leading-relaxed">
+              ⚠️ 出场条件：需要 {FACTIONS[req.faction]?.icon} {FACTIONS[req.faction]?.name} 标记 ×{req.count}
+              {req.type === 'consume' && '（出场时消耗）'}
             </div>
           )}
 
@@ -142,12 +171,18 @@ export default function CardDetailModal({
             </div>
           )}
 
-          <button
-            onClick={onClose}
-            className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg mt-1 text-sm"
-          >
-            {t('collection.detail.close')}
-          </button>
+          {/* 场景专属内容块（进化链 / 碎片商店等） */}
+          {children}
+
+          {/* 底部按钮：传 actions 用自定义，否则默认关闭按钮 */}
+          {actions || (
+            <button
+              onClick={onClose}
+              className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2 rounded-lg mt-1 text-sm"
+            >
+              {t('collection.detail.close')}
+            </button>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>

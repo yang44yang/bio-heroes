@@ -5,6 +5,7 @@ import cards from '../data/cards'
 import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP } from '../data/deckRules'
+import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const STORAGE_KEY = 'bio-heroes-decks'
@@ -81,153 +82,6 @@ function getSkillIcon(skillName) {
     if (skillName.includes(key)) return icon
   }
   return '🎯' // 专属技能默认图标
-}
-
-// 卡牌详情弹窗组件
-function CardDetailModal({ card, onClose, onAdd, canAdd, ownedCount = 0 }) {
-  const { t, cardName, skillName, lang } = useLanguage()
-  if (!card) return null
-  const faction = FACTIONS[card.faction]
-  const rarityColors = { SSR: '#f1c40f', SR: '#9b59b6', R: '#3498db' }
-  const borderColor = rarityColors[card.rarity] || '#3498db'
-
-  return (
-    <>
-      {/* 背景遮罩 */}
-      <motion.div
-        className="fixed inset-0 z-[999]"
-        style={{ background: 'rgba(0,0,0,0.6)' }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      />
-      {/* 弹窗本体 */}
-      <motion.div
-        className="fixed z-[1000] overflow-y-auto"
-        style={{
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: 'min(90vw, 360px)',
-          maxHeight: '80vh',
-          background: '#1a1e2e',
-          borderRadius: '12px',
-          padding: '20px',
-          border: `2px solid ${borderColor}`,
-        }}
-        initial={{ opacity: 0, scale: 0.85 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.85 }}
-        transition={{ duration: 0.2 }}
-      >
-        {/* 卡名 */}
-        <h3 className="text-lg font-black text-white mb-1">
-          {faction?.icon} {cardName(card)}
-        </h3>
-        {/* 阵营/子类型/稀有度/费用 */}
-        <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-400 mb-3">
-          <span style={{ color: faction?.color }}>{faction?.name}</span>
-          {card.subType && <span>· {card.subType}</span>}
-          <span
-            className="font-bold px-1.5 py-0.5 rounded text-[10px]"
-            style={{ background: `${borderColor}22`, color: borderColor }}
-          >
-            {card.rarity}
-          </span>
-          <span>⚡{card.cost ?? card.spCost ?? '?'}</span>
-        </div>
-
-        {/* ATK / HP */}
-        {(card.atk != null || card.hp != null) && (
-          <div className="flex gap-4 mb-3 text-sm font-bold">
-            {card.atk != null && <span className="text-red-400">⚔️ {card.atk}</span>}
-            {card.hp != null && <span className="text-green-400">❤️ {card.hp}</span>}
-          </div>
-        )}
-
-        {/* 技能 */}
-        {card.skills && card.skills.length > 0 && (
-          <div className="mb-3">
-            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">{t('deck.detail.skills')}</div>
-            {card.skills.map((skill, i) => (
-              <div key={i} className="mb-2">
-                <div className="text-sm font-bold text-white">
-                  {getSkillIcon(skill.name)} {skillName(skill)}
-                  {lang === 'zh' && skill.nameEn && <span className="text-gray-500 text-[10px] ml-1">({skill.nameEn})</span>}
-                  {lang === 'en' && skill.name !== skill.nameEn && <span className="text-gray-500 text-[10px] ml-1">({skill.name})</span>}
-                </div>
-                <div className="text-xs text-gray-300 mt-0.5">{skill.description}</div>
-                {skill.scienceNote && (
-                  <div className="text-[10px] text-blue-300/70 mt-0.5">💡 {skill.scienceNote}</div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* 科学知识卡 */}
-        {card.scienceCard && (
-          <div className="mb-3">
-            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">{t('deck.detail.science')}</div>
-            <div className="text-xs text-gray-300 leading-relaxed">📚 {card.scienceCard} {lang === 'en' && t('science.chineseOnly')}</div>
-          </div>
-        )}
-
-        {/* 出场条件（仅有 factionRequirement 时显示）*/}
-        {card.factionRequirement && (
-          <div className="mb-3">
-            <div className="text-xs text-gray-500 font-bold mb-1.5 border-b border-gray-700 pb-1">{t('deck.detail.requirement')}</div>
-            <div className="text-xs text-yellow-300">
-              {t('deck.detail.reqText', { icon: FACTIONS[card.factionRequirement.faction]?.icon, count: card.factionRequirement.count })}
-              {card.factionRequirement.type === 'consume' && t('deck.detail.consume')}
-            </div>
-          </div>
-        )}
-
-        {/* 持有数量 */}
-        {ownedCount > 0 && (
-          <div className="mb-3 bg-gray-800/50 rounded p-2 flex justify-between items-center text-xs">
-            <span className="text-gray-400">{lang === 'en' ? 'Owned' : '持有'}</span>
-            <span className="text-white font-bold">
-              {ownedCount} / 3
-              {ownedCount >= 3 && <span className="ml-2 text-green-400 text-[10px]">✓ {lang === 'en' ? 'Full' : '已齐'}</span>}
-            </span>
-          </div>
-        )}
-
-        {/* 标签 */}
-        {card.tags && card.tags.length > 0 && (
-          <div className="mb-4">
-            <div className="flex flex-wrap gap-1">
-              {card.tags.map((tag, i) => (
-                <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-700 text-gray-400">
-                  🏷️ {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 按钮 */}
-        <div className="flex gap-2 mt-2">
-          {canAdd && (
-            <button
-              className="flex-1 text-sm py-2 rounded-lg font-bold bg-blue-600 hover:bg-blue-500 text-white"
-              onClick={() => { onAdd(card.id); onClose() }}
-            >
-              {t('deck.detail.addToDeck')}
-            </button>
-          )}
-          <button
-            className={`${canAdd ? 'flex-1' : 'w-full'} text-sm py-2 rounded-lg font-bold bg-gray-700 hover:bg-gray-600 text-gray-300`}
-            onClick={onClose}
-          >
-            {t('deck.detail.close')}
-          </button>
-        </div>
-      </motion.div>
-    </>
-  )
 }
 
 export default function DeckBuilder({ onBack, onSelectDeck, collection, highlightCardIds = [], onHighlightExpire }) {
@@ -766,24 +620,40 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
         </div>
       </div>
 
-      {/* 卡牌详情弹窗 */}
-      <AnimatePresence>
-        {detailCard && (
+      {/* 卡牌详情弹窗 — 通用 CardDetailModal + "加入卡组" actions slot */}
+      {detailCard && (() => {
+        const isSp = detailCard.type === 'sp'
+        const deck = isSp ? spDeck : mainDeck
+        const max = isSp ? MAX_SAME_SP : MAX_SAME_CARD
+        const limit = isSp ? SP_DECK_SIZE : DECK_SIZE
+        const canAdd = deck.length < limit && deck.filter(id => id === detailCard.id).length < max
+        return (
           <CardDetailModal
             card={detailCard}
             onClose={() => setDetailCard(null)}
-            onAdd={(id) => addCard(id)}
-            ownedCount={collection?.[detailCard.id] || 0}
-            canAdd={(() => {
-              const isSp = detailCard.type === 'sp'
-              const deck = isSp ? spDeck : mainDeck
-              const max = isSp ? MAX_SAME_SP : MAX_SAME_CARD
-              const limit = isSp ? SP_DECK_SIZE : DECK_SIZE
-              return deck.length < limit && deck.filter(id => id === detailCard.id).length < max
-            })()}
+            context="deck"
+            ownership={{ count: collection?.[detailCard.id] || 0 }}
+            actions={
+              <div className="flex gap-2 mt-1">
+                {canAdd && (
+                  <button
+                    className="flex-1 text-sm py-2 rounded-lg font-bold bg-blue-600 hover:bg-blue-500 text-white"
+                    onClick={() => { addCard(detailCard.id); setDetailCard(null) }}
+                  >
+                    {t('deck.detail.addToDeck')}
+                  </button>
+                )}
+                <button
+                  className={`${canAdd ? 'flex-1' : 'w-full'} text-sm py-2 rounded-lg font-bold bg-gray-700 hover:bg-gray-600 text-gray-300`}
+                  onClick={() => setDetailCard(null)}
+                >
+                  {t('deck.detail.close')}
+                </button>
+              </div>
+            }
           />
-        )}
-      </AnimatePresence>
+        )
+      })()}
     </div>
   )
 }
