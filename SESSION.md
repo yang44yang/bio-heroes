@@ -1,14 +1,35 @@
 # Bio Heroes Session State
-> 更新时间: 2026-05-03（Sprint 31a + 31b + 31c 抽卡完整 Phase A/B/C 全部落地）
+> 更新时间: 2026-05-06（Sprint 33 完成 + ATK buff bug 修复 + 蓝鲸关 3 连平衡；Sprint 32 题库扩充剩 Step 2-8）
 
 ## 项目位置
-- **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（已切回 Mac mini）
+- **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
 - **GitHub**: github.com/yang44yang/bio-heroes (main 分支)
-- **工作流**: 直接在 main 工作和 push，不开 feature branch（详见 memory `feedback_git_workflow.md`）
+- **工作流**: 直接在 main 工作和 push，每次 commit 后立即 push（Vercel 部署版才是齐齐实测目标）
 
 ---
 
 ## 最近完成
+
+### 2026-05-06 Sprint 33: 全场景卡片详情统一 ✅（7 step）
+让玩家在游戏任何场景都能点卡牌看完整详情（技能/scienceCard/tags/持有量）。
+
+- **Step 1**: 新建通用 `CardDetailModal` 组件
+- **Step 2-3**: BattleScreen 集成 — 场上卡 + 手牌卡加 ⓘ 角标
+- **Step 4**: GachaScreen 改用 context/ownership/isNew props
+- **Step 5**: DeckBuilder 旧弹窗加 ownedCount（spec "如果需要"路径）
+- **Step 6+7**: **真统一**完成（之前 Battle+Gacha 用通用件，DeckBuilder/Collection 各有本地实现，视觉不一致）。CardDetailModal 加 5 个 slot：`actions`/`children`/`overlay`/`cardAnimate`/`closeOnBackdrop`。DeckBuilder 删本地 146 行 → 用通用件 + actions slot 放"加入卡组"按钮。Collection 删本地 278 行 → 进化链/碎片商店/进化按钮通过 children 注入，进化动画通过 overlay+cardAnimate 注入。净删 163 行。
+
+### 2026-05-06 实测 bug + balance 4 连修 ✅
+齐齐 iPad 实测 Phase A+B+C 抽卡完整闭环后发现的问题：
+
+1. **蓝鲸关 sp_trex**：陆地恐龙不该在海洋 boss 关，删除（d28d68a）
+2. **蓝鲸关 bossPreplaced**：6000/12000 cost 8 蓝鲸 T1 免费送场太碾压，对比另一 preplaced boss 新冠 4000/5000 cost 5 严重失衡。改为正常 deck 抽出（factionRequirement: nature 3 → AI 必须先打 3 张自然系小弟 → T3-4 才能召唤）（cab4ed4）
+3. **蓝鲸关 sp_world_tree**：spCost 4 给 15000 HP+守护+全队回 3000+自愈 1500+修 PB，普遍 OP（独立卡牌平衡问题）。boss 关 spDeck 清空（f5eb20b）
+4. **ATK buff 永久叠加** ⭐核心 bug：齐齐"世界之树站场上时不停加攻击力"。根因 [useBattle.js:783](src/hooks/useBattle.js#L783) 直接 `c.atk + effectValue` 永久修改 base ATK，但描述写"持续 N 回合"。`processEndOfTurnEffects` 无回退逻辑。修法：`statusEffects.js` 加 `atk_boost` case，buff 时同时加 status + bump atk，回合结束 tick 到期回退。eventCards.js 3 张 buff 卡加 `effectTurns` 字段。影响范围：所有自然系/人体系/全队 buff 卡（食物链爆发/免疫应答/科技革命）都有同样 bug，全部修复（eb66251）
+
+### 2026-05-03 Sprint 32 Step 1: ch2 题库审计 ⏳（1/8 step，剩 7 step）
+- Step 1: `outputs/ch2_quiz_audit.md` 审计报告 — 当前 180 题 / 40/120 卡覆盖（33%）/ easy 38% med 34% hard 27%，目标 ~330 题 / ch2 全覆盖 51/51 / 加 mechanism+inference 题型
+- Step 2-8 待做：批量生成基础题 / 机制题 / 推理题 / 加 type/principle/tags 字段 / 校验脚本。预估 4-6h，需 Yang spot check 配合
 
 ### 2026-05-03 Sprint 31c: 抽卡爽感升级 Phase B + C ✅（10 step）
 把抽卡升级为完整的"期待→事件→学习→联动→成就"闭环。
@@ -142,13 +163,13 @@
 
 ---
 
-## 累计战果（Sprint 23-31c + 实测修复，12 个 Sprint + 8 bug）
+## 累计战果（Sprint 23-33 + 实测修复，13 个 Sprint + 12 bug）
 
 | 维度 | 数字 |
 |------|------|
 | 实现技能 | ~113 个（接近 100%）|
 | 新模板函数 | 15+ 个 |
-| 引擎扩展 | 14 个 event type / status type + globalEffects |
+| 引擎扩展 | 15 个 event type / status type + globalEffects（含 atk_boost）|
 | scienceCard 修复 | 18 张 |
 | 机制重做（First-Principle 锚定）| 8 张卡 |
 | subType 重构 | 52 卡 + 8 SP |
@@ -158,14 +179,15 @@
 | SP 双系统 | gacha 2% + Boss 解锁（Sprint 30b）|
 | Conundrum 关卡 | 2 个 + 真实 effect 应用（HP/起手卡/预置敌方/抗生素减伤）|
 | 敌方牌组审计 | 18 关全扫，修 5 关 AI 卡死 |
-| Bugfix 实测 | 13 个（含 Sprint 31a 抽卡详情/教学气泡 + 31b SR粒子/AnimatePresence 卡死）|
+| Bugfix 实测 | 17 个（含蓝鲸关 3 连平衡 + ATK buff 永久叠加全游戏修）|
 | 抽卡爽感 Phase A | 胶囊+翻牌差异化+SP 全屏事件+isNew 卡片秀+音效（Sprint 31b）|
 | 抽卡爽感 Phase B/C | 章节 banner+进度条+概率公示+联动 DeckBuilder+里程碑+小测验+成就（Sprint 31c）|
+| 全场景卡牌详情统一 | 5 场景共用 CardDetailModal + 5 slot 注入场景专属内容（Sprint 33）|
 
 ---
 
 ## 进行中
-（无 — Sprint 31a/b/c 全部完成，抽卡完整闭环上线。等齐齐 iPad 实测反馈）
+- **Sprint 32 题库扩充** — Step 1（审计）已完成，Step 2-8 待做（批量生成 ~150 道新题 + 三层分级 + 校验脚本）。预估 4-6h，需 Yang spot check 配合
 
 ---
 
@@ -174,6 +196,9 @@
 ### 小问题
 - 战斗日志 message 文本硬编码中文（100+ 条，spec 方案 A：不翻译）
 - Vite dev 偶尔 504（已用 optimizeDeps.include 修复主要路径）
+- `sp_world_tree` 普遍 OP（spCost 4 给 15000 HP+守护+全队回 3000+自愈+修 PB），蓝鲸关已临时移除但卡牌本身待平衡（建议 spCost 4→6 或削数值）
+- skill engine `case 'BUFF'` (useBattle.js:283) 也直接 +atk 永久叠加 — 当前没时限技能用，先没修
+- ~~ATK buff 永久叠加 bug~~ ✅ 已修（atk_boost status + tick）
 - ~~Conundrum effect enemyExtraTurns / antibiotic_weakened 未生效~~ ✅ 已修
 - ~~星数 UI 显示满星~~ ✅ 已修
 
@@ -191,14 +216,18 @@
 ## 下次启动时优先
 
 ### 推荐方向 A：齐齐持续实测反馈（永远最高优先级）
-- 抽卡完整闭环（Phase A+B+C）已上线
-- 让齐齐刷新 → 重玩抽卡 → 验证：
-  - **Phase A 视觉**: SR 时"哦"，SSR 时"哇"，SP 时叫出声？
-  - **Phase B 期待感**: 看到 banner 会问"那是什么卡"？看到进度条会想多抽？
-  - **Phase B 联动**: 抽到 SR+ 后会点"立刻去组队"吗？
-  - **Phase C 小测验**: 十连第 5 张后的小测，是认真读还是随便点？
-  - **Phase C 成就**: 解锁"抗生素小专家"会去看科学包内容吗？
-  - **教学 5/5**: SP·霸王龙登场气泡不挡卡了？
+- 抽卡完整闭环（Phase A+B+C）+ 全场景卡片详情（Sprint 33）+ 平衡 4 连修都已上线
+- 让齐齐刷新 iPad → 验证：
+  - **蓝鲸 boss 关**：不再一上来就被蓝鲸 + 霸王龙 + 世界树压死，T3-4 蓝鲸登场是真正"boss 时刻"？
+  - **ATK buff 不再叠加**：自然系/人体系打完 buff 卡，下回合 ATK 回到 base，战斗日志「💪 攻击加成消失了」是否出现？
+  - **全场景卡详情**：战斗/抽卡/卡组/图鉴 任意场景点卡都能弹一致的详情？
+  - **Phase A/B/C**: SR/SSR/SP 反应？banner 期待感？小测验？成就科学包？
+
+### 推荐方向 A++：推进 Sprint 32 题库扩充
+- Step 1 审计已完成（`outputs/ch2_quiz_audit.md`）
+- 还剩 Step 2-8：批量生成 ~150 道新题（基础题/机制题/推理题三层）+ 加 type/principle/tags 字段 + 校验脚本
+- 预估 4-6h，跨多个 session，需 Yang spot check 几轮
+- 教育价值最高 — Phase C 小测验现在用旧 180 题，质量参差不齐
 
 ### 推荐方向 A+：抽卡 Phase D / E（实测反馈良好后）
 spec 已为后续预留：
@@ -228,6 +257,27 @@ ch2 模板验证 OK 之后，复制扩展：
 ### 推荐方向 F：工程支撑
 - card-designer skill 更新（Claude.ai 侧）
 - bio-heroes-knowledge-map.md（KP_ID + NGSS + 中国课标）
+
+---
+
+## 关键文件变更（Sprint 32-33 + bugfix）
+
+### Sprint 33 全场景卡片详情统一
+- `src/components/CardDetailModal.jsx` — 加 actions/children/overlay/cardAnimate/closeOnBackdrop 5 个 slot + 通用渲染 scienceNote + factionRequirement
+- `src/components/BattleScreen.jsx` — 场上/手牌卡加 ⓘ 角标
+- `src/components/GachaScreen.jsx` — 改用 context/ownership/isNew props
+- `src/components/DeckBuilder.jsx` — 删本地 CardDetailModal 函数（146 行），改用通用件 + actions slot
+- `src/components/Collection.jsx` — 删本地 inline modal（278 行），children 注入进化链/碎片商店/进化按钮，overlay+cardAnimate 注入进化动画
+
+### Sprint 32 题库审计（Step 1 only）
+- `outputs/ch2_quiz_audit.md` — 审计报告（180 题 / 40 卡覆盖 / 题型分布统计）
+
+### 平衡修复
+- `src/data/campaignData.js` — 蓝鲸 boss 关：去 sp_trex / 去 bossPreplaced / 清空 spDeck
+- `src/data/eventCards.js` — 食物链爆发/免疫应答/科技革命 3 张 buff 卡加 effectTurns 字段
+- `src/hooks/useBattle.js` — buff handler 加 atk_boost status，不再直接永久 +atk
+- `src/engine/statusEffects.js` — 加 atk_boost case，按 turnsLeft tick 到期回退 atk
+- `.gitignore` — 加 outputs/*.mjs 防一次性审计脚本污染仓库
 
 ---
 
