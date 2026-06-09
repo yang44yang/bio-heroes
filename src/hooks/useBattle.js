@@ -277,10 +277,22 @@ export function useBattle() {
         }
         case 'BUFF': {
           friendlySetter(prev => {
-            const next = prev.map(c => c ? { ...c } : null)
+            const next = prev.map(c =>
+              c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null
+            )
             const target = next.find(c => c && c.uid === evt.targetUid)
             if (target && evt.stat === 'atk') {
               target.atk += evt.amount
+              // 时限 buff（evt.turns）：加 atk_boost status，回合结束 processStatuses 回退 atk，
+              // 防永久叠加（与事件卡 buff 同款修复）。无 turns 时保持永久加成（如吞噬击杀成长）。
+              if (evt.turns) {
+                target.statuses.push({
+                  type: 'atk_boost',
+                  amount: evt.amount,
+                  turnsLeft: evt.turns,
+                  source: evt.source,
+                })
+              }
             }
             return next
           })

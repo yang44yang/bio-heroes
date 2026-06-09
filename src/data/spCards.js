@@ -63,7 +63,7 @@ const spCards = [
     faction: "nature",
     subType: "plant",
     set: "BASE",
-    spCost: 4,
+    spCost: 6,
     rarity: "SSR",
     atk: 3000,
     hp: 15000,
