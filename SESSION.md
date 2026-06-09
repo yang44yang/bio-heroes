@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-05-06（Sprint 33 完成 + ATK buff bug 修复 + 蓝鲸关 3 连平衡；Sprint 32 题库扩充剩 Step 2-8）
+> 更新时间: 2026-06-09（sp_world_tree 平衡 + BUFF 永久叠加地雷 + 所有对敌 ATK 减益静默失效 3 连修；Sprint 32 题库扩充仍剩 Step 2-8）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,30 @@
 ---
 
 ## 最近完成
+
+### 2026-06-09 平衡 + bug 3 连修 ✅
+接 SESSION「已知问题」清单逐个清理：
+
+1. **sp_world_tree 平衡**（b44c935）：spCost 4→6。确认 spCost 是 SP **召唤门槛**
+   （`getEligibleSpCards` 里 `spCost <= maxCost/remainingEnergy` 才能召唤），改 6 有实际
+   约束力。保留 3000/15000 数值——它原始总和 18000 已是 6 费档最低（强技能包的技能折扣），
+   单轴调整最干净。从「最便宜的 SP」落到 trex/bone_titan 同级。后续若仍太黏可砍自愈 1500→1000。
+
+2. **BUFF 永久叠加地雷**（b44c935）：skill engine `case 'BUFF'`（useBattle.js）同上次
+   event card 同款 bug。修法：带 `evt.turns` 时加 `atk_boost` status，回合结束
+   `processStatuses` 回退；无 turns 保持永久（吞噬成长等不受影响）。前瞻性防护。
+
+3. **所有对敌 ATK 减益静默失效** ⭐（c978d5c，顺手发现的更大 bug）：
+   - 根因：BUFF handler 只用 `friendlySetter`、无视 `evt._side`，`_side:'enemy'` 的减益
+     在己方场找不到目标 uid → 静默空转（连日志都不打）。外加 `debuff_atk`/`debuff_both`
+     模板把技能写的 `duration` 整个丢了。
+   - 修法：handler 按 `_side` 路由（与 APPLY_STATUS 一致）+ ATK 钳到 0 + 按实际 delta 回退；
+     模板 debuff_atk/debuff_both/onPlay bonus 传 `turns=duration`，permanent_debuff 保持永久。
+   - **复活的卡**：限时减 ATK = 大花草·恶臭之花 / 诺如病毒·胃肠风暴 /
+     大流行病毒·终极瘟疫（全体 -2000×3 回合，最猛）/ 蜘蛛·织网猎手 / 登革热·蚊媒杀手；
+     永久 = SP·CRISPR·基因剪刀手（ATK↔HP 互换）/ SP·超级细菌·耐药屏障（科技系 ATK 砍半）。
+   - 验证：16/16 单测（真实 processStatuses 回退：限时施加+回退 / duration=2 递减 /
+     钳 0 不超调 / 永久不回退 / 友方 buff 回归）。⏳ **需齐齐实测**这批减益的战斗手感。
 
 ### 2026-05-06 Sprint 33: 全场景卡片详情统一 ✅（7 step）
 让玩家在游戏任何场景都能点卡牌看完整详情（技能/scienceCard/tags/持有量）。
@@ -196,8 +220,10 @@
 ### 小问题
 - 战斗日志 message 文本硬编码中文（100+ 条，spec 方案 A：不翻译）
 - Vite dev 偶尔 504（已用 optimizeDeps.include 修复主要路径）
-- `sp_world_tree` 普遍 OP（spCost 4 给 15000 HP+守护+全队回 3000+自愈+修 PB），蓝鲸关已临时移除但卡牌本身待平衡（建议 spCost 4→6 或削数值）
-- skill engine `case 'BUFF'` (useBattle.js:283) 也直接 +atk 永久叠加 — 当前没时限技能用，先没修
+- `AI Diagnosis & Treatment`（SP·AI 诊断）的 `_grantSwift: true` 从没被 BUFF handler 读取 → 迅击没生效（同类残留 bug，需补「去 summonSick 标记」的迅击授予机制，未修）
+- ~~`sp_world_tree` 普遍 OP~~ ✅ 已修（spCost 4→6，b44c935）
+- ~~skill engine `case 'BUFF'` 直接 +atk 永久叠加~~ ✅ 已修（atk_boost status + turns，b44c935）
+- ~~所有对敌 ATK 减益静默失效（BUFF 无视 _side）~~ ✅ 已修（c978d5c，⏳ 待齐齐实测手感）
 - ~~ATK buff 永久叠加 bug~~ ✅ 已修（atk_boost status + tick）
 - ~~Conundrum effect enemyExtraTurns / antibiotic_weakened 未生效~~ ✅ 已修
 - ~~星数 UI 显示满星~~ ✅ 已修
@@ -222,6 +248,7 @@
   - **ATK buff 不再叠加**：自然系/人体系打完 buff 卡，下回合 ATK 回到 base，战斗日志「💪 攻击加成消失了」是否出现？
   - **全场景卡详情**：战斗/抽卡/卡组/图鉴 任意场景点卡都能弹一致的详情？
   - **Phase A/B/C**: SR/SSR/SP 反应？banner 期待感？小测验？成就科学包？
+  - **⭐ 对敌 ATK 减益首次生效**（2026-06-09 修）：大花草·恶臭之花 / 诺如病毒 / 大流行病毒（全体 -2000×3 回合）/ 蜘蛛·织网猎手 / 登革热 / CRISPR / 超级细菌·耐药屏障 这批卡的减益现在真起作用了 → 战斗手感是否平衡？大流行病毒会不会太强？战斗日志「⬇️ XXX ATK -N」是否出现？
 
 ### 推荐方向 A++：推进 Sprint 32 题库扩充
 - Step 1 审计已完成（`outputs/ch2_quiz_audit.md`）
