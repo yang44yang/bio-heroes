@@ -276,19 +276,25 @@ export function useBattle() {
           break
         }
         case 'BUFF': {
-          friendlySetter(prev => {
+          // _side='enemy' → 作用敌方场（ATK 减益）；否则友方（增益）。
+          // 与 APPLY_STATUS / REMOVE_STATUS 一致按 _side 路由，否则减益会在己方场找不到目标而空转。
+          const buffSetter = evt._side === 'enemy' ? enemySetter : friendlySetter
+          buffSetter(prev => {
             const next = prev.map(c =>
               c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null
             )
             const target = next.find(c => c && c.uid === evt.targetUid)
             if (target && evt.stat === 'atk') {
-              target.atk += evt.amount
-              // 时限 buff（evt.turns）：加 atk_boost status，回合结束 processStatuses 回退 atk，
-              // 防永久叠加（与事件卡 buff 同款修复）。无 turns 时保持永久加成（如吞噬击杀成长）。
-              if (evt.turns) {
+              // 实际增减量（ATK 不低于 0，避免负值与回退超调）
+              const before = target.atk
+              target.atk = Math.max(0, target.atk + evt.amount)
+              const delta = target.atk - before
+              // 时限（evt.turns）：加 atk_boost status，回合结束 processStatuses 按实际 delta 回退，
+              // 防永久叠加（与事件卡 buff 同款）。无 turns 保持永久（吞噬成长 / Gene Edit / permanent_debuff）。
+              if (evt.turns && delta !== 0) {
                 target.statuses.push({
                   type: 'atk_boost',
-                  amount: evt.amount,
+                  amount: delta,
                   turnsLeft: evt.turns,
                   source: evt.source,
                 })
