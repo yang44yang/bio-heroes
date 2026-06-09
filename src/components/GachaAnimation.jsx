@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 import { playSound } from '../audio/soundManager'
+import { useLanguage } from '../i18n/LanguageContext'
 
 const SOUND_FOR_RARITY = {
   R: 'cardFlipNormal',
@@ -64,7 +65,7 @@ const RARITY_EFFECTS = {
     particleColor: 'rgba(255,180,220,1)',
     shake: 14,
     fullScreenFlash: true,
-    bannerText: '⚡ SP 觉醒卡！',
+    bannerText: 'gacha.spAwakenBanner', // i18n key，渲染时 t() 解析
   },
 }
 
@@ -76,6 +77,7 @@ const effectFor = (card) => {
 }
 
 export default function GachaAnimation({ cards, onDone, paused = false, onMidpointReached, midpointAt = 5 }) {
+  const { t } = useLanguage()
   const [phase, setPhase] = useState('capsule')
   const [revealedCount, setRevealedCount] = useState(0)
   const [activeBlast, setActiveBlast] = useState(null) // 当前正在闪的高稀有卡 effect
@@ -203,7 +205,7 @@ export default function GachaAnimation({ cards, onDone, paused = false, onMidpoi
                 textShadow: '0 0 20px rgba(255,255,255,0.9), 0 0 40px rgba(236,72,153,0.8)',
                 boxShadow: '0 0 30px rgba(236,72,153,0.6)',
               }}>
-              {activeBlast.effect.bannerText}
+              {t(activeBlast.effect.bannerText)}
             </div>
           </motion.div>
         )}

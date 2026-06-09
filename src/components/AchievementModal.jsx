@@ -1,8 +1,10 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useLanguage } from '../i18n/LanguageContext'
 
 // 主题成就解锁庆祝弹窗 — 含科学知识包
 export default function AchievementModal({ achievement, onClose }) {
+  const { t } = useLanguage()
   if (!achievement) return null
   const reward = achievement.reward || {}
   return (
@@ -28,10 +30,10 @@ export default function AchievementModal({ achievement, onClose }) {
           {achievement.icon}
         </motion.div>
 
-        <div className="text-xs text-yellow-200 mb-1">🏆 成就解锁</div>
+        <div className="text-xs text-yellow-200 mb-1">{t('achievement.unlocked')}</div>
         <div className="text-2xl font-black text-white mb-2 drop-shadow">{achievement.name}</div>
         <div className="text-yellow-100 text-sm mb-4">
-          你集齐了 {achievement.requiredCards.length} 张相关卡牌！
+          {t('achievement.collectedCards', { n: achievement.requiredCards.length })}
         </div>
 
         {reward.type === 'science_pack' && (
@@ -45,7 +47,7 @@ export default function AchievementModal({ achievement, onClose }) {
 
         {reward.type === 'badge_only' && (
           <div className="bg-black/30 rounded-xl p-3 mb-4 text-yellow-100 text-sm">
-            ✨ 你已解锁专属徽章！图鉴页可以查看
+            {t('achievement.badge')}
           </div>
         )}
 
@@ -53,7 +55,7 @@ export default function AchievementModal({ achievement, onClose }) {
           onClick={onClose}
           className="bg-white text-amber-700 font-black px-8 py-3 rounded-xl text-lg hover:bg-yellow-50 shadow-lg"
         >
-          太棒了！
+          {t('common.awesome')}
         </button>
       </motion.div>
     </motion.div>

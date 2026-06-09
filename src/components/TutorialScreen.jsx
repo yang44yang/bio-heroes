@@ -240,7 +240,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
     const advantage = FACTION_ADVANTAGE[atkCard.faction]
     if (advantage?.strong === defCard.faction) {
       atkDmg = Math.floor(atkDmg * (1 + FACTION_ADVANTAGE_BONUS))
-      showFloat('player', atkSlot, '克制！+20%', 'text-yellow-300')
+      showFloat('player', atkSlot, t('battle.float.superEffective'), 'text-yellow-300')
     }
 
     // 互相伤害

@@ -131,8 +131,8 @@ export default function CardDetailModal({
 
           {req && (
             <div className="mb-3 bg-yellow-900/20 border-l-4 border-yellow-500 rounded p-2.5 text-xs text-yellow-200 leading-relaxed">
-              ⚠️ 出场条件：需要 {FACTIONS[req.faction]?.icon} {FACTIONS[req.faction]?.name} 标记 ×{req.count}
-              {req.type === 'consume' && '（出场时消耗）'}
+              {t('card.reqCondition', { icon: FACTIONS[req.faction]?.icon, name: FACTIONS[req.faction]?.name, count: req.count })}
+              {req.type === 'consume' && t('card.consumeOnPlay')}
             </div>
           )}
 

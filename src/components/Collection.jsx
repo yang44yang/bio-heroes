@@ -98,16 +98,16 @@ export default function Collection({ onBack, economy }) {
                 if (!getEvolutionTarget(id)) total += fragMap[id] * economy.FRAGMENT_TO_COIN_RATE
               }
               if (total === 0) {
-                alert('没有可卖的碎片（有进化路径的碎片会保留）')
+                alert(t('collection.noSellable'))
                 return
               }
-              if (confirm(`将卖出所有不能进化的碎片，换 ${total} 🪙。继续？`)) {
+              if (confirm(t('collection.sellAllConfirm', { total }))) {
                 economy.sellAllUnusedFragments()
               }
             }}
-            title="卖出所有不能用于进化的碎片"
+            title={t('collection.sellAllTitle')}
           >
-            💰 出售余碎片
+            {t('collection.sellButton')}
           </button>
           <button
             className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg"
@@ -136,7 +136,7 @@ export default function Collection({ onBack, economy }) {
 
       {/* 成就进度栏 */}
       <div className="bg-gray-800/40 rounded-xl p-3 mb-4">
-        <div className="text-xs text-gray-300 mb-2">🏆 主题成就</div>
+        <div className="text-xs text-gray-300 mb-2">{t('collection.achievements')}</div>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
           {COLLECTION_ACHIEVEMENTS.map(ach => {
             const unlockedList = economy.unlockedAchievements || []
@@ -153,7 +153,7 @@ export default function Collection({ onBack, economy }) {
                     ? 'bg-yellow-600/30 border border-yellow-500/60 hover:bg-yellow-600/50 cursor-pointer'
                     : 'bg-gray-700/40 border border-gray-700 cursor-default'
                 }`}
-                title={unlocked ? '点查看科学知识包' : `还差 ${total - have} 张`}
+                title={unlocked ? t('collection.achUnlockedTip') : t('collection.achLockedTip', { n: total - have })}
               >
                 <div className={`text-2xl ${unlocked ? '' : 'grayscale opacity-40'}`}>{ach.icon}</div>
                 <div className={`text-[10px] truncate ${unlocked ? 'text-yellow-100' : 'text-gray-400'}`}>{ach.name}</div>
@@ -552,17 +552,17 @@ export default function Collection({ onBack, economy }) {
           {/* 持有数量 + 碎片商店 */}
           <div className="mb-3 bg-gray-800/40 rounded-lg p-2.5">
             <div className="flex items-center justify-between text-xs mb-1.5">
-              <span className="text-gray-300">持有数量</span>
+              <span className="text-gray-300">{t('collection.ownedCount')}</span>
               <span className="text-white font-bold">
                 {owned[selectedCard.id] || 0} / {economy.MAX_COPIES_PER_CARD}
                 {(owned[selectedCard.id] || 0) >= economy.MAX_COPIES_PER_CARD && (
-                  <span className="ml-2 text-green-400 text-[10px]">✓ 已齐</span>
+                  <span className="ml-2 text-green-400 text-[10px]">{t('collection.complete')}</span>
                 )}
               </span>
             </div>
             {(economy.fragments[selectedCard.id] || 0) > 0 && (
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-[10px] text-amber-400 shrink-0">碎片 {economy.fragments[selectedCard.id]}</span>
+                <span className="text-[10px] text-amber-400 shrink-0">{t('collection.fragLabel', { n: economy.fragments[selectedCard.id] })}</span>
                 <input
                   type="number"
                   min={1}
@@ -581,7 +581,7 @@ export default function Collection({ onBack, economy }) {
                   }}
                   className="bg-yellow-600 hover:bg-yellow-500 px-2 py-1 rounded text-[11px] text-white font-bold whitespace-nowrap"
                 >
-                  卖 → {Math.min(sellAmount, economy.fragments[selectedCard.id] || 0) * economy.FRAGMENT_TO_COIN_RATE} 🪙
+                  {t('collection.sellTo', { n: Math.min(sellAmount, economy.fragments[selectedCard.id] || 0) * economy.FRAGMENT_TO_COIN_RATE })}
                 </button>
               </div>
             )}
@@ -592,7 +592,7 @@ export default function Collection({ onBack, economy }) {
             <div className="mb-3">
               <div className="flex items-center justify-between text-xs text-gray-400 mb-1.5">
                 <span>
-                  碎片: <span className={selectedEvoInfo.canEvolve ? 'text-amber-400' : 'text-red-400'}>
+                  {t('collection.fragColon')} <span className={selectedEvoInfo.canEvolve ? 'text-amber-400' : 'text-red-400'}>
                     {selectedEvoInfo.fragmentsHave}
                   </span>
                   /{selectedEvoInfo.fragmentsNeed}

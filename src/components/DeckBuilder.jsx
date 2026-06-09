@@ -296,7 +296,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                       <button
                         className="text-lg font-bold text-white hover:text-cyan-300 cursor-text text-left"
                         onClick={() => { setNameDraft(slot.name || ''); setEditingNameIdx(i) }}
-                        title="点击重命名"
+                        title={t('deck.renameTip')}
                       >
                         {slot.name || t('deck.slot', { n: i + 1 })}
                       </button>
@@ -415,7 +415,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                     <div
                       className="w-3 bg-blue-400 rounded-t"
                       style={{ height: `${h}px` }}
-                      title={`费用${cost}: ${count}张`}
+                      title={t('deck.costCountTip', { cost, count })}
                     />
                     <span className="text-[8px] text-gray-500">{cost}</span>
                   </div>
@@ -449,7 +449,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                 className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] cursor-pointer hover:opacity-70"
                 style={{ background: `${faction?.color}22`, border: `1px solid ${faction?.color}44` }}
                 onClick={() => removeCard(i)}
-                title="点击移除"
+                title={t('deck.removeTip')}
                 whileTap={{ scale: 0.9 }}
               >
                 <span>{faction?.icon}</span>
@@ -558,16 +558,16 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
           <button
             className="text-[10px] px-2 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded font-bold"
             onClick={() => applyRecommended('body', 'tech')}
-            title="人体+科技"
+            title={t('deck.comboBodyTech')}
           >
-            🧬⚗️ 推荐
+            🧬⚗️ {t('deck.recommend')}
           </button>
           <button
             className="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold"
             onClick={() => applyRecommended('nature', 'pathogen')}
-            title="自然+病原"
+            title={t('deck.comboNaturePathogen')}
           >
-            🌱🦠 推荐
+            🌱🦠 {t('deck.recommend')}
           </button>
         </div>
       </div>
@@ -605,7 +605,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                 <button
                   className="absolute bottom-0.5 right-0.5 w-5 h-5 rounded-full bg-black/70 text-[10px] text-blue-300 flex items-center justify-center hover:bg-blue-600/80 hover:text-white z-30"
                   onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
-                  title="查看详情"
+                  title={t('common.viewDetails')}
                 >
                   ℹ
                 </button>

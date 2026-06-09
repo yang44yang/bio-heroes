@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useRef } from 'react'
+import { useLanguage } from '../i18n/LanguageContext'
 
 function classifyLog(msg) {
   if (msg.includes('--- 第') || msg.includes('回合 ---') || msg.match(/第\s*\d+\s*回合/)) return 'turn'
@@ -26,6 +27,7 @@ const CATEGORY_STYLES = {
 }
 
 export default function BattleLogPanel({ logs, open, onClose }) {
+  const { t } = useLanguage()
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function BattleLogPanel({ logs, open, onClose }) {
             onClick={e => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700">
-              <div className="text-lg font-bold text-white">📜 战斗记录</div>
+              <div className="text-lg font-bold text-white">{t('battleLog.title')}</div>
               <button
                 onClick={onClose}
                 className="text-gray-400 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-800"
@@ -64,7 +66,7 @@ export default function BattleLogPanel({ logs, open, onClose }) {
               className="flex-1 overflow-y-auto px-4 py-3 space-y-1.5"
             >
               {logs.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">还没有战斗记录哦</div>
+                <div className="text-center text-gray-500 py-8">{t('battleLog.empty')}</div>
               ) : (
                 logs.map((msg, i) => {
                   const cat = classifyLog(msg)
@@ -83,7 +85,7 @@ export default function BattleLogPanel({ logs, open, onClose }) {
             </div>
 
             <div className="px-5 py-3 border-t border-gray-700 text-xs text-gray-400 text-center">
-              滚动查看完整战斗历程 · 点击空白处或 × 关闭
+              {t('battleLog.footer')}
             </div>
           </motion.div>
         </motion.div>

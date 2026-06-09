@@ -1,19 +1,19 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { useLanguage } from '../i18n/LanguageContext'
 
 // 图鉴里程碑庆祝 — 10/25/50/75/100/120
-const MILESTONE_COPY = {
-  10: { emoji: '🌱', title: '图鉴入门', desc: '你已经收集了 10 张生物英雄！继续探索！' },
-  25: { emoji: '🌿', title: '小有收藏', desc: '25 张了！开始组建你专属的强力卡组吧。' },
-  50: { emoji: '🌳', title: '半数解锁', desc: '50 张！图鉴接近一半，你越来越懂生物了。' },
-  75: { emoji: '🏆', title: '资深玩家', desc: '75 张！只差几十张就集齐图鉴了！' },
-  100: { emoji: '👑', title: '生物百科', desc: '100 张！你已经认识 100 种生物英雄！' },
-  120: { emoji: '🌟', title: '图鉴完成', desc: '120 张！你是真正的生物英雄收藏大师！' },
-}
+const MILESTONE_EMOJI = { 10: '🌱', 25: '🌿', 50: '🌳', 75: '🏆', 100: '👑', 120: '🌟' }
 
 export default function MilestoneModal({ milestone, onClose }) {
+  const { t } = useLanguage()
   if (!milestone) return null
-  const copy = MILESTONE_COPY[milestone] || { emoji: '🎉', title: `里程碑 ${milestone}`, desc: `你已经收集了 ${milestone} 张！` }
+  const known = MILESTONE_EMOJI[milestone]
+  const copy = {
+    emoji: known || '🎉',
+    title: known ? t(`milestone.t${milestone}`) : t('milestone.tGeneric', { n: milestone }),
+    desc: known ? t(`milestone.d${milestone}`) : t('milestone.dGeneric', { n: milestone }),
+  }
   return (
     <motion.div
       className="fixed inset-0 z-[108] flex items-center justify-center p-4"
@@ -36,7 +36,7 @@ export default function MilestoneModal({ milestone, onClose }) {
         >
           {copy.emoji}
         </motion.div>
-        <div className="text-xs text-yellow-100 mb-1">🏆 图鉴里程碑</div>
+        <div className="text-xs text-yellow-100 mb-1">{t('milestone.header')}</div>
         <div className="text-3xl font-black text-white mb-2 drop-shadow">
           {copy.title}
         </div>
@@ -47,7 +47,7 @@ export default function MilestoneModal({ milestone, onClose }) {
           onClick={onClose}
           className="bg-white text-orange-600 font-black px-8 py-3 rounded-xl text-lg hover:bg-yellow-50 shadow-lg"
         >
-          继续收集！
+          {t('milestone.continue')}
         </button>
       </motion.div>
     </motion.div>

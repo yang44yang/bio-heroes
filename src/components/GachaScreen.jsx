@@ -124,7 +124,7 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <div className="text-[10px] text-purple-300 mb-1">⭐ 本期推荐</div>
+          <div className="text-[10px] text-purple-300 mb-1">{t('gacha.featured')}</div>
           <div className="text-base font-bold text-white mb-2">{banner.title}</div>
           <div className="flex gap-2 justify-center mb-2">
             {featuredCards.map(card => (
@@ -157,7 +157,7 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
         return (
           <div className="bg-gray-800/40 rounded-lg p-3 mb-3 max-w-md w-full">
             <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-gray-300">📖 图鉴进度</span>
+              <span className="text-gray-300">{t('gacha.dexProgress')}</span>
               <span className="text-cyan-300 font-bold">{owned} / {TOTAL_OBTAINABLE}</span>
             </div>
             <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
@@ -168,7 +168,7 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
               />
             </div>
             <div className="text-[10px] text-gray-400 mt-1.5 text-center">
-              {remaining > 0 ? <>还差 <span className="text-yellow-300 font-bold">{remaining}</span> 张完成图鉴</> : '🏆 图鉴已收集完整！'}
+              {remaining > 0 ? t('gacha.dexRemaining', { n: remaining }) : t('gacha.dexComplete')}
             </div>
           </div>
         )
@@ -176,13 +176,13 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
 
       {/* 概率公示 */}
       <details className="text-xs text-gray-400 mb-3 max-w-md w-full">
-        <summary className="cursor-pointer hover:text-white text-center py-1">📊 概率公示</summary>
+        <summary className="cursor-pointer hover:text-white text-center py-1">{t('gacha.oddsTitle')}</summary>
         <div className="bg-gray-800/50 rounded p-3 mt-2 grid grid-cols-2 gap-1">
-          <div>R 普通: 68%</div>
-          <div>SR 稀有: 25%</div>
-          <div>SSR 史诗: 5%</div>
-          <div className="text-yellow-300">SP 觉醒: 2%</div>
-          <div className="col-span-2 text-[10px] text-gray-500 mt-1">十连保底:至少 1 张 SR+ · {economy.SSR_PITY} 抽必出 SSR</div>
+          <div>{t('gacha.oddsR')}</div>
+          <div>{t('gacha.oddsSR')}</div>
+          <div>{t('gacha.oddsSSR')}</div>
+          <div className="text-yellow-300">{t('gacha.oddsSP')}</div>
+          <div className="col-span-2 text-[10px] text-gray-500 mt-1">{t('gacha.oddsPity', { n: economy.SSR_PITY })}</div>
         </div>
       </details>
 
@@ -245,12 +245,12 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
                   transition={{ duration: 1.4, repeat: Infinity }}
                 >🆕 NEW!</motion.div>
               ) : card.isDupe ? (
-                <div className="absolute top-0 left-0 bg-amber-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">→ {card.fragments} 碎片</div>
+                <div className="absolute top-0 left-0 bg-amber-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">{t('gacha.dupeFragments', { n: card.fragments })}</div>
               ) : (
                 <div className="absolute top-0 left-0 bg-blue-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-lg">×{card.count}</div>
               )}
               <div className="absolute bottom-0 right-0 left-0 bg-gradient-to-t from-cyan-700/90 to-cyan-700/0 text-cyan-100 text-[10px] font-bold text-center py-1 pointer-events-none">
-                ℹ️ 点看详情
+                {t('gacha.tapDetail')}
               </div>
             </motion.div>
           ))}
@@ -268,13 +268,13 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
             animate={{ opacity: 1, y: 0 }}
           >
             <div className="text-white text-sm mb-3">
-              🎉 抽到了 {srPlus.length} 张强力卡！现在就加入卡组试试？
+              {t('gacha.gotRare', { n: srPlus.length })}
             </div>
             <button
               onClick={() => onGotoDeckBuilder(srPlus.map(c => c.id))}
               className="w-full bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-yellow-50"
             >
-              立刻去组队 →
+              {t('gacha.goToDeck')}
             </button>
           </motion.div>
         )

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { quizzes } from '../data/quizzes'
+import { useLanguage } from '../i18n/LanguageContext'
 
 // 抽卡中场科学小测验（十连第 5 张后插入）
 // 关键：答对答错都不影响抽卡结果，学习不应该惩罚
@@ -28,6 +29,7 @@ export function selectQuizForPull(pulledCards) {
 }
 
 export default function GachaQuizModal({ quiz, onComplete }) {
+  const { t } = useLanguage()
   const [selected, setSelected] = useState(null)
   const answered = selected !== null
   const isCorrect = selected === quiz.answer
@@ -52,7 +54,7 @@ export default function GachaQuizModal({ quiz, onComplete }) {
       >
         <div className="text-center mb-4">
           <div className="text-3xl mb-1">🤔</div>
-          <div className="text-[10px] text-cyan-300 mb-1">小测验时间！答对答错都能继续抽哦</div>
+          <div className="text-[10px] text-cyan-300 mb-1">{t('gachaQuiz.intro')}</div>
           <div className="text-base font-bold text-white leading-snug">{quiz.q}</div>
         </div>
 
@@ -91,7 +93,7 @@ export default function GachaQuizModal({ quiz, onComplete }) {
             }`}
           >
             <div className={`font-bold text-sm mb-1 ${isCorrect ? 'text-green-300' : 'text-orange-300'}`}>
-              {isCorrect ? '✓ 答对了！' : `不对哦，正确答案是 ${String.fromCharCode(65 + quiz.answer)}`}
+              {isCorrect ? t('gachaQuiz.correct') : t('gachaQuiz.wrong', { letter: String.fromCharCode(65 + quiz.answer) })}
             </div>
             <div className="text-xs text-white leading-relaxed">📖 {quiz.fact}</div>
           </motion.div>
@@ -102,7 +104,7 @@ export default function GachaQuizModal({ quiz, onComplete }) {
             onClick={onComplete}
             className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-lg"
           >
-            继续抽卡 →
+            {t('gachaQuiz.continue')}
           </button>
         )}
       </motion.div>

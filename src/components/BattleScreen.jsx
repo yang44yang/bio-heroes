@@ -620,8 +620,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             playSound('attack')
             showDamageFloat('player', defSlot, result.atkDmg)
             if (result.defDmg > 0) showDamageFloat('enemy', atkSlot, result.defDmg)
-            if (result.atkFactionBonus) setTimeout(() => showFloat('player', defSlot, '克制！+20%', 'text-green-400'), 200)
-            if (result.defFactionBonus) setTimeout(() => showFloat('enemy', atkSlot, '被克制！', 'text-red-400'), 200)
+            if (result.atkFactionBonus) setTimeout(() => showFloat('player', defSlot, t('battle.float.superEffective'), 'text-green-400'), 200)
+            if (result.defFactionBonus) setTimeout(() => showFloat('enemy', atkSlot, t('battle.float.resisted'), 'text-red-400'), 200)
             if (result.defKilled) setTimeout(() => playSound('cardKill'), 200)
             if (result.atkKilled) setTimeout(() => playSound('cardKill'), 300)
           }
@@ -704,8 +704,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       playSound('attack')
       showDamageFloat('enemy', defSlot, result.atkDmg)
       if (result.defDmg > 0) showDamageFloat('player', atkSlot, result.defDmg)
-      if (result.atkFactionBonus) setTimeout(() => showFloat('enemy', defSlot, '克制！+20%', 'text-green-400'), 200)
-      if (result.defFactionBonus) setTimeout(() => showFloat('player', atkSlot, '被克制！', 'text-red-400'), 200)
+      if (result.atkFactionBonus) setTimeout(() => showFloat('enemy', defSlot, t('battle.float.superEffective'), 'text-green-400'), 200)
+      if (result.defFactionBonus) setTimeout(() => showFloat('player', atkSlot, t('battle.float.resisted'), 'text-red-400'), 200)
       if (result.defKilled) setTimeout(() => playSound('cardKill'), 200)
       if (result.atkKilled) setTimeout(() => playSound('cardKill'), 300)
     }
@@ -1070,7 +1070,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           <button
             className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
             onClick={() => setShowBattleLog(true)}
-            title="查看战斗记录"
+            title={t('battle.viewLog')}
           >
             📜
           </button>
@@ -1174,7 +1174,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 <button
                   onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
                   className="absolute top-0.5 right-0.5 z-30 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyan-600/90 hover:bg-cyan-500 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center shadow-lg border border-cyan-300/60"
-                  aria-label="详情"
+                  aria-label={t('common.details')}
                 >
                   ⓘ
                 </button>
@@ -1252,7 +1252,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 <button
                   onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
                   className="absolute top-0.5 right-0.5 z-30 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyan-600/90 hover:bg-cyan-500 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center shadow-lg border border-cyan-300/60"
-                  aria-label="详情"
+                  aria-label={t('common.details')}
                 >
                   ⓘ
                 </button>
@@ -1412,7 +1412,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 <button
                   onClick={(e) => { e.stopPropagation(); setDetailCard(card) }}
                   className="absolute -top-1 -right-1 z-30 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-cyan-600/90 hover:bg-cyan-500 text-white text-[10px] sm:text-xs font-bold flex items-center justify-center shadow-lg border border-cyan-300/60"
-                  aria-label="详情"
+                  aria-label={t('common.details')}
                 >
                   ⓘ
                 </button>
@@ -1423,7 +1423,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   return (
                     <div
                       className="absolute top-0.5 right-0.5 text-[9px] bg-black/70 text-yellow-300 px-1 py-0.5 rounded font-bold whitespace-nowrap z-10"
-                      title={`弃牌堆需要 ${need} 张${f?.name}卡，当前 ${have} 张`}
+                      title={t('battle.factionReqTip', { need, name: f?.name, have })}
                     >
                       🔒{f?.icon}{have}/{need}
                     </div>
