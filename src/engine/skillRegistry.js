@@ -674,10 +674,12 @@ export const skillRegistry = {
       const topAtk = [...allies].sort((a, b) => b.atk - a.atk)[0]
       const lowHp = [...allies].sort((a, b) => (a.currentHp / a.maxHp) - (b.currentHp / b.maxHp))[0]
       if (topAtk) {
-        // 迅击通过去除 summonSick 近似（或添加临时标记）
+        // 授予迅击：加 swift_boost status，hasSwift 判定会绕过召唤疲劳，回合末 tick 清除
+        // （与 Omniscient Eye 同款写法；旧的 BUFF+_grantSwift 从未被 handler 读取，是空操作）
         events.push({
-          type: 'BUFF', targetUid: topAtk.uid, stat: 'atk', amount: 0,
-          source: ctx.card.name, _grantSwift: true,
+          type: 'APPLY_STATUS', targetUid: topAtk.uid,
+          status: { type: 'swift_boost', turnsLeft: 1 },
+          source: ctx.card.name,
           message: `🤖 ${ctx.card.name} AI 诊断：${topAtk.name} 获得迅击！`,
         })
       }
