@@ -19,7 +19,7 @@ const cardMap = Object.fromEntries(allCards.map(c => [c.id, c]))
 const rarityLabel = { R: 'text-blue-400', SR: 'text-purple-400', SSR: 'text-yellow-400' }
 
 export default function Collection({ onBack, economy }) {
-  const { t, lang, cardName, skillName } = useLanguage()
+  const { t, lang, cardName, skillName, localName } = useLanguage()
   const [filterFaction, setFilterFaction] = useState('all')
   const [filterType, setFilterType] = useState('all')
   const [selectedCard, setSelectedCard] = useState(null)
@@ -212,7 +212,7 @@ export default function Collection({ onBack, economy }) {
                     return (
                       <React.Fragment key={step.cardId}>
                         <span className={`${isOwned ? rarityLabel[step.rarity] : 'text-gray-600'} font-bold`}>
-                          {card?.name?.split('·')[0] || step.cardId}
+                          {(card ? cardName(card) : '')?.split('·')[0] || step.cardId}
                         </span>
                         <span className={`text-[9px] ${isOwned ? 'text-gray-400' : 'text-gray-600'}`}>
                           ({step.rarity})
@@ -330,7 +330,7 @@ export default function Collection({ onBack, economy }) {
             if (groupCards.length === 0) return null
             return (
               <div key={st.key}>
-                <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">{st.name}</h3>
+                <h3 className="text-xs font-bold text-gray-400 mb-2 border-b border-gray-700 pb-1">{localName(st)}</h3>
                 <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   {groupCards.map(card => {
                     const isOwned = isOwn(card.id)
@@ -525,7 +525,7 @@ export default function Collection({ onBack, economy }) {
                         }}
                       >
                         <span className={`text-xs font-bold ${rarityLabel[step.rarity]}`}>
-                          {card?.name?.split('·')[0] || '???'}
+                          {(card ? cardName(card) : '')?.split('·')[0] || '???'}
                         </span>
                         <span className="text-[9px] text-gray-500">{step.rarity}</span>
                         {isOwned ? (

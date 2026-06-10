@@ -30,7 +30,7 @@ const spBg = 'from-amber-500 via-yellow-400 to-orange-500'
 const spBorder = 'border-yellow-300'
 
 const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick }, ref) => {
-  const { t, cardName, skillName, lang } = useLanguage()
+  const { t, cardName, skillName, lang, localName } = useLanguage()
   if (!card) return null
 
   const isEvent = card.type === 'event'
@@ -202,7 +202,7 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
       {/* 阵营标记需求 */}
       {!isEvent && card.factionRequirement && (
         <div className="text-center text-[8px] sm:text-[9px] text-amber-300/80 mt-0.5 truncate">
-          {t('card.factionReq', { icon: FACTIONS[card.factionRequirement.faction]?.icon, count: card.factionRequirement.count, name: FACTIONS[card.factionRequirement.faction]?.name })}
+          {t('card.factionReq', { icon: FACTIONS[card.factionRequirement.faction]?.icon, count: card.factionRequirement.count, name: localName(FACTIONS[card.factionRequirement.faction]) })}
         </div>
       )}
 

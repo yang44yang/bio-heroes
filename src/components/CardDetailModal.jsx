@@ -32,7 +32,7 @@ export default function CardDetailModal({
   cardAnimate = null,
   closeOnBackdrop = true,
 }) {
-  const { t, lang, cardName, skillName } = useLanguage()
+  const { t, lang, cardName, skillName, localName } = useLanguage()
   if (!card) return null
 
   const faction = FACTIONS[card.faction]
@@ -131,7 +131,7 @@ export default function CardDetailModal({
 
           {req && (
             <div className="mb-3 bg-yellow-900/20 border-l-4 border-yellow-500 rounded p-2.5 text-xs text-yellow-200 leading-relaxed">
-              {t('card.reqCondition', { icon: FACTIONS[req.faction]?.icon, name: FACTIONS[req.faction]?.name, count: req.count })}
+              {t('card.reqCondition', { icon: FACTIONS[req.faction]?.icon, name: localName(FACTIONS[req.faction]), count: req.count })}
               {req.type === 'consume' && t('card.consumeOnPlay')}
             </div>
           )}

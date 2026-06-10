@@ -25,7 +25,7 @@ import { useLanguage } from '../i18n/LanguageContext'
  *   → 手牌区 → 操作按钮 → 日志
  */
 export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, onExit }) {
-  const { t, lang, cardName } = useLanguage()
+  const { t, lang, cardName, localName } = useLanguage()
   const battle = useBattle()
   const playerHand = useHand(playerDeckCards)
   const enemyHand = useHand(enemyDeckCards)
@@ -1130,7 +1130,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
             exit={{ opacity: 0, y: -10 }}
           >
             <span className="text-amber-400">
-              {battle.activeEnvEvent.event.emoji} {battle.activeEnvEvent.event.name}
+              {battle.activeEnvEvent.event.emoji} {localName(battle.activeEnvEvent.event)}
             </span>
             <span className="text-gray-500 ml-2">{t('battle.envRemaining', { n: battle.activeEnvEvent.turnsLeft })}</span>
           </motion.div>
@@ -1393,7 +1393,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                     const f = FACTIONS[card.factionRequirement.faction]
                     const markers = getFactionMarkers(battle.playerDiscard)
                     const have = markers[card.factionRequirement.faction] || 0
-                    setLockToast({ text: t('battle.lockNeedFaction', { icon: f.icon, need: card.factionRequirement.count, name: f.name, have }), key: Date.now() })
+                    setLockToast({ text: t('battle.lockNeedFaction', { icon: f.icon, need: card.factionRequirement.count, name: localName(f), have }), key: Date.now() })
                     return
                   }
                   if (!canAfford) {
@@ -1515,7 +1515,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           >
             <div className="text-center text-5xl mb-3">{battle.pendingEnvEvent.emoji}</div>
             <h2 className="text-xl font-black text-amber-400 text-center mb-1">
-              🌍 {battle.pendingEnvEvent.name}
+              🌍 {localName(battle.pendingEnvEvent)}
             </h2>
             <p className="text-sm text-gray-300 text-center mb-3">
               {battle.pendingEnvEvent.description}

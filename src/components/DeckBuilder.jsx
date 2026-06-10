@@ -85,7 +85,7 @@ function getSkillIcon(skillName) {
 }
 
 export default function DeckBuilder({ onBack, onSelectDeck, collection, highlightCardIds = [], onHighlightExpire }) {
-  const { t, cardName, lang } = useLanguage()
+  const { t, cardName, lang, localName } = useLanguage()
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
     if (!collection || Object.keys(collection).length === 0) return selectableMainCards
@@ -342,7 +342,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                       <div
                         key={key}
                         style={{ width: `${(count / slot.main.length) * 100}%`, background: f.color }}
-                        title={`${f.icon} ${f.name}: ${count}`}
+                        title={`${f.icon} ${localName(f)}: ${count}`}
                       />
                     )
                   })}
@@ -510,7 +510,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
         >
           <option value="all">{t('deck.allFaction')}</option>
           {Object.entries(FACTIONS).map(([key, f]) => (
-            <option key={key} value={key}>{f.icon} {f.name}</option>
+            <option key={key} value={key}>{f.icon} {localName(f)}</option>
           ))}
         </select>
 
@@ -523,7 +523,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
           >
             <option value="all">{t('deck.allSubType')}</option>
             {SUBTYPES[filterFaction].map(st => (
-              <option key={st.key} value={st.key}>{st.name}</option>
+              <option key={st.key} value={st.key}>{localName(st)}</option>
             ))}
           </select>
         )}

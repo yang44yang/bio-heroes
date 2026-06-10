@@ -36,6 +36,13 @@ export function LanguageProvider({ children }) {
     return skill.name
   }, [lang])
 
+  // 通用本地化名：英文模式优先 nameEn，回退 name（用于阵营/子类型/环境事件等）
+  const localName = useCallback((obj) => {
+    if (!obj) return ''
+    if (lang === 'en' && obj.nameEn) return obj.nameEn
+    return obj.name || ''
+  }, [lang])
+
   const toggleLang = useCallback(() => {
     const newLang = lang === 'zh' ? 'en' : 'zh'
     setLang(newLang)
@@ -43,8 +50,8 @@ export function LanguageProvider({ children }) {
   }, [lang])
 
   const value = useMemo(() => ({
-    lang, t, toggleLang, cardName, skillName,
-  }), [lang, t, toggleLang, cardName, skillName])
+    lang, t, toggleLang, cardName, skillName, localName,
+  }), [lang, t, toggleLang, cardName, skillName, localName])
 
   return (
     <LanguageContext.Provider value={value}>
