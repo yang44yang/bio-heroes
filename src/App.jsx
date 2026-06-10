@@ -14,10 +14,10 @@ import spCards from './data/spCards'
 import IntroModal from './components/IntroModal'
 import SpUnlockModal from './components/SpUnlockModal'
 
-// Boss 关 ID → 通关解锁的 SP 卡 ID
+// Boss 关 ID → 通关解锁的 SP 卡 ID（关卡 ID 统一为 stage_X_Y 后，Boss 为各章末关）
 const SP_UNLOCK_MAP = {
-  '2-4': 'sp_vaccine_shield',   // ch2 Boss (新冠) → 疫苗之盾
-  '4-4': 'sp_quantum_healer',   // ch4 Boss (超级细菌) → 量子医疗
+  'stage_2_8': 'sp_vaccine_shield',   // ch2 Boss (新冠) → 疫苗之盾
+  'stage_4_6': 'sp_quantum_healer',   // ch4 Boss (超级细菌) → 量子医疗
 }
 
 // 懒加载重型组件 — 代码分割
@@ -160,9 +160,9 @@ export default function App() {
         }
       }
 
-      // 章节完成奖励（Boss 关首通时检查）
-      if (battleResult.won && stageConfig.stageId.endsWith('-4')) {
-        const chapterMap = { '2-4': 'ch2', '3-4': 'ch3', '4-4': 'ch4' }
+      // 章节完成奖励（Boss 关首通时检查）— Boss 为各章末关，用 chapterMap 成员判定
+      const chapterMap = { 'stage_2_8': 'ch2', 'stage_3_6': 'ch3', 'stage_4_6': 'ch4' }
+      if (battleResult.won && chapterMap[stageConfig.stageId]) {
         const chapterId = chapterMap[stageConfig.stageId]
         if (chapterId) {
           const chapterKey = `${chapterId}_complete`

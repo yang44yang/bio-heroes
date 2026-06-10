@@ -533,7 +533,7 @@ const spCards = [
   {
     id: "sp_quantum_healer",
     unlockMode: "campaign_only",
-    unlockStage: "4-4",
+    unlockStage: "stage_4_6",
     name: "SP·量子医疗·未来之光",
     nameEn: "SP: Quantum Healer - Future Light",
     type: "sp",
@@ -564,7 +564,7 @@ const spCards = [
   {
     id: "sp_vaccine_shield",
     unlockMode: "campaign_only",
-    unlockStage: "2-4",
+    unlockStage: "stage_2_8",
     name: "SP·全民免疫·疫苗之盾",
     nameEn: "SP: Herd Immunity Shield",
     type: "sp",

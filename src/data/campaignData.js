@@ -22,12 +22,12 @@ export const campaignData = {
       completionReward: { coins: 500 },
       stages: [
         // 📗 基础教学（必须完成才能解锁第二章）
-        { id: '1-1', name: '第一次战斗', nameEn: 'First Battle', type: 'tutorial', tutorialLevel: 1, category: 'basic' },
-        { id: '1-2', name: '能量管理', nameEn: 'Energy Management', type: 'tutorial', tutorialLevel: 2, category: 'basic' },
-        { id: '1-3', name: '技能初体验', nameEn: 'Skills Introduction', type: 'tutorial', tutorialLevel: 3, category: 'basic' },
+        { id: 'stage_1_1', name: '第一次战斗', nameEn: 'First Battle', type: 'tutorial', tutorialLevel: 1, category: 'basic' },
+        { id: 'stage_1_2', name: '能量管理', nameEn: 'Energy Management', type: 'tutorial', tutorialLevel: 2, category: 'basic' },
+        { id: 'stage_1_3', name: '技能初体验', nameEn: 'Skills Introduction', type: 'tutorial', tutorialLevel: 3, category: 'basic' },
         // 📙 进阶教学（可选，不阻止闯关）
-        { id: '1-4', name: 'Power Bank 能量爆发', nameEn: 'Power Bank Energy Burst', type: 'tutorial', tutorialLevel: 4, category: 'advanced' },
-        { id: '1-5', name: 'SP觉醒与阵营标记', nameEn: 'SP Awakening & Faction Markers', type: 'tutorial', tutorialLevel: 5, category: 'advanced' },
+        { id: 'stage_1_4', name: 'Power Bank 能量爆发', nameEn: 'Power Bank Energy Burst', type: 'tutorial', tutorialLevel: 4, category: 'advanced' },
+        { id: 'stage_1_5', name: 'SP觉醒与阵营标记', nameEn: 'SP Awakening & Faction Markers', type: 'tutorial', tutorialLevel: 5, category: 'advanced' },
       ],
     },
 
@@ -44,7 +44,7 @@ export const campaignData = {
       completionReward: { coins: 200, diamonds: 10 },
       stages: [
         {
-          id: '2-1',
+          id: 'stage_2_1',
           name: '蛀牙军团',
           nameEn: 'Cavity Bacteria Legion',
           type: 'battle',
@@ -96,7 +96,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '2-2',
+          id: 'stage_2_3',
           name: '流感风暴',
           nameEn: 'Flu Storm',
           type: 'battle',
@@ -149,7 +149,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '2-3',
+          id: 'stage_2_5',
           name: '狂犬危机',
           nameEn: 'Rabies Crisis',
           type: 'battle',
@@ -175,7 +175,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: 'stage_2_7_vaccine_dilemma',
+          id: 'stage_2_6',
           name: '疫苗两难',
           nameEn: 'The Vaccine Dilemma',
           type: 'battle',
@@ -258,7 +258,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤12回合' },
         },
         {
-          id: 'stage_2_8_antibiotic_abuse',
+          id: 'stage_2_7',
           name: '抗生素滥用',
           nameEn: 'Antibiotic Overuse',
           type: 'battle',
@@ -339,7 +339,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤12回合' },
         },
         {
-          id: '2-4',
+          id: 'stage_2_8',
           name: '新冠病毒',
           nameEn: 'COVID-19',
           type: 'boss',
@@ -385,7 +385,7 @@ export const campaignData = {
       completionReward: { coins: 200, diamonds: 10 },
       stages: [
         {
-          id: '3-1',
+          id: 'stage_3_1',
           name: '电鳗风暴',
           nameEn: 'Electric Eel Storm',
           type: 'battle',
@@ -438,7 +438,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '3-2',
+          id: 'stage_3_3',
           name: '水母迷宫',
           nameEn: 'Jellyfish Maze',
           type: 'battle',
@@ -464,7 +464,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '3-3',
+          id: 'stage_3_4',
           name: '虎鲸猎场',
           nameEn: 'Orca Hunting Ground',
           type: 'battle',
@@ -490,7 +490,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: 'stage_3_4',
+          id: 'stage_3_5',
           name: '丛林法则',
           nameEn: 'Law of the Jungle',
           type: 'battle',
@@ -517,7 +517,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '3-4',
+          id: 'stage_3_6',
           name: '蓝鲸巨灵',
           nameEn: 'Blue Whale Titan',
           type: 'boss',
@@ -570,7 +570,7 @@ export const campaignData = {
       completionReward: { coins: 300, diamonds: 20 },
       stages: [
         {
-          id: '4-1',
+          id: 'stage_4_1',
           name: '耐药菌浪潮',
           nameEn: 'Antibiotic Resistance Wave',
           type: 'battle',
@@ -623,7 +623,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '4-2',
+          id: 'stage_4_3',
           name: 'HIV潜伏',
           nameEn: 'HIV Stealth',
           type: 'battle',
@@ -651,7 +651,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '4-3',
+          id: 'stage_4_4',
           name: '远古病毒觉醒',
           nameEn: 'Ancient Virus Awakens',
           type: 'battle',
@@ -677,7 +677,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: 'stage_4_4',
+          id: 'stage_4_5',
           name: '出血热噩梦',
           nameEn: 'Hemorrhagic Fever Nightmare',
           type: 'battle',
@@ -707,7 +707,7 @@ export const campaignData = {
           starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤10回合' },
         },
         {
-          id: '4-4',
+          id: 'stage_4_6',
           name: '超级细菌',
           nameEn: 'Superbug',
           type: 'boss',
@@ -761,14 +761,55 @@ export function calculateStars(result) {
 // ================================================================
 // 进度管理
 // ================================================================
+// 关卡 ID 统一迁移：老 ID（X-Y / stage_X_Y_name）→ 新 stage_X_Y。仅含变化项。
+// 老存档的星数/已领奖励按老 ID 存，加载时一次性重映射，保住齐齐全部进度。
+const STAGE_ID_MIGRATION = {
+  '1-1': 'stage_1_1', '1-2': 'stage_1_2', '1-3': 'stage_1_3', '1-4': 'stage_1_4', '1-5': 'stage_1_5',
+  '2-1': 'stage_2_1', '2-2': 'stage_2_3', '2-3': 'stage_2_5',
+  'stage_2_7_vaccine_dilemma': 'stage_2_6', 'stage_2_8_antibiotic_abuse': 'stage_2_7', '2-4': 'stage_2_8',
+  '3-1': 'stage_3_1', '3-2': 'stage_3_3', '3-3': 'stage_3_4', 'stage_3_4': 'stage_3_5', '3-4': 'stage_3_6',
+  '4-1': 'stage_4_1', '4-2': 'stage_4_3', '4-3': 'stage_4_4', 'stage_4_4': 'stage_4_5', '4-4': 'stage_4_6',
+}
+
+function migrateStageIds(progress) {
+  if (!progress || progress._idMigrated) return progress
+  // stageStars: { stageId: stars } — 按 key 重映射，重叠时保留较大星数
+  if (progress.stageStars) {
+    const next = {}
+    for (const [k, v] of Object.entries(progress.stageStars)) {
+      const nk = STAGE_ID_MIGRATION[k] || k
+      next[nk] = Math.max(next[nk] || 0, v)
+    }
+    progress.stageStars = next
+  }
+  // claimedRewards: 只重映射 <stageId>_first / <stageId>_three；章节(chX_complete)/里程碑 key 原样保留
+  if (progress.claimedRewards) {
+    const next = {}
+    for (const [k, v] of Object.entries(progress.claimedRewards)) {
+      const m = k.match(/^(.+)_(first|three)$/)
+      if (m && STAGE_ID_MIGRATION[m[1]]) next[`${STAGE_ID_MIGRATION[m[1]]}_${m[2]}`] = v
+      else next[k] = v
+    }
+    progress.claimedRewards = next
+  }
+  progress._idMigrated = true
+  return progress
+}
+
 export function loadCampaignProgress() {
   try {
     const raw = localStorage.getItem(CAMPAIGN_STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      const needsMigration = !parsed._idMigrated
+      const migrated = migrateStageIds(parsed)
+      if (needsMigration) saveCampaignProgress(migrated) // 持久化一次性迁移
+      return migrated
+    }
   } catch (e) { /* ignore */ }
-  return { stageStars: {}, claimedRewards: {} }
-  // stageStars: { '1-1': 3, '2-1': 2, ... }
-  // claimedRewards: { '2-1_first': true, '2-1_three': true, ... }
+  return { stageStars: {}, claimedRewards: {}, _idMigrated: true }
+  // stageStars: { 'stage_1_1': 3, 'stage_2_1': 2, ... }
+  // claimedRewards: { 'stage_2_1_first': true, 'ch2_complete': true, ... }
 }
 
 export function saveCampaignProgress(progress) {
@@ -778,7 +819,7 @@ export function saveCampaignProgress(progress) {
 // 检查关卡是否解锁
 export function isStageUnlocked(stageId, progress) {
   const { stageStars } = progress
-  if (stageId === '1-1') return true
+  if (stageId === 'stage_1_1') return true
 
   // 老存档保护：如果这一关已经有星（之前通关过），直接放行。
   // 防止 Sprint 19/30b 在已通关关卡之间插入新 ID 后，老关卡因新 prev 无星被锁。

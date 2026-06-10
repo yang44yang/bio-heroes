@@ -39,7 +39,7 @@ export const GACHA_BANNERS = {
 }
 
 // 根据玩家最近通关进度选择 banner
-// stageStars 形如 { '1-1': 3, '2-2': 2, ... }（来自 campaignData.loadCampaignProgress）
+// stageStars 形如 { 'stage_1_1': 3, 'stage_2_1': 2, ... }（来自 campaignData.loadCampaignProgress）
 export function selectBanner(stageStars = {}) {
   const stages = Object.keys(stageStars)
   // 从高到低章节扫描，找到玩家进展最深的章节
