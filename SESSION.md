@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-09（sp_world_tree 平衡 + BUFF 永久叠加地雷 + 所有对敌 ATK 减益静默失效 3 连修；Sprint 32 题库扩充仍剩 Step 2-8）
+> 更新时间: 2026-06-10（i18n 大扫除：72 硬编码 UI 串接入 t() + card.name→cardName/localName 审计；AI医生迅击修复；关卡 ID 统一 stage_X_Y + 老存档无损迁移。Sprint 32 题库扩充仍剩 Step 2-8）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,41 @@
 ---
 
 ## 最近完成
+
+### 2026-06-10 i18n 大扫除 + 迅击修复 + 关卡 ID 统一 ✅
+齐齐问"是不是还有很多没翻译"引出的一轮系统排查 + 两个挑选的技术债。
+
+**i18n 盘点结论**：UI 框架翻译完整（zh/en 各 296 key 同步），但**内容层（scienceCard/
+技能描述/题库）0 英文，属"中文为主"有意设计**。卡名/技能名有 nameEn。
+
+1. **72 硬编码 UI 串接入 t()**（d6dc4f7）：战斗浮字（克制!/被克制!）、各 tooltip/aria、
+   Achievement/SpUnlock/Milestone 弹窗（含模块级 const 改造）、Gacha 三件套（概率公示/
+   图鉴进度）、Collection/DeckBuilder/CardDetailModal。**未动**（有意保留）：lang==='en'
+   内联双语、BattleHints zh/en 对象、addLog 战斗日志、classifyLog 中文匹配逻辑、内容数据。
+
+2. **card.name → cardName()/localName() 审计**（398feda）：新增通用 `localName(obj)` helper
+   （en 优先 nameEn 回退 name）。修 11 处"英文名存在却直显中文"：进化链步骤卡名、
+   阵营名（DeckBuilder/BattleScreen/Card/CardDetailModal）、子类型名、环境事件名。
+   进化卡/子类型/环境事件 nameEn 全覆盖。进化链标题 chain.name、成就名 ach.name 无 nameEn
+   属内容数据保留。
+
+3. **AI医生·智慧诊疗 迅击真生效**（1dd6a98）：`_grantSwift` 是半成品（BUFF amount:0 纯
+   空操作，handler 从没读它）。改用既有标准写法 APPLY_STATUS + swift_boost status，
+   hasSwift 判定（useBattle 1494/1535/1806）绕过召唤疲劳，回合末 tick 清除。
+
+4. **关卡 ID 统一 stage_X_Y + 老存档无损迁移**（e90c372）：三种格式（X-Y/stage_X_Y/
+   stage_X_Y_name）统一为顺序 stage_<章>_<位>。因 '2-2' 与 'stage_2_2' 是不同关卡，
+   必须整体重编号（25 关 21 变化，两遍替换避免改名碰撞）。
+   - 引用面全更新：isStageUnlocked '1-1'、App.jsx SP_UNLOCK_MAP+chapterMap、
+     BattleScreen 两 map、spCards.unlockStage。
+   - ⭐ 顺手修隐藏依赖：App.jsx 靠 `stageId.endsWith('-4')` 判 boss → 新 boss 是
+     stage_2_8/3_6/4_6 不再 -4 结尾 → 改 chapterMap 成员判定。
+   - 🔒 **齐齐存档零损失**：loadCampaignProgress 加 migrateStageIds（老→新重映射
+     stageStars+claimedRewards，_idMigrated 幂等 + 首次持久化）。
+   - 验证：24 条逻辑断言全绿（迁移 16 总星守恒/幂等 + 解锁链 8）。
+
+> ⚠️ 验证说明：本轮 preview 沙箱 HMR WebSocket 失败（热更新不生效），多处以
+> esbuild + 纯逻辑测试 + Vite 实际服务模块为准；语言切换入口已实测可即时双向切换。
 
 ### 2026-06-09 平衡 + bug 3 连修 ✅
 接 SESSION「已知问题」清单逐个清理：
@@ -220,7 +255,8 @@
 ### 小问题
 - 战斗日志 message 文本硬编码中文（100+ 条，spec 方案 A：不翻译）
 - Vite dev 偶尔 504（已用 optimizeDeps.include 修复主要路径）
-- `AI Diagnosis & Treatment`（SP·AI 诊断）的 `_grantSwift: true` 从没被 BUFF handler 读取 → 迅击没生效（同类残留 bug，需补「去 summonSick 标记」的迅击授予机制，未修）
+- preview 沙箱 HMR WebSocket 连不上（`[vite] failed to connect to websocket`）→ 热更新失效、浏览器跑旧模块，验证需靠 esbuild/纯逻辑/curl 取 Vite 实际服务模块。vite.config 加 `server.hmr` 配置或可修（工程支撑项）
+- ~~`AI Diagnosis & Treatment` 的 `_grantSwift` 从没被读取 → 迅击没生效~~ ✅ 已修（改用 APPLY_STATUS+swift_boost，1dd6a98）
 - ~~`sp_world_tree` 普遍 OP~~ ✅ 已修（spCost 4→6，b44c935）
 - ~~skill engine `case 'BUFF'` 直接 +atk 永久叠加~~ ✅ 已修（atk_boost status + turns，b44c935）
 - ~~所有对敌 ATK 减益静默失效（BUFF 无视 _side）~~ ✅ 已修（c978d5c，⏳ 待齐齐实测手感）
@@ -235,7 +271,7 @@
 - ch3 Boss SP（sp_gaia_restoration 地球生态复原）未设计 — 当前 ch3 Boss 通关无 SP 解锁
 
 ### 遗留数据层问题
-- 关卡 ID 数据层仍混用 `stage_2_2` vs `2-2` vs `stage_2_7_vaccine_dilemma`（UI 已用 stageNumber 解耦）
+- ~~关卡 ID 数据层混用 `stage_2_2` vs `2-2` vs `stage_2_7_vaccine_dilemma`~~ ✅ 已统一为 stage_X_Y + 老存档无损迁移（e90c372）
 
 ---
 
@@ -249,6 +285,9 @@
   - **全场景卡详情**：战斗/抽卡/卡组/图鉴 任意场景点卡都能弹一致的详情？
   - **Phase A/B/C**: SR/SSR/SP 反应？banner 期待感？小测验？成就科学包？
   - **⭐ 对敌 ATK 减益首次生效**（2026-06-09 修）：大花草·恶臭之花 / 诺如病毒 / 大流行病毒（全体 -2000×3 回合）/ 蜘蛛·织网猎手 / 登革热 / CRISPR / 超级细菌·耐药屏障 这批卡的减益现在真起作用了 → 战斗手感是否平衡？大流行病毒会不会太强？战斗日志「⬇️ XXX ATK -N」是否出现？
+  - **关卡 ID 统一后存档迁移**（2026-06-10）：⭐ 重点验证齐齐老存档的**关卡星数/解锁进度完整保留**（迁移已 24 断言验证，但真机老存档值得肉眼确认一遍）；闯关解锁链、Boss 关章节奖励、SP 通关解锁正常？
+  - **AI医生·智慧诊疗 迅击**（2026-06-10 修）：打出 AI 医生 + 场上有本回合刚出的高 ATK 友方 → 那张友方本回合能立即攻击？战斗日志「🤖 AI 诊断：XXX 获得迅击！」出现？
+  - **英文模式一致性**（2026-06-10）：🌐 切英文后 进化链卡名/阵营/子类型/环境事件名 都是英文（不再露中文）？战斗浮字「Super! +20%」/抽卡概率公示/成就栏 等英文正常？
 
 ### 推荐方向 A++：推进 Sprint 32 题库扩充
 - Step 1 审计已完成（`outputs/ch2_quiz_audit.md`）
