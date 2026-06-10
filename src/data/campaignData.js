@@ -518,6 +518,154 @@ export const campaignData = {
         },
         {
           id: 'stage_3_6',
+          name: '森林抉择',
+          nameEn: 'The Forest Dilemma',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 24000,
+            deck: ['elephant_elder','chameleon_stealth','spider_trapper','spider_trapper','bee_worker','cheetah_sprinter','venus_flytrap','event_food_chain_burst','event_photosynthesis','event_ecosystem_recovery'],
+            spDeck: [],
+            aiStrength: 0.6,
+            aiPersonality: 'balanced',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['body', 'tech'] },
+          conundrum: {
+            id: 'forest_logging',
+            scene: '一片千年古森林。村民需要木材和耕地谋生，但这里是无数动物的家，也是地球的"肺"。',
+            sceneEn: 'A thousand-year-old forest. Villagers need timber and farmland to live, but it is home to countless animals — and one of Earth\'s "lungs".',
+            question: '这片森林，该怎么办？',
+            questionEn: 'What should be done with this forest?',
+            choices: [
+              {
+                id: 'A',
+                label: '一棵都不砍，全部保护',
+                labelEn: 'Protect it all — cut nothing',
+                effect: {
+                  playerLeaderHpBonus: -2000,
+                  playerStartingHandBonus: { filter: 'nature', count: 2 },
+                },
+                consequence: '森林和动物都保住了，但村民的日子变紧了。主人 HP -2000，但森林盟友相助，开局多 2 张自然系卡。',
+                consequenceEn: 'The forest and its animals are saved, but villagers struggle. Leader HP -2000, but forest allies help — start with 2 extra nature cards.',
+                scienceNote: '森林是地球最大的"碳仓库"，还藏着一半以上的陆地物种。砍掉一棵大树，要几十年甚至上百年才能长回来。',
+                scienceNoteEn: 'Forests are Earth\'s biggest carbon stores and hold over half of all land species. A big tree cut down takes decades — even centuries — to grow back.',
+              },
+              {
+                id: 'B',
+                label: '划出保护区，可持续采伐',
+                labelEn: 'Set a reserve, harvest sustainably',
+                effect: {
+                  playerStartingBonus: { card: 'moss_pioneer', count: 1 },
+                },
+                consequence: '一部分森林留作保护区，其余砍一棵种一棵。人和森林都能活下去。开局免费获得 1 张"苔藓·绿色先锋"。',
+                consequenceEn: 'Part stays protected; elsewhere, plant one for each cut. People and forest both survive. Start with a free "Moss: Green Pioneer".',
+                scienceNote: '这叫"可持续林业"。只要砍伐速度不超过森林生长速度，木头就是一种可以一直用下去的资源。',
+                scienceNoteEn: 'This is "sustainable forestry". As long as we don\'t cut faster than the forest grows, wood becomes a resource we can use forever.',
+              },
+              {
+                id: 'C',
+                label: '全部砍光，换发展',
+                labelEn: 'Clear it all for development',
+                effect: {
+                  playerLeaderHpBonus: 3000,
+                  enemyLeaderHpBonus: 3000,
+                  preplaceEnemyCards: ['spider_trapper', 'cheetah_sprinter'],
+                },
+                consequence: '短期换来一大笔钱（主人 HP +3000），但失去家园的动物和水土流失开始反扑：敌方 HP +3000，2 个野生单位已冲上战场。',
+                consequenceEn: 'A short-term windfall (Leader HP +3000), but displaced animals and erosion strike back: Enemy HP +3000, and 2 wild units already charge the field.',
+                scienceNote: '没了树根抓住泥土，大雨会带来山洪和泥石流；动物失去家园，整条食物链都会乱套。短期的钱，换来长期的麻烦。',
+                scienceNoteEn: 'Without roots holding the soil, heavy rain brings floods and mudslides; animals lose their homes and the whole food chain unravels. Short-term cash, long-term trouble.',
+              },
+            ],
+          },
+          dialogue: {
+            before: [
+              { speaker: 'narrator', emoji: '🌲', text: '推土机停在千年古森林前。村长看着你：这片林子，是砍还是留？', textEn: 'Bulldozers wait at the edge of the ancient forest. The village chief looks at you: cut it, or keep it?' },
+              { speaker: 'player', emoji: '💬', text: '发展和自然，真的只能二选一吗？', textEn: 'Development or nature — must it really be one or the other?' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '森林砍伐是真实的全球难题。亚马逊雨林被称为"地球之肺"，却每分钟都在消失。最好的答案往往不是"全要"或"全不要"，而是找到人与自然都能活下去的平衡。', textEn: 'Deforestation is a real global challenge. The Amazon, "the lungs of the Earth", shrinks every minute. The best answer is rarely "take all" or "take none", but a balance where both people and nature survive.' },
+            ],
+          },
+          rewards: { firstClear: { coins: 800 }, threeStars: { coins: 400 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤12回合' },
+        },
+        {
+          id: 'stage_3_7',
+          name: '江豚的家',
+          nameEn: 'Home of the River Dolphin',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 25000,
+            deck: ['orca_alpha','shark_hunter','jellyfish_stealth','jellyfish_stealth','electric_eel_battery','sea_turtle_navigator','event_food_chain_burst','event_food_chain_burst','event_ecosystem_recovery','event_cambrian_explosion'],
+            spDeck: [],
+            aiStrength: 0.6,
+            aiPersonality: 'balanced',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['body', 'tech'] },
+          conundrum: {
+            id: 'endangered_species',
+            scene: '城市想建一座大水电站，能给全城供电。但水坝会淹没最后一群江豚的家——它们全世界只剩一千头了。',
+            sceneEn: 'The city wants a big hydro dam to power everyone. But it would flood the last home of the river dolphins — only a thousand left in the whole world.',
+            question: '电站建，还是不建？',
+            questionEn: 'Build the dam, or not?',
+            choices: [
+              {
+                id: 'A',
+                label: '停建，保住江豚',
+                labelEn: 'Stop the dam, save the dolphins',
+                effect: {
+                  playerLeaderHpBonus: -2000,
+                  playerStartingHandBonus: { filter: 'nature', count: 2 },
+                },
+                consequence: '江豚的家保住了，但全城只能继续缺电。主人 HP -2000，江豚一族感激相助，开局多 2 张自然系卡。',
+                consequenceEn: 'The dolphins keep their home, but the city stays short on power. Leader HP -2000; grateful dolphins help — start with 2 extra nature cards.',
+                scienceNote: '灭绝是不可逆的——一个物种一旦消失，就永远回不来了。地球上每一种生物，都是几亿年演化才出现的"独一无二"。',
+                scienceNoteEn: 'Extinction is forever — once a species is gone, it never comes back. Every living thing took hundreds of millions of years of evolution to appear.',
+              },
+              {
+                id: 'B',
+                label: '改设计，建鱼道+迁地保护',
+                labelEn: 'Redesign: fish ladder + relocation',
+                effect: {
+                  playerStartingBonus: { card: 'sea_turtle_navigator', count: 1 },
+                },
+                consequence: '花更多钱建了"鱼道"，还把江豚迁到保护区。又有电，又护了物种，只是成本很高。开局免费获得 1 张"海龟·古老航海家"。',
+                consequenceEn: 'More money buys a "fish ladder" and a dolphin sanctuary. Power AND protection — just costly. Start with a free "Sea Turtle: Ancient Navigator".',
+                scienceNote: '江豚是"旗舰物种"：保护它，就等于保护它生活的整条河和河里所有生物。一个物种能撑起一整片生态。',
+                scienceNoteEn: 'River dolphins are a "flagship species": protect them and you protect the whole river and everything in it. One species can hold up an entire ecosystem.',
+              },
+              {
+                id: 'C',
+                label: '照建，牺牲江豚',
+                labelEn: 'Build anyway, sacrifice the dolphins',
+                effect: {
+                  playerLeaderHpBonus: 3000,
+                  enemyLeaderHpBonus: 3000,
+                  preplaceEnemyCards: ['jellyfish_stealth', 'electric_eel_battery'],
+                },
+                consequence: '全城亮起了灯（主人 HP +3000），但江豚永远消失了。食物链断了一环，河流生态开始崩乱：敌方 HP +3000，2 个单位已上场。',
+                consequenceEn: 'The whole city lights up (Leader HP +3000), but the dolphins are gone forever. A broken food-chain link throws the river into chaos: Enemy HP +3000, 2 units already on the field.',
+                scienceNote: '关键物种消失会引发连锁崩溃：海獭少了，海胆暴增，海藻林就被啃光。拿掉一环，整张网都会抖。',
+                scienceNoteEn: 'Losing a keystone species triggers a chain collapse: fewer sea otters → too many urchins → kelp forests eaten bare. Pull one thread, the whole web shakes.',
+              },
+            ],
+          },
+          dialogue: {
+            before: [
+              { speaker: 'narrator', emoji: '🐬', text: '工程图纸已经画好，只差你签字。水坝一建，江豚的家就没了。', textEn: 'The blueprints are ready — they only need your signature. Once the dam rises, the dolphins\' home is gone.' },
+              { speaker: 'player', emoji: '💬', text: '一千头江豚的命，和一座城的电……', textEn: 'A thousand dolphins\' lives, against a city\'s electricity...' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: '中国的长江白鱀豚在 2007 年被宣布"功能性灭绝"——人类再也没能找到它。发展和保护的两难是真实的，但越来越多的工程开始为动物让路：修鱼道、建生态廊道，证明我们可以两者兼顾。', textEn: 'China\'s Yangtze baiji dolphin was declared "functionally extinct" in 2007 — never found again. The development-vs-protection dilemma is real, but more projects now make room for animals: fish ladders, wildlife corridors — proof we can have both.' },
+            ],
+          },
+          rewards: { firstClear: { coins: 850 }, threeStars: { coins: 425 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤12回合' },
+        },
+        {
+          id: 'stage_3_8',
           name: '蓝鲸巨灵',
           nameEn: 'Blue Whale Titan',
           type: 'boss',
@@ -708,6 +856,152 @@ export const campaignData = {
         },
         {
           id: 'stage_4_6',
+          name: '基因抉择',
+          nameEn: 'The Gene-Editing Choice',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 26000,
+            deck: ['plasmodium_parasite','plasmodium_parasite','tapeworm_lurker','ecoli_thug','ecoli_thug','cavity_bacteria','anthrax_spore','event_gene_mutation','event_gene_mutation','event_drug_resistance'],
+            spDeck: [],
+            aiStrength: 0.7,
+            aiPersonality: 'balanced',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
+          conundrum: {
+            id: 'gene_editing',
+            scene: '一个孩子得了遗传病，基因剪刀（CRISPR）能治好他。可是同样的技术，也能用来"定制"婴儿——挑选外貌、身高，甚至聪明程度。',
+            sceneEn: 'A child has a genetic disease, and gene scissors (CRISPR) could cure them. But the same tool could also "customize" babies — picking looks, height, even intelligence.',
+            question: '基因编辑，到底该不该用？',
+            questionEn: 'Should gene editing be used at all?',
+            choices: [
+              {
+                id: 'A',
+                label: '只用来治病，严格监管',
+                labelEn: 'Only to cure disease, tightly regulated',
+                effect: {
+                  playerStartingBonus: { card: 'vaccine_trainer', count: 1 },
+                },
+                consequence: '法律只允许基因编辑用来治病，并严格审查。孩子被治好了。开局免费获得 1 张"疫苗·免疫训练营"。',
+                consequenceEn: 'The law allows gene editing only to cure disease, under strict review. The child is healed. Start with a free "Vaccine: Immune Training Camp".',
+                scienceNote: 'CRISPR 已经治好了真实的病人，比如镰刀型贫血。它只改病人自己身上的细胞，不会传给后代——这叫"体细胞编辑"，比较安全。',
+                scienceNoteEn: 'CRISPR has already cured real patients, like those with sickle-cell anemia. It changes only the patient\'s own cells, not their children\'s — "somatic editing", which is safer.',
+              },
+              {
+                id: 'B',
+                label: '完全禁止，太危险',
+                labelEn: 'Ban it entirely — too dangerous',
+                effect: {
+                  playerLeaderHpBonus: 2000,
+                },
+                consequence: '为了安全，全面禁止基因编辑。失去了一次救人的机会，但也守住了底线。主人 HP +2000——稳妥为先。',
+                consequenceEn: 'For safety, gene editing is fully banned. A chance to heal is lost, but a red line is held. Leader HP +2000 — caution first.',
+                scienceNote: '如果改的是"生殖细胞"，这个改动会一代代传下去，万一出错就收不回来了。2018 年有科学家私自编辑婴儿基因，被全世界谴责，还坐了牢。',
+                scienceNoteEn: 'Editing "germline" cells passes changes down through every generation — a mistake can never be undone. In 2018, a scientist secretly edited babies\' genes, was condemned worldwide, and went to prison.',
+              },
+              {
+                id: 'C',
+                label: '全面开放，自由编辑',
+                labelEn: 'Open it up — edit freely',
+                effect: {
+                  playerStartingBonus: { card: 'antibiotic_ultimate', count: 1 },
+                  enemyLeaderHpBonus: 3000,
+                  preplaceEnemyCards: ['ecoli_thug', 'plasmodium_parasite'],
+                },
+                consequence: '科技狂飙，强大的工具到手了（开局免费 1 张"抗生素注射器·终极武器"）。但人人随便改基因，乱子也来了：敌方 HP +3000，2 个失控单位已上场。',
+                consequenceEn: 'Technology races ahead and a powerful tool is yours (free "Antibiotic Syringe: Ultimate Weapon"). But with everyone editing freely, chaos follows: Enemy HP +3000, 2 runaway units already on the field.',
+                scienceNote: '如果有钱人能"定制"更聪明、更强壮的孩子，世界会被分成两种人。科技应该用来治病救人，而不是用来分出"高低贵贱"。',
+                scienceNoteEn: 'If the rich could "customize" smarter, stronger children, the world would split into two kinds of people. Technology should heal people, not rank them.',
+              },
+            ],
+          },
+          dialogue: {
+            before: [
+              { speaker: 'narrator', emoji: '🧬', text: '实验室里，基因剪刀静静躺着。它能治病，也能改写生命的蓝图。', textEn: 'In the lab, the gene scissors lie still. They can cure disease — or rewrite the blueprint of life itself.' },
+              { speaker: 'player', emoji: '💬', text: '能做到，不代表就应该做。', textEn: 'Just because we can, doesn\'t mean we should.' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: 'CRISPR 是 21 世纪最了不起的发明之一，2020 年拿了诺贝尔奖。它能治好曾经的不治之症，但也带来全新的伦理难题。科学的力量越大，越需要智慧和良心来掌舵。', textEn: 'CRISPR is one of the 21st century\'s greatest inventions, winning the Nobel Prize in 2020. It can cure once-hopeless diseases, but also raises brand-new ethical questions. The greater science\'s power, the more it needs wisdom and conscience at the helm.' },
+            ],
+          },
+          rewards: { firstClear: { coins: 1500 }, threeStars: { coins: 750 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤12回合' },
+        },
+        {
+          id: 'stage_4_7',
+          name: 'AI 还是医生',
+          nameEn: 'AI or Doctor',
+          type: 'battle',
+          enemyConfig: {
+            leaderHP: 27000,
+            deck: ['mrsa_superbug','ebola_terror','dengue_mosquito','dengue_mosquito','norovirus_storm','ecoli_thug','ecoli_thug','event_global_pandemic','event_drug_resistance','event_gene_mutation'],
+            spDeck: [],
+            aiStrength: 0.72,
+            aiPersonality: 'aggressive',
+            bossMechanic: null,
+          },
+          playerConfig: { useOwnDeck: true, recommendedFactions: ['tech', 'body'] },
+          conundrum: {
+            id: 'ai_diagnosis',
+            scene: '医院来了新的 AI 医生：它一秒钟就能看完 X 光片，准确率很高。但偶尔，它会犯人类医生绝不会犯的低级错误。',
+            sceneEn: 'A new AI doctor arrives at the hospital: it reads an X-ray in one second, very accurately. But once in a while, it makes a silly mistake no human doctor ever would.',
+            question: '看病，该信 AI 还是信医生？',
+            questionEn: 'For diagnosis — trust the AI, or the doctor?',
+            choices: [
+              {
+                id: 'A',
+                label: '完全信 AI，又快又高效',
+                labelEn: 'Fully trust the AI — fast and efficient',
+                effect: {
+                  playerStartingBonus: { card: 'microscope_eye', count: 1 },
+                  preplaceEnemyCards: ['common_cold_virus'],
+                },
+                consequence: 'AI 飞快地处理了所有病人（开局免费 1 张"显微镜·微观之眼"）。但它的盲区漏掉了一个病例——1 个病原已经溜上了战场。',
+                consequenceEn: 'The AI breezes through every patient (free "Microscope: Micro Eye"). But its blind spot missed one case — a pathogen has already slipped onto the field.',
+                scienceNote: 'AI 看医学影像又快又准，但它会被人眼根本不会上当的"对抗样本"骗到，也没有人类的常识。快，不等于永远对。',
+                scienceNoteEn: 'AI reads medical images fast and accurately, but it can be fooled by "adversarial examples" no human would fall for, and it lacks common sense. Fast doesn\'t mean always right.',
+              },
+              {
+                id: 'B',
+                label: 'AI 辅助，医生最终决定',
+                labelEn: 'AI assists, the doctor decides',
+                effect: {
+                  playerStartingBonus: { card: 'stethoscope_listener', count: 1 },
+                  playerStartingHandBonus: { filter: 'body', count: 1 },
+                },
+                consequence: 'AI 先筛一遍，医生再把关。又快又稳，错误最少。开局免费 1 张"听诊器·心声聆听者"，外加 1 张人体系卡。',
+                consequenceEn: 'The AI screens first, the doctor double-checks. Fast and steady, with the fewest mistakes. Free "Stethoscope: Heart Listener" plus 1 body card.',
+                scienceNote: '这叫"人在回路"（human-in-the-loop）：AI 是帮手，不是替身。最强的不是 AI，也不是医生，而是两者搭档。',
+                scienceNoteEn: 'This is "human-in-the-loop": AI is a helper, not a replacement. The strongest isn\'t the AI or the doctor alone — it\'s the two working together.',
+              },
+              {
+                id: 'C',
+                label: '只信医生，不用 AI',
+                labelEn: 'Trust only the doctor, no AI',
+                effect: {
+                  playerLeaderHpBonus: 2000,
+                },
+                consequence: '老办法最让人安心——全靠经验丰富的医生。稳是稳，就是慢一些。主人 HP +2000。',
+                consequenceEn: 'The old way feels safest — all on the seasoned doctor. Steady, just slower. Leader HP +2000.',
+                scienceNote: '人类医生的经验和直觉很宝贵，但也会累、会有情绪、会有主观偏见。再厉害的医生，连看几十张片子也可能看花眼。',
+                scienceNoteEn: 'A human doctor\'s experience and intuition are precious, but they tire, have moods, and carry bias. Even a great doctor\'s eyes blur after dozens of scans.',
+              },
+            ],
+          },
+          dialogue: {
+            before: [
+              { speaker: 'narrator', emoji: '🤖', text: '候诊室排起长队。AI 医生闪着蓝光，人类医生在它旁边皱着眉。该让谁来诊断？', textEn: 'The waiting room is packed. The AI doctor glows blue; the human doctor frowns beside it. Who should diagnose?' },
+              { speaker: 'player', emoji: '💬', text: '机器更快，人更懂人。也许，答案不是二选一。', textEn: 'Machines are faster; humans understand humans. Maybe the answer isn\'t either-or.' },
+            ],
+            after: [
+              { speaker: 'narrator', emoji: '🎓', text: 'AI 已经能帮医生发现早期癌症、读懂 CT 和眼底照片。但今天最好的医院都不会让 AI 单独看病——而是"AI 出建议、医生做决定"。最聪明的用法，是让机器和人各做自己最擅长的事。', textEn: "AI already helps doctors catch early cancers and read CT and retina scans. But the best hospitals never let AI diagnose alone — it's 'AI suggests, doctor decides'. The smartest approach lets machines and people each do what they do best." },
+            ],
+          },
+          rewards: { firstClear: { coins: 1550 }, threeStars: { coins: 775 } },
+          starConditions: { one: '通关', two: '主人HP ≥ 50%', three: '主人HP ≥ 80% 且 ≤12回合' },
+        },
+        {
+          id: 'stage_4_8',
           name: '超级细菌',
           nameEn: 'Superbug',
           type: 'boss',
@@ -761,38 +1055,51 @@ export function calculateStars(result) {
 // ================================================================
 // 进度管理
 // ================================================================
-// 关卡 ID 统一迁移：老 ID（X-Y / stage_X_Y_name）→ 新 stage_X_Y。仅含变化项。
-// 老存档的星数/已领奖励按老 ID 存，加载时一次性重映射，保住齐齐全部进度。
-const STAGE_ID_MIGRATION = {
+// 关卡 ID 迁移（版本化、可叠加）— 加载时把老存档 key 重映射到当前 ID，保住齐齐全部进度。
+// v0→v1（2026-06 统一）：老 ID（X-Y / stage_X_Y_name）→ stage_X_Y（当时 ch3/ch4 boss 在 _6）
+// v1→v2（2026-06 Conundrum 扩展）：ch3/ch4 boss 前插 2 关 → boss 后移到 _8
+const MIG_V0_V1 = {
   '1-1': 'stage_1_1', '1-2': 'stage_1_2', '1-3': 'stage_1_3', '1-4': 'stage_1_4', '1-5': 'stage_1_5',
   '2-1': 'stage_2_1', '2-2': 'stage_2_3', '2-3': 'stage_2_5',
   'stage_2_7_vaccine_dilemma': 'stage_2_6', 'stage_2_8_antibiotic_abuse': 'stage_2_7', '2-4': 'stage_2_8',
   '3-1': 'stage_3_1', '3-2': 'stage_3_3', '3-3': 'stage_3_4', 'stage_3_4': 'stage_3_5', '3-4': 'stage_3_6',
   '4-1': 'stage_4_1', '4-2': 'stage_4_3', '4-3': 'stage_4_4', 'stage_4_4': 'stage_4_5', '4-4': 'stage_4_6',
 }
+const MIG_V1_V2 = { 'stage_3_6': 'stage_3_8', 'stage_4_6': 'stage_4_8' }
+const ID_MIGRATION_VERSION = 2
 
-function migrateStageIds(progress) {
-  if (!progress || progress._idMigrated) return progress
-  // stageStars: { stageId: stars } — 按 key 重映射，重叠时保留较大星数
+// 用一张映射表重写 stageStars + claimedRewards 的 key（重叠时保留较大星数）
+function remapProgress(progress, map) {
   if (progress.stageStars) {
     const next = {}
     for (const [k, v] of Object.entries(progress.stageStars)) {
-      const nk = STAGE_ID_MIGRATION[k] || k
+      const nk = map[k] || k
       next[nk] = Math.max(next[nk] || 0, v)
     }
     progress.stageStars = next
   }
-  // claimedRewards: 只重映射 <stageId>_first / <stageId>_three；章节(chX_complete)/里程碑 key 原样保留
   if (progress.claimedRewards) {
     const next = {}
     for (const [k, v] of Object.entries(progress.claimedRewards)) {
-      const m = k.match(/^(.+)_(first|three)$/)
-      if (m && STAGE_ID_MIGRATION[m[1]]) next[`${STAGE_ID_MIGRATION[m[1]]}_${m[2]}`] = v
+      const m = k.match(/^(.+)_(first|three)$/) // 章节(chX_complete)/里程碑 key 不含 _first/_three → 原样保留
+      if (m && map[m[1]]) next[`${map[m[1]]}_${m[2]}`] = v
       else next[k] = v
     }
     progress.claimedRewards = next
   }
-  progress._idMigrated = true
+  return progress
+}
+
+function migrateStageIds(progress) {
+  if (!progress) return progress
+  // 旧版用 _idMigrated 布尔（=v1）；统一为版本号，按需逐级叠加迁移
+  let version = progress._idMigrationVersion
+  if (version === undefined) version = progress._idMigrated ? 1 : 0
+  if (version >= ID_MIGRATION_VERSION) return progress
+  if (version < 1) progress = remapProgress(progress, MIG_V0_V1)
+  if (version < 2) progress = remapProgress(progress, MIG_V1_V2)
+  progress._idMigrationVersion = ID_MIGRATION_VERSION
+  delete progress._idMigrated
   return progress
 }
 
@@ -801,13 +1108,13 @@ export function loadCampaignProgress() {
     const raw = localStorage.getItem(CAMPAIGN_STORAGE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
-      const needsMigration = !parsed._idMigrated
+      const before = parsed._idMigrationVersion ?? (parsed._idMigrated ? 1 : 0)
       const migrated = migrateStageIds(parsed)
-      if (needsMigration) saveCampaignProgress(migrated) // 持久化一次性迁移
+      if (before < ID_MIGRATION_VERSION) saveCampaignProgress(migrated) // 持久化一次性迁移
       return migrated
     }
   } catch (e) { /* ignore */ }
-  return { stageStars: {}, claimedRewards: {}, _idMigrated: true }
+  return { stageStars: {}, claimedRewards: {}, _idMigrationVersion: ID_MIGRATION_VERSION }
   // stageStars: { 'stage_1_1': 3, 'stage_2_1': 2, ... }
   // claimedRewards: { 'stage_2_1_first': true, 'ch2_complete': true, ... }
 }

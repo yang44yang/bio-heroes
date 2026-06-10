@@ -1702,12 +1702,12 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
               {won && campaignConfig?.stageType === 'boss' && (() => {
                 const chapterRewards = {
                   'stage_2_8': t('battle.chapterReward.2-4'),
-                  'stage_3_6': t('battle.chapterReward.3-4'),
-                  'stage_4_6': t('battle.chapterReward.4-4'),
+                  'stage_3_8': t('battle.chapterReward.3-4'),
+                  'stage_4_8': t('battle.chapterReward.4-4'),
                 }
                 // 从 campaignConfig 中提取 stageId（通过 stageName 匹配 Boss 名）
                 const stageId = Object.keys(chapterRewards).find(
-                  id => campaignConfig?.stageName === { 'stage_2_8': '新冠病毒', 'stage_3_6': '蓝鲸巨灵', 'stage_4_6': '超级细菌' }[id]
+                  id => campaignConfig?.stageName === { 'stage_2_8': '新冠病毒', 'stage_3_8': '蓝鲸巨灵', 'stage_4_8': '超级细菌' }[id]
                 )
                 if (!stageId) return null
                 return (
