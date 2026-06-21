@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21 续²（成就系统补全：战斗+答题两类上线，3 类齐全；9 个新成就 + economy 累计计数器 + App 级弹窗队列 + Collection 三段展示；build 绿 / 28 断言绿 / 产物预览实测通过。+ 齐齐实测 bug：事件卡在所有展示场景发灰，Card.jsx 根因修复）
+> 更新时间: 2026-06-21 续³（每日挑战 Daily Challenge 核心闭环上线：约束=Conundrum 复用战斗引擎零改动 / streak / 周 SSR 券 / 当日主题问答彩蛋；产物预览实测全闭环。前序同日：成就三类齐全 + 事件卡发灰 bug 修复）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,26 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 续³ 每日挑战 Daily Challenge ✅（核心闭环上线）
+方向 D「两个都要」的第二个（成就之后）。每天一场带约束的轮换战斗 + 连续天数 streak + 周 SSR 券 +
+当日主题问答彩蛋。**关键设计：约束 = 单选 Conundrum，完全复用现有 两难关 管线，战斗引擎零改动。**
+
+- **dailyChallenges.js**（纯逻辑，`scripts/test-daily.mjs` 28 断言）：确定性日期种子（dayNumber 位移取模
+  themes×enemyPool×constraints + 周日特判自由日）；约束只用 Conundrum effect 契约（HP±/预置敌/起手加牌）；
+  computeStreakUpdate（接龙/断签重置为1/时间回拨护栏/幂等）；computeReward（基础 cap7 / 速通+50 / 周 SSR 券 / 每 3 天碎片）。
+- **useDailyChallenge.js**：独立存储 `bio-heroes-daily`；completeAndClaim 幂等发奖。useEconomy 加 addFragments 薄方法。
+- **接线**（App.jsx）：screen 'daily' + handleExitBattle daily 分支（`daily_` 前缀→completeAndClaim，跳过 campaign
+  进度逻辑，成就星-merge 排除 daily）；伪 stageConfig 走 `handleCampaignBattle → deckBuilder → battle` 现成管线。
+- **UI**：TitleScreen teal 入口 + 未完成红点 + 🔥streak；DailyChallenge 屏（主题/约束/streak/最近7天日历/奖励
+  预览/状态按钮 + 胜利庆祝弹窗）；胜利后当日主题问答彩蛋（复用 GachaQuizModal，答对 +20，6 主题全有匹配题）。
+- **Yang 拍板**：平衡档+周日自由日 / 断签重置为1 / 周 7 天 SSR 券 / 首版只做 App 内红点。
+- **v1 范围**：硬阵营锁(lockedFaction)需改 DeckBuilder + DECK_SIZE=25 早期不可行 → 留 **v2**；约束全走 Conundrum
+  effect，零 DeckBuilder/BattleScreen 改动。**不发钻石**（diamonds 仍 coins 占位 bug）。
+
+**验证**：build 绿 / test-daily 28 断言绿 / **产物预览实测全闭环**：入口红点→进屏(今天恰好周日→自由日正确)→开始
+挑战→deckBuilder→战斗约束 conundrum(接受挑战+后果+科学包)→效果生效(主人 33000/敌 12000)→done 态(🔥5/日历✅/
+明天再来/再2天得SSR券)。⏳ 真机 win→奖励弹窗→streak+1→问答彩蛋 待齐齐实测（需实打一场赢）。
 
 ### 2026-06-21 续² 实测 bug：事件卡所有展示场景发灰 ✅（ed71a33）
 齐齐抽卡时发现「第一次见到」的事件卡（全球大流行 SSR）整张灰掉。根因：展示场景
@@ -348,7 +368,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 ---
 
 ## 进行中
-（无 — 成就三类齐全已上线。**下一轮：每日挑战**（Yang 选「两个都要」，成就先行已完成）。等齐齐 iPad 实测反馈或开做每日挑战）
+（无 — 成就三类 + 每日挑战核心闭环都已上线。等齐齐 iPad 实测反馈。每日挑战 **v2** 可补：硬阵营锁约束(改 DeckBuilder) / 未领推送 / 更多约束·敌池·主题内容填充）
 
 ---
 
@@ -425,7 +445,7 @@ spec 已为后续预留：
 
 ### 推荐方向 D：新功能
 - ~~成就系统（收集/战斗/答题三类勋章）~~ ✅ 已完成（2026-06-21 续²，9 新成就 + 三段展示 + 累计计数器）
-- ⭐ **每日挑战**（约定的下一轮）— 让齐齐每天有理由打开游戏（全新功能，需日期逻辑/挑战生成/状态追踪）
+- ~~每日挑战~~ ✅ 已完成（2026-06-21 续³，约束=Conundrum 复用 / streak / 周 SSR 券 / 当日主题问答彩蛋）
 - 可选主人（生物学家/医生/猎人三种被动）— 增加玩法多样性
 
 ### 推荐方向 E：卡池扩展（中长期）
