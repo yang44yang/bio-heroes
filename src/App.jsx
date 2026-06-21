@@ -4,6 +4,7 @@ import { LanguageProvider } from './i18n/LanguageContext'
 import TitleScreen from './components/TitleScreen'
 import { playerTestDeck, enemyTestDeck } from './data/testDecks'
 import { useEconomy } from './hooks/useEconomy'
+import { useDailyChallenge } from './hooks/useDailyChallenge'
 import { loadTutorialProgress } from './data/tutorialData'
 import {
   loadCampaignProgress, saveCampaignProgress, calculateStars,
@@ -32,6 +33,7 @@ const DeckBuilder = lazy(() => import('./components/DeckBuilder'))
 const Collection = lazy(() => import('./components/Collection'))
 const TutorialScreen = lazy(() => import('./components/TutorialScreen'))
 const CampaignScreen = lazy(() => import('./components/CampaignScreen'))
+const DailyChallenge = lazy(() => import('./components/DailyChallenge'))
 
 // 加载占位
 function LoadingFallback() {
@@ -77,6 +79,10 @@ export default function App() {
   const [pendingSpUnlock, setPendingSpUnlock] = useState(null) // Boss 通关后弹解锁庆祝
   const [pendingAchievements, setPendingAchievements] = useState([]) // 战斗/答题成就弹窗 FIFO 队列
   const economy = useEconomy()
+  const daily = useDailyChallenge()
+  const dailyRef = useRef(daily)
+  dailyRef.current = daily // 始终指向最新，供 handleExitBattle 读取而不进 deps
+  const [dailyResult, setDailyResult] = useState(null) // 每日挑战刚完成的奖励结果（供 DailyChallenge 弹窗）
 
   // === 闯关战役状态 ===
   const campaignStageRef = useRef(null) // 当前战斗的关卡配置
@@ -125,7 +131,8 @@ export default function App() {
       const stats = economy.recordBattleResult(battleResult) // stateRef 同步新快照
       const stageStars = { ...(loadCampaignProgress().stageStars || {}) }
       // 把本场刚得的星 merge 进本地副本，让"击败全部 Boss"/"累计星"当场解锁（不写盘，campaign 分支才持久化）
-      if (campaignStageRef.current && battleResult.won) {
+      // 每日挑战(daily_)是伪 stage，不计入星数成就
+      if (campaignStageRef.current && battleResult.won && !String(campaignStageRef.current.stageId).startsWith('daily_')) {
         const sid = campaignStageRef.current.stageId
         const earned = calculateStars({
           won: true,
@@ -147,6 +154,23 @@ export default function App() {
 
     // 检查是否是闯关战斗
     const stageConfig = campaignStageRef.current
+
+    // 每日挑战分支：daily_ 前缀的伪 stage，不走 campaign 进度逻辑（星数/SP解锁/章节奖励）
+    if (stageConfig && battleResult && String(stageConfig.stageId).startsWith('daily_')) {
+      if (battleResult.won) {
+        const result = dailyRef.current.completeAndClaim(battleResult, economy)
+        if (result?.reward) setDailyResult(result)
+      }
+      campaignStageRef.current = null
+      setSelectedDeck(prev => {
+        if (!prev) return null
+        const { _campaignEnemy, ...rest } = prev
+        return Object.keys(rest).length > 0 ? rest : null
+      })
+      setScreen('daily')
+      return
+    }
+
     if (stageConfig && battleResult) {
       // 计算星数
       const stars = calculateStars({
@@ -303,6 +327,8 @@ export default function App() {
           onOpenCollection={() => setScreen('collection')}
           onOpenTutorial={() => setScreen('tutorial')}
           onOpenCampaign={() => setScreen('campaign')}
+          onOpenDailyChallenge={() => setScreen('daily')}
+          daily={daily}
           economy={economy}
         />
       )}
@@ -365,6 +391,16 @@ export default function App() {
               setScreen('tutorial')
             }}
             economy={economy}
+          />
+        )}
+        {screen === 'daily' && (
+          <DailyChallenge
+            daily={daily}
+            economy={economy}
+            justWon={dailyResult}
+            onClearResult={() => setDailyResult(null)}
+            onStartChallenge={handleCampaignBattle}
+            onBack={() => { setDailyResult(null); setScreen('title') }}
           />
         )}
       </Suspense>

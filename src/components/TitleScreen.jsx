@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { exportSave, importSave, resetSave } from '../utils/saveManager'
 import { useLanguage } from '../i18n/LanguageContext'
 
-export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, economy }) {
+export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, daily, economy }) {
   const { t, lang, toggleLang } = useLanguage()
   const [showSettings, setShowSettings] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
@@ -64,6 +64,9 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
           <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
           <span className="text-gray-500">{t('menu.collected', { n: Object.keys(economy.collection).length })}</span>
+          {daily?.currentStreak > 0 && (
+            <span className="text-orange-400 font-bold">🔥 {daily.currentStreak}</span>
+          )}
         </motion.div>
       )}
 
@@ -79,6 +82,21 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           onClick={onOpenCampaign}
         >
           {t('menu.campaign')}
+        </motion.button>
+
+        <motion.button
+          className="relative w-full py-2.5 sm:py-4 bg-teal-600 hover:bg-teal-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          onClick={onOpenDailyChallenge}
+        >
+          {t('menu.daily')}
+          {daily?.status === 'incomplete' && (
+            <span className="absolute top-2 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+          )}
         </motion.button>
 
         <motion.button

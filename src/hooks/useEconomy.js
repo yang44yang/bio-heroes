@@ -275,6 +275,15 @@ export function useEconomy() {
     })
   }, [])
 
+  // 加碎片（每日挑战等奖励用；幂等加法，复刻 pullCards 的 fragments 写法）
+  const addFragments = useCallback((cardId, count) => {
+    if (!cardId || !count) return
+    setState(prev => ({
+      ...prev,
+      fragments: { ...prev.fragments, [cardId]: (prev.fragments[cardId] || 0) + count },
+    }))
+  }, [])
+
   // 一键卖出所有"无进化路径"的碎片
   const sellAllUnusedFragments = useCallback(() => {
     setState(prev => {
@@ -370,6 +379,7 @@ export function useEconomy() {
     useSSRTicket,
     sellFragments,
     sellAllUnusedFragments,
+    addFragments,
     unlockCampaignSP,
     markAchievementsUnlocked,
     recordBattleResult,
