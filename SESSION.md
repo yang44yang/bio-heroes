@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21 续²（成就系统补全：战斗+答题两类上线，3 类齐全；9 个新成就 + economy 累计计数器 + App 级弹窗队列 + Collection 三段展示；build 绿 / 28 断言绿 / 产物预览实测通过）
+> 更新时间: 2026-06-21 续²（成就系统补全：战斗+答题两类上线，3 类齐全；9 个新成就 + economy 累计计数器 + App 级弹窗队列 + Collection 三段展示；build 绿 / 28 断言绿 / 产物预览实测通过。+ 齐齐实测 bug：事件卡在所有展示场景发灰，Card.jsx 根因修复）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,15 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 续² 实测 bug：事件卡所有展示场景发灰 ✅（ed71a33）
+齐齐抽卡时发现「第一次见到」的事件卡（全球大流行 SSR）整张灰掉。根因：展示场景
+（CardShowcase / 图鉴 / DeckBuilder / GachaScreen / CardDetailModal / GachaAnimation 共 8+ 处）
+都用 `hp={card.hp || 0}` 渲染 BattleCard，**事件卡无 hp** → hp=0 → `Card.jsx:40 isDead=(hp<=0)=true`
+→ `opacity-30 grayscale`。即**所有事件卡在战斗外的每个展示场景都发灰**，齐齐只是在抽卡先撞见。
+- **根因修复**（Card.jsx 一行）：`isDead = !isEvent && hp <= 0` —— 事件卡永不算死亡，一处修好全部场景。
+  战斗里生物/SP 判死不变（16 张 SP 全有 hp；战斗实例 `{...card, currentHp}` 仍带 hp，死亡仍灰）。
+- **验证**：build 绿 + 产物预览图鉴实测 免疫应答/实验观察 `filter:none opacity:1` 满色绿卡（截图确认）。
 
 ### 2026-06-21 续² 成就系统补全：战斗 + 答题两类（3 类齐全）✅
 成就系统原本只有「收集」一类（5 个集卡成就，抽卡时触发），补上方向 D 愿景的另两类，
