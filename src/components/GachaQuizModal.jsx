@@ -101,7 +101,7 @@ export default function GachaQuizModal({ quiz, onComplete }) {
 
         {answered && (
           <button
-            onClick={onComplete}
+            onClick={() => onComplete(isCorrect)}
             className="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-2.5 rounded-lg"
           >
             {t('gachaQuiz.continue')}

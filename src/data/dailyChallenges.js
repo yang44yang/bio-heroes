@@ -29,17 +29,17 @@ function pick(arr, n) {
 
 // ===== 科学主题(驱动彩蛋选题 + 碎片奖励卡 + 教育点) =====
 export const THEMES = [
-  { id: 'immune', emoji: '🛡️', name: '免疫防线', nameEn: 'Immune Defense', cardId: 'white_blood_cell',
+  { id: 'immune', emoji: '🛡️', name: '免疫防线', nameEn: 'Immune Defense', cardId: 'white_blood_cell', faction: 'body',
     point: '你的身体有三道防线在保护你：皮肤、白细胞、抗体！', pointEn: 'Your body has 3 lines of defense: skin, white blood cells, antibodies!' },
-  { id: 'pathogen', emoji: '🦠', name: '病原入侵', nameEn: 'Pathogen Invasion', cardId: 'flu_virus',
+  { id: 'pathogen', emoji: '🦠', name: '病原入侵', nameEn: 'Pathogen Invasion', cardId: 'flu_virus', faction: 'pathogen',
     point: '病毒和细菌不一样——抗生素只对细菌有用，治不了感冒。', pointEn: "Viruses and bacteria differ — antibiotics only work on bacteria, not colds." },
-  { id: 'nature', emoji: '🌱', name: '自然法则', nameEn: 'Law of Nature', cardId: 'cheetah_sprinter',
+  { id: 'nature', emoji: '🌱', name: '自然法则', nameEn: 'Law of Nature', cardId: 'cheetah_sprinter', faction: 'nature',
     point: '食物链顶端的猎手控制猎物数量，维持整个生态平衡。', pointEn: 'Apex predators control prey numbers and keep ecosystems balanced.' },
-  { id: 'tech', emoji: '⚗️', name: '科学武器', nameEn: 'Science Weapons', cardId: 'mrna_vaccine',
+  { id: 'tech', emoji: '⚗️', name: '科学武器', nameEn: 'Science Weapons', cardId: 'mrna_vaccine', faction: 'tech',
     point: '疫苗让身体提前认识病原，是人类最强的科学武器之一。', pointEn: 'Vaccines let the body learn a pathogen in advance — one of our greatest tools.' },
-  { id: 'micro', emoji: '🔬', name: '微观世界', nameEn: 'Microscopic World', cardId: 'amoeba_shapeshifter',
+  { id: 'micro', emoji: '🔬', name: '微观世界', nameEn: 'Microscopic World', cardId: 'amoeba_shapeshifter', faction: 'pathogen',
     point: '显微镜让我们看见肉眼看不到的微生物世界。', pointEn: 'Microscopes reveal a microbial world invisible to the naked eye.' },
-  { id: 'coevolve', emoji: '🔄', name: '协同演化', nameEn: 'Coevolution', cardId: 'bacteriophage_killer',
+  { id: 'coevolve', emoji: '🔄', name: '协同演化', nameEn: 'Coevolution', cardId: 'bacteriophage_killer', faction: 'pathogen',
     point: '猎手与猎物、病原与免疫，在亿万年里互相追赶着进化。', pointEn: 'Predator vs prey, pathogen vs immunity — chasing each other for eons.' },
 ]
 

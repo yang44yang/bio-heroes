@@ -47,7 +47,8 @@ for (const e of ENEMY_POOL) for (const id of e.deck) if (!validIds.has(id)) badI
 for (const c of CONSTRAINTS) for (const id of (c.effect.preplaceEnemyCards || [])) if (!validIds.has(id)) badIds.push(`preplace:${id}`)
 for (const id of (SUNDAY_CONSTRAINT.effect.preplaceEnemyCards || [])) if (!validIds.has(id)) badIds.push(`sunday:${id}`)
 for (const t of THEMES) if (!validIds.has(t.cardId)) badIds.push(`theme:${t.cardId}`)
-ok(`所有引用卡 ID 都存在${badIds.length ? ' → ' + badIds.join(',') : ''}`, badIds.length === 0)
+for (const t of THEMES) if (!FACTIONS.has(t.faction)) badIds.push(`themeFaction:${t.faction}`)
+ok(`所有引用卡 ID + 主题阵营都有效${badIds.length ? ' → ' + badIds.join(',') : ''}`, badIds.length === 0)
 
 // ---- 约束 effect 合法性 ----
 const badFilter = []

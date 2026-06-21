@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLanguage } from '../i18n/LanguageContext'
 import { prevDateStr } from '../data/dailyChallenges'
+import GachaQuizModal, { selectQuizForPull } from './GachaQuizModal'
 
 // 每日挑战屏幕：今日主题 + 约束 + streak + 7天日历 + 奖励预览 + 状态化主按钮
 export default function DailyChallenge({ daily, economy, justWon, onClearResult, onStartChallenge, onBack }) {
@@ -18,6 +19,14 @@ export default function DailyChallenge({ daily, economy, justWon, onClearResult,
   // 距离下一张 SSR 券（每 7 天）还差几天
   const toSSR = currentStreak > 0 ? (7 - (currentStreak % 7)) % 7 : 7
   const nextSSRDays = toSSR === 0 ? 7 : toSSR
+
+  // 胜利后的当日主题问答彩蛋（答对 +20 金币，答错不罚）
+  const [showQuiz, setShowQuiz] = useState(false)
+  const dailyQuiz = useMemo(() => {
+    try { return selectQuizForPull([{ id: ch.theme.cardId, faction: ch.theme.faction }]) } catch (e) { return null }
+  }, [ch.theme.cardId, ch.theme.faction])
+  const finishReward = () => { if (dailyQuiz) setShowQuiz(true); else onClearResult() }
+  const finishQuiz = (correct) => { if (correct && economy?.addCoins) economy.addCoins(20); setShowQuiz(false); onClearResult() }
 
   const startChallenge = () => {
     onStartChallenge({
@@ -107,12 +116,12 @@ export default function DailyChallenge({ daily, economy, justWon, onClearResult,
 
       {/* 胜利奖励庆祝 */}
       <AnimatePresence>
-        {justWon?.reward && (
+        {justWon?.reward && !showQuiz && (
           <motion.div
             className="fixed inset-0 z-[120] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.9)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClearResult}
+            onClick={finishReward}
           >
             <motion.div
               className="bg-gradient-to-br from-teal-600 to-cyan-700 rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl"
@@ -132,7 +141,7 @@ export default function DailyChallenge({ daily, economy, justWon, onClearResult,
                 )}
               </div>
               <button
-                onClick={onClearResult}
+                onClick={finishReward}
                 className="bg-white text-teal-700 font-black px-8 py-3 rounded-xl text-lg hover:bg-teal-50 shadow-lg"
               >
                 {t('common.awesome')}
@@ -141,6 +150,11 @@ export default function DailyChallenge({ daily, economy, justWon, onClearResult,
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* 当日主题问答彩蛋（答对 +20 金币） */}
+      {showQuiz && dailyQuiz && (
+        <GachaQuizModal quiz={dailyQuiz} onComplete={finishQuiz} />
+      )}
     </div>
   )
 }
