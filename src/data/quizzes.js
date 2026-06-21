@@ -426,10 +426,10 @@ export const quizzes = [
   // — 鲨鱼 (3) —
   { q: "鲨鱼最厉害的'感官'是什么？", options: ["能感受到微弱的电信号", "视觉，能看清几十米外", "听觉，能听到几公里外", "嗅觉，只对血液敏感"], answer: 0, fact: "鲨鱼鼻子上有特殊的电感受器，能探测百万分之一伏特的电场——这比任何动物都灵敏！受伤的鱼电信号紊乱，鲨鱼能精准锁定。", difficulty: "easy", faction: "nature", cardId: "shark_hunter", type: "memorization", tags: ["ch3","sense","electroreception"] },
   { q: "受伤的鱼为什么更容易被鲨鱼找到？", options: ["因为受伤鱼游得比较慢", "因为受伤鱼的电信号紊乱明显", "因为受伤鱼会流血染红海水", "因为受伤鱼会发出哭声"], answer: 1, fact: "所有动物移动时都会产生微弱电场。健康鱼的电场规律，受伤鱼的肌肉抽搐让电场紊乱——对鲨鱼来说就像'灯塔'一样明显。所以鲨鱼天生'挑弱'。", difficulty: "medium", faction: "nature", cardId: "shark_hunter", type: "mechanism", principle: "mechanism", tags: ["ch3","predation","signal"] },
-  { q: "暴风雨天的海面上，为什么鲨鱼往往更活跃？", options: ["因为它们喜欢暴雨的声音", "因为暴雨让它们体温降低要进食", "因为风浪让小鱼乱游电信号更乱", "因为暴雨把鲨鱼从深海冲上来"], answer: 2, fact: "暴风雨让小鱼在乱流中乱游，肌肉电场都变成'紊乱信号'——在鲨鱼的电感受器里，这就像满天都是受伤的猎物。所以暴雨天是鲨鱼最'丰收'的时候。", difficulty: "hard", faction: "nature", cardId: "shark_hunter", type: "inference", principle: "mechanism", tags: ["ch3","ecology","weather"] },
+  { q: "为什么潜水员被告知'不要戴金属手表或首饰下海游泳'？", options: ["金属泡海水里会生锈刺激皮肤", "金属在海水里产生电流，鲨鱼以为是猎物", "反光的金属会吸引好奇的鲨鱼游近", "金属重量让游泳变慢躲不开危险"], answer: 1, fact: "金属在海水里会发生电化学反应，产生微弱的电流——鲨鱼的电感受器能探测到，把它误以为是受伤鱼的电信号。所以海里要避免亮闪闪的金属饰品。", difficulty: "hard", faction: "nature", cardId: "shark_hunter", type: "inference", principle: "mechanism", tags: ["ch3","safety","electrochemistry"] },
 
   // — 章鱼 (3) —
-  { q: "章鱼有几个'大脑'？", options: ["只有 1 个，跟其他动物相同", "总共有 3 个分布在头部", "中央 1 个 + 每条触手 1 个 = 9 个", "0 个，章鱼完全没有大脑"], answer: 2, fact: "章鱼有 1 个中央大脑 + 每条触手都有自己的'小脑'(神经节)，总共 9 个！每条触手能独立思考和行动，是无脊椎动物里最聪明的。", difficulty: "easy", faction: "nature", cardId: "octopus_genius", type: "memorization", tags: ["ch3","intelligence","neural"] },
+  { q: "章鱼有几个'大脑'？", options: ["只有 1 个集中型大脑跟其他动物一样", "总共 3 个，分别在头部和身体里", "1 个中央 + 8 条触手各 1 个 = 9 个", "0 个，章鱼靠神经网络没有大脑"], answer: 2, fact: "章鱼有 1 个中央大脑 + 每条触手都有自己的'小脑'(神经节)，总共 9 个！每条触手能独立思考和行动，是无脊椎动物里最聪明的。", difficulty: "easy", faction: "nature", cardId: "octopus_genius", type: "memorization", tags: ["ch3","intelligence","neural"] },
   { q: "章鱼的触手为什么能独立思考？", options: ["因为它们能脱离身体独立存活", "因为章鱼会魔法", "因为每条触手都有自己的神经节集中", "因为它们大脑的能力被分散了"], answer: 2, fact: "每条触手都有几亿个神经元集中在'神经节'里，可以处理触觉、运动、抓握。这就像'分布式计算'——大脑下命令，触手自己决定细节。", difficulty: "medium", faction: "nature", cardId: "octopus_genius", type: "mechanism", principle: "mechanism", tags: ["ch3","distributed","neural"] },
   { q: "章鱼断掉一条触手后，这条触手还能动几分钟。这说明什么？", options: ["触手已经死了，只是肌肉在抽搐", "章鱼有再生的超能力", "触手能再长回章鱼身上", "触手的神经节仍在工作，有自主性"], answer: 3, fact: "断掉的触手神经节依然活跃，能感受刺激、收缩肌肉——所以会继续动。科学家发现:断掉的触手甚至能完成'抓住食物'的动作！这就是分布式神经系统的奇迹。", difficulty: "hard", faction: "nature", cardId: "octopus_genius", type: "inference", principle: "mechanism", tags: ["ch3","autonomy","ganglia"] },
 
@@ -446,7 +446,7 @@ export const quizzes = [
   // — 光合作用 (3) —
   { q: "光合作用主要产生什么？", options: ["二氧化碳和水", "糖和氧气", "盐和氮气", "蛋白质和脂肪"], answer: 1, fact: "光合作用把阳光的能量转化成糖(植物的食物)和氧气(地球大气的来源)。没有光合作用，地球上不会有氧气也不会有动物。", difficulty: "easy", faction: "nature", cardId: "event_photosynthesis", type: "memorization", tags: ["ch3","photosynthesis","oxygen"] },
   { q: "植物为什么主要白天'呼吸'放出氧气？", options: ["因为白天空气更新鲜清新", "因为植物害怕黑暗的环境", "因为光合作用需要阳光做能量", "因为植物的'肺'只白天工作"], answer: 2, fact: "光合作用必须有阳光——阳光的能量推动反应:CO2 + H2O → 糖 + O2。所以白天植物制造氧气，晚上反过来吸氧消耗糖(跟动物一样呼吸)。", difficulty: "medium", faction: "nature", cardId: "event_photosynthesis", type: "mechanism", principle: "mechanism", tags: ["ch3","day_night","energy"] },
-  { q: "如果世界上所有植物突然消失，空气会发生什么？", options: ["几年内氧气会慢慢用光，大气不适合呼吸", "空气变得很纯净，没杂质", "空气会变得很潮湿", "空气什么都不会变化"], answer: 0, fact: "大气中氧气来自亿万年累积的光合作用。停止生产 + 动物持续消耗 = 氧气浓度会逐渐下降。几年的存量足够，但几十年后地球可能像火星(没植物的氧含量极低)。", difficulty: "hard", faction: "nature", cardId: "event_photosynthesis", type: "inference", principle: "tradeoff", tags: ["ch3","ecosystem","oxygen_cycle"] },
+  { q: "如果世界上所有植物突然消失，空气会发生什么？", options: ["几年内氧气慢慢用光，大气不适合呼吸", "空气变得纯净，二氧化碳湿气都减少", "空气变潮湿，少了植物的水循环吸水", "空气没什么变化，人能继续正常呼吸"], answer: 0, fact: "大气中氧气来自亿万年累积的光合作用。停止生产 + 动物持续消耗 = 氧气浓度会逐渐下降。几年的存量足够，但几十年后地球可能像火星(没植物的氧含量极低)。", difficulty: "hard", faction: "nature", cardId: "event_photosynthesis", type: "inference", principle: "tradeoff", tags: ["ch3","ecosystem","oxygen_cycle"] },
 
   // — 食物链爆发 (3) —
   { q: "食物链中能量是怎么传递的？", options: ["从植物→食草动物→食肉动物", "从动物→植物→土壤", "从太阳直接传到每种动物", "从食肉动物→食草动物→植物"], answer: 0, fact: "食物链的能量源头是阳光——植物吸光合成糖，食草动物吃植物，食肉动物吃食草动物。每一级把上一级的能量传下去，这就是'能量流'。", difficulty: "easy", faction: "nature", cardId: "event_food_chain_burst", type: "memorization", tags: ["ch3","food_chain","energy"] },
@@ -460,7 +460,7 @@ export const quizzes = [
 
   // — 物种大爆发 (3) —
   { q: "寒武纪生物大爆发发生在多久前？", options: ["5400 万年前", "5.4 亿年前", "100 万年前", "10 亿年前"], answer: 1, fact: "5.4 亿年前的寒武纪大爆发是生命史上最神奇的事件——短短几百万年内几乎所有现代动物的祖先同时出现！从三叶虫到奇虾，生命多样性瞬间爆发。", difficulty: "easy", faction: "nature", cardId: "event_cambrian_explosion", type: "memorization", tags: ["ch3","evolution","timeline"] },
-  { q: "寒武纪为什么能短时间内爆发出这么多新生物？", options: ["因为外星人来了创造了它们", "因为地球突然变得好玩了", "新基因 + 海洋氧气增加 + 复杂环境互动", "因为有人故意安排好的"], answer: 2, fact: "海洋氧气足够后，生物能发展更复杂的身体结构 + 出现眼睛等新基因 + 各种生物彼此适应竞争 → 演化加速，几百万年内多样性爆发。这是'突破临界点'的典型例子。", difficulty: "medium", faction: "nature", cardId: "event_cambrian_explosion", type: "mechanism", principle: "mechanism", tags: ["ch3","threshold","oxygen"] },
+  { q: "寒武纪为什么能短时间内爆发出这么多新生物？", options: ["因为外星人来到地球创造了所有生物", "因为地球突然变得对生物特别友好", "新基因 + 海洋氧气增加 + 复杂互动", "因为有神明在背后一次性创造了"], answer: 2, fact: "海洋氧气足够后，生物能发展更复杂的身体结构 + 出现眼睛等新基因 + 各种生物彼此适应竞争 → 演化加速，几百万年内多样性爆发。这是'突破临界点'的典型例子。", difficulty: "medium", faction: "nature", cardId: "event_cambrian_explosion", type: "mechanism", principle: "mechanism", tags: ["ch3","threshold","oxygen"] },
   { q: "如果今天再次出现一次生物大爆发，可能会怎样？", options: ["几年内就有无数新物种出现", "速度比寒武纪慢很多，要几百万年", "不可能再次发生大爆发", "会瞬间出现全新的动物种类"], answer: 1, fact: "演化的速度由突变率 + 选择压力 + 时间决定——这些是物理规律不可加速。即使有大量新机会(比如人类灭绝后)，新物种的爆发也需要几百万年。我们感觉'爆发'，其实是地质年代的'瞬间'。", difficulty: "hard", faction: "nature", cardId: "event_cambrian_explosion", type: "inference", principle: "mechanism", tags: ["ch3","evolution_speed"] },
 
   // — 霸王龙 (3) —
@@ -501,7 +501,7 @@ export const quizzes = [
   // — MRSA 超级细菌 (3) —
   { q: "MRSA 这个英文缩写大概是什么意思？", options: ["对甲氧西林耐药的金黄色葡萄球菌", "医院里常见的普通葡萄球菌", "用甲氧西林治疗效果最好的菌", "新发现的一种细菌名字"], answer: 0, fact: "MRSA = Methicillin-Resistant Staphylococcus Aureus,翻译就是'耐甲氧西林金黄色葡萄球菌'。它对大多数抗生素都无效,所以是'超级细菌'。", difficulty: "easy", faction: "pathogen", cardId: "mrsa_superbug", type: "memorization", tags: ["ch2","resistance","superbug"] },
   { q: "为什么 MRSA 在医院里特别危险？", options: ["因为医院的空气里有特殊营养", "因为医院里抗生素用得最多,促进耐药", "因为医院的清洁人员不够多", "因为医院的灯光让细菌更活跃"], answer: 1, fact: "医院里大量使用抗生素 = 给细菌的'演化压力',能耐药的活下来繁殖。加上免疫力差的病人多,MRSA 一感染就难治。所以'院内感染'是大问题。", difficulty: "medium", faction: "pathogen", cardId: "mrsa_superbug", type: "mechanism", principle: "coevolution", tags: ["ch2","hospital","selection"] },
-  { q: "如果家人感冒了,为什么医生说不要乱要求开抗生素？", options: ["抗生素只杀细菌,对病毒感冒无效还促进耐药", "抗生素太贵会让家庭负担重", "感冒一定要靠免疫力自愈才彻底", "医生想省钱不愿意开药"], answer: 0, fact: "感冒 90% 是病毒引起——抗生素对病毒完全无效。乱用抗生素只会:1)没效果 2)杀好菌伤肠道 3)促进细菌耐药。这就是为什么'尊重医生处方'是公共卫生。", difficulty: "hard", faction: "pathogen", cardId: "mrsa_superbug", type: "inference", principle: "tradeoff", tags: ["ch2","compliance","public_health"] },
+  { q: "如果家人感冒了,为什么医生说不要乱要求开抗生素？", options: ["抗生素只杀细菌,对病毒感冒无效还促耐药", "抗生素太贵,普通家庭无法承担长期费用", "感冒必须靠人自身免疫力自愈才会好", "医生想省钱不愿意开比较贵的好药"], answer: 0, fact: "感冒 90% 是病毒引起——抗生素对病毒完全无效。乱用抗生素只会:1)没效果 2)杀好菌伤肠道 3)促进细菌耐药。这就是为什么'尊重医生处方'是公共卫生。", difficulty: "hard", faction: "pathogen", cardId: "mrsa_superbug", type: "inference", principle: "tradeoff", tags: ["ch2","compliance","public_health"] },
 
   // — 钩虫 (3) —
   { q: "钩虫主要怎么进入人体？", options: ["从呼吸道吸进去", "通过吃下被污染的食物", "蚊虫叮咬注射进去", "幼虫从脚底皮肤钻进去"], answer: 3, fact: "钩虫幼虫能从脚底的皮肤钻进人体！它们用嘴巴上的'小钩子'挂在肠壁上吸血。全世界有 5 亿人感染钩虫,大多在热带地区。", difficulty: "easy", faction: "pathogen", cardId: "hookworm_sucker", type: "memorization", tags: ["ch2","parasite","entry"] },
@@ -520,7 +520,7 @@ export const quizzes = [
 
   // — 基因突变 (3) —
   { q: "基因突变大部分对生物来说是？", options: ["对生物自身有害的", "对生物的发展有益的", "完全没有任何影响", "让生物变得更聪明"], answer: 0, fact: "基因突变大部分是有害的或中性的,但偶尔会出现有利突变,让生物获得新的能力。病毒的高突变率让它们能快速适应环境——这就是为什么流感病毒每年都在变。", difficulty: "easy", faction: "pathogen", cardId: "event_gene_mutation", type: "memorization", tags: ["ch2","mutation","evolution"] },
-  { q: "为什么基因突变被称为'进化的引擎'？", options: ["突变让生物变化产生新性状,有利的被选择留下", "突变让生物长得更大更聪明", "突变让生物寿命越来越长", "突变能立刻产生超能力"], answer: 0, fact: "进化 = 突变(产生变化) + 自然选择(筛选适合的)。没有突变就没有变化可供选择。这是达尔文进化论的两个齿轮,缺一不可。", difficulty: "medium", faction: "pathogen", cardId: "event_gene_mutation", type: "mechanism", principle: "coevolution", tags: ["ch2","evolution","selection"] },
+  { q: "为什么基因突变被称为'进化的引擎'？", options: ["突变让生物产生新性状,有利的被自然选择留下", "突变让生物长得更高更聪明能挡住天敌", "突变让生物寿命越来越长能繁衍更多代", "突变能让生物立刻产生超能力适应环境"], answer: 0, fact: "进化 = 突变(产生变化) + 自然选择(筛选适合的)。没有突变就没有变化可供选择。这是达尔文进化论的两个齿轮,缺一不可。", difficulty: "medium", faction: "pathogen", cardId: "event_gene_mutation", type: "mechanism", principle: "coevolution", tags: ["ch2","evolution","selection"] },
   { q: "为什么病毒比哺乳动物变异快得多？", options: ["病毒长得小所以能快速变", "病毒繁殖快+复制时容易出错+群体大", "病毒会主动去变化让人头疼", "病毒比哺乳动物聪明很多"], answer: 1, fact: "病毒一天繁殖几亿次,RNA 病毒复制时无校对——容易出错+群体大 = 变异机会多 100 万倍。这就是为什么流感年年要打新疫苗,而人类不会出现新种族。", difficulty: "hard", faction: "pathogen", cardId: "event_gene_mutation", type: "inference", principle: "coevolution", tags: ["ch2","mutation_rate","virus"] },
 
   // — 抗药性进化 (3) —
