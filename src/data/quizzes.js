@@ -542,6 +542,191 @@ export const quizzes = [
   { q: "WHO 警告如果不采取行动,2050 年每年可能多少人死于耐药菌？", options: ["1000 万人", "100 万人", "10 万人", "1 万人"], answer: 0, fact: "WHO 估算 2050 年每年可能 1000 万人死于耐药菌,超过癌症成为头号杀手！这就是为什么全球协作控制抗生素使用如此紧迫。", difficulty: "easy", faction: "pathogen", cardId: "sp_super_bacteria", type: "memorization", tags: ["ch2","resistance","public_health"] },
   { q: "超级细菌是怎么变成'多种抗生素都无效'的？", options: ["突变积累 + 多次抗生素压力筛选耐药菌", "细菌联合起来商量对抗策略", "细菌进化出对所有药物的免疫力", "细菌学会了把抗生素当食物消化"], answer: 0, fact: "细菌通过突变+水平基因转移(细菌之间能交换 DNA),累积对多种抗生素的耐药。每用一种抗生素都筛选出耐这种的菌,长期下来就是'多重耐药'。", difficulty: "medium", faction: "pathogen", cardId: "sp_super_bacteria", type: "mechanism", principle: "coevolution", tags: ["ch2","multidrug","accumulation"] },
   { q: "为什么超级细菌让医生不敢做小手术？", options: ["手术成本太高大家不愿意", "怕病人闹事不接受手术", "怕术后感染治不了,小手术变致命", "小手术利润低医院不想做"], answer: 2, fact: "现代医学(手术/化疗/器官移植)都依赖抗生素防感染。如果没有有效抗生素,即使阑尾炎手术也可能因术后感染致死——医学倒退回 19 世纪。这是'抗生素末日'最可怕的地方。", difficulty: "hard", faction: "pathogen", cardId: "sp_super_bacteria", type: "inference", principle: "tradeoff", tags: ["ch2","medicine_collapse","fundamental"] },
+
+  // ============================================================
+  // 批次 C — 36 张未参战卡 × 3 层 = 108 题
+  // body 8 + nature 11 + pathogen 9 + tech 8 (gacha-only 大部分)
+  // ============================================================
+
+  // — 🧬 body 免疫应答 (3) —
+  { q: "免疫应答会按什么顺序对付入侵者？", options: ["抗体→炎症→记忆细胞", "记忆细胞→抗体→炎症", "三个同时一起进行", "炎症→抗体→记忆细胞"], answer: 3, fact: "免疫系统按层次反应:先炎症召集白细胞(快速反应),然后抗体精准锁定敌人(适应性),最后记忆细胞记住敌人(预防再来)。这是'防御纵深'。", difficulty: "easy", faction: "body", cardId: "event_immune_response", type: "memorization", tags: ["ch2","immune","layered"] },
+  { q: "为什么免疫系统要分三层应答，不是一招对付？", options: ["三层是医学界硬性规定", "不同阶段对付不同情况，分工高效", "一招太累三招轮替更省力", "怕一招效果不够分三次保险"], answer: 1, fact: "炎症负责快速反应(几小时内);抗体负责精准打击(几天);记忆细胞负责长期保护(几年到终身)。每层有自己的速度和精度,组合起来又快又准。", difficulty: "medium", faction: "body", cardId: "event_immune_response", type: "mechanism", principle: "mechanism", tags: ["ch2","immune","strategy"] },
+  { q: "为什么接种过疫苗的人遇到这种病毒能很快痊愈？", options: ["疫苗里的药一直在身体里发挥作用", "免疫记忆细胞秒认敌人，抗体快速大量产生", "疫苗让身体对所有疾病都免疫", "疫苗让病毒不敢进入身体"], answer: 1, fact: "疫苗训练了记忆 B 细胞——下次遇到真病原,几小时内就能产生大量抗体(没疫苗的人要 1-2 周)。这就是为什么疫苗保护接种者本人。", difficulty: "hard", faction: "body", cardId: "event_immune_response", type: "inference", principle: "mechanism", tags: ["ch2","vaccine","memory"] },
+
+  // — 🧬 body 抗原呈递 (3) —
+  { q: "抗原呈递细胞在免疫系统里像什么？", options: ["主力战士", "侦察兵和情报员", "医院里的医生", "搬运工"], answer: 1, fact: "抗原呈递细胞(如树突状细胞)是免疫系统的'侦察兵'。它们吞噬病原体后把碎片展示在自己表面,像举着'通缉令'给 T 细胞看,激活整个适应性免疫反应！", difficulty: "easy", faction: "body", cardId: "event_antigen_presentation", type: "memorization", tags: ["ch2","immune","scout"] },
+  { q: "T 细胞为什么不能自己看见病原，要靠抗原呈递？", options: ["T 细胞眼睛不好使", "T 细胞数量少出不来", "T 细胞只能识别被'展示'的特定分子片段", "T 细胞太忙没时间巡逻"], answer: 2, fact: "T 细胞的受体只能识别'抗原呈递细胞表面的分子'(MHC 配抗原)——直接看到完整病原是无法触发的。这是为了避免免疫系统乱发动攻击。", difficulty: "medium", faction: "body", cardId: "event_antigen_presentation", type: "mechanism", principle: "mechanism", tags: ["ch2","T_cell","MHC"] },
+  { q: "如果一个人的抗原呈递细胞功能坏了，会怎样？", options: ["免疫系统会主动找其他细胞顶替", "对病原反应慢得多，容易反复感染", "完全没有影响，T 细胞自己也能应付", "立刻会得各种自身免疫病"], answer: 1, fact: "没有抗原呈递 = T 细胞不知道敌人长啥样 = 适应性免疫激活慢。这就是为什么有些遗传病(如 DiGeorge 综合症)患者容易感染。", difficulty: "hard", faction: "body", cardId: "event_antigen_presentation", type: "inference", principle: "mechanism", tags: ["ch2","immunodeficiency"] },
+
+  // — 🧬 body 发烧反应 (3) —
+  { q: "发烧 1-2 度对免疫系统有什么好处？", options: ["让人吃不下东西减肥", "让白细胞活动加快，细菌繁殖变慢", "让你只能在床上休息", "让医生有理由开药"], answer: 1, fact: "发烧不是坏事！体温升高 1-2 度能让白细胞活动加快、抗体产生增多,同时大部分细菌在高温下繁殖变慢。这是身体的主动防御。", difficulty: "easy", faction: "body", cardId: "event_fever_response", type: "memorization", tags: ["ch2","fever","immune"] },
+  { q: "发烧的时候为什么感觉特别累？", options: ["高温让大脑停转人变蠢", "维持高温要消耗大量能量身体疲劳", "发烧让肺部呼吸不够好", "发烧让血液流动变慢"], answer: 1, fact: "把体温升高 1°C 需要大量代谢能量——身体把营养都拿去打仗了,所以你会感到疲劳。这是'集中资源' tradeoff:打仗优先于日常活动。", difficulty: "medium", faction: "body", cardId: "event_fever_response", type: "mechanism", principle: "tradeoff", tags: ["ch2","energy_cost"] },
+  { q: "发低烧时医生为什么有时不让吃退烧药？", options: ["退烧药价格太贵舍不得用", "退烧药副作用比发烧还可怕", "退烧药会让医生少赚钱", "发烧本身是免疫反应，退太快削弱防御"], answer: 3, fact: "低烧(37.5-38.5°C)是免疫系统'故意'升温——退太快等于关掉了身体的反击。一般 38.5°C 以下不退,以上再用药。这是'尊重身体智慧'。", difficulty: "hard", faction: "body", cardId: "event_fever_response", type: "inference", principle: "tradeoff", tags: ["ch2","intervention"] },
+
+  // — 🧬 body 干细胞分化 (3) —
+  { q: "骨髓中的造血干细胞每天能制造多少个血细胞？", options: ["几万个", "数千亿个", "几亿个", "数百万亿个"], answer: 1, fact: "骨髓中的造血干细胞每天制造数千亿个血液细胞,皮肤干细胞不断更新皮肤。干细胞是身体的'生产线主管'。", difficulty: "easy", faction: "body", cardId: "event_stem_cell_diff", type: "memorization", tags: ["ch2","stem_cell","production"] },
+  { q: "干细胞为什么能变成各种各样的细胞？", options: ["干细胞会魔法变形", "它每天换一种身份生活", "它的基因开关都还没'锁'", "它跟周围细胞商量后变"], answer: 2, fact: "所有细胞 DNA 一样,但成熟细胞已经'锁'了大部分基因。干细胞所有基因都没锁——理论上能变成任何细胞类型。这是'多能性'。", difficulty: "medium", faction: "body", cardId: "event_stem_cell_diff", type: "mechanism", principle: "mechanism", tags: ["ch2","gene_regulation"] },
+  { q: "为什么白血病病人需要做'骨髓移植'？", options: ["重新植入健康的造血干细胞", "把坏掉的骨头换成好的", "增加病人的体重和力气", "给病人一个新的免疫系统"], answer: 0, fact: "白血病是造血干细胞癌变,产出的血细胞有问题。移植 = 先化疗杀光病人的坏干细胞,再植入健康捐献者的——重建整个造血系统。", difficulty: "hard", faction: "body", cardId: "event_stem_cell_diff", type: "inference", principle: "mechanism", tags: ["ch2","leukemia","transplant"] },
+
+  // — 🧬 body SP CAR-T (3) —
+  { q: "CAR-T 细胞疗法主要用来治什么病？", options: ["普通感冒", "皮肤病", "某些类型的癌症", "骨折和外伤"], answer: 2, fact: "CAR-T 细胞疗法是 21 世纪最革命性的医学突破之一！医生从患者血液中取出 T 细胞,用基因工程给它装上'导航系统',让它能精准找到并消灭癌细胞。", difficulty: "easy", faction: "body", cardId: "sp_car_t_cell", type: "memorization", tags: ["ch2","cancer","immunotherapy"] },
+  { q: "CAR-T 细胞为什么能'精准识别'癌细胞？", options: ["基因工程装了识别癌细胞分子的'导航'", "它能闻到癌细胞分泌的特殊气味物质", "它体型很小能潜伏在癌细胞旁边", "它能从血液浓度变化判断癌位置"], answer: 0, fact: "T 细胞表面被装上一种'嵌合抗原受体'(CAR),专门识别癌细胞表面的特定分子。这就像给免疫细胞装了'GPS+武器'。", difficulty: "medium", faction: "body", cardId: "sp_car_t_cell", type: "mechanism", principle: "mechanism", tags: ["ch2","engineered","receptor"] },
+  { q: "为什么 CAR-T 疗法对血癌很有效，但对实体瘤难？", options: ["实体瘤体型太大 CAR-T 处理不了那么多", "血液里直接遇见癌细胞，实体瘤外有保护壳", "血癌细胞天生比实体瘤细胞更怕 T 细胞", "血癌不属于真正的癌症 CAR-T 治得动"], answer: 1, fact: "血癌细胞悬浮在血液中——CAR-T 直接遇见就杀。实体瘤外有结缔组织+微环境抑制免疫,CAR-T 进不去也活不长。所以血癌(白血病/淋巴瘤)是 CAR-T 主战场。", difficulty: "hard", faction: "body", cardId: "sp_car_t_cell", type: "inference", principle: "tradeoff", tags: ["ch2","solid_tumor"] },
+
+  // — 🧬 body SP 大脑 (3) —
+  { q: "人脑大约有多少个神经元？", options: ["100 万个", "1 亿个", "10 亿个", "860 亿个"], answer: 3, fact: "人脑是已知宇宙中最复杂的结构——860 亿个神经元通过 100 万亿个突触相连,产生了意识、思维、情感和创造力。", difficulty: "easy", faction: "body", cardId: "sp_brain_awakening", type: "memorization", tags: ["ch2","brain","neuron"] },
+  { q: "大脑只占体重的 2%，为什么消耗 20% 的能量？", options: ["神经元持续放电+合成神经递质很耗能", "大脑细胞特别贪吃才能聪明", "大脑里有很多机器在运行", "大脑做的事情比身体重要"], answer: 0, fact: "每个神经元都在持续维持电位+合成神经递质——这是'24 小时不停机的电厂',能量消耗超过任何其他器官。所以学习/思考都要补能量。", difficulty: "medium", faction: "body", cardId: "sp_brain_awakening", type: "mechanism", principle: "tradeoff", tags: ["ch2","energy_metabolism"] },
+  { q: "为什么动脑学习也会让人感到饿？", options: ["学习让人长高消耗营养", "学习时间长来不及吃东西", "神经活动等于化学反应，要消耗葡萄糖", "学习压力大让人想吃东西"], answer: 2, fact: "大脑主要靠葡萄糖供能,学习思考让神经元高速放电,血糖快速消耗。这就是为什么考试前要吃巧克力——快速补糖。", difficulty: "hard", faction: "body", cardId: "sp_brain_awakening", type: "inference", principle: "mechanism", tags: ["ch2","glucose","cognition"] },
+
+  // — 🧬 body SP 免疫风暴 (3) —
+  { q: "免疫风暴(细胞因子风暴)是什么？", options: ["免疫系统罢工", "免疫系统逐个上场", "免疫系统休假回来恢复", "免疫系统'全力一击'同时出动"], answer: 3, fact: "免疫风暴是免疫系统的'全力一击'——所有免疫细胞同时出动,分泌大量细胞因子。能消灭入侵者,但有时过于猛烈反而伤害自身。", difficulty: "easy", faction: "body", cardId: "sp_immune_overdrive", type: "memorization", tags: ["ch2","cytokine","storm"] },
+  { q: "免疫风暴为什么反而会伤害身体？", options: ["大量炎症因子损伤自己的健康组织", "免疫细胞数量不够留下空隙", "免疫细胞迷路误伤自己人", "免疫风暴会引起其他病毒"], answer: 0, fact: "细胞因子风暴 = 过量炎症因子在全身循环,导致血管漏液、器官衰竭。'药效大于病'——治好了感染但人没了。这是'过犹不及' tradeoff。", difficulty: "medium", faction: "body", cardId: "sp_immune_overdrive", type: "mechanism", principle: "tradeoff", tags: ["ch2","inflammation","overreaction"] },
+  { q: "为什么重症新冠病人有时死于自己的免疫风暴，不是病毒？", options: ["病毒主动唤起免疫风暴的特别能力", "病毒长得跟免疫细胞太像", "病毒先躲起来再回来反击", "病毒触发的过激免疫反应导致器官衰竭"], answer: 3, fact: "新冠重症患者免疫系统超载反应——炎症因子风暴让肺/心/肾衰竭。所以治疗用免疫抑制药(地塞米松)来'踩刹车'。这反直觉但救命。", difficulty: "hard", faction: "body", cardId: "sp_immune_overdrive", type: "inference", principle: "tradeoff", tags: ["ch2","covid","treatment"] },
+
+  // — 🧬 body SP 骨骼 (3) —
+  { q: "你的骨骼大约多少年完全更新一次？", options: ["10 年", "1 年", "100 年", "永远不变"], answer: 0, fact: "人体有 206 块骨头！骨骼不是死的——它们一直在更新,每 10 年你的骨骼就完全换新一次。骨头比钢铁还结实,但重量只有钢铁的 1/5。", difficulty: "easy", faction: "body", cardId: "sp_bone_titan", type: "memorization", tags: ["ch2","bone","remodeling"] },
+  { q: "骨头为什么比钢铁结实但重量只有 1/5？", options: ["骨头里有特殊的轻质金属元素", "骨头里有空气填充", "骨头是蜂窝状结构，材料强度+轻巧组合", "骨头会自动变轻不增重"], answer: 2, fact: "骨头内部是'蜂窝状'结构——既保证强度又节省材料。这是工程学'结构优化'的范本,人造蜂窝结构(飞机翼)就是模仿骨头。", difficulty: "medium", faction: "body", cardId: "sp_bone_titan", type: "mechanism", principle: "mechanism", tags: ["ch2","structure","biomechanics"] },
+  { q: "为什么宇航员在太空待久了，骨头会变脆？", options: ["太空辐射伤了骨头里的细胞", "太空没钙补充给骨头", "没重力骨头不用承压，慢慢变薄", "太空食物里营养不全"], answer: 2, fact: "骨头是'用进废退'——重力承压让骨头维持密度。失重时骨头'没事做'就被身体回收钙,越来越薄。所以宇航员要每天运动 2 小时维持骨密度。", difficulty: "hard", faction: "body", cardId: "sp_bone_titan", type: "inference", principle: "homeostasis", tags: ["ch2","space","use_it_or_lose_it"] },
+
+  // — 🌱 nature 苔藓 (3) —
+  { q: "苔藓在地球上存在了多久？", options: ["1 千万年", "1 亿年", "10 亿年", "4 亿多年"], answer: 3, fact: "苔藓是最早登上陆地的植物之一,已经存在了 4 亿多年！它们没有根,通过全身吸收水分,是生态系统的拓荒者。", difficulty: "easy", faction: "nature", cardId: "moss_pioneer", type: "memorization", tags: ["ch3","plant","ancient"] },
+  { q: "苔藓没有根，怎么吸收水分和养分？", options: ["靠风把养分吹给它", "全身表面直接吸收空气和雨水", "靠相邻植物分一点给它", "靠地下小虫子帮它运营养"], answer: 1, fact: "苔藓的整个植物体都能直接吸水——这是它原始但有效的生存方式。所以苔藓特别需要潮湿环境,干旱地方就活不了。", difficulty: "medium", faction: "nature", cardId: "moss_pioneer", type: "mechanism", principle: "mechanism", tags: ["ch3","absorption","primitive"] },
+  { q: "为什么苔藓常长在岩石上，而不是肥沃土壤里？", options: ["岩石里有苔藓喜欢的特殊矿物", "肥沃土壤里其他植物挤掉它", "岩石温度刚好适合苔藓", "苔藓喜欢硬的表面"], answer: 1, fact: "苔藓矮小,跟其他植物比抢阳光抢营养就输了。所以它选择'别人不要的'地方:岩石、贫瘠土地、北极。这是'低质环境专家'的生存策略。", difficulty: "hard", faction: "nature", cardId: "moss_pioneer", type: "inference", principle: "tradeoff", tags: ["ch3","niche","competition"] },
+
+  // — 🌱 nature 萤火虫 (3) —
+  { q: "萤火虫发光的效率有多高？", options: ["10% 跟电灯泡一样", "95% 几乎全部能量变光", "30% 左右", "100% 完美能量转化"], answer: 1, fact: "萤火虫的光是'冷光',效率高达 95%——电灯泡只有 10% 的能量变成光！其余 90% 都是热。萤火虫的发光化学反应几乎不产热。", difficulty: "easy", faction: "nature", cardId: "firefly_signal", type: "memorization", tags: ["ch3","cold_light","efficiency"] },
+  { q: "萤火虫为什么发光而不发热？", options: ["它身体里有冷却系统", "化学反应直接产光，不经过热的中间步骤", "它把热都通过腿散掉了", "它发光时间太短来不及生热"], answer: 1, fact: "电灯靠'发热到发光'——大部分能量浪费成热。萤火虫的化学反应(荧光素+酶)直接把化学能变光能——所以是'冷光'。科学家正在研究这种高效转化。", difficulty: "medium", faction: "nature", cardId: "firefly_signal", type: "mechanism", principle: "mechanism", tags: ["ch3","biochemistry","luciferin"] },
+  { q: "为什么城市里的萤火虫越来越少？", options: ["城市的光污染干扰了萤火虫求偶通讯", "城市太干净了萤火虫不喜欢", "城市的房子挡住了萤火虫的路", "城市的声音让萤火虫害怕"], answer: 0, fact: "萤火虫用闪光找伴侣——城市路灯让萤火虫'看不到'对方的光信号,导致繁殖失败。所以萤火虫的减少是光污染的标志,也是生态系统的警钟。", difficulty: "hard", faction: "nature", cardId: "firefly_signal", type: "inference", principle: "tradeoff", tags: ["ch3","light_pollution","environment"] },
+
+  // — 🌱 nature 仙人掌 (3) —
+  { q: "仙人掌的刺其实是什么变来的？", options: ["树皮的边缘", "变形的叶子", "硬化的根系", "压缩的花瓣"], answer: 1, fact: "仙人掌能在沙漠里活几百年！它的茎能储存大量水分,有的大仙人掌里存了上吨的水。它的刺其实是变形的叶子。", difficulty: "easy", faction: "nature", cardId: "cactus_guard", type: "memorization", tags: ["ch3","desert","adaptation"] },
+  { q: "为什么仙人掌的叶子要变成刺，不是普通绿叶？", options: ["减少水分蒸发 + 防御动物啃食", "显得更酷更与众不同", "刺更容易吸收阳光", "为了挡住沙尘暴的沙"], answer: 0, fact: "在沙漠里水太宝贵——普通大叶子会蒸发太多水。变成针状减少表面积 = 省水。光合作用改到肥厚的茎上做。这是一种'极端节水'设计。", difficulty: "medium", faction: "nature", cardId: "cactus_guard", type: "mechanism", principle: "tradeoff", tags: ["ch3","water_conservation"] },
+  { q: "为什么有些仙人掌能在沙漠活几百年，比很多树都长寿？", options: ["储水能力强 + 低代谢慢慢消耗能量", "仙人掌的细胞特别长寿不会老", "仙人掌没有天敌容易长命", "沙漠环境让所有植物都长寿"], answer: 0, fact: "仙人掌的策略:大量储水(撑过几年干旱)+ 慢生长(减少能量消耗)+ 难找天敌(刺保护)。'慢就是长寿'——树木比草长寿,仙人掌比树更长寿。", difficulty: "hard", faction: "nature", cardId: "cactus_guard", type: "inference", principle: "tradeoff", tags: ["ch3","longevity","strategy"] },
+
+  // — 🌱 nature 大花草 (3) —
+  { q: "大花草散发的恶臭主要是为了什么？", options: ["把敌人熏跑保护自己", "让人不敢靠近", "吸引苍蝇来帮它传粉", "提醒下雨要来了"], answer: 2, fact: "大花草是世界上最大的花,直径可达 1 米！它散发腐肉般的恶臭,不是为了驱赶敌人,而是为了吸引苍蝇来帮它传粉——这就是植物跟动物'合作'的方式。", difficulty: "easy", faction: "nature", cardId: "rafflesia_stink", type: "memorization", tags: ["ch3","pollination","mimicry"] },
+  { q: "大花草没有根也没有叶子，靠什么活着？", options: ["靠空气和阳光直接吸收能量", "寄生在其他植物上偷营养", "靠地下其他植物送养分", "靠每天下雨补水维生"], answer: 1, fact: "大花草是寄生植物——它的'根'其实是吸盘,挂在其他藤本植物的根上偷营养和水。完全不用自己光合作用——所以也不需要叶子。", difficulty: "medium", faction: "nature", cardId: "rafflesia_stink", type: "mechanism", principle: "mechanism", tags: ["ch3","parasite","host"] },
+  { q: "如果大花草寄生的那种藤本植物消失了，大花草会怎样？", options: ["大花草也会跟着灭绝", "大花草会立刻找新的植物寄生", "大花草会自己长根独立生活", "大花草会变得更大更强"], answer: 0, fact: "大花草只能寄生在一种藤本(Tetrastigma)上,这种藤生长在东南亚雨林。雨林被砍 = 藤消失 = 大花草也灭绝。这是'依赖性物种'的脆弱性。", difficulty: "hard", faction: "nature", cardId: "rafflesia_stink", type: "inference", principle: "tradeoff", tags: ["ch3","dependency","extinction"] },
+
+  // — 🌱 nature 猫头鹰 (3) —
+  { q: "猫头鹰的两只耳朵有什么特别？", options: ["一高一低排列，能精确定位声音", "一只耳朵能看一只能听", "都是金色的颜色", "可以折叠起来防风"], answer: 0, fact: "猫头鹰的听力超级强——它们的两只耳朵一高一低,能精确定位声音来源。在完全黑暗中也能抓住老鼠！", difficulty: "easy", faction: "nature", cardId: "owl_night_hunter", type: "memorization", tags: ["ch3","hearing","asymmetric"] },
+  { q: "猫头鹰怎么靠声音定位漆黑中的老鼠？", options: ["声音到达两只耳朵有微小时间差", "猫头鹰能看见声波的形状", "声音会自动指向猎物方向", "猫头鹰能听到老鼠的心跳"], answer: 0, fact: "声音到两只耳朵有几十微秒的时间差——大脑用这个差值算出方向。一高一低的耳朵还能算高低方向。这是真正的'立体声定位'。", difficulty: "medium", faction: "nature", cardId: "owl_night_hunter", type: "mechanism", principle: "mechanism", tags: ["ch3","binaural","localization"] },
+  { q: "猫头鹰头能转 270 度，主要是因为什么？", options: ["眼睛在头骨里固定不能动只能转头", "脖子骨头特别多特别灵活", "猫头鹰本身就这么柔软", "头部肌肉特别强壮"], answer: 0, fact: "大多数动物眼睛能转动——猫头鹰眼睛被固定在眼窝里不动,所以只能转头来看不同方向。脖子骨头数量是哺乳类的两倍(14 vs 7),能 270 度旋转。", difficulty: "hard", faction: "nature", cardId: "owl_night_hunter", type: "inference", principle: "tradeoff", tags: ["ch3","anatomy","compensation"] },
+
+  // — 🌱 nature 螳螂虾 (3) —
+  { q: "螳螂虾出拳的速度大约是多少？", options: ["跟拳击手差不多", "时速 5 公里", "时速 80 公里(高速公路速度)", "时速 1000 公里"], answer: 2, fact: "螳螂虾拥有动物界最强的一拳！出拳速度达到 80 公里/小时,产生的冲击波能让水瞬间沸腾。它的眼睛还能看到 16 种颜色(人类只能看 3 种)！", difficulty: "easy", faction: "nature", cardId: "mantis_shrimp_punch", type: "memorization", tags: ["ch3","speed","power"] },
+  { q: "螳螂虾的拳头为什么能让水短暂沸腾？", options: ["高速运动让水形成空泡，破裂产生高温", "螳螂虾的拳头本身温度就极其高", "拳头表面释放出特殊化学发热物质", "螳螂虾体内有自带的加热系统装置"], answer: 0, fact: "高速移动让水形成真空泡(空化效应)——空泡瞬间破裂时温度可达 4000°C(像太阳表面)！短暂沸腾+发光(声致发光)。物理原理产生的'生物激光'。", difficulty: "medium", faction: "nature", cardId: "mantis_shrimp_punch", type: "mechanism", principle: "mechanism", tags: ["ch3","cavitation","sonoluminescence"] },
+  { q: "螳螂虾能看 16 种颜色，人类只 3 种。这说明人类视觉差吗？", options: ["不一定，各物种视觉适合自己的环境", "是，人类应该向螳螂虾学习", "对，人类需要发明色彩眼镜", "螳螂虾的视觉数据没用"], answer: 0, fact: "螳螂虾用 16 种颜色受体识别浅海珊瑚的复杂色彩——但它的颜色分辨力其实比人类粗。'多 ≠ 好'。人类的 3 种受体加上大脑处理,辨别色彩超过螳螂虾。", difficulty: "hard", faction: "nature", cardId: "mantis_shrimp_punch", type: "inference", principle: "tradeoff", tags: ["ch3","perception","tradeoff"] },
+
+  // — 🌱 nature 草履虫 (3) —
+  { q: "草履虫是怎么繁殖的？", options: ["雌雄交配产卵", "出芽长出小草履虫", "直接从中间一分为二", "下蛋孵化"], answer: 2, fact: "草履虫形状像一只小草鞋,是最经典的单细胞生物。它的繁殖方式超简单——直接从中间一分为二,一个变两个！条件好的时候几小时就能翻一倍。", difficulty: "easy", faction: "nature", cardId: "paramecium_swarm", type: "memorization", tags: ["ch3","fission","unicellular"] },
+  { q: "草履虫为什么能繁殖那么快？", options: ["二分裂不需要找伴侣，每个都能繁殖", "它们生活在好水里", "它们身体小所以快", "它们能预测好时机"], answer: 0, fact: "二分裂 = 每个个体自己就能繁殖,不用找伴侣。所以群体数量指数增长。这是单细胞生物'数量取胜'的策略,跟有性繁殖(慢但多样)是两种路线。", difficulty: "medium", faction: "nature", cardId: "paramecium_swarm", type: "mechanism", principle: "tradeoff", tags: ["ch3","asexual","exponential"] },
+  { q: "理想条件下一只草履虫，24 小时后大约能变多少只？", options: ["10 只", "100 只", "几万到几百万只", "几千只"], answer: 2, fact: "草履虫每 3-4 小时分裂一次。24 小时 = 6-8 次分裂 = 2^6 到 2^8 = 64-256 倍。理想条件可以更快,一周内能填满一整池水。", difficulty: "hard", faction: "nature", cardId: "paramecium_swarm", type: "inference", principle: "mechanism", tags: ["ch3","exponential_growth"] },
+
+  // — 🌱 nature 鲸鲨 (3) —
+  { q: "鲸鲨这种巨型鱼主要吃什么？", options: ["其他大型鱼类", "小型海豚", "浮游生物等很小的东西", "海底的水草"], answer: 2, fact: "鲸鲨是世界上最大的鱼,体长可达 12 米！虽然体型巨大,但它们性格温和,只吃浮游生物。每只鲸鲨身上的斑点图案都是独一无二的。", difficulty: "easy", faction: "nature", cardId: "whale_shark_wall", type: "memorization", tags: ["ch3","filter_feeder","largest"] },
+  { q: "鲸鲨这么大为什么吃这么小的东西？", options: ["大鱼可以让小鱼自由生活", "它牙齿太小咬不动大鱼", "它没本事捕大鱼", "滤食效率高，大量小食物比追大食物省力"], answer: 3, fact: "鲸鲨张大嘴一吸,海水里浮游生物自动入口——比追逐大鱼省力得多。蓝鲸也用同样策略。这就是'低投入高回报'的滤食方式。", difficulty: "medium", faction: "nature", cardId: "whale_shark_wall", type: "mechanism", principle: "tradeoff", tags: ["ch3","filter_feeding","energy"] },
+  { q: "为什么每只鲸鲨身上的斑点图案都不一样？", options: ["每只鲸鲨自己设计自己的图案", "环境让每只鲸鲨长出不同斑点", "斑点会随心情变化", "基因决定斑点位置，跟人指纹一样独特"], answer: 3, fact: "鲸鲨斑点的发育受多基因控制——就像人的指纹,基因+发育微小差异让每只独一无二。科学家用图像识别来追踪个体鲸鲨的迁徙。", difficulty: "hard", faction: "nature", cardId: "whale_shark_wall", type: "inference", principle: "mechanism", tags: ["ch3","unique","identification"] },
+
+  // — 🌱 nature SP 世界树 (3) —
+  { q: "现实中地球上最大的树是哪一棵？", options: ["北欧的尤克特拉希尔", "中国的建木", "日本的神木", "加州的谢尔曼将军巨杉"], answer: 3, fact: "世界各地的神话中都有世界树的传说——但现实中地球上最大的树是加州的巨杉'谢尔曼将军',高 84 米,周长 31 米,活了 2200 年。", difficulty: "easy", faction: "nature", cardId: "sp_world_tree", type: "memorization", tags: ["ch3","largest","sequoia"] },
+  { q: "大树怎么把水从根部送到几十米高的叶子？", options: ["靠根部水泵主动推水上去", "靠叶子蒸腾产生'吸力'+毛细管", "靠风吹的力量帮助", "靠雨水从顶上自然流下"], answer: 1, fact: "叶子蒸腾水分形成负压,加上水分子互相'拉住'+ 毛细管力——把水柱拉上几十米。这是物理学奇迹,树没有'心脏',全靠物理。", difficulty: "medium", faction: "nature", cardId: "sp_world_tree", type: "mechanism", principle: "mechanism", tags: ["ch3","transpiration","capillary"] },
+  { q: "为什么森林里有时大树倒下反而让森林更繁茂？", options: ["大树倒下让阳光照到地面，小树苗能长出来", "大树倒下变成肥料让其他树长得更快", "大树倒下吓走了害虫", "大树倒下让森林空气变好"], answer: 0, fact: "原始森林上层被大树挡住阳光,地面苗木长不大。大树倒下形成'林窗' = 阳光进入 = 小苗爆发生长。这是森林演替的关键机制。", difficulty: "hard", faction: "nature", cardId: "sp_world_tree", type: "inference", principle: "mechanism", tags: ["ch3","gap_dynamics","succession"] },
+
+  // — 🌱 nature SP 远古世界树 (3) —
+  { q: "谢尔曼将军巨杉的高度大约是多少？", options: ["20 米", "50 米", "84 米", "200 米"], answer: 2, fact: "谢尔曼将军巨杉高 84 米,树干周长 31 米,已经活了 2200 年！它是地球上'体积最大的单体生物'之一。", difficulty: "easy", faction: "nature", cardId: "sp_world_tree_ancient", type: "memorization", tags: ["ch3","sequoia","measurement"] },
+  { q: "一棵大树每年大约能吸收多少公斤的二氧化碳？", options: ["1 公斤", "10 公斤", "100 公斤", "22 公斤"], answer: 3, fact: "一棵大树每年能吸收 22 公斤的二氧化碳。一辆汽车一年排放约 4 吨 CO2——需要 180 棵大树才能抵消。这就是为什么森林是地球的'碳汇'。", difficulty: "medium", faction: "nature", cardId: "sp_world_tree_ancient", type: "mechanism", principle: "mechanism", tags: ["ch3","carbon_sink"] },
+  { q: "为什么砍掉一片森林对全球气候影响巨大？", options: ["失去碳汇 + 释放储存的碳，双重打击气候", "森林会自己长回来，没什么影响", "森林只对当地气候有影响", "树木被砍后变成更好的产品"], answer: 0, fact: "森林既是'碳储存'(树体含碳)又是'碳吸收'(光合)。砍伐 = 释放储存碳 + 失去吸收能力 = 双重温室效应。这就是为什么保护森林比减排同等重要。", difficulty: "hard", faction: "nature", cardId: "sp_world_tree_ancient", type: "inference", principle: "tradeoff", tags: ["ch3","deforestation","climate"] },
+
+  // — 🌱 nature SP 大王乌贼 (3) —
+  { q: "大王乌贼总共有几条触手？", options: ["8 条", "9 条", "12 条", "10 条"], answer: 3, fact: "大王乌贼是地球上最大的无脊椎动物,10 条触手中有 2 条特别长的'攻击触手'专门用来捕猎。它的眼睛直径达 27 厘米——比篮球还大！", difficulty: "easy", faction: "nature", cardId: "sp_kraken", type: "memorization", tags: ["ch3","tentacles","invertebrate"] },
+  { q: "大王乌贼的眼睛为什么这么大(直径 27 厘米)？", options: ["显得帅气吓退敌人", "深海几乎全黑，大眼能捕捉微弱光线", "用来储存深海的水", "大眼睛能让它游得更快"], answer: 1, fact: "深海 1000 米以下几乎全黑——只有微弱的发光生物光。眼睛越大瞳孔越大,能接收更多光子。所以深海动物普遍'大眼'。", difficulty: "medium", faction: "nature", cardId: "sp_kraken", type: "mechanism", principle: "mechanism", tags: ["ch3","deep_sea","vision"] },
+  { q: "为什么人类直到 2004 年才第一次拍到活的大王乌贼？", options: ["它们藏在 1000 米深海，人类难探索", "它们故意躲着人不让拍", "之前没有发明合适的相机", "它们以前数量太少"], answer: 0, fact: "大王乌贼生活在 600-1000 米深海——压力极高、光线极弱,潜艇都难下去。直到 2004 年日本科学家用诱饵+长时间相机才首次拍到活体。深海是地球最不了解的边疆。", difficulty: "hard", faction: "nature", cardId: "sp_kraken", type: "inference", principle: "tradeoff", tags: ["ch3","exploration","deep_ocean"] },
+
+  // — 🦠 pathogen 蛔虫 (3) —
+  { q: "蛔虫成虫一般有多长？", options: ["几毫米", "1-2 厘米", "1 米以上", "15-35 厘米"], answer: 3, fact: "蛔虫是最常见的肠道寄生虫,全球有 10 亿人感染！成虫有 15-35 厘米长,住在小肠里偷吃你的食物。一只母蛔虫每天能产 20 万颗卵。", difficulty: "easy", faction: "pathogen", cardId: "roundworm_thief", type: "memorization", tags: ["ch2","parasite","size"] },
+  { q: "为什么蛔虫一只母虫一天能产 20 万颗卵？", options: ["卵在外环境多数死掉，得用数量取胜", "蛔虫繁殖能力强", "蛔虫想称霸世界", "卵是蛔虫的'存款'"], answer: 0, fact: "蛔虫卵随粪便排出 → 在土里发育 → 被人误食 → 在肠道生长。每一步都有大量死亡——所以用'海量产卵'抵消死亡率。这是 r 策略繁殖。", difficulty: "medium", faction: "pathogen", cardId: "roundworm_thief", type: "mechanism", principle: "tradeoff", tags: ["ch2","r_strategy"] },
+  { q: "为什么发展中国家蛔虫感染率比发达国家高很多？", options: ["发展中国家温度更高", "发展中国家治疗药物不够", "卫生条件差 + 饮水污染让卵进入食物链", "发展中国家的人没有免疫力"], answer: 2, fact: "蛔虫卵通过粪便污染水源/土壤 → 蔬菜表面 → 人吃下去。所以厕所设施 + 自来水普及让发达国家蛔虫接近消失,发展中国家仍然普遍。", difficulty: "hard", faction: "pathogen", cardId: "roundworm_thief", type: "inference", principle: "tradeoff", tags: ["ch2","sanitation","hygiene"] },
+
+  // — 🦠 pathogen 冬虫夏草(僵尸真菌) (3) —
+  { q: "冬虫夏草这种'僵尸真菌'主要寄生什么动物？", options: ["蜜蜂", "蚂蚁", "蜘蛛", "蚯蚓"], answer: 1, fact: "冬虫夏草是一种'僵尸真菌'！它感染蚂蚁后能控制蚂蚁的大脑,命令蚂蚁爬到树叶高处,然后从蚂蚁头部长出来释放孢子。《最后生还者》游戏的灵感就来自它！", difficulty: "easy", faction: "pathogen", cardId: "cordyceps_zombie", type: "memorization", tags: ["ch3","fungus","host"] },
+  { q: "僵尸真菌怎么'控制'蚂蚁的大脑？", options: ["分泌化学物质改变蚂蚁神经", "真菌长进蚂蚁脑里直接控制", "通过电信号干扰蚂蚁", "蚂蚁被吓得听话"], answer: 0, fact: "真菌分泌特殊化学物质,改变蚂蚁神经系统——让蚂蚁本能行为被'劫持',爬到树叶高处死去(便于真菌孢子扩散)。这是寄生物操控宿主的极致。", difficulty: "medium", faction: "pathogen", cardId: "cordyceps_zombie", type: "mechanism", principle: "mechanism", tags: ["ch3","behavioral_manipulation"] },
+  { q: "为什么僵尸真菌不能在人身上做同样的事？", options: ["化学物质对蚂蚁神经特定，对人类无效", "真菌没机会接触人类", "人类大脑太聪明会抵抗", "人类皮肤太厚真菌进不去"], answer: 0, fact: "真菌的'操控分子'是针对蚂蚁神经系统特化的——人类神经系统结构不同,这些分子无效。所以游戏里的'真菌僵尸'是虚构的。物种间生化差异保护了我们。", difficulty: "hard", faction: "pathogen", cardId: "cordyceps_zombie", type: "inference", principle: "mechanism", tags: ["ch3","species_specificity"] },
+
+  // — 🦠 pathogen 朊病毒 (3) —
+  { q: "朊病毒到底是什么？", options: ["一种很小的病毒", "一种特殊细菌", "一种新型寄生虫", "一种折叠错误的蛋白质"], answer: 3, fact: "朊病毒不是真正的病毒——它是一种折叠错误的蛋白质！它能像'坏老师'一样让周围正常的蛋白质也跟着折叠错误。疯牛病就是朊病毒引起的。", difficulty: "easy", faction: "pathogen", cardId: "prion_folder", type: "memorization", tags: ["ch2","prion","protein"] },
+  { q: "朊病毒怎么'传染'？没有 DNA 怎么复制？", options: ["它能让正常蛋白质跟着折叠错误", "它能突变出新形态", "它能让细菌帮它复制", "它能从食物里复制出来"], answer: 0, fact: "朊病毒不需要 DNA——它本身就是错折叠的蛋白质,接触正常蛋白质后让对方也折错。像'多米诺骨牌',一个错引发链式反应。这是医学最神秘的传染机制。", difficulty: "medium", faction: "pathogen", cardId: "prion_folder", type: "mechanism", principle: "mechanism", tags: ["ch2","template","domino"] },
+  { q: "为什么至今没有任何药能治朊病毒病？", options: ["科学家觉得这种病太罕见不重视", "朊病毒病人数量少不值得开发药物", "它既不是细菌也不是病毒，传统药无效", "朊病毒被特殊蛋白层包裹药物穿不透"], answer: 2, fact: "传统药针对细菌(抗生素)或病毒(抗病毒)——朊病毒既不是,普通策略都失效。要找'阻止蛋白错折叠'的全新机制,极难。所以疯牛病/克雅氏病几乎都致命。", difficulty: "hard", faction: "pathogen", cardId: "prion_folder", type: "inference", principle: "tradeoff", tags: ["ch2","incurable","novel_mechanism"] },
+
+  // — 🦠 pathogen 埃博拉 (3) —
+  { q: "埃博拉病毒的死亡率最高大概是多少？", options: ["10%", "30%", "90%", "60%"], answer: 2, fact: "埃博拉是最致命的病毒之一,死亡率可达 90%！但它传播效率不高(需要直接接触体液),所以不会像流感那样大规模爆发。2014 年西非爆发是最严重的一次。", difficulty: "easy", faction: "pathogen", cardId: "ebola_terror", type: "memorization", tags: ["ch4","ebola","mortality"] },
+  { q: "埃博拉为什么传播不远，只在西非小范围爆发？", options: ["病毒只在西非有", "需要直接接触体液，不能空气传播", "埃博拉病毒怕海洋空气", "西非人有特殊保护"], answer: 1, fact: "埃博拉通过血液/呕吐物/汗液传播——不像流感能从空气传几十米。所以接触感染者+尸体的护士/家属最危险。隔离+防护服能阻断传播。", difficulty: "medium", faction: "pathogen", cardId: "ebola_terror", type: "mechanism", principle: "mechanism", tags: ["ch4","contact_transmission"] },
+  { q: "致死率 90% 这么可怕，为什么埃博拉没像新冠那样大流行？", options: ["致死率太高加上症状太重，宿主很快死无法到处传", "埃博拉病毒在自然界的数量很少所以传不广", "埃博拉病毒怕飞机的密封空气环境不能传播", "埃博拉病毒只在白天活跃晚上停止活动失效"], answer: 0, fact: "进化角度看,'太致命'反而不利传播——宿主很快死亡或太重无法到处走。新冠致死率低但传播力强,反而扩散。这是'毒力 vs 传播力' tradeoff。", difficulty: "hard", faction: "pathogen", cardId: "ebola_terror", type: "inference", principle: "tradeoff", tags: ["ch4","virulence_tradeoff"] },
+
+  // — 🦠 pathogen 弓形虫 (3) —
+  { q: "弓形虫感染老鼠后，老鼠会发生什么变化？", options: ["不再怕猫，反而被猫的气味吸引", "跑得更快更敏捷", "变得对所有动物友善", "突然记忆力大涨"], answer: 0, fact: "弓形虫是最聪明的寄生虫！它感染老鼠后,会改变老鼠大脑里的化学物质,让老鼠不再怕猫——反而被猫的气味吸引。这样猫就容易抓住老鼠,弓形虫也完成了传播。", difficulty: "easy", faction: "pathogen", cardId: "toxoplasma_controller", type: "memorization", tags: ["ch3","behavior","manipulation"] },
+  { q: "弓形虫怎么改变老鼠的'怕猫'本能？", options: ["改变老鼠大脑里的多巴胺等化学物质", "让老鼠看不清猫", "让老鼠失去逃跑能力", "让老鼠喜欢上猫的形状"], answer: 0, fact: "弓形虫在老鼠大脑形成囊肿,释放化学物质改变多巴胺水平——'怕猫尿味'的本能被'喜欢'反转。被猫吃掉 = 弓形虫到达终宿主(猫)完成生命周期。", difficulty: "medium", faction: "pathogen", cardId: "toxoplasma_controller", type: "mechanism", principle: "mechanism", tags: ["ch3","dopamine","behavioral"] },
+  { q: "为什么医生告诉孕妇'怀孕期间不要接触猫粪'？", options: ["猫粪太脏让孕妇恶心", "孕妇免疫力下降怕过敏", "弓形虫可能导致胎儿畸形", "猫会跳到孕妇肚子上"], answer: 2, fact: "弓形虫感染孕妇可能传给胎儿,导致流产/畸形/智力问题。猫粪是主要传染源——孕妇不要清理猫砂(让家人代劳)+ 蔬菜彻底洗干净。", difficulty: "hard", faction: "pathogen", cardId: "toxoplasma_controller", type: "inference", principle: "tradeoff", tags: ["ch3","pregnancy","prevention"] },
+
+  // — 🦠 pathogen 大流行病毒(X疾病) (3) —
+  { q: "WHO 担心的'X 疾病'是指什么？", options: ["一种已知的最强病毒", "古代灭绝的瘟疫", "尚未出现的、可能爆发的终极大流行病原", "外星人带来的病毒"], answer: 2, fact: "科学家最担心的'X 疾病'——一种尚未出现的、结合了高传播力和高致死率的终极大流行病原体。这就是为什么全球疾病监测网络如此重要！", difficulty: "easy", faction: "pathogen", cardId: "pandemic_ultimate", type: "memorization", tags: ["ch4","unknown","monitoring"] },
+  { q: "WHO 为什么要专门关注'还没出现的病'？", options: ["提前准备能减少新病爆发时的损失", "WHO 喜欢吓唬人", "需要给科学家发工资", "为了向政府要钱"], answer: 0, fact: "新冠让全球意识到:疫情爆发后才反应来不及。提前部署监测网+疫苗平台+应急计划——下次有病出现能在几周内响应,而不是几个月。", difficulty: "medium", faction: "pathogen", cardId: "pandemic_ultimate", type: "mechanism", principle: "tradeoff", tags: ["ch4","preparedness"] },
+  { q: "为什么人类越来越担心新发传染病？", options: ["科学家比以前变得更敏感更容易紧张", "媒体喜欢炒作疫情让大家恐慌", "城市密集+全球化+破坏野生栖息地", "现代的病毒比以前的病毒更强大"], answer: 2, fact: "70% 新发传染病来自野生动物。森林被砍 → 人接触野生动物 → 病毒'跨物种跳跃' → 全球航班几小时传播。这是'生态健康'(One Health)的核心警告。", difficulty: "hard", faction: "pathogen", cardId: "pandemic_ultimate", type: "inference", principle: "tradeoff", tags: ["ch4","zoonotic","onehealth"] },
+
+  // — 🦠 pathogen SP 远古病毒 (3) —
+  { q: "2014 年科学家从哪里复活了 3 万年前的病毒？", options: ["西伯利亚永久冻土", "南极冰川深处", "马里亚纳海沟底", "撒哈拉沙漠地下"], answer: 0, fact: "2014 年科学家从西伯利亚 3 万年前的永久冻土中复活了一种巨型病毒(Pithovirus)。随着全球变暖加速冻土融化,被冰封了数万年的远古病毒可能重见天日。", difficulty: "easy", faction: "pathogen", cardId: "sp_ancient_virus", type: "memorization", tags: ["ch4","permafrost","ancient"] },
+  { q: "病毒为什么能在冻土里冰封 3 万年还能复活？", options: ["病毒有特殊保护壳", "冻土里有特殊营养", "病毒会冬眠技能", "蛋白质结构在低温下极稳定，不需要代谢"], answer: 3, fact: "病毒不需要细胞活动——只是个蛋白质壳包 DNA/RNA。低温让分子降解极慢,几万年也能保持完整。一遇到细胞就立刻'复活'感染。这是真正的'生死之间'。", difficulty: "medium", faction: "pathogen", cardId: "sp_ancient_virus", type: "mechanism", principle: "mechanism", tags: ["ch4","preservation","dormancy"] },
+  { q: "为什么全球变暖让远古病毒'重见天日'是公共卫生大问题？", options: ["远古病毒会很臭", "现代人类对这些病毒没有任何免疫力", "远古病毒会让其他病毒变强", "病毒会让冰川融化更快"], answer: 1, fact: "现代人从未接触过远古病毒——免疫系统毫无准备。冻土融化释放的病毒可能引发未知疾病。这就是为什么科学家用最高生物安全级实验远古样本。", difficulty: "hard", faction: "pathogen", cardId: "sp_ancient_virus", type: "inference", principle: "tradeoff", tags: ["ch4","climate","novel_disease"] },
+
+  // — 🦠 pathogen SP 僵尸瘟疫 (3) —
+  { q: "WHO 关注新发病原的特别清单叫什么？", options: ["危险病毒大全", "全球禁忌名单", "需要关注的病原体清单", "末日病毒图鉴"], answer: 2, fact: "科学家最担心的'X 疾病'——是一种还没出现的超级病原体。世卫组织专门列了一个'需要关注的病原体清单',提前部署研究和防御资源。", difficulty: "easy", faction: "pathogen", cardId: "sp_zombie_plague", type: "memorization", tags: ["ch4","WHO","priority"] },
+  { q: "为什么我们要预防'还没出现的病'？", options: ["科学家爱担心", "想吓唬人让大家戴口罩", "需要消耗预算让医院发展", "新病出现后准备时间不够，必须提前"], answer: 3, fact: "新病出现到全球扩散通常只有几周——疫苗研发要几个月。提前研究类似病原+建立平台技术,新病出现时能立刻调用。", difficulty: "medium", faction: "pathogen", cardId: "sp_zombie_plague", type: "mechanism", principle: "tradeoff", tags: ["ch4","preparedness","platform"] },
+  { q: "如果一种全新病原突然出现在偏远地区，WHO 怎么能知道？", options: ["靠当地医院上报加上全球监测网发现异常", "靠卫星从太空拍照看到病人在哪里", "靠当地新闻媒体的报道传到 WHO 总部", "靠 AI 自动检测全球数据找出异常情况"], answer: 0, fact: "全球流感监测网(GISN)+ 各国疾控中心 + 当地医院异常病例上报。WHO 能在几天内识别新病并通知全球。这是 SARS 后建立的早期预警体系。", difficulty: "hard", faction: "pathogen", cardId: "sp_zombie_plague", type: "inference", principle: "mechanism", tags: ["ch4","surveillance","reporting"] },
+
+  // — 🦠 pathogen SP 生物膜 (3) —
+  { q: "细菌形成的'生物膜'能让抗生素效果降低多少倍？", options: ["10 倍", "100 倍", "1000 倍", "10000 倍"], answer: 2, fact: "细菌不只是单打独斗！它们会聚在一起形成'生物膜'——一层黏糊糊的保护膜,让抗生素的效果降低 1000 倍！你牙齿上的牙菌斑就是生物膜。", difficulty: "easy", faction: "pathogen", cardId: "sp_biofilm_fortress", type: "memorization", tags: ["ch2","biofilm","resistance"] },
+  { q: "生物膜为什么能让细菌'刀枪不入'？", options: ["膜里的细菌会魔法", "细菌在膜里学会了抗药", "细菌联合起来更强大", "黏液层阻挡药物渗透 + 内层细菌休眠"], answer: 3, fact: "生物膜 = 多糖+蛋白质组成的黏液 + 细菌聚集。药物渗透慢,深层细菌还会进入'休眠'状态(不分裂的细菌不怕大多数抗生素)。多重防御。", difficulty: "medium", faction: "pathogen", cardId: "sp_biofilm_fortress", type: "mechanism", principle: "mechanism", tags: ["ch2","matrix","dormancy"] },
+  { q: "为什么牙菌斑要定期清除(刷牙+洗牙)？", options: ["让牙齿看起来更白", "牙菌斑里的细菌会跑全身", "牙菌斑会让人口臭", "牙菌斑就是生物膜，长期会变成结石+蛀牙"], answer: 3, fact: "牙菌斑 = 口腔细菌生物膜。不清除 → 钙化变牙结石 → 牙龈发炎 → 蛀牙+牙周病。所以早晚刷牙+定期洗牙是'物理摧毁生物膜'。", difficulty: "hard", faction: "pathogen", cardId: "sp_biofilm_fortress", type: "inference", principle: "tradeoff", tags: ["ch2","dental","hygiene"] },
+
+  // — ⚗️ tech 实验观察 (3) —
+  { q: "下面这些科学家，谁观察发霉的培养皿发现了青霉素？", options: ["伽利略", "列文虎克", "爱因斯坦", "弗莱明"], answer: 3, fact: "科学实验的第一步永远是仔细观察和记录。伽利略观察木星发现了四颗卫星,列文虎克观察水滴发现了微生物,弗莱明观察发霉的培养皿发现了青霉素。", difficulty: "easy", faction: "tech", cardId: "event_lab_observation", type: "memorization", tags: ["ch4","fleming","penicillin"] },
+  { q: "为什么科学家强调'仔细观察'是科学的第一步？", options: ["不观察就没有问题可以研究", "观察是科学的礼仪", "观察让科学家显得更专业", "观察能让大脑更聪明"], answer: 0, fact: "所有重要发现都从观察异常开始——'咦?这跟我想的不一样'。没有观察 = 没有问题 = 没有科学。观察是好奇心的起点。", difficulty: "medium", faction: "tech", cardId: "event_lab_observation", type: "mechanism", principle: "mechanism", tags: ["ch4","scientific_method"] },
+  { q: "为什么很多伟大科学发现都来自'意外'？", options: ["科学家比较运气好", "意外让科学家被动思考", "好的科学家能在意外中看到模式，不忽视它", "意外比刻意实验更有效"], answer: 2, fact: "弗莱明看到霉污染的培养皿 → 注意到周围没细菌 → 发现青霉素。普通人会丢掉污染的实验,他停下来观察。这是'有准备的头脑遇到机遇'。", difficulty: "hard", faction: "tech", cardId: "event_lab_observation", type: "inference", principle: "mechanism", tags: ["ch4","serendipity"] },
+
+  // — ⚗️ tech 临床试验 (3) —
+  { q: "新药从实验室到药房，平均要花多少时间？", options: ["1-2 年", "3-5 年", "12 年", "30 年"], answer: 2, fact: "每种新药在上市前都必须经过严格的临床试验。从实验室到药房平均需要 12 年和数十亿元的投入！临床试验分三期。", difficulty: "easy", faction: "tech", cardId: "event_clinical_trial", type: "memorization", tags: ["ch4","drug_development","timeline"] },
+  { q: "临床试验为什么要分 I、II、III 三期？", options: ["分三期让药公司可以提高最终售价", "分成三期是法律规定不允许跳过", "分三期能让最终上市药品价格更便宜", "I 测安全 II 测效果 III 测大规模可靠"], answer: 3, fact: "I 期(几十人测安全),II 期(几百人测效果),III 期(几千几万人测大规模可靠性)。每一期淘汰失败的药——保护患者+确保药真的有用。", difficulty: "medium", faction: "tech", cardId: "event_clinical_trial", type: "mechanism", principle: "mechanism", tags: ["ch4","phases","safety"] },
+  { q: "新冠疫情中为什么疫苗能'紧急批准'但不是跳过试验？", options: ["疫情特殊跳过了所有规则", "WHO 强迫各国跳过", "疫苗厂家偷工减料省时间", "三期试验同时进行 + 提前生产，但试验照做"], answer: 3, fact: "传统疫苗:I→II→III 期顺序做,每期等结果再启动下期。新冠疫苗:同时进行,提前生产(失败就丢)+ 提前审批准备。安全测试一样做了,只是流程压缩。", difficulty: "hard", faction: "tech", cardId: "event_clinical_trial", type: "inference", principle: "mechanism", tags: ["ch4","emergency_use","covid"] },
+
+  // — ⚗️ tech 紧急手术 (3) —
+  { q: "现代手术'无菌技术'是 19 世纪由谁开创的？", options: ["李斯特", "弗莱明", "巴斯德", "诺贝尔"], answer: 0, fact: "现代外科手术能精准切除病变组织而几乎不伤及周围健康组织。从 19 世纪李斯特的无菌手术,到今天的达芬奇机器人手术系统,手术越来越精确、创伤越来越小。", difficulty: "easy", faction: "tech", cardId: "event_emergency_surgery", type: "memorization", tags: ["ch4","lister","aseptic"] },
+  { q: "无菌技术为什么让手术死亡率大大下降？", options: ["手术变得快很多", "医生更专心了", "防止术后细菌感染，保住活下来的伤口", "病人不会乱动了"], answer: 2, fact: "19 世纪前的手术,术后感染死亡率高达 50%——细菌污染了伤口。李斯特用石炭酸消毒+无菌器械,死亡率降到 15%。这是医学史最大革命之一。", difficulty: "medium", faction: "tech", cardId: "event_emergency_surgery", type: "mechanism", principle: "mechanism", tags: ["ch4","infection","mortality"] },
+  { q: "为什么现代腹腔镜手术的切口能小到只有几毫米？", options: ["手术工具变成了细长的", "病人皮肤变得更柔软", "细长工具+摄像头通过小孔进入体内", "医生的手越来越灵巧"], answer: 2, fact: "腹腔镜 = 几个 5-10mm 小孔,插入摄像头+细长手术工具——医生看屏幕操作。比传统'大切口'伤口小+恢复快+感染风险低。这是手术工具+成像技术的结合。", difficulty: "hard", faction: "tech", cardId: "event_emergency_surgery", type: "inference", principle: "mechanism", tags: ["ch4","minimally_invasive"] },
+
+  // — ⚗️ tech 科技革命 (3) —
+  { q: "从下面哪一项不是医学史上的科技革命？", options: ["18 世纪发明疫苗", "21 世纪的星际穿越", "19 世纪无菌手术", "20 世纪发现抗生素"], answer: 1, fact: "从显微镜到 X 光,从青霉素到基因编辑,每次科技革命都彻底改变了人类对抗疾病的方式。18 世纪的疫苗、19 世纪的无菌手术、20 世纪的抗生素、21 世纪的基因疗法——下一个革命会是什么？", difficulty: "easy", faction: "tech", cardId: "event_tech_revolution", type: "memorization", tags: ["ch4","milestones"] },
+  { q: "为什么 20 世纪医学进步比之前几千年加起来还快？", options: ["20 世纪的科学家更聪明", "知识累积+工具协同+大量投入产生指数加速", "20 世纪有更多病可以研究", "20 世纪的人寿命特别长"], answer: 1, fact: "前一代发现 → 工具+知识传给下一代 → 站在巨人肩膀上 → 进步加速。加上 20 世纪大学+投资+全球协作,医学的'复利效应'爆发。", difficulty: "medium", faction: "tech", cardId: "event_tech_revolution", type: "mechanism", principle: "mechanism", tags: ["ch4","cumulative","acceleration"] },
+  { q: "你猜下一次医学革命最可能是什么？", options: ["回到用古代草药当主流治疗手段", "完全靠每天冥想让身体自愈疾病", "AI + 基因编辑 + 精准医学的结合", "全球人都不用再看医生不会生病"], answer: 2, fact: "21 世纪医学方向:AI 看影像/分析数据 + CRISPR 改基因 + 'precision medicine'(根据个人 DNA 定制治疗)。这三个齿轮合在一起可能是下一次革命。", difficulty: "hard", faction: "tech", cardId: "event_tech_revolution", type: "inference", principle: "mechanism", tags: ["ch4","ai","crispr","precision"] },
+
+  // — ⚗️ tech SP 纳米机器人 (3) —
+  { q: "未来医用纳米机器人理论上多小？", options: ["比心脏小", "比手指甲小", "比血细胞还小", "跟人体大小相同"], answer: 2, fact: "纳米机器人是科学家梦想中的微型医生——比血细胞还小的机器人在你的血管里巡逻,发现病变就立刻修复。虽然真正的医用纳米机器人还在研发中,但已经有纳米药物载体能把药物精准送到病变部位。", difficulty: "easy", faction: "tech", cardId: "sp_nanobot", type: "memorization", tags: ["ch4","nanobot","size"] },
+  { q: "纳米机器人怎么在血液里'找到'病变部位？", options: ["表面装有识别病变分子的'抓手'", "用 GPS 信号导航", "听血液里的声音判断", "靠运气随便找"], answer: 0, fact: "纳米机器人表面装上抗体或特定分子——只有遇到病变细胞表面的对应分子才会粘住。这是化学锁钥识别,精准但没意识。", difficulty: "medium", faction: "tech", cardId: "sp_nanobot", type: "mechanism", principle: "mechanism", tags: ["ch4","molecular_recognition"] },
+  { q: "为什么真正的医用纳米机器人现在还没普及？", options: ["造价太昂贵普通医院根本造不起", "制造很难+安全没验证+量产挑战", "大部分病人都不愿意尝试新技术", "科学家不会编程控制纳米机器人"], answer: 1, fact: "纳米尺度制造极难,加上要确保不引发免疫反应,长期安全性需要 10-20 年验证。临床应用还在试验阶段——是'未来技术'到'人人能用'的漫长路。", difficulty: "hard", faction: "tech", cardId: "sp_nanobot", type: "inference", principle: "tradeoff", tags: ["ch4","scaling","safety"] },
+
+  // — ⚗️ tech SP CRISPR (3) —
+  { q: "CRISPR 技术哪一年获得了诺贝尔化学奖？", options: ["2010 年", "2015 年", "2023 年", "2020 年"], answer: 3, fact: "CRISPR-Cas9 是 2020 年诺贝尔化学奖的获奖技术！它就像一把分子剪刀,能在 DNA 的精确位置剪一刀,然后插入、删除或替换基因。发明者詹妮弗·杜德纳和埃马纽埃尔·夏彭蒂耶。", difficulty: "easy", faction: "tech", cardId: "sp_crispr", type: "memorization", tags: ["ch4","nobel","crispr"] },
+  { q: "CRISPR 怎么实现'精确'剪 DNA？", options: ["靠 Cas9 蛋白自己感知位置判断剪哪里", "Cas9 在 DNA 上随机剪然后找对的位置", "靠 Cas9 看 DNA 不同序列的颜色来判断", "引导 RNA 当地图，匹配后才让 Cas9 剪"], answer: 3, fact: "引导 RNA 序列决定剪哪里——RNA 跟目标 DNA 配对后,Cas9 蛋白才剪。换 RNA 序列就能剪任何位置。这是'软件定义硬件'的生物版本。", difficulty: "medium", faction: "tech", cardId: "sp_crispr", type: "mechanism", principle: "mechanism", tags: ["ch4","guide_rna","cas9"] },
+  { q: "为什么 CRISPR 改胚胎基因会引起严重伦理担忧？", options: ["改变会传给后代，影响人类基因池", "改了基因很贵", "改胚胎让医生害怕", "改基因会让人长得很丑"], answer: 0, fact: "改胚胎 = 改的基因会遗传给后代 → 整个家族甚至人类基因池。2018 年贺建奎改胚胎基因引发全球谴责。涉及'不可逆改变人类'伦理底线。", difficulty: "hard", faction: "tech", cardId: "sp_crispr", type: "inference", principle: "tradeoff", tags: ["ch4","ethics","germline"] },
+
+  // — ⚗️ tech SP 量子治疗 (3) —
+  { q: "量子计算机做一些计算，比普通电脑快多少？", options: ["10 倍", "100 倍", "1 秒抵普通电脑 1 万年", "差不多"], answer: 2, fact: "量子计算机能在 1 秒内完成普通电脑 1 万年才能完成的计算！科学家正在研究用量子计算来设计新药、模拟分子。", difficulty: "easy", faction: "tech", cardId: "sp_quantum_healer", type: "memorization", tags: ["ch4","quantum","speed"] },
+  { q: "量子计算机为什么这么快？", options: ["把很多很多台普通电脑联网在一起", "量子比特能同时是 0 和 1 并行算", "电流在量子线路里跑得比普通电路快", "用了超低温的特殊冷却技术加速"], answer: 1, fact: "量子比特能'叠加态'同时是 0 和 1——并行尝试所有计算路径。N 个量子比特能同时算 2^N 种可能。这是量子力学带给计算的根本优势。", difficulty: "medium", faction: "tech", cardId: "sp_quantum_healer", type: "mechanism", principle: "mechanism", tags: ["ch4","superposition","qubit"] },
+  { q: "为什么量子计算可能彻底改变新药研发？", options: ["能让药变成量子状态", "能让药变得更便宜", "能让药店开门时间更长", "能精确模拟分子结构和反应，省去试错时间"], answer: 3, fact: "传统药研发要做无数实验找出合适分子结构。量子计算机直接模拟分子层面反应——从'试错'变'计算预测'。理论上几天就能筛选出几年的实验工作。", difficulty: "hard", faction: "tech", cardId: "sp_quantum_healer", type: "inference", principle: "mechanism", tags: ["ch4","drug_design","simulation"] },
+
+  // — ⚗️ tech SP 群体免疫(疫苗护盾) (3) —
+  { q: "麻疹的群体免疫接种率大约需要达到多少？", options: ["50%", "95%", "70%", "100%"], answer: 1, fact: "群体免疫是疫苗最伟大的成就！当 95% 以上的人接种了麻疹疫苗,剩下 5% 没接种的人也不会感染。这就是'保护弱者的科学'。", difficulty: "easy", faction: "tech", cardId: "sp_vaccine_shield", type: "memorization", tags: ["ch4","herd_immunity","measles"] },
+  { q: "为什么 95% 的人接种就能保护没接种的 5%？", options: ["病毒找不到足够多易感染的人传播下去", "疫苗的化学物质漂到没接种的人那里", "没接种的人自动免疫了", "95% 是法律规定"], answer: 0, fact: "病毒传播需要'链条':一个人传两个+。如果 95% 人有抗体,病毒每次接触都失败 → 传不出去就死掉。剩下的 5%(婴儿/免疫低下)被'链条断裂'保护。", difficulty: "medium", faction: "tech", cardId: "sp_vaccine_shield", type: "mechanism", principle: "mechanism", tags: ["ch4","chain_breaking"] },
+  { q: "为什么疫苗接种率下降会让消失的疾病'回归'？", options: ["群体免疫崩溃后病毒能在人群中传播", "病毒会因为没人打疫苗而进化", "疫苗厂家停产了药", "没接种的人会主动找病毒"], answer: 0, fact: "近年欧美麻疹回归——因为反疫苗运动让接种率降到 90% 以下。一旦低于 95% 阈值,病毒能找到足够易感人群传播,曾经消失的病死灰复燃。", difficulty: "hard", faction: "tech", cardId: "sp_vaccine_shield", type: "inference", principle: "tradeoff", tags: ["ch4","antivax","resurgence"] },
 ]
 
 // 已出过的题目索引（避免重复）
