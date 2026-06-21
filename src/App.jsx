@@ -13,12 +13,17 @@ import eventCards from './data/eventCards'
 import spCards from './data/spCards'
 import IntroModal from './components/IntroModal'
 import SpUnlockModal from './components/SpUnlockModal'
+import AchievementModal from './components/AchievementModal'
+import { detectNewlyUnlockedFrom, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS } from './data/achievements'
 
 // Boss 关 ID → 通关解锁的 SP 卡 ID（关卡 ID 统一为 stage_X_Y 后，Boss 为各章末关）
 const SP_UNLOCK_MAP = {
   'stage_2_8': 'sp_vaccine_shield',   // ch2 Boss (新冠) → 疫苗之盾
   'stage_4_8': 'sp_quantum_healer',   // ch4 Boss (超级细菌) → 量子医疗
 }
+
+// 战斗 + 答题成就池（在战斗结算点检测）
+const BATTLE_QUIZ_POOL = [...BATTLE_ACHIEVEMENTS, ...QUIZ_ACHIEVEMENTS]
 
 // 懒加载重型组件 — 代码分割
 const BattleScreen = lazy(() => import('./components/BattleScreen'))
@@ -70,6 +75,7 @@ export default function App() {
   const [highlightCardIds, setHighlightCardIds] = useState([])
   const [tutorialStartLevel, setTutorialStartLevel] = useState(null) // 从闯关跳转时指定教学关卡
   const [pendingSpUnlock, setPendingSpUnlock] = useState(null) // Boss 通关后弹解锁庆祝
+  const [pendingAchievements, setPendingAchievements] = useState([]) // 战斗/答题成就弹窗 FIFO 队列
   const economy = useEconomy()
 
   // === 闯关战役状态 ===
@@ -114,6 +120,31 @@ export default function App() {
   }, [])
 
   const handleExitBattle = useCallback((battleResult) => {
+    // —— 共享：累计战斗/答题统计 + 检测战斗/答题成就（campaign 分支会提前 return，故必须前置）——
+    if (battleResult) {
+      const stats = economy.recordBattleResult(battleResult) // stateRef 同步新快照
+      const stageStars = { ...(loadCampaignProgress().stageStars || {}) }
+      // 把本场刚得的星 merge 进本地副本，让"击败全部 Boss"/"累计星"当场解锁（不写盘，campaign 分支才持久化）
+      if (campaignStageRef.current && battleResult.won) {
+        const sid = campaignStageRef.current.stageId
+        const earned = calculateStars({
+          won: true,
+          leaderHPPercent: battleResult.leaderHPPercent || 0,
+          turnCount: battleResult.turnsPlayed || 99,
+        })
+        stageStars[sid] = Math.max(stageStars[sid] || 0, earned)
+      }
+      const newly = detectNewlyUnlockedFrom(
+        BATTLE_QUIZ_POOL,
+        { stats, stageStars, battleResult },
+        economy.unlockedAchievements || []
+      )
+      if (newly.length > 0) {
+        economy.markAchievementsUnlocked(newly.map(a => a.id))
+        setPendingAchievements(q => [...q, ...newly])
+      }
+    }
+
     // 检查是否是闯关战斗
     const stageConfig = campaignStageRef.current
     if (stageConfig && battleResult) {
@@ -343,6 +374,17 @@ export default function App() {
           <SpUnlockModal
             spId={pendingSpUnlock}
             onClose={() => setPendingSpUnlock(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* 战斗/答题成就弹窗：SP 解锁弹窗消失后再逐个弹，避免两个全屏弹窗叠加 */}
+      <AnimatePresence>
+        {!pendingSpUnlock && pendingAchievements.length > 0 && (
+          <AchievementModal
+            key={pendingAchievements[0].id}
+            achievement={pendingAchievements[0]}
+            onClose={() => setPendingAchievements(q => q.slice(1))}
           />
         )}
       </AnimatePresence>

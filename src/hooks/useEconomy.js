@@ -47,6 +47,10 @@ const DEFAULT_STATE = {
   totalPulls: 0,
   unlockedSPs: [],          // 已通关解锁的 campaign_only SP 卡 ID 列表
   unlockedAchievements: [], // 已解锁的主题成就 ID 列表（向后兼容：老存档默认空数组）
+  battlesWon: 0,            // 累计胜场（战斗成就用，向后兼容默认 0）
+  battlesTotal: 0,          // 累计场次
+  quizCorrectTotal: 0,      // 累计答对题数（战斗内，答题成就用）
+  quizTotalAnswered: 0,     // 累计答题数（战斗内）
 }
 
 function arrayToCollectionMap(ids) {
@@ -318,6 +322,27 @@ export function useEconomy() {
     })
   }, [])
 
+  // 累计战斗/答题统计（成就用）— stateRef 模式（同 pullCards）同步累加并返回新快照，
+  // 供成就检测立即读取，避免 setState 异步导致读到旧值
+  const recordBattleResult = useCallback((battleResult) => {
+    const prev = stateRef.current
+    const next = {
+      ...prev,
+      battlesWon: (prev.battlesWon || 0) + (battleResult.won ? 1 : 0),
+      battlesTotal: (prev.battlesTotal || 0) + 1,
+      quizCorrectTotal: (prev.quizCorrectTotal || 0) + (battleResult.quizCorrect || 0),
+      quizTotalAnswered: (prev.quizTotalAnswered || 0) + (battleResult.quizTotal || 0),
+    }
+    stateRef.current = next
+    setState(next)
+    return {
+      battlesWon: next.battlesWon,
+      battlesTotal: next.battlesTotal,
+      quizCorrectTotal: next.quizCorrectTotal,
+      quizTotalAnswered: next.quizTotalAnswered,
+    }
+  }, [])
+
   return {
     coins: state.coins,
     diamonds: state.diamonds,
@@ -328,6 +353,10 @@ export function useEconomy() {
     isNewPlayer: !!state.isNewPlayer,
     unlockedSPs: state.unlockedSPs || [],
     unlockedAchievements: state.unlockedAchievements || [],
+    battlesWon: state.battlesWon ?? 0,
+    battlesTotal: state.battlesTotal ?? 0,
+    quizCorrectTotal: state.quizCorrectTotal ?? 0,
+    quizTotalAnswered: state.quizTotalAnswered ?? 0,
 
     addCoins,
     spendCoins,
@@ -343,6 +372,7 @@ export function useEconomy() {
     sellAllUnusedFragments,
     unlockCampaignSP,
     markAchievementsUnlocked,
+    recordBattleResult,
 
     SINGLE_COST,
     MULTI_COST,

@@ -6,7 +6,8 @@ import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES } from '../data/deckRules'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
-import { COLLECTION_ACHIEVEMENTS } from '../data/achievements'
+import { COLLECTION_ACHIEVEMENTS, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS } from '../data/achievements'
+import { loadCampaignProgress } from '../data/campaignData'
 import AchievementModal from './AchievementModal'
 import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -32,6 +33,20 @@ export default function Collection({ onBack, economy }) {
   const isOwn = (id) => !!owned[id]
   const ownedCount = Object.keys(owned).length
   const progress = Math.round((ownedCount / TOTAL_CARDS) * 100)
+
+  // 成就展示用 ctx（战役进度只读一次；战斗/答题成就靠 economy 累计计数器算进度）
+  const stageStars = useMemo(() => loadCampaignProgress().stageStars || {}, [])
+  const achCtx = useMemo(() => ({
+    collection: owned,
+    stageStars,
+    stats: {
+      battlesWon: economy.battlesWon ?? 0,
+      battlesTotal: economy.battlesTotal ?? 0,
+      quizCorrectTotal: economy.quizCorrectTotal ?? 0,
+      quizTotalAnswered: economy.quizTotalAnswered ?? 0,
+    },
+    battleResult: { won: false, leaderHPPercent: 0, quizCorrect: 0, quizTotal: 0 }, // 展示用惰性占位
+  }), [owned, stageStars, economy.battlesWon, economy.battlesTotal, economy.quizCorrectTotal, economy.quizTotalAnswered])
 
   const filtered = useMemo(() => {
     let pool = allCards
@@ -134,35 +149,50 @@ export default function Collection({ onBack, economy }) {
         </div>
       </div>
 
-      {/* 成就进度栏 */}
-      <div className="bg-gray-800/40 rounded-xl p-3 mb-4">
-        <div className="text-xs text-gray-300 mb-2">{t('collection.achievements')}</div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-          {COLLECTION_ACHIEVEMENTS.map(ach => {
-            const unlockedList = economy.unlockedAchievements || []
-            const unlocked = unlockedList.includes(ach.id)
-            const have = ach.requiredCards.filter(id => owned[id] > 0).length
-            const total = ach.requiredCards.length
-            return (
-              <button
-                key={ach.id}
-                onClick={() => unlocked && setAchievementDetail(ach)}
-                disabled={!unlocked}
-                className={`rounded-lg p-2 text-center transition ${
-                  unlocked
-                    ? 'bg-yellow-600/30 border border-yellow-500/60 hover:bg-yellow-600/50 cursor-pointer'
-                    : 'bg-gray-700/40 border border-gray-700 cursor-default'
-                }`}
-                title={unlocked ? t('collection.achUnlockedTip') : t('collection.achLockedTip', { n: total - have })}
-              >
-                <div className={`text-2xl ${unlocked ? '' : 'grayscale opacity-40'}`}>{ach.icon}</div>
-                <div className={`text-[10px] truncate ${unlocked ? 'text-yellow-100' : 'text-gray-400'}`}>{ach.name}</div>
-                <div className="text-[10px] text-gray-400">{have}/{total}</div>
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      {/* 成就进度栏 — 三类：收集 / 战斗 / 答题 */}
+      {(() => {
+        const unlockedList = economy.unlockedAchievements || []
+        const badge = (ach) => {
+          const unlocked = unlockedList.includes(ach.id)
+          const p = ach.progress ? ach.progress(achCtx) : null
+          const countLabel = p ? `${p.have}/${p.total}` : (unlocked ? '✓' : '🔒')
+          const lockTip = (ach.category === 'collection' && p)
+            ? t('collection.achLockedTip', { n: Math.max(p.total - p.have, 0) })
+            : t('collection.achLockedGeneric')
+          return (
+            <button
+              key={ach.id}
+              onClick={() => unlocked && setAchievementDetail(ach)}
+              disabled={!unlocked}
+              className={`rounded-lg p-2 text-center transition ${
+                unlocked
+                  ? 'bg-yellow-600/30 border border-yellow-500/60 hover:bg-yellow-600/50 cursor-pointer'
+                  : 'bg-gray-700/40 border border-gray-700 cursor-default'
+              }`}
+              title={unlocked ? t('collection.achUnlockedTip') : lockTip}
+            >
+              <div className={`text-2xl ${unlocked ? '' : 'grayscale opacity-40'}`}>{ach.icon}</div>
+              <div className={`text-[10px] truncate ${unlocked ? 'text-yellow-100' : 'text-gray-400'}`}>{ach.name}</div>
+              <div className="text-[10px] text-gray-400">{countLabel}</div>
+            </button>
+          )
+        }
+        const section = (labelKey, list) => (
+          <div className="bg-gray-800/40 rounded-xl p-3 mb-4">
+            <div className="text-xs text-gray-300 mb-2">{t(labelKey)}</div>
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+              {list.map(badge)}
+            </div>
+          </div>
+        )
+        return (
+          <>
+            {section('collection.achievements', COLLECTION_ACHIEVEMENTS)}
+            {section('collection.battleAchievements', BATTLE_ACHIEVEMENTS)}
+            {section('collection.quizAchievements', QUIZ_ACHIEVEMENTS)}
+          </>
+        )
+      })()}
 
       {/* Faction distribution */}
       <div className="flex gap-2 mb-4">

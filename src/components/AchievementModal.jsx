@@ -13,6 +13,7 @@ export default function AchievementModal({ achievement, onClose }) {
       style={{ background: 'rgba(0,0,0,0.9)' }}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <motion.div
@@ -32,9 +33,11 @@ export default function AchievementModal({ achievement, onClose }) {
 
         <div className="text-xs text-yellow-200 mb-1">{t('achievement.unlocked')}</div>
         <div className="text-2xl font-black text-white mb-2 drop-shadow">{achievement.name}</div>
-        <div className="text-yellow-100 text-sm mb-4">
-          {t('achievement.collectedCards', { n: achievement.requiredCards.length })}
-        </div>
+        {achievement.requiredCards && (
+          <div className="text-yellow-100 text-sm mb-4">
+            {t('achievement.collectedCards', { n: achievement.requiredCards.length })}
+          </div>
+        )}
 
         {reward.type === 'science_pack' && (
           <div className="bg-black/35 rounded-xl p-4 mb-4 text-left">

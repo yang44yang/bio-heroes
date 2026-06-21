@@ -1739,6 +1739,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                   onClick={() => onExit({
                     won,
                     quizCorrect: stats.quizCorrect,
+                    quizTotal: stats.quizTotal,
                     turnsPlayed: battle.turn,
                     leaderHPPercent: Math.round((battle.playerLeaderHp / LEADER_HP) * 100),
                   })}
@@ -1804,6 +1805,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
                 onClick={() => onExit({
                   won: false,
                   quizCorrect: 0,
+                  quizTotal: 0,
                   turnsPlayed: battle.turn,
                   leaderHPPercent: Math.round((battle.playerLeaderHp / LEADER_HP) * 100),
                 })}
