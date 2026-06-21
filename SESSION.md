@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21（Sprint 32 题库扩充 8 step 全部完成：111 道新题、三层齐全 67 张卡、validate-quizzes 校验脚本 + 全量报告，0 错误 0 警告）
+> 更新时间: 2026-06-21 续（ch3/ch4 题库扩充 3 批全部完成：+189 道新题、卡覆盖 100% (136/136)、最终题库 480 道、0 错误 0 警告）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,29 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 续 ch3/ch4 题库扩充 ✅（3 批全部完成，达成 100% 卡覆盖）
+延续 Sprint 32 的三层框架（memo/mech/infer），扩展到 Sprint 32 没覆盖的
+63 张完全无题卡。题库 291 → 480 题（+189 道新题），卡覆盖 73 → 136 (100%)。
+
+- **Step 1 审计**: `scripts/audit-ch34-cards.mjs` + `outputs/ch34_audit.md` —
+  63 张完全无题卡按章节+阵营分 9 组（ch3 nature 13 / 跨章节 pathogen 14 /
+  gacha-only 未参战 36 张）
+- **批次 A (39 道)**: ch3 nature 13 张 × 3 层 — 海洋/陆地/微生物 + 4 事件 + sp_trex
+- **批次 B (42 道)**: pathogen 14 张 × 3 层 — 病毒/细菌/真菌/寄生虫 + 4 事件 + 1 SP
+- **批次 A+B Review**: 修 5 道 gap >= 10 长度问题 + shark "暴风雨天活跃"
+  这个争议性事实换成"金属首饰下海"科学定论版本
+- **批次 C (108 道)**: gacha-only 未参战 36 张 × 3 层 — body 8 + nature 11 +
+  pathogen 9 + tech 8（覆盖最复杂主题：CAR-T/CRISPR/纳米机器人/量子治疗/
+  群体免疫等前沿医学）
+- **批次 C 后处理**: 修 12 道 gap >= 12 + 写 node 脚本批量重排 answer 位置
+  消除 meta bias（最终 batch C: 34/24/27/23，整体 A+B+C 300 道: 80/100/68/52）
+
+**最终质量指标**：
+- 总题 480 / 新题 300 / 老题 180
+- 卡覆盖 **136/136 = 100%**（含 character / event / sp 全部卡牌类型）
+- 0 错误 / 0 警告 / 选项长度差 ≥ 12 字: 0 道
+- 教育闭环完整：Phase C 小测验任何卡都能匹配到三层题
 
 ### 2026-06-21 Sprint 32 ch2 题库扩充 ✅（8 step 全部完成）
 把题库从"知识点收集"升级为"原理理解"，180 → 291 题（+111 道新题）。
@@ -289,7 +312,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 ---
 
 ## 进行中
-（无 — Sprint 32 ch2 题库扩充 8 step 全部完成，等齐齐 iPad 实测反馈或下一个方向）
+（无 — Sprint 32 + ch3/ch4 题库扩充全部完成，136/136 卡 100% 覆盖。等齐齐 iPad 实测反馈或下一个方向）
 
 ---
 
@@ -337,13 +360,18 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 - Sprint 32 8 step 全部完成（详见上文 2026-06-21 段）
 - 老 180 题 type 是近似映射（'legacy' tag），未来可以按真实题型逐道 review
 
-### 推荐方向 A+++：ch3/ch4 题库扩充（Sprint 32 续）
-当前 63 张卡完全无题，基本是 ch3 生态危机 + ch4 终极挑战的卡：
-- ch3 卡：海洋生物、生态系统、食物链相关
-- ch4 卡：现代医学、AI、基因编辑、抗药菌等
-- 沿用 Sprint 32 的三层结构（memo/mech/infer）+ 校验脚本
-- 估计 ~150-200 道，预估 4-6h，需 Yang spot check 配合
-- 教育覆盖完整化的最后一步
+### ~~推荐方向 A+++：ch3/ch4 题库扩充~~ ✅ 已完成（2026-06-21 续）
+- 3 批 +189 道新题，卡覆盖 100% (136/136)
+- 详见上文 2026-06-21 续段
+
+### 推荐方向 A++++：老 180 题 'legacy' tag review
+Sprint 32 Step 7 给老题用 difficulty→type 近似映射，标了 legacy tag。
+真实分类需要逐道审：
+- 哪些 medium 是真"机制题"vs 只是"冷门事实趣事题"？
+- 哪些 hard 是真"推理题"vs 只是"知识深度题"？
+- 估计 180 道审 + 重新标 type/principle/tags 字段，预估 6-8h，
+  Yang 协作（需逐道决定）
+- 完成后整个题库（480 道）都是经过精分类的
 
 ### 推荐方向 A+：抽卡 Phase D / E（实测反馈良好后）
 spec 已为后续预留：
@@ -388,6 +416,13 @@ spec 已为后续预留：
 - `scripts/validate-quizzes.mjs` — 题库校验脚本（字段完整性 / cardId 存在性 / faction 一致性 / 选项长度 gap / 答案位置分布）
 - `outputs/ch2_quiz_audit.md` — Step 1 审计报告
 - `outputs/ch2_quiz_validation.md` — Step 8 最终质量报告（0 错误 0 警告 / 73 张卡覆盖）
+
+### ch3/ch4 题库扩充（3 批全完成 2026-06-21 续）
+- `src/data/quizzes.js` — 291 → 480 题（+189 道新题，覆盖剩余 63 张卡，达成 136/136 = 100% 覆盖）
+- `scripts/audit-ch34-cards.mjs` — ch3/ch4 审计脚本（同 Sprint 32 框架）
+- `outputs/ch34_audit.md` — 完全无题卡按章节+阵营分组报告
+- `outputs/ch2_quiz_validation.md` — 已扩充涵盖全部 480 题（脚本名仍叫 ch2 但实际是全量）
+- 包含批次 C 后处理 node 脚本：批量重排 answer 位置消除 meta bias（inline 在 bash 命令中执行）
 
 ### 平衡修复
 - `src/data/campaignData.js` — 蓝鲸 boss 关：去 sp_trex / 去 bossPreplaced / 清空 spDeck
