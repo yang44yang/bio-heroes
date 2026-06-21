@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-10（Conundrum 扩展：ch3/ch4 各 +2 两难关、boss 后移 _8、存档迁移版本化 v0→v1→v2。同日早些：i18n 大扫除 + AI医生迅击 + 关卡 ID 统一。Sprint 32 题库扩充仍剩 Step 2-8）
+> 更新时间: 2026-06-21（Sprint 32 题库扩充 8 step 全部完成：111 道新题、三层齐全 67 张卡、validate-quizzes 校验脚本 + 全量报告，0 错误 0 警告）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,32 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 Sprint 32 ch2 题库扩充 ✅（8 step 全部完成）
+把题库从"知识点收集"升级为"原理理解"，180 → 291 题（+111 道新题）。
+
+- **Step 1**: ch2 题库审计报告（outputs/ch2_quiz_audit.md）
+- **Step 2**: 35 道基础题 (memorization, easy) — 覆盖 33 张完全无题 + 2 缺基础
+- **Step 3**: Yang spot check 10 道（通过）
+- **Step 4**: 36 道机制题 (mechanism, medium) + refine 消除"长度+位置 meta 模式"
+  - Yang 发现正确答案明显比错误选项长 3-5 倍，answer 几乎都在 B 位置
+  - 全 36 道重写：选项长度齐平 + 错误改为常见误解 + answer 打散
+- **Step 5**: Yang spot check 10 道（通过）
+- **Step 6**: 40 道推理题 (inference, hard) + refine 重写 9 道"伪推理"
+  - 自审发现 9 道质量问题（纯记忆/纯常识装成推理 / 概念太抽象 7 岁难懂）
+  - 重写后真应用原理判断：天花根除/感冒每年得多次/医院多种消毒等场景
+- **Step 7**: 给老 180 题批量补 type+tags 字段
+  - type 从 difficulty 近似映射，tags 用 'legacy' 标记便于将来 review
+- **Step 8**: scripts/validate-quizzes.mjs 校验脚本 + outputs/ch2_quiz_validation.md 全量报告
+  - 0 错误 0 警告 / 73 张卡覆盖 / 选项长度差 ≥ 12 字: 0 道
+
+**最终质量指标**：
+- 题型: memorization 104 / mechanism 98 / inference 89
+- 新题答案位置分布: 19/52/23/17（无明显 meta tell）
+- 新题 principle 标签: tradeoff 25 / mechanism 41 / homeostasis 7 / coevolution 3
+
+**遗留**: 63 张完全无题的卡（基本是 ch3/ch4 范围）等下个 Sprint。
+老 180 题的 type 是近似映射，'legacy' tag 是未来 review 入口。
 
 ### 2026-06-10（续）Conundrum 两难关扩展 ✅（245c4a4）
 ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 前插 2 关，
@@ -103,9 +129,9 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 3. **蓝鲸关 sp_world_tree**：spCost 4 给 15000 HP+守护+全队回 3000+自愈 1500+修 PB，普遍 OP（独立卡牌平衡问题）。boss 关 spDeck 清空（f5eb20b）
 4. **ATK buff 永久叠加** ⭐核心 bug：齐齐"世界之树站场上时不停加攻击力"。根因 [useBattle.js:783](src/hooks/useBattle.js#L783) 直接 `c.atk + effectValue` 永久修改 base ATK，但描述写"持续 N 回合"。`processEndOfTurnEffects` 无回退逻辑。修法：`statusEffects.js` 加 `atk_boost` case，buff 时同时加 status + bump atk，回合结束 tick 到期回退。eventCards.js 3 张 buff 卡加 `effectTurns` 字段。影响范围：所有自然系/人体系/全队 buff 卡（食物链爆发/免疫应答/科技革命）都有同样 bug，全部修复（eb66251）
 
-### 2026-05-03 Sprint 32 Step 1: ch2 题库审计 ⏳（1/8 step，剩 7 step）
-- Step 1: `outputs/ch2_quiz_audit.md` 审计报告 — 当前 180 题 / 40/120 卡覆盖（33%）/ easy 38% med 34% hard 27%，目标 ~330 题 / ch2 全覆盖 51/51 / 加 mechanism+inference 题型
-- Step 2-8 待做：批量生成基础题 / 机制题 / 推理题 / 加 type/principle/tags 字段 / 校验脚本。预估 4-6h，需 Yang spot check 配合
+### 2026-05-03 Sprint 32 Step 1: ch2 题库审计 ✅
+- Step 1: `outputs/ch2_quiz_audit.md` 审计报告 — 当时 180 题 / 40/120 卡覆盖（33%）
+- Step 2-8 在 2026-06-21 全部完成（见上文）
 
 ### 2026-05-03 Sprint 31c: 抽卡爽感升级 Phase B + C ✅（10 step）
 把抽卡升级为完整的"期待→事件→学习→联动→成就"闭环。
@@ -263,7 +289,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 ---
 
 ## 进行中
-- **Sprint 32 题库扩充** — Step 1（审计）已完成，Step 2-8 待做（批量生成 ~150 道新题 + 三层分级 + 校验脚本）。预估 4-6h，需 Yang spot check 配合
+（无 — Sprint 32 ch2 题库扩充 8 step 全部完成，等齐齐 iPad 实测反馈或下一个方向）
 
 ---
 
@@ -307,11 +333,17 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
   - **AI医生·智慧诊疗 迅击**（2026-06-10 修）：打出 AI 医生 + 场上有本回合刚出的高 ATK 友方 → 那张友方本回合能立即攻击？战斗日志「🤖 AI 诊断：XXX 获得迅击！」出现？
   - **英文模式一致性**（2026-06-10）：🌐 切英文后 进化链卡名/阵营/子类型/环境事件名 都是英文（不再露中文）？战斗浮字「Super! +20%」/抽卡概率公示/成就栏 等英文正常？
 
-### 推荐方向 A++：推进 Sprint 32 题库扩充
-- Step 1 审计已完成（`outputs/ch2_quiz_audit.md`）
-- 还剩 Step 2-8：批量生成 ~150 道新题（基础题/机制题/推理题三层）+ 加 type/principle/tags 字段 + 校验脚本
-- 预估 4-6h，跨多个 session，需 Yang spot check 几轮
-- 教育价值最高 — Phase C 小测验现在用旧 180 题，质量参差不齐
+### ~~推荐方向 A++：推进 Sprint 32 题库扩充~~ ✅ 已完成（2026-06-21）
+- Sprint 32 8 step 全部完成（详见上文 2026-06-21 段）
+- 老 180 题 type 是近似映射（'legacy' tag），未来可以按真实题型逐道 review
+
+### 推荐方向 A+++：ch3/ch4 题库扩充（Sprint 32 续）
+当前 63 张卡完全无题，基本是 ch3 生态危机 + ch4 终极挑战的卡：
+- ch3 卡：海洋生物、生态系统、食物链相关
+- ch4 卡：现代医学、AI、基因编辑、抗药菌等
+- 沿用 Sprint 32 的三层结构（memo/mech/infer）+ 校验脚本
+- 估计 ~150-200 道，预估 4-6h，需 Yang spot check 配合
+- 教育覆盖完整化的最后一步
 
 ### 推荐方向 A+：抽卡 Phase D / E（实测反馈良好后）
 spec 已为后续预留：
@@ -351,8 +383,11 @@ spec 已为后续预留：
 - `src/components/DeckBuilder.jsx` — 删本地 CardDetailModal 函数（146 行），改用通用件 + actions slot
 - `src/components/Collection.jsx` — 删本地 inline modal（278 行），children 注入进化链/碎片商店/进化按钮，overlay+cardAnimate 注入进化动画
 
-### Sprint 32 题库审计（Step 1 only）
-- `outputs/ch2_quiz_audit.md` — 审计报告（180 题 / 40 卡覆盖 / 题型分布统计）
+### Sprint 32 ch2 题库扩充（8 step 全完成 2026-06-21）
+- `src/data/quizzes.js` — 180 → 291 题（+111 道新题，按 ch2 51 张卡分三层：memo/mech/infer）；老 180 题批量补 type+'legacy' tag
+- `scripts/validate-quizzes.mjs` — 题库校验脚本（字段完整性 / cardId 存在性 / faction 一致性 / 选项长度 gap / 答案位置分布）
+- `outputs/ch2_quiz_audit.md` — Step 1 审计报告
+- `outputs/ch2_quiz_validation.md` — Step 8 最终质量报告（0 错误 0 警告 / 73 张卡覆盖）
 
 ### 平衡修复
 - `src/data/campaignData.js` — 蓝鲸 boss 关：去 sp_trex / 去 bossPreplaced / 清空 spDeck
