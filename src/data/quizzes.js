@@ -248,6 +248,52 @@ export const quizzes = [
   { q: "创可贴是哪一年发明的？", options: ["1820年", "1920年", "1970年", "2000年"], answer: 1, fact: "创可贴是1920年发明的，至今已有100多年历史！是家庭急救箱里最基本的用品。", difficulty: "medium", faction: "tech", cardId: "bandaid_helper" },
   { q: "疫苗打到身体哪里？", options: ["胃里", "肌肉或皮下", "直接进血管", "涂在皮肤上"], answer: 1, fact: "大部分疫苗是注射到肌肉或皮下！这样免疫细胞能更好地接触到疫苗中的抗原并产生免疫反应。", difficulty: "easy", faction: "tech", cardId: "vaccine_trainer" },
   { q: "为什么有些抗生素要\"吃完整个疗程\"？", options: ["多吃更健康", "不吃完细菌杀不干净会反弹", "医生多赚钱", "药物会过期"], answer: 1, fact: "如果抗生素没吃完就停药，残留的细菌可能是最强壮的那些——它们会繁殖出更耐药的后代！", difficulty: "medium", faction: "tech", cardId: "antibiotic_ultimate" },
+
+  // ============================================================
+  // Sprint 32 Step 2 — 基础题 (memorization, easy) 35 题
+  // 覆盖 33 张完全无题的卡 + 2 张缺基础题的卡 (antibody_missile / microscope_eye)
+  // ============================================================
+
+  // — 🦠 病原系 (1 题) —
+  { q: "天花是怎么被人类彻底消灭的？", options: ["靠抗生素", "靠疫苗接种", "靠隔离病人", "病毒自己消失了"], answer: 1, fact: "天花是人类唯一完全消灭的传染病——靠的就是疫苗！1980 年世界卫生组织宣布天花被根除。", difficulty: "easy", faction: "pathogen", cardId: "smallpox_ghost", type: "memorization", tags: ["ch2","vaccine"] },
+
+  // — 🧬 人体系 (18 题) —
+  { q: "眼泪里有什么神奇的物质能保护眼睛？", options: ["糖水", "溶菌酶", "盐水", "维生素"], answer: 1, fact: "眼泪里含有溶菌酶，能杀死细菌保护眼睛——这就是为什么眼睛暴露在空气中却很少感染！", difficulty: "easy", faction: "body", cardId: "tear_drop_lysozyme", type: "memorization", tags: ["ch2","immune"] },
+  { q: "睫毛除了好看还有什么作用？", options: ["保暖", "挡住灰尘保护眼睛", "调节视力", "只是装饰"], answer: 1, fact: "睫毛像小刷子一样挡住灰尘和小颗粒，是眼睛的第一道防线！", difficulty: "easy", faction: "body", cardId: "eyelash_interceptor", type: "memorization", tags: ["ch2","barrier"] },
+  { q: "为什么天热的时候人会出汗？", options: ["排出毒素", "给身体降温", "补充水分", "消耗能量"], answer: 1, fact: "汗水蒸发时会带走身体的热量，就像给身体装了空调——这是人体最重要的降温方式！", difficulty: "easy", faction: "body", cardId: "sweat_gland_cooler", type: "memorization", tags: ["ch2","homeostasis"] },
+  { q: "把小肠内壁的所有绒毛展开铺平，面积有多大？", options: ["像一张桌子", "像一个房间", "像一个网球场", "像一个游泳池"], answer: 2, fact: "小肠内壁有数百万个微小的绒毛，全部展开铺平的面积相当于一个网球场——专门用来吸收营养！", difficulty: "easy", faction: "body", cardId: "small_intestine_absorber", type: "memorization", tags: ["ch2","digestive"] },
+  { q: "生病时脖子上摸到肿起来的小疙瘩是什么？", options: ["肌肉打结了", "淋巴结在战斗", "皮肤过敏", "上火"], answer: 1, fact: "脖子上肿起来的小疙瘩是淋巴结！它是免疫系统的'过滤器'和'军事基地'，正在帮你打败细菌。", difficulty: "easy", faction: "body", cardId: "lymph_node_filter", type: "memorization", tags: ["ch2","immune"] },
+  { q: "肾脏主要做什么工作？", options: ["消化食物", "过滤血液中的废物", "造血", "储存能量"], answer: 1, fact: "两个肾脏每天要过滤 180 升血液——相当于把全身的血过滤 40 遍！它是身体的'净化工厂'。", difficulty: "easy", faction: "body", cardId: "kidney_filter", type: "memorization", tags: ["ch2","filtration"] },
+  { q: "你身体里的血细胞是哪里制造的？", options: ["心脏", "肝脏", "骨髓", "肺"], answer: 2, fact: "骨头里面不是空的！骨髓每秒钟能制造几百万个新的血细胞，是身体的'造血工厂'。", difficulty: "easy", faction: "body", cardId: "bone_marrow_forge", type: "memorization", tags: ["ch2","hematopoiesis"] },
+  { q: "干细胞为什么被叫做'万能细胞'？", options: ["数量最多", "能变成各种不同的细胞", "活得最久", "最大"], answer: 1, fact: "干细胞还没有决定要变成什么，可以变成心脏细胞、神经细胞、血细胞……所以被叫做'万能细胞'！", difficulty: "easy", faction: "body", cardId: "stem_cell_morph", type: "memorization", tags: ["ch2","stem_cell"] },
+  { q: "肝脏有一个其他器官都没有的神奇能力，是什么？", options: ["能跳动", "能再生(切掉一半能长回来)", "能发热", "能呼吸"], answer: 1, fact: "肝脏切掉一半后，几个月就能长回来！这是人体器官里独一无二的再生能力。", difficulty: "easy", faction: "body", cardId: "liver_detox", type: "memorization", tags: ["ch2","regeneration"] },
+  { q: "树突细胞在免疫系统里扮演什么角色？", options: ["主力战士", "侦察兵和情报员", "医生", "搬运工"], answer: 1, fact: "树突细胞是免疫系统的'侦察兵'！它们在全身巡逻，发现入侵者后把敌人的'身份证'展示给 T 细胞。", difficulty: "easy", faction: "body", cardId: "dendrite_scout", type: "memorization", tags: ["ch2","immune"] },
+  { q: "脾脏的主要工作是什么？", options: ["造新血", "回收老化的红血球", "消化食物", "调节体温"], answer: 1, fact: "脾脏负责'回收'老化的红血球——把里面的铁取出来送回骨髓，循环利用！", difficulty: "easy", faction: "body", cardId: "spleen_recycler", type: "memorization", tags: ["ch2","recycle"] },
+  { q: "巨噬细胞是怎么对付入侵的细菌的？", options: ["分泌毒素", "整个吞进去消化掉", "用刺扎死", "围住饿死"], answer: 1, fact: "巨噬细胞像身体里的'吃豆人'——它们把细菌整个吞进去消化掉！一个巨噬细胞能吞掉上百个细菌。", difficulty: "easy", faction: "body", cardId: "macrophage_tank", type: "memorization", tags: ["ch2","immune","phagocytosis"] },
+  { q: "如果细胞的 DNA 损伤修不好，会发生什么？", options: ["细胞继续活着", "细胞'自杀'保护身体", "细胞变得更大", "细胞分裂得更快"], answer: 1, fact: "如果 DNA 损伤修不好，细胞就会'自杀'（细胞凋亡）来保护身体——避免变成癌细胞。", difficulty: "easy", faction: "body", cardId: "dna_repair_crew", type: "memorization", tags: ["ch2","apoptosis"] },
+  { q: "抗体是什么形状的？", options: ["圆形", "Y 形", "棒状", "螺旋形"], answer: 1, fact: "抗体是 Y 形的蛋白质，每种抗体只能识别一种特定的病原——人体能产生超过 10 亿种不同的抗体！", difficulty: "easy", faction: "body", cardId: "antibody_precision_ssr", type: "memorization", tags: ["ch2","immune","antibody"] },
+  { q: "胸腺在免疫系统里像什么？", options: ["医院", "T 细胞的学校", "战场", "仓库"], answer: 1, fact: "胸腺是 T 细胞的'学校'！未成熟的 T 细胞在这里学习如何区分自己人和入侵者，淘汰率高达 95%！", difficulty: "easy", faction: "body", cardId: "thymus_academy", type: "memorization", tags: ["ch2","immune","training"] },
+  { q: "线粒体在细胞里被称为什么？", options: ["细胞的发电站", "细胞的大脑", "细胞的胃", "细胞的家"], answer: 0, fact: "线粒体被称为'细胞的发电站'！它们把食物中的能量转化为 ATP，是细胞的'电池'。", difficulty: "easy", faction: "body", cardId: "mitochondria_powerhouse", type: "memorization", tags: ["ch2","energy"] },
+  { q: "抗体最厉害的本领是什么？", options: ["跑得快", "能精确识别特定的病原体", "数量最多", "最大"], answer: 1, fact: "抗体是 Y 形蛋白质，每种抗体只能识别一种特定的病原体——非常精确，就像精确制导导弹！", difficulty: "easy", faction: "body", cardId: "antibody_missile", type: "memorization", tags: ["ch2","immune","antibody"] },
+
+  // — ⚗️ 科技系 (16 题) —
+  { q: "用肥皂洗手多少秒能去除 99% 的细菌？", options: ["5 秒", "20 秒", "60 秒", "5 分钟"], answer: 1, fact: "用肥皂洗手 20 秒能去除 99% 的细菌！洗手是预防传染病最简单有效的方法。", difficulty: "easy", faction: "tech", cardId: "hand_sanitizer", type: "memorization", tags: ["ch2","hygiene"] },
+  { q: "N95 口罩能过滤掉多少比例的小颗粒？", options: ["50%", "70%", "95%", "100%"], answer: 2, fact: "N95 口罩能过滤 95% 的微小颗粒！戴口罩最大的作用是阻止你把病毒传给别人——保护别人就是保护自己。", difficulty: "easy", faction: "tech", cardId: "surgical_mask", type: "memorization", tags: ["ch2","prevention"] },
+  { q: "纱布作为医疗用品有多古老？", options: ["50 年", "200 年", "1000 年", "4000 多年"], answer: 3, fact: "纱布是最古老的医疗用品之一，埃及人 4000 年前就在用了！", difficulty: "easy", faction: "tech", cardId: "bandage_wrap", type: "memorization", tags: ["ch2","history"] },
+  { q: "阿司匹林最早是从哪里发现的？", options: ["蘑菇", "柳树皮", "海藻", "矿石"], answer: 1, fact: "阿司匹林来自柳树皮！100 多年前发明，至今仍是世界上用得最多的药之一。", difficulty: "easy", faction: "tech", cardId: "aspirin_pill", type: "memorization", tags: ["ch2","drug","history"] },
+  { q: "一滴血能让医生检测出多少种身体信息？", options: ["1 种", "10 种", "几十种", "几百种"], answer: 3, fact: "一滴血就能检测出几百种信息：有没有感染、血糖高不高、肝肾功能好不好——验血是医生最快的诊断手段之一！", difficulty: "easy", faction: "tech", cardId: "blood_test_kit", type: "memorization", tags: ["ch2","diagnosis"] },
+  { q: "你的肠道里大约住着多少个细菌？", options: ["几百个", "几千个", "几万个", "上万亿个"], answer: 3, fact: "你的肠道里住着上万亿个细菌——比全身的人体细胞还多！它们帮你消化食物、制造维生素。", difficulty: "easy", faction: "tech", cardId: "probiotics_ally", type: "memorization", tags: ["ch2","microbiome"] },
+  { q: "PCR 检测仪在新冠疫情中起了什么作用？", options: ["治疗病人", "检测有没有感染病毒", "制造疫苗", "消毒"], answer: 1, fact: "PCR 是新冠检测的核心技术！它能把一小段 DNA 复制几百万份，让微量病毒无处藏身。", difficulty: "easy", faction: "tech", cardId: "pcr_machine", type: "memorization", tags: ["ch2","diagnosis","covid"] },
+  { q: "机器人做手术的切口有多大？", options: ["几毫米", "几厘米", "十几厘米", "跟普通手术一样"], answer: 0, fact: "达芬奇手术机器人的切口只有几毫米大，比传统手术小得多——病人恢复也更快！", difficulty: "easy", faction: "tech", cardId: "robotic_surgery", type: "memorization", tags: ["ch2","surgery"] },
+  { q: "除颤器（AED）是用来做什么的？", options: ["测心跳", "让停止的心脏重新跳动", "止血", "降温"], answer: 1, fact: "除颤器是真正的'救命神器'！心脏骤停后，每延迟 1 分钟使用 AED，存活率就下降 10%。", difficulty: "easy", faction: "tech", cardId: "defibrillator_restart", type: "memorization", tags: ["ch2","emergency"] },
+  { q: "CT 扫描仪是怎么看到身体内部的？", options: ["用超声波", "绕着身体转一圈拍几百张 X 光片", "用磁场", "插一根管子进去"], answer: 1, fact: "CT 扫描仪绕着你转一圈，拍几百张 X 光片，然后电脑把这些'切片'拼成 3D 图像！", difficulty: "easy", faction: "tech", cardId: "ct_scanner_reveal", type: "memorization", tags: ["ch2","imaging"] },
+  { q: "基因治疗是怎么治病的？", options: ["吃特殊的药", "用正确的基因替换有问题的基因", "做手术", "打疫苗"], answer: 1, fact: "基因治疗是用正确的基因替换有问题的基因——就像修改电脑程序里的 bug！", difficulty: "easy", faction: "tech", cardId: "gene_therapy_fix", type: "memorization", tags: ["ch2","genetics"] },
+  { q: "透析机相当于人体的哪个器官？", options: ["心脏", "肝脏", "肾脏", "肺"], answer: 2, fact: "透析机就是'人工肾脏'！它把血液从身体里引出来，过滤掉废物和毒素，再送回去。", difficulty: "easy", faction: "tech", cardId: "dialysis_machine", type: "memorization", tags: ["ch2","artificial_organ"] },
+  { q: "mRNA 疫苗跟传统疫苗最大的不同是什么？", options: ["打针更疼", "不用灭活病毒，给细胞发'指令'", "保存温度更高", "需要打更多次"], answer: 1, fact: "mRNA 疫苗不用灭活病毒，而是给身体发一条'指令'，让细胞自己制造病毒的一小部分蛋白质——免疫系统认识后就能对付真病毒了！", difficulty: "easy", faction: "tech", cardId: "mrna_vaccine", type: "memorization", tags: ["ch2","vaccine","mrna"] },
+  { q: "纳米机器人比什么还小？", options: ["头发丝", "细胞", "灰尘", "蚂蚁"], answer: 1, fact: "纳米机器人是比细胞还小的微型机器！科学家正在研究让它们在血管里巡逻，精准找到癌细胞投放药物。", difficulty: "easy", faction: "tech", cardId: "nanobot_warrior", type: "memorization", tags: ["ch2","future_tech"] },
+  { q: "CRISPR 在生物学里像什么工具？", options: ["放大镜", "DNA 的剪刀和胶水", "打印机", "计算器"], answer: 1, fact: "CRISPR 就像 DNA 的'剪刀'和'胶水'——能精确剪掉有问题的基因片段，换上正确的！2020 年获得诺贝尔化学奖。", difficulty: "easy", faction: "tech", cardId: "crispr_editor", type: "memorization", tags: ["ch2","genetics","nobel"] },
+  { q: "AI 医生现在最擅长做什么？", options: ["做手术", "看医学影像、诊断疾病", "陪伴病人", "开药"], answer: 1, fact: "AI 已经在很多影像诊断上超越了人类医生——Google 的 AI 能在眼底照片中发现 50 多种眼病，准确率超过眼科专家！", difficulty: "easy", faction: "tech", cardId: "ai_doctor", type: "memorization", tags: ["ch2","ai"] },
+  { q: "显微镜让我们能看到什么用眼睛看不见的东西？", options: ["远方的星星", "细菌、细胞等微小的东西", "颜色的变化", "声波"], answer: 1, fact: "显微镜让我们能看到细菌、细胞等用肉眼看不见的微观世界！没有显微镜就没有现代医学。", difficulty: "easy", faction: "tech", cardId: "microscope_eye", type: "memorization", tags: ["ch2","diagnosis"] },
 ]
 
 // 已出过的题目索引（避免重复）
