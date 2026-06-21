@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21 续（ch3/ch4 题库扩充 3 批全部完成：+189 道新题、卡覆盖 100% (136/136)、最终题库 480 道、0 错误 0 警告）
+> 更新时间: 2026-06-21 续²（成就系统补全：战斗+答题两类上线，3 类齐全；9 个新成就 + economy 累计计数器 + App 级弹窗队列 + Collection 三段展示；build 绿 / 28 断言绿 / 产物预览实测通过）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,33 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 续² 成就系统补全：战斗 + 答题两类（3 类齐全）✅
+成就系统原本只有「收集」一类（5 个集卡成就，抽卡时触发），补上方向 D 愿景的另两类，
+达成**收集 / 战斗 / 答题**三类齐全。Yang 选「两个都要」→ 本轮成就先行，**每日挑战是约定的下一轮**。
+
+- **数据模型**（achievements.js）：声明式 `check(ctx)` 谓词，`ctx={stats,stageStars,battleResult}`，
+  三种条件——累计统计 / 战役派生(读 stageStars) / 本场事件。通用引擎 `detectNewlyUnlockedFrom`
+  + `detectNewlyUnlocked` 向后兼容包装（GachaScreen 零改动）。`ALL_ACHIEVEMENTS` 三类全集。
+- **9 个新成就**：战斗 5（初战告捷 / 百战老兵 10 场 / 完美防守满血 / 巨兽终结者击败 3 Boss / 闪耀星河 30 星）
+  + 答题 4（求知初心 / 答题学霸 20 道 / 知识大师 100 道 / 全对达人单场≥3全对）。2 科学包：
+  巨兽终结者「三大终极考验」(新冠/蓝鲸/超级细菌) + 知识大师「为什么要懂原理」。
+- **economy 累计计数器**（useEconomy）：`battlesWon/battlesTotal/quizCorrectTotal/quizTotalAnswered`，
+  `recordBattleResult` stateRef 模式同步返回快照。老存档 spread 默认 0，**无需 migration**。
+- **触发**（App.jsx handleExitBattle）：分支前检测（campaign 分支会提前 return，故前置）；本场星
+  merge 进本地副本让「击败全部 Boss / 累计星」当场解锁（不写盘）。App 级成就弹窗 FIFO 队列，先 SP 后成就不叠。
+- **展示**（Collection）：成就栏改**三段分组**，按 `progress(ctx)` 显示 7/10、15/20、9/30 等进度；
+  事件型(无 progress)显示 🔒/✓。**quizTotal 转发**（BattleScreen，认输给 0 防刷"全对"）。
+  **AchievementModal** 加 requiredCards 守卫（战斗/答题成就无此字段不再崩）。i18n zh/en 加 3 个分类标签 key。
+
+**验证**：build 绿 / `scripts/test-achievements.mjs` 28 断言绿 / **产物预览**（`vite preview` 4174）实测
+三段展示、进度数、巨兽终结者科学包弹窗均正常。
+> ⚠️ **dev 预览(5173)崩溃复现**：HMR websocket 失败 → 懒加载 Collection 块拿到**第二份 LanguageContext 实例**
+> → BattleCard `useLanguage` 报 "must be used within LanguageProvider"（栈里 `LanguageContext.jsx?t=时间戳` 即证）。
+> 与 SESSION 旧记的 HMR 失效同源。**可视验证改用 `vite preview` 产物**（单实例 LanguageContext），launch.json 已加 preview 配置。
+
+**遗留**：阈值（10 场/20 题/30 星/100 题）按齐齐游戏量初设，可实测后调；quiz_master 100/star_shine 30
+未经 Yang 单独确认。
 
 ### 2026-06-21 续 ch3/ch4 题库扩充 ✅（3 批全部完成，达成 100% 卡覆盖）
 延续 Sprint 32 的三层框架（memo/mech/infer），扩展到 Sprint 32 没覆盖的
@@ -312,7 +339,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 ---
 
 ## 进行中
-（无 — Sprint 32 + ch3/ch4 题库扩充全部完成，136/136 卡 100% 覆盖。等齐齐 iPad 实测反馈或下一个方向）
+（无 — 成就三类齐全已上线。**下一轮：每日挑战**（Yang 选「两个都要」，成就先行已完成）。等齐齐 iPad 实测反馈或开做每日挑战）
 
 ---
 
@@ -388,9 +415,9 @@ spec 已为后续预留：
 - 当前 ch3 Boss 通关无 SP 解锁是个空洞 — 蓝鲸 Boss 应该有专属 SP
 
 ### 推荐方向 D：新功能
-- 成就系统（收集/战斗/答题三类勋章）— 给齐齐目标感
+- ~~成就系统（收集/战斗/答题三类勋章）~~ ✅ 已完成（2026-06-21 续²，9 新成就 + 三段展示 + 累计计数器）
+- ⭐ **每日挑战**（约定的下一轮）— 让齐齐每天有理由打开游戏（全新功能，需日期逻辑/挑战生成/状态追踪）
 - 可选主人（生物学家/医生/猎人三种被动）— 增加玩法多样性
-- 每日挑战 — 让齐齐每天有理由打开游戏
 
 ### 推荐方向 E：卡池扩展（中长期）
 - Phase 2 扩展包 ~160 张（OCEAN 海洋深渊 + MICRO 微观战场）
