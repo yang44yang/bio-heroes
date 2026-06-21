@@ -79,15 +79,161 @@ export const COLLECTION_ACHIEVEMENTS = [
   },
 ]
 
-// 检查是否新解锁了成就（不修改 state，只返回新解锁的成就数组）
-export function detectNewlyUnlocked(collection, alreadyUnlocked = []) {
-  const owned = collection || {}
+// ============================================================
+// 战斗成就 + 答题成就（成就三类：收集 / 战斗 / 答题）
+// 声明式 check(ctx) 谓词，ctx = { stats, stageStars, battleResult }
+// ============================================================
+
+// 各章 Boss 关卡 ID（与 App.jsx handleExitBattle 的 chapterMap 同步）
+// stage_2_8 新冠病毒 / stage_3_8 蓝鲸巨灵 / stage_4_8 超级细菌
+export const BOSS_STAGE_IDS = ['stage_2_8', 'stage_3_8', 'stage_4_8']
+
+export const BATTLE_ACHIEVEMENTS = [
+  {
+    id: 'first_victory',
+    name: '初战告捷',
+    icon: '⚔️',
+    category: 'battle',
+    reward: { type: 'badge_only' },
+    check: (ctx) => !!ctx.battleResult?.won, // 本场事件型 — 无 progress
+  },
+  {
+    id: 'battle_veteran',
+    name: '百战老兵',
+    icon: '🎖️',
+    category: 'battle',
+    reward: { type: 'badge_only' },
+    check: (ctx) => (ctx.stats?.battlesWon || 0) >= 10,
+    progress: (ctx) => ({ have: Math.min(ctx.stats?.battlesWon || 0, 10), total: 10 }),
+  },
+  {
+    id: 'flawless_victory',
+    name: '完美防守',
+    icon: '🛡️',
+    category: 'battle',
+    reward: { type: 'badge_only' },
+    // ⚠️ leaderHPPercent 是 0-100，满血通关 = 100（不是 1）
+    check: (ctx) => !!ctx.battleResult?.won && (ctx.battleResult?.leaderHPPercent || 0) >= 100,
+  },
+  {
+    id: 'boss_slayer',
+    name: '巨兽终结者',
+    icon: '👑',
+    category: 'battle',
+    reward: {
+      type: 'science_pack',
+      title: '📚 你战胜的三大终极考验',
+      content: `你击败了三个最强的对手——它们各自代表生命科学里最难的挑战：
+
+🦠 新冠病毒：看不见的病原，却能改变整个世界。但人类用疫苗和抗体反击——科学让我们不再害怕。
+
+🐋 蓝鲸巨灵：地球上最大的动物。真正的强者懂得，海洋巨兽不是敌人，而是要守护的伙伴，敬畏自然才是最大的力量。
+
+🦠 超级细菌：滥用抗生素养出的怪物。它警告我们：用错药会让细菌进化得更强，这是人类自己制造的难题。
+
+打败它们，说明你不只会战斗，更读懂了背后的科学！`,
+    },
+    check: (ctx) => BOSS_STAGE_IDS.every(id => (ctx.stageStars?.[id] || 0) >= 1),
+    progress: (ctx) => ({
+      have: BOSS_STAGE_IDS.filter(id => (ctx.stageStars?.[id] || 0) >= 1).length,
+      total: BOSS_STAGE_IDS.length,
+    }),
+  },
+  {
+    id: 'star_shine',
+    name: '闪耀星河',
+    icon: '⭐',
+    category: 'battle',
+    reward: { type: 'badge_only' },
+    check: (ctx) => Object.values(ctx.stageStars || {}).reduce((s, v) => s + v, 0) >= 30,
+    progress: (ctx) => {
+      const stars = Object.values(ctx.stageStars || {}).reduce((s, v) => s + v, 0)
+      return { have: Math.min(stars, 30), total: 30 }
+    },
+  },
+]
+
+export const QUIZ_ACHIEVEMENTS = [
+  {
+    id: 'quiz_first',
+    name: '求知初心',
+    icon: '📖',
+    category: 'quiz',
+    reward: { type: 'badge_only' },
+    check: (ctx) => (ctx.stats?.quizCorrectTotal || 0) >= 1,
+  },
+  {
+    id: 'quiz_scholar',
+    name: '答题学霸',
+    icon: '🎓',
+    category: 'quiz',
+    reward: { type: 'badge_only' },
+    check: (ctx) => (ctx.stats?.quizCorrectTotal || 0) >= 20,
+    progress: (ctx) => ({ have: Math.min(ctx.stats?.quizCorrectTotal || 0, 20), total: 20 }),
+  },
+  {
+    id: 'quiz_master',
+    name: '知识大师',
+    icon: '🧠',
+    category: 'quiz',
+    reward: {
+      type: 'science_pack',
+      title: '📚 为什么要懂原理',
+      content: `你已经答对了 100 道题！但比"答对"更重要的，是"为什么"。
+
+💤 死记硬背：记住"抗生素治细菌"——考完就忘。
+💡 理解原理：明白"抗生素破坏细菌的细胞壁，病毒没有细胞壁，所以治不了感冒"——一辈子忘不掉。
+
+科学家和普通人最大的区别，不是记住更多答案，而是遇到没见过的问题时，能用原理推理出答案。
+
+下次答题，多问自己一个"为什么"，你就在像科学家一样思考了！`,
+    },
+    check: (ctx) => (ctx.stats?.quizCorrectTotal || 0) >= 100,
+    progress: (ctx) => ({ have: Math.min(ctx.stats?.quizCorrectTotal || 0, 100), total: 100 }),
+  },
+  {
+    id: 'quiz_perfect_run',
+    name: '全对达人',
+    icon: '💯',
+    category: 'quiz',
+    reward: { type: 'badge_only' },
+    // 单场 ≥3 题且全对（quizTotal 由 BattleScreen 转发）
+    check: (ctx) => (ctx.battleResult?.quizTotal || 0) >= 3 &&
+      ctx.battleResult?.quizCorrect === ctx.battleResult?.quizTotal,
+  },
+]
+
+// 给 collection 成就合成 category + check/progress，使 ALL_ACHIEVEMENTS 渲染路径统一
+for (const ach of COLLECTION_ACHIEVEMENTS) {
+  ach.category = 'collection'
+  ach.check = (ctx) => ach.requiredCards.every(id => (ctx.collection || {})[id] > 0)
+  ach.progress = (ctx) => ({
+    have: ach.requiredCards.filter(id => (ctx.collection || {})[id] > 0).length,
+    total: ach.requiredCards.length,
+  })
+}
+
+// 三类全集（供 Collection 分组展示）
+export const ALL_ACHIEVEMENTS = [
+  ...COLLECTION_ACHIEVEMENTS,
+  ...BATTLE_ACHIEVEMENTS,
+  ...QUIZ_ACHIEVEMENTS,
+]
+
+// 通用检测引擎：返回 pool 中 check 通过且未解锁的成就对象数组（不修改 state）
+export function detectNewlyUnlockedFrom(pool, ctx, alreadyUnlocked = []) {
   const unlocked = alreadyUnlocked || []
-  const newlyUnlocked = []
-  for (const ach of COLLECTION_ACHIEVEMENTS) {
+  const out = []
+  for (const ach of pool) {
     if (unlocked.includes(ach.id)) continue
-    const hasAll = ach.requiredCards.every(cardId => owned[cardId] > 0)
-    if (hasAll) newlyUnlocked.push(ach)
+    let ok = false
+    try { ok = !!ach.check(ctx) } catch { ok = false }
+    if (ok) out.push(ach)
   }
-  return newlyUnlocked
+  return out
+}
+
+// 向后兼容：GachaScreen.jsx 调用签名不变（只查 collection 成就的集卡条件）
+export function detectNewlyUnlocked(collection, alreadyUnlocked = []) {
+  return detectNewlyUnlockedFrom(COLLECTION_ACHIEVEMENTS, { collection: collection || {} }, alreadyUnlocked)
 }
