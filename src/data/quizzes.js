@@ -467,6 +467,81 @@ export const quizzes = [
   { q: "霸王龙大约生活在多久前？", options: ["100 万年前", "1 亿年前", "6800 万年前", "5 亿年前"], answer: 2, fact: "霸王龙生活在 6800 万年前的白垩纪晚期，是有史以来最大的陆地掠食者之一。它的牙齿像香蕉一样大，咬合力高达 6 吨——相当于一辆卡车的重量压在一个点上！", difficulty: "easy", faction: "nature", cardId: "sp_trex", type: "memorization", tags: ["ch3","dinosaur","cretaceous"] },
   { q: "霸王龙的咬合力为什么那么强？", options: ["因为它的牙齿有特殊磁力", "因为它的下颚肌肉特别巨大粗壮", "因为它喷火来配合咬合", "因为它的口水会腐蚀猎物"], answer: 1, fact: "霸王龙的头骨上有巨大的肌肉附着位置——下颚闭合的肌肉特别粗。这就像'大力士'，简单粗暴但有效。咬合力 6 吨是脊椎动物史上最高之一。", difficulty: "medium", faction: "nature", cardId: "sp_trex", type: "mechanism", principle: "mechanism", tags: ["ch3","bite_force","anatomy"] },
   { q: "如果霸王龙复活到今天的世界，它的命运会怎样？", options: ["立刻称霸地球没人能挡住", "很可能饿死——找不到合适的猎物", "变成可爱的宠物被人养", "会立刻变成现代的动物"], answer: 1, fact: "霸王龙的食谱是其他大型恐龙——今天的猎物(牛、马)体型太小让它吃不饱，而且它行动慢容易被发现。生态系统已经不适合它，理论上'称霸'实际上会饿死。", difficulty: "hard", faction: "nature", cardId: "sp_trex", type: "inference", principle: "tradeoff", tags: ["ch3","extinction","ecological_niche"] },
+
+  // ============================================================
+  // ch3/ch4 批次 B — 14 张 pathogen 卡 × 3 层 = 42 题
+  // 涵盖：跨章节 pathogen（病毒/细菌/真菌/寄生虫）+ 4 个事件卡 + 1 个 SP
+  // ============================================================
+
+  // — 普通感冒病毒 (3) —
+  { q: "引起普通感冒的病毒大约有多少种？", options: ["只有 1 种叫'感冒病毒'", "10 种左右跟流感分开", "超过 200 种不同的病毒", "上万种数都数不清"], answer: 2, fact: "感冒不是一种病而是 200+ 种病毒(鼻病毒/腺病毒/冠状病毒等)的统称。所以你才会反复感冒——每次得的是不同的病毒。", difficulty: "easy", faction: "pathogen", cardId: "common_cold_virus", type: "memorization", tags: ["ch2","virus","diversity"] },
+  { q: "为什么一个喷嚏能把感冒病毒传到几米外？", options: ["因为感冒病毒喜欢长距离旅行", "因为喷嚏飞沫时速 160 公里能喷 8 米远", "因为打喷嚏声音很响传得很远", "因为感冒人的鼻子里有推动力"], answer: 1, fact: "打喷嚏的飞沫时速 160 公里(高速公路速度)+ 携带几十万个病毒——所以能喷到 8 米远！这就是为什么医生说打喷嚏要捂着嘴。", difficulty: "medium", faction: "pathogen", cardId: "common_cold_virus", type: "mechanism", principle: "mechanism", tags: ["ch2","airborne","droplet"] },
+  { q: "为什么人一年能感冒好几次，但水痘一辈子只得一次？", options: ["感冒种类多，每次得的可能是新病毒", "感冒病毒会让免疫系统忘记训练", "水痘病毒比感冒病毒厉害得多", "身体对感冒病毒没有任何免疫"], answer: 0, fact: "抗体只认一种病原。水痘只有 1 种病毒——免疫一次终身。但感冒是 200+ 种病毒的统称，每次得的可能是新的一种，旧抗体认不出。", difficulty: "hard", faction: "pathogen", cardId: "common_cold_virus", type: "inference", principle: "mechanism", tags: ["ch2","immunity","specificity"] },
+
+  // — 诺如病毒 (3) —
+  { q: "诺如病毒最让人害怕的特点是什么？", options: ["传播力超强：18 个病毒颗粒就让人病倒", "致死率特别高超过 50%", "病情持续时间长达几个月", "感染后会永久留在身体里"], answer: 0, fact: "诺如病毒只需要 18 个病毒颗粒就能让人病倒(大多数病毒需要上千个)！这就是为什么冬天的学校、邮轮特别容易爆发——传播力是它的超能力。", difficulty: "easy", faction: "pathogen", cardId: "norovirus_storm", type: "memorization", tags: ["ch2","virus","infectivity"] },
+  { q: "为什么呕吐能让诺如病毒在学校大爆发？", options: ["一次呕吐释放上百万颗粒，飞溅到处都是", "呕吐让小朋友互相恐慌相互感染", "呕吐让病毒进入空气循环系统", "呕吐让其他孩子忍不住模仿"], answer: 0, fact: "一次呕吐释放上百万颗病毒颗粒——飞溅在地面/桌面/书包上,十几个孩子手摸了再揉眼睛就感染。这就是为什么呕吐物要专业团队消毒。", difficulty: "medium", faction: "pathogen", cardId: "norovirus_storm", type: "mechanism", principle: "mechanism", tags: ["ch2","transmission","environmental"] },
+  { q: "学校诺如爆发了，要用什么方法消毒最有效？", options: ["用酒精把表面擦一遍就行", "开窗通风半小时就能解决", "用漂白水彻底擦拭再加强通风", "把孩子们都送回家不用管"], answer: 2, fact: "酒精对诺如病毒效果差(没脂质膜)！必须用漂白水(次氯酸钠)才能杀死。这也是为什么医院/学校爆发后要专业消毒,不能光擦擦完事。", difficulty: "hard", faction: "pathogen", cardId: "norovirus_storm", type: "inference", principle: "tradeoff", tags: ["ch2","disinfection","strategy"] },
+
+  // — 癣菌 (3) —
+  { q: "'癣'其实是什么引起的？", options: ["小虫子在皮肤上爬", "细菌感染了皮肤组织", "皮肤过敏起的红斑", "真菌感染了皮肤"], answer: 3, fact: "虽然叫'癣'但其实不是虫子——是真菌感染！癣菌喜欢温暖潮湿的环境，所以脚趾缝(脚气)和腹股沟最容易感染。保持干燥就能预防。", difficulty: "easy", faction: "pathogen", cardId: "ringworm_itch", type: "memorization", tags: ["ch2","fungus","skin"] },
+  { q: "为什么脚气总是长在脚趾缝里，不是脚背？", options: ["因为脚趾缝皮肤更薄好侵入", "因为脚趾缝温暖潮湿适合真菌", "因为脚趾缝里很少洗到", "因为脚趾缝有特殊的营养"], answer: 1, fact: "脚趾缝因为'闭合+出汗+不透气'——温度湿度都适合真菌繁殖。脚背干燥通风,真菌难活。所以保持脚趾缝干爽是脚气'治本'。", difficulty: "medium", faction: "pathogen", cardId: "ringworm_itch", type: "mechanism", principle: "mechanism", tags: ["ch2","environment","fungal_growth"] },
+  { q: "夏天为什么去公共泳池要穿拖鞋？", options: ["因为光脚走会很冷生病", "公共泳池地面有很多脚气真菌", "因为穿拖鞋显得更文明", "防止脚被泳池水泡得太久"], answer: 1, fact: "泳池更衣室地面是脚气真菌的'高速公路'——温暖+潮湿+无数人光脚走过。穿拖鞋能阻断接触。这是公共卫生最简单的防护。", difficulty: "hard", faction: "pathogen", cardId: "ringworm_itch", type: "inference", principle: "tradeoff", tags: ["ch2","prevention","contact"] },
+
+  // — 登革热 (3) —
+  { q: "登革热为什么俗称'断骨热'？", options: ["感染后浑身骨头和关节剧痛", "感染后骨头会真的折断", "病毒会直接攻击骨头", "病人需要长期卧床骨头变弱"], answer: 0, fact: "登革热感染后浑身骨头和关节剧痛,就像被打断一样,所以叫'断骨热'。它由蚊子传播,全球每年 3.9 亿人感染。", difficulty: "easy", faction: "pathogen", cardId: "dengue_mosquito", type: "memorization", tags: ["ch2","symptom","virus"] },
+  { q: "为什么消灭蚊子是预防登革热的最有效方法？", options: ["蚊子飞得很快很难追", "蚊子叮咬时会注射病毒", "蚊子是登革热病毒的传播载体", "蚊子身上会沾上各种细菌"], answer: 2, fact: "登革热病毒不能在空气、水或食物中独立生存——必须通过蚊子叮咬才能传给人。切断蚊子就切断了传播链。这是'载体阻断'最经典的应用。", difficulty: "medium", faction: "pathogen", cardId: "dengue_mosquito", type: "mechanism", principle: "mechanism", tags: ["ch2","vector","prevention"] },
+  { q: "为什么登革热在热带地区那么常见？", options: ["因为热带人体质特殊", "因为热带温暖潮湿适合蚊子繁殖", "因为热带没有医疗资源", "因为热带食物里有病毒"], answer: 1, fact: "蚊子在温暖+水多的环境繁殖快。所以热带常年有蚊子,登革热高发。寒带和沙漠蚊子少,自然没这个问题。这是'环境决定病原分布'。", difficulty: "hard", faction: "pathogen", cardId: "dengue_mosquito", type: "inference", principle: "mechanism", tags: ["ch2","geography","ecology"] },
+
+  // — 炭疽孢子 (3) —
+  { q: "炭疽杆菌的孢子在土壤里能沉睡多久？", options: ["几个月到一年", "1-5 年左右", "100 年以上", "几十年"], answer: 2, fact: "炭疽杆菌的孢子是自然界最顽强的生存者——能在土壤中沉睡 100 年以上！即使经过高温、干燥和化学消毒,它们也不死。一旦条件合适就'复活'致病。", difficulty: "easy", faction: "pathogen", cardId: "anthrax_spore", type: "memorization", tags: ["ch2","spore","longevity"] },
+  { q: "炭疽孢子为什么这么难杀死？", options: ["孢子外有超厚保护壳能抗极端环境", "孢子会主动避开消毒剂", "孢子能感知到威胁躲起来", "孢子大小特殊能逃过过滤"], answer: 0, fact: "孢子相当于细菌的'休眠胶囊'——外层是几乎不透水的厚壳,代谢几乎停止。所以高温/干燥/消毒剂都难穿透。要彻底杀死需要 121°C 高压蒸汽 30 分钟以上。", difficulty: "medium", faction: "pathogen", cardId: "anthrax_spore", type: "mechanism", principle: "mechanism", tags: ["ch2","dormancy","resistance"] },
+  { q: "为什么炭疽孢子曾被国家用作生化武器？", options: ["因为它造价便宜量产容易", "因为它孢子超长存活+难杀+致命", "因为它能感染所有动物", "因为它会让人变得听话"], answer: 1, fact: "孢子能装信封寄出 100 年仍致命——加上炭疽致死率高,曾被恐怖分子用过(2001 美国邮件袭击)。所以国际禁止研发生化武器,而炭疽防护是关键。", difficulty: "hard", faction: "pathogen", cardId: "anthrax_spore", type: "inference", principle: "tradeoff", tags: ["ch2","bioweapon","ethics"] },
+
+  // — MRSA 超级细菌 (3) —
+  { q: "MRSA 这个英文缩写大概是什么意思？", options: ["对甲氧西林耐药的金黄色葡萄球菌", "医院里常见的普通葡萄球菌", "用甲氧西林治疗效果最好的菌", "新发现的一种细菌名字"], answer: 0, fact: "MRSA = Methicillin-Resistant Staphylococcus Aureus,翻译就是'耐甲氧西林金黄色葡萄球菌'。它对大多数抗生素都无效,所以是'超级细菌'。", difficulty: "easy", faction: "pathogen", cardId: "mrsa_superbug", type: "memorization", tags: ["ch2","resistance","superbug"] },
+  { q: "为什么 MRSA 在医院里特别危险？", options: ["因为医院的空气里有特殊营养", "因为医院里抗生素用得最多,促进耐药", "因为医院的清洁人员不够多", "因为医院的灯光让细菌更活跃"], answer: 1, fact: "医院里大量使用抗生素 = 给细菌的'演化压力',能耐药的活下来繁殖。加上免疫力差的病人多,MRSA 一感染就难治。所以'院内感染'是大问题。", difficulty: "medium", faction: "pathogen", cardId: "mrsa_superbug", type: "mechanism", principle: "coevolution", tags: ["ch2","hospital","selection"] },
+  { q: "如果家人感冒了,为什么医生说不要乱要求开抗生素？", options: ["抗生素只杀细菌,对病毒感冒无效还促进耐药", "抗生素太贵会让家庭负担重", "感冒一定要靠免疫力自愈才彻底", "医生想省钱不愿意开药"], answer: 0, fact: "感冒 90% 是病毒引起——抗生素对病毒完全无效。乱用抗生素只会:1)没效果 2)杀好菌伤肠道 3)促进细菌耐药。这就是为什么'尊重医生处方'是公共卫生。", difficulty: "hard", faction: "pathogen", cardId: "mrsa_superbug", type: "inference", principle: "tradeoff", tags: ["ch2","compliance","public_health"] },
+
+  // — 钩虫 (3) —
+  { q: "钩虫主要怎么进入人体？", options: ["从呼吸道吸进去", "通过吃下被污染的食物", "蚊虫叮咬注射进去", "幼虫从脚底皮肤钻进去"], answer: 3, fact: "钩虫幼虫能从脚底的皮肤钻进人体！它们用嘴巴上的'小钩子'挂在肠壁上吸血。全世界有 5 亿人感染钩虫,大多在热带地区。", difficulty: "easy", faction: "pathogen", cardId: "hookworm_sucker", type: "memorization", tags: ["ch2","parasite","entry"] },
+  { q: "钩虫怎么挂在肠壁上不被冲走？", options: ["嘴巴有钩子能挂住肠壁组织", "身体会自动黏在肠壁表面", "靠脚紧紧抓住肠壁内侧", "钻进肠壁里面藏起来"], answer: 0, fact: "钩虫嘴里有'小钩子'——专门挂住肠壁组织,一边挂着一边吸血。所以名字叫'钩虫'。人体每天可能被它吸走 0.2 毫升血,长期感染会贫血。", difficulty: "medium", faction: "pathogen", cardId: "hookworm_sucker", type: "mechanism", principle: "mechanism", tags: ["ch2","attachment","feeding"] },
+  { q: "为什么热带农村穿鞋不穿鞋差别那么大？", options: ["穿鞋能挡住钩虫幼虫从脚底进入", "穿鞋能保暖防止感冒生病", "穿鞋显得更文明", "穿鞋能防止脚受伤"], answer: 0, fact: "热带土壤里有钩虫幼虫——光脚走最容易感染。穿鞋阻断了'幼虫钻皮肤'这一步。这是为什么世界卫生组织在贫困地区推广鞋子也是公共卫生项目。", difficulty: "hard", faction: "pathogen", cardId: "hookworm_sucker", type: "inference", principle: "tradeoff", tags: ["ch2","prevention","poverty"] },
+
+  // — 沙门氏菌 (3) —
+  { q: "沙门氏菌最常藏在什么食物里？", options: ["没煮熟的鸡蛋和鸡肉", "新鲜水果和蔬菜里", "罐头食品和饼干", "凉水和饮料中"], answer: 0, fact: "沙门氏菌是食物中毒最常见的元凶！它们藏在没煮熟的鸡蛋和鸡肉里,通过消化道直接攻击肠胃——这就是为什么食物中毒总是肚子疼、拉肚子、发烧。", difficulty: "easy", faction: "pathogen", cardId: "salmonella_poison", type: "memorization", tags: ["ch2","foodborne","poultry"] },
+  { q: "为什么半熟的蛋黄和没烤透的鸡肉容易吃出问题？", options: ["半熟食物味道更好让人吃多", "高温没杀死沙门氏菌还活着", "半熟食物消化不良", "半熟食物会让免疫力下降"], answer: 1, fact: "沙门氏菌怕高温——蛋黄/鸡肉中心达到 75°C 才能杀死它。'半熟'意味着中心温度不够,细菌还活蹦乱跳。所以鸡蛋鸡肉要彻底煮熟。", difficulty: "medium", faction: "pathogen", cardId: "salmonella_poison", type: "mechanism", principle: "mechanism", tags: ["ch2","temperature","cooking"] },
+  { q: "夏天野餐用蛋黄酱拌的沙拉,放外面 2 小时可能有什么风险？", options: ["蛋黄酱会融化掉颜色变难看", "蛋黄酱里的沙门氏菌大量繁殖", "蛋黄酱失去新鲜口感", "沙拉里的蔬菜会变蔫"], answer: 1, fact: "蛋黄酱有生鸡蛋——夏天 20°C 以上,沙门氏菌每 20 分钟分裂一次。2 小时 = 6 次分裂 = 数量翻 64 倍！这就是为什么外卖/野餐食物要冷藏。", difficulty: "hard", faction: "pathogen", cardId: "salmonella_poison", type: "inference", principle: "tradeoff", tags: ["ch2","outdoor","temperature"] },
+
+  // — 霍乱弧菌 (3) —
+  { q: "霍乱弧菌主要通过什么传播？", options: ["蚊子叮咬注射进去", "空气中飞沫感染", "被污染的水源传播", "皮肤接触表面传播"], answer: 2, fact: "霍乱弧菌长得像个小逗号！它通过被污染的水传播,感染后几小时就会剧烈腹泻,一天可以失去 20 升水。干净的饮用水是预防霍乱最好的方法。", difficulty: "easy", faction: "pathogen", cardId: "cholera_wave", type: "memorization", tags: ["ch2","waterborne","bacteria"] },
+  { q: "为什么得了霍乱一天就能让人失去 20 升水？", options: ["细菌让人喝太多水", "病人呼吸太快带走水分", "细菌让肠子发热蒸发水", "霍乱毒素让肠壁疯狂排水"], answer: 3, fact: "霍乱弧菌分泌的毒素让肠道细胞'反向工作'——把水从血液大量泵入肠腔,然后腹泻排出。一天损失 20 升水(成人血液总量约 5 升)！所以补液是救命的关键。", difficulty: "medium", faction: "pathogen", cardId: "cholera_wave", type: "mechanism", principle: "mechanism", tags: ["ch2","toxin","dehydration"] },
+  { q: "为什么 19 世纪后自来水普及让欧美的霍乱大幅减少？", options: ["自来水让人不再喝河里的污水", "自来水有特殊的杀菌成分", "人们因此变得更聪明躲病", "霍乱菌不喜欢自来水的味道"], answer: 0, fact: "霍乱完全靠污水传播。自来水(过滤+消毒)切断了这条传播链——19 世纪英国伦敦霍乱反复爆发,直到 John Snow 发现水井污染、改善供水后才控制。", difficulty: "hard", faction: "pathogen", cardId: "cholera_wave", type: "inference", principle: "tradeoff", tags: ["ch2","sanitation","history"] },
+
+  // — 基因突变 (3) —
+  { q: "基因突变大部分对生物来说是？", options: ["对生物自身有害的", "对生物的发展有益的", "完全没有任何影响", "让生物变得更聪明"], answer: 0, fact: "基因突变大部分是有害的或中性的,但偶尔会出现有利突变,让生物获得新的能力。病毒的高突变率让它们能快速适应环境——这就是为什么流感病毒每年都在变。", difficulty: "easy", faction: "pathogen", cardId: "event_gene_mutation", type: "memorization", tags: ["ch2","mutation","evolution"] },
+  { q: "为什么基因突变被称为'进化的引擎'？", options: ["突变让生物变化产生新性状,有利的被选择留下", "突变让生物长得更大更聪明", "突变让生物寿命越来越长", "突变能立刻产生超能力"], answer: 0, fact: "进化 = 突变(产生变化) + 自然选择(筛选适合的)。没有突变就没有变化可供选择。这是达尔文进化论的两个齿轮,缺一不可。", difficulty: "medium", faction: "pathogen", cardId: "event_gene_mutation", type: "mechanism", principle: "coevolution", tags: ["ch2","evolution","selection"] },
+  { q: "为什么病毒比哺乳动物变异快得多？", options: ["病毒长得小所以能快速变", "病毒繁殖快+复制时容易出错+群体大", "病毒会主动去变化让人头疼", "病毒比哺乳动物聪明很多"], answer: 1, fact: "病毒一天繁殖几亿次,RNA 病毒复制时无校对——容易出错+群体大 = 变异机会多 100 万倍。这就是为什么流感年年要打新疫苗,而人类不会出现新种族。", difficulty: "hard", faction: "pathogen", cardId: "event_gene_mutation", type: "inference", principle: "coevolution", tags: ["ch2","mutation_rate","virus"] },
+
+  // — 抗药性进化 (3) —
+  { q: "抗药性是怎么进化出来的？", options: ["少数天生耐药的细菌存活下来繁殖", "细菌主动学习了抵抗抗生素", "细菌穿上了特殊的盔甲", "细菌相互交流分享秘诀"], answer: 0, fact: "当抗生素杀死大部分细菌时,少数天生耐药的个体存活下来并大量繁殖。这就是自然选择——达尔文进化论在微观世界的完美体现！", difficulty: "easy", faction: "pathogen", cardId: "event_drug_resistance", type: "memorization", tags: ["ch2","natural_selection","resistance"] },
+  { q: "为什么医生强调抗生素一定要吃完整个疗程？", options: ["少吃没省钱反而浪费时间", "怕忘记吃药漏掉一次", "没杀干净的耐药菌会繁殖出耐药菌群", "吃完才能开发完整的免疫"], answer: 2, fact: "提前停药 = 留下了相对耐药的细菌。它们繁殖后整个菌群都是耐药的,下次同样药就无效了。这就是滥用抗生素 + 不规范用药 = 超级细菌的根本原因。", difficulty: "medium", faction: "pathogen", cardId: "event_drug_resistance", type: "mechanism", principle: "coevolution", tags: ["ch2","compliance","selection"] },
+  { q: "为什么农场给牲畜大量用抗生素会成为公共卫生问题？", options: ["牲畜会因此变得更聪明", "抗生素的味道飘到食物里", "牲畜耐药菌通过粪便/肉传给人类", "牲畜长得太大养不下"], answer: 2, fact: "全球抗生素 70% 用于牲畜！耐药菌通过土壤、水、肉传给人类。所以欧盟从 2006 年禁止饲料添加抗生素——这是'生态健康'(One Health)思路。", difficulty: "hard", faction: "pathogen", cardId: "event_drug_resistance", type: "inference", principle: "tradeoff", tags: ["ch2","agriculture","onehealth"] },
+
+  // — 全球大流行 (3) —
+  { q: "14 世纪的黑死病大约杀死了欧洲多少人口？", options: ["十分之一左右", "四分之一", "二分之一", "三分之一"], answer: 3, fact: "14 世纪的黑死病杀死了欧洲三分之一人口——这是人类历史上最致命的瘟疫之一。它由跳蚤携带的鼠疫杆菌引起,通过老鼠和港口贸易传播。", difficulty: "easy", faction: "pathogen", cardId: "event_global_pandemic", type: "memorization", tags: ["ch2","history","mortality"] },
+  { q: "大流行(Pandemic)跟普通流行(Epidemic)最大区别是？", options: ["大流行跨越国界大规模传播", "大流行的病人症状更严重", "大流行只发生在冬天", "大流行需要政府宣布"], answer: 0, fact: "Epidemic = 一个地区流行;Pandemic = 跨越国界大规模传播。WHO 根据'地理范围+传播速度'宣布大流行。所以新冠是 Pandemic,普通流感是 Epidemic。", difficulty: "medium", faction: "pathogen", cardId: "event_global_pandemic", type: "mechanism", principle: "mechanism", tags: ["ch2","definition","spread"] },
+  { q: "为什么飞机普及后,新发传染病的大流行风险大大增加？", options: ["飞机的空气循环让病毒变强", "全球航班几小时能跨大洲,带着病原同行", "飞机让人疲劳免疫力下降", "飞机的电磁波激活了病毒"], answer: 1, fact: "古代瘟疫靠马车船舶——传播需要几个月。现在飞机几小时跨大洲,病原能在症状出现前就跨国。这就是为什么 2003 SARS 几周内传到 30 国,新冠几个月扩散全球。", difficulty: "hard", faction: "pathogen", cardId: "event_global_pandemic", type: "inference", principle: "tradeoff", tags: ["ch2","globalization","transmission"] },
+
+  // — 感染爆发 (3) —
+  { q: "理想条件下,一个细菌大约多久能分裂一次？", options: ["1 秒钟", "20 分钟", "1 个小时", "1 天"], answer: 1, fact: "细菌每 20 分钟就能分裂一次——意味着一个细菌 8 小时后可以变成 1700 万个！这就是为什么伤口感染会迅速变严重。", difficulty: "easy", faction: "pathogen", cardId: "event_infection_outbreak", type: "memorization", tags: ["ch2","bacterial","division"] },
+  { q: "为什么早期发现感染对治疗这么重要？", options: ["早治便宜不浪费医疗资源", "细菌指数级增长,晚一会数量翻倍", "早治让病人心情更好", "晚治让医生很累不愿意"], answer: 1, fact: "细菌按指数增长——8 小时翻 100 万倍。早期 1000 个菌容易杀,晚期 1 亿个就难治了。这就是为什么'24 小时内'的治疗效果好得多。", difficulty: "medium", faction: "pathogen", cardId: "event_infection_outbreak", type: "mechanism", principle: "mechanism", tags: ["ch2","exponential","timing"] },
+  { q: "为什么免疫力低的人(老人/儿童/化疗患者)更容易感染爆发？", options: ["他们的细胞特殊容易被攻击", "他们没钱去医院治疗", "他们没朋友陪伴心情差", "免疫细胞不够,细菌没人挡能疯涨"], answer: 3, fact: "免疫细胞是'细菌杀手',数量足时能压住细菌指数增长。免疫力低 = 杀手不够,细菌爆发性繁殖。这就是为什么这些群体要特别防护,如打疫苗、戴口罩。", difficulty: "hard", faction: "pathogen", cardId: "event_infection_outbreak", type: "inference", principle: "tradeoff", tags: ["ch2","immunocompromised","control"] },
+
+  // — SP 超级细菌 (3) —
+  { q: "WHO 警告如果不采取行动,2050 年每年可能多少人死于耐药菌？", options: ["1000 万人", "100 万人", "10 万人", "1 万人"], answer: 0, fact: "WHO 估算 2050 年每年可能 1000 万人死于耐药菌,超过癌症成为头号杀手！这就是为什么全球协作控制抗生素使用如此紧迫。", difficulty: "easy", faction: "pathogen", cardId: "sp_super_bacteria", type: "memorization", tags: ["ch2","resistance","public_health"] },
+  { q: "超级细菌是怎么变成'多种抗生素都无效'的？", options: ["突变积累 + 多次抗生素压力筛选耐药菌", "细菌联合起来商量对抗策略", "细菌进化出对所有药物的免疫力", "细菌学会了把抗生素当食物消化"], answer: 0, fact: "细菌通过突变+水平基因转移(细菌之间能交换 DNA),累积对多种抗生素的耐药。每用一种抗生素都筛选出耐这种的菌,长期下来就是'多重耐药'。", difficulty: "medium", faction: "pathogen", cardId: "sp_super_bacteria", type: "mechanism", principle: "coevolution", tags: ["ch2","multidrug","accumulation"] },
+  { q: "为什么超级细菌让医生不敢做小手术？", options: ["手术成本太高大家不愿意", "怕病人闹事不接受手术", "怕术后感染治不了,小手术变致命", "小手术利润低医院不想做"], answer: 2, fact: "现代医学(手术/化疗/器官移植)都依赖抗生素防感染。如果没有有效抗生素,即使阑尾炎手术也可能因术后感染致死——医学倒退回 19 世纪。这是'抗生素末日'最可怕的地方。", difficulty: "hard", faction: "pathogen", cardId: "sp_super_bacteria", type: "inference", principle: "tradeoff", tags: ["ch2","medicine_collapse","fundamental"] },
 ]
 
 // 已出过的题目索引（避免重复）

@@ -1,6 +1,6 @@
 # Sprint 32 Step 8: 题库校验 + 全量统计报告
 
-> 生成时间: 2026-06-21T07:20:45.843Z
+> 生成时间: 2026-06-21T07:41:50.420Z
 > 数据源: src/data/quizzes.js
 
 ## 1. 完整性校验
@@ -14,57 +14,57 @@
 
 | 维度 | 数字 |
 |---|---|
-| 总题数 | **330** |
-| 新题(Sprint 32 三批) | 150 |
+| 总题数 | **372** |
+| 新题(Sprint 32 三批) | 192 |
 | 老题(legacy) | 180 |
-| 涉及卡牌 | 86 / 136 (63%) |
-| 三层齐全卡 | 80 |
+| 涉及卡牌 | 100 / 136 (74%) |
+| 三层齐全卡 | 94 |
 | 部分覆盖卡 | 6 |
-| 完全无题卡 | 50 |
+| 完全无题卡 | 36 |
 
 ## 3. 题型分布 (type)
 
 | type | 数量 | 占比 |
 |---|---|---|
-| memorization | 117 | 35% |
-| mechanism | 111 | 34% |
-| inference | 102 | 31% |
+| memorization | 131 | 35% |
+| mechanism | 125 | 34% |
+| inference | 116 | 31% |
 
 ## 4. 难度分布 (difficulty)
 
 | difficulty | 数量 | 占比 |
 |---|---|---|
-| easy | 117 | 35% |
-| medium | 111 | 34% |
-| hard | 102 | 31% |
+| easy | 131 | 35% |
+| medium | 125 | 34% |
+| hard | 116 | 31% |
 
 ## 5. 阵营分布 (faction)
 
 | faction | 数量 | 占比 |
 |---|---|---|
-| nature | 85 | 26% |
-| body | 98 | 30% |
-| pathogen | 50 | 15% |
-| tech | 97 | 29% |
+| nature | 85 | 23% |
+| body | 98 | 26% |
+| pathogen | 92 | 25% |
+| tech | 97 | 26% |
 
 ## 6. principle 字段分布 (仅新题)
 
 | principle | 数量 |
 |---|---|
-| mechanism | 60 |
+| mechanism | 72 |
 | homeostasis | 7 |
-| tradeoff | 32 |
-| coevolution | 3 |
+| tradeoff | 43 |
+| coevolution | 8 |
 
 ## 7. 新题质量指标
 
-- 答案位置分布(0/1/2/3): 29 / 63 / 34 / 24
+- 答案位置分布(0/1/2/3): 46 / 75 / 42 / 29
 - 选项长度差 ≥ 12 字的题: **0** (应为 0)
 - 平均选项长度: 12 字
 
 ## 8. ch2 涉及卡牌覆盖
 
-### ✅ 三层齐全 (80 张)
+### ✅ 三层齐全 (94 张)
 - `ant_soldier`
 - `mimosa_timid`
 - `bee_worker`
@@ -145,6 +145,20 @@
 - `event_ecosystem_recovery`
 - `event_cambrian_explosion`
 - `sp_trex`
+- `common_cold_virus`
+- `norovirus_storm`
+- `ringworm_itch`
+- `dengue_mosquito`
+- `anthrax_spore`
+- `mrsa_superbug`
+- `hookworm_sucker`
+- `salmonella_poison`
+- `cholera_wave`
+- `event_gene_mutation`
+- `event_drug_resistance`
+- `event_global_pandemic`
+- `event_infection_outbreak`
+- `sp_super_bacteria`
 
 ### 🟡 部分覆盖 (6 张)
 - `cheetah_sprinter` (memo: 3, mech: 1, infer: 0)
@@ -154,7 +168,7 @@
 - `hiv_hunter` (memo: 0, mech: 2, infer: 1)
 - `covid_invader` (memo: 3, mech: 0, infer: 2)
 
-### ⛔ 完全无题 (50 张)
+### ⛔ 完全无题 (36 张)
 - `moss_pioneer`
 - `firefly_signal`
 - `cactus_guard`
@@ -163,29 +177,16 @@
 - `mantis_shrimp_punch`
 - `paramecium_swarm`
 - `whale_shark_wall`
-- `common_cold_virus`
-- `hookworm_sucker`
-- `norovirus_storm`
-- `ringworm_itch`
-- `salmonella_poison`
 - `roundworm_thief`
 - `cordyceps_zombie`
 - `prion_folder`
-- `cholera_wave`
-- `dengue_mosquito`
-- `anthrax_spore`
 - `ebola_terror`
 - `toxoplasma_controller`
-- `mrsa_superbug`
 - `pandemic_ultimate`
 - `event_immune_response`
 - `event_antigen_presentation`
 - `event_fever_response`
 - `event_stem_cell_diff`
-- `event_infection_outbreak`
-- `event_gene_mutation`
-- `event_drug_resistance`
-- `event_global_pandemic`
 - `event_lab_observation`
 - `event_clinical_trial`
 - `event_emergency_surgery`
@@ -193,7 +194,6 @@
 - `sp_world_tree`
 - `sp_car_t_cell`
 - `sp_brain_awakening`
-- `sp_super_bacteria`
 - `sp_ancient_virus`
 - `sp_nanobot`
 - `sp_crispr`
@@ -210,7 +210,7 @@
 
 - ✅ **题库完整性**: 100% 通过校验
 - ✅ **新题选项长度**: 全部齐平 (gap < 12)
-- 📊 **新题 type 分布** (memo 48 / mech 49 / infer 53) 接近 spec 目标的 35/40/25 比例
+- 📊 **新题 type 分布** (memo 62 / mech 63 / infer 67) 接近 spec 目标的 35/40/25 比例
 - 🏷️ **老题 legacy 标记**: 180 张老题用 'legacy' 标记，便于未来 review 重新分类
 
 ---
