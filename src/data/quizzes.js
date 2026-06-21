@@ -398,6 +398,75 @@ export const quizzes = [
   { q: "AI 看影像很准，为什么医院里还离不开人类医生？", options: ["AI 不会跟病人沟通，也不会综合考虑病史心理", "因为现在的 AI 经常出错，没人能完全信任", "因为人类医生有特殊执照，法律规定不能替代", "因为病人面对冷冰冰的 AI 会感到很尴尬害怕"], answer: 0, fact: "AI 擅长模式识别（看片子），但不擅长综合判断（病史 + 症状 + 心理 + 家庭）+ 沟通解释。最佳模式是'AI 辅助医生'——AI 看影像建议，医生最终判断和沟通。", difficulty: "hard", faction: "tech", cardId: "ai_doctor", type: "inference", principle: "tradeoff", tags: ["ch2","ai","collaboration"] },
   { q: "为什么医生说手破了流大血时，要先按住伤口而不是马上贴创可贴？", options: ["因为大伤口要先用清水冲洗才能贴上", "因为压住能直接止血，创可贴止不住大量血流", "因为创可贴上的胶水接触伤口会引起过敏", "因为创可贴只能盖住伤口不能让血液凝固"], answer: 1, fact: "按压能直接阻止血液流出，给身体凝血时间。创可贴只是物理覆盖——大量出血时它吸不住、固定不牢。优先级是：先止血→再清洁→最后覆盖。这是急救的基本顺序。", difficulty: "hard", faction: "tech", cardId: "bandaid_helper", type: "inference", principle: "tradeoff", tags: ["ch2","first_aid","priority"] },
   { q: "如果不按医生开的剂量吃完抗生素，会有什么后果？", options: ["没事，少吃点正好能省钱也减少副作用", "没杀干净的细菌可能产生耐药，下次失效", "提前停药剩下的抗生素会自然分解消失", "抗生素吃多了反而对肝肾有副作用伤害"], answer: 1, fact: "提前停药留下来的细菌是最强壮的那些——它们繁殖出耐药后代，下次同样药就无效了。这就是'超级细菌'产生的主要原因。所以一定要严格按疗程吃完。", difficulty: "hard", faction: "tech", cardId: "antibiotic_ultimate", type: "inference", principle: "coevolution", tags: ["ch2","resistance","compliance"] },
+
+  // ============================================================
+  // ch3 nature 批次 — 13 张卡 × 3 层 = 39 题（生态/海洋/陆地生物 + 4 事件 + sp_trex）
+  // ============================================================
+
+  // — 变形虫 (3) —
+  { q: "变形虫怎么移动和捕食？", options: ["长出尾巴像鱼一样游泳", "伸出'伪足'到处变形伸展", "用嘴巴一口咬住猎物", "飞起来扑到食物上去"], answer: 1, fact: "变形虫没有固定形状，靠伸出'伪足'来移动和捕食。它把食物整个包裹住再消化，就像一个会变形的小气球！", difficulty: "easy", faction: "nature", cardId: "amoeba_shapeshifter", type: "memorization", tags: ["ch3","microbe","movement"] },
+  { q: "变形虫为什么没有固定形状？", options: ["因为它只有一个细胞，细胞质能流动", "因为它身体太软无法保持形状", "因为它每天都要换不同形状", "因为它经常被其他动物压扁"], answer: 0, fact: "变形虫是单细胞生物——内部细胞质可以朝任何方向流动，推出'伪足'，所以形状可以随时变。多细胞生物之间有连接，就做不到。", difficulty: "medium", faction: "nature", cardId: "amoeba_shapeshifter", type: "mechanism", principle: "mechanism", tags: ["ch3","unicellular"] },
+  { q: "变形虫吞下细菌的方式，跟我们吃饭最大的不同是什么？", options: ["它直接把食物整个包住，没有专门的嘴和胃", "它能吃比自己大很多的食物", "它每次只能吃一个细菌", "它的消化时间比我们快很多"], answer: 0, fact: "单细胞生物没有'嘴+胃+肠'的分工——变形虫直接用细胞膜包住食物形成'食物泡'，再用消化酶分解。这是真正的'一身兼任所有器官'。", difficulty: "hard", faction: "nature", cardId: "amoeba_shapeshifter", type: "inference", principle: "mechanism", tags: ["ch3","digestion","unicellular"] },
+
+  // — 蜘蛛 (3) —
+  { q: "蜘蛛属于哪一类动物？", options: ["昆虫(因为体型小)", "爬行动物", "蛛形纲(8 条腿)", "哺乳动物"], answer: 2, fact: "蜘蛛不是昆虫！昆虫有 6 条腿，蜘蛛有 8 条腿，属于蛛形纲(还有蝎子等)。这是腿数最直观的区分方法。", difficulty: "easy", faction: "nature", cardId: "spider_trapper", type: "memorization", tags: ["ch3","arthropod","classification"] },
+  { q: "蜘蛛网为什么能黏住虫子，但蜘蛛自己不会被黏住？", options: ["因为蜘蛛走在网上时会变轻", "因为蜘蛛只走特定不黏的丝", "因为蜘蛛的脚有特殊涂层防黏", "因为蜘蛛的体重不会让网黏住"], answer: 1, fact: "蜘蛛网其实有两种丝——有黏的(横丝)和不黏的(放射状的辐丝)。蜘蛛走在不黏的辐丝上，所以不会粘到自己。这是设计巧妙的'专用通道'。", difficulty: "medium", faction: "nature", cardId: "spider_trapper", type: "mechanism", principle: "mechanism", tags: ["ch3","web","design"] },
+  { q: "蜘蛛丝按重量算比钢丝结实 5 倍。一根铅笔粗的蜘蛛丝绳可以做什么？", options: ["只能挂衣服不能承重", "可以拉一辆汽车甚至飞机", "跟铅笔粗的钢丝差不多", "一拉就断毕竟是蜘蛛丝"], answer: 1, fact: "蜘蛛丝按重量计算比钢丝结实 5 倍以上！科学家在研究人工蜘蛛丝，理论上能做防弹衣、超强缆绳等。'细而强'是因为微观分子结构特殊。", difficulty: "hard", faction: "nature", cardId: "spider_trapper", type: "inference", principle: "mechanism", tags: ["ch3","material","biomimetics"] },
+
+  // — 海龟 (3) —
+  { q: "海龟靠什么找到回家产卵的海滩？", options: ["跟着洋流游", "用眼睛认路", "跟着其他海龟", "感应地球磁场"], answer: 3, fact: "海龟靠地球磁场导航，从小记住出生地的磁场坐标，即使游到几千公里外，几十年后还能找到回家的路！", difficulty: "easy", faction: "nature", cardId: "sea_turtle_navigator", type: "memorization", tags: ["ch3","navigation","magnetic"] },
+  { q: "海龟为什么出生时就知道方向，不用学？", options: ["它们出生时就记下了出生地的磁场参数", "它们出生时父母教过它们", "它们的大脑有内置的世界地图", "它们跟着年长的海龟一起游"], answer: 0, fact: "小海龟刚孵化爬向大海的那一刻，它的'磁场感官'就被永久标定为出生地的坐标。所以几十年后产卵时，'找家'就是回到这个磁场位置。这是天生的'GPS 记忆'。", difficulty: "medium", faction: "nature", cardId: "sea_turtle_navigator", type: "mechanism", principle: "mechanism", tags: ["ch3","imprinting"] },
+  { q: "科学家说地球磁场每几十万年会翻转。如果翻转了海龟会怎样？", options: ["没影响，它们还有别的导航方式", "永远找不到家，会大批死亡", "海龟自己会学会反着走", "暂时迷路，直到下一代记住新磁场"], answer: 3, fact: "海龟一生记住的是出生时的磁场。如果磁场翻转，那一代会迷失方向，但新出生的小龟会以新的磁场为'家的坐标'。所以物种能适应，但中间一代会很惨。", difficulty: "hard", faction: "nature", cardId: "sea_turtle_navigator", type: "inference", principle: "tradeoff", tags: ["ch3","adaptation","tradeoff"] },
+
+  // — 变色龙 (3) —
+  { q: "变色龙除了隐藏，还会用变色做什么？", options: ["表达自己的心情(生气变深色等)", "让自己看起来更大一些", "让捕食者头晕迷糊", "让自己变得更暖和"], answer: 0, fact: "变色龙变色不只是为了隐藏！它们还用颜色表达心情——生气变深色，开心变浅色，求爱时变鲜艳。这是真正的'用皮肤说话'。", difficulty: "easy", faction: "nature", cardId: "chameleon_stealth", type: "memorization", tags: ["ch3","communication","color"] },
+  { q: "变色龙怎么改变身体的颜色？", options: ["它每天在不同颜色草上走一会儿", "它会吃不同颜色的食物染色", "它的皮肤表面会喷出彩色的水", "皮肤里的特殊细胞会反射不同光"], answer: 3, fact: "变色龙皮肤里有'虹彩细胞'——里面的微小晶体能调节间距，反射不同波长的光，所以看起来变色了。这是物理光学，不是化学染色，所以能秒变。", difficulty: "medium", faction: "nature", cardId: "chameleon_stealth", type: "mechanism", principle: "mechanism", tags: ["ch3","optics","physics"] },
+  { q: "如果你把一只变色龙放在镜子前，它会怎么反应？", options: ["把镜子里当对手，变得鲜艳又警觉", "没反应，因为它看不出是自己", "立刻变成镜子的银色", "安静下来，因为镜子里有同伴"], answer: 0, fact: "变色龙不能识别'自己'，会把镜子里的当成入侵者。所以会做出'威胁色'(深色+鼓气)，想吓退对方。这跟很多动物对镜子的反应一样，只有少数(海豚/大象/人类)能认出自己。", difficulty: "hard", faction: "nature", cardId: "chameleon_stealth", type: "inference", principle: "mechanism", tags: ["ch3","self_recognition"] },
+
+  // — 鲨鱼 (3) —
+  { q: "鲨鱼最厉害的'感官'是什么？", options: ["能感受到微弱的电信号", "视觉，能看清几十米外", "听觉，能听到几公里外", "嗅觉，只对血液敏感"], answer: 0, fact: "鲨鱼鼻子上有特殊的电感受器，能探测百万分之一伏特的电场——这比任何动物都灵敏！受伤的鱼电信号紊乱，鲨鱼能精准锁定。", difficulty: "easy", faction: "nature", cardId: "shark_hunter", type: "memorization", tags: ["ch3","sense","electroreception"] },
+  { q: "受伤的鱼为什么更容易被鲨鱼找到？", options: ["因为受伤鱼游得比较慢", "因为受伤鱼的电信号紊乱明显", "因为受伤鱼会流血染红海水", "因为受伤鱼会发出哭声"], answer: 1, fact: "所有动物移动时都会产生微弱电场。健康鱼的电场规律，受伤鱼的肌肉抽搐让电场紊乱——对鲨鱼来说就像'灯塔'一样明显。所以鲨鱼天生'挑弱'。", difficulty: "medium", faction: "nature", cardId: "shark_hunter", type: "mechanism", principle: "mechanism", tags: ["ch3","predation","signal"] },
+  { q: "暴风雨天的海面上，为什么鲨鱼往往更活跃？", options: ["因为它们喜欢暴雨的声音", "因为暴雨让它们体温降低要进食", "因为风浪让小鱼乱游电信号更乱", "因为暴雨把鲨鱼从深海冲上来"], answer: 2, fact: "暴风雨让小鱼在乱流中乱游，肌肉电场都变成'紊乱信号'——在鲨鱼的电感受器里，这就像满天都是受伤的猎物。所以暴雨天是鲨鱼最'丰收'的时候。", difficulty: "hard", faction: "nature", cardId: "shark_hunter", type: "inference", principle: "mechanism", tags: ["ch3","ecology","weather"] },
+
+  // — 章鱼 (3) —
+  { q: "章鱼有几个'大脑'？", options: ["只有 1 个，跟其他动物相同", "总共有 3 个分布在头部", "中央 1 个 + 每条触手 1 个 = 9 个", "0 个，章鱼完全没有大脑"], answer: 2, fact: "章鱼有 1 个中央大脑 + 每条触手都有自己的'小脑'(神经节)，总共 9 个！每条触手能独立思考和行动，是无脊椎动物里最聪明的。", difficulty: "easy", faction: "nature", cardId: "octopus_genius", type: "memorization", tags: ["ch3","intelligence","neural"] },
+  { q: "章鱼的触手为什么能独立思考？", options: ["因为它们能脱离身体独立存活", "因为章鱼会魔法", "因为每条触手都有自己的神经节集中", "因为它们大脑的能力被分散了"], answer: 2, fact: "每条触手都有几亿个神经元集中在'神经节'里，可以处理触觉、运动、抓握。这就像'分布式计算'——大脑下命令，触手自己决定细节。", difficulty: "medium", faction: "nature", cardId: "octopus_genius", type: "mechanism", principle: "mechanism", tags: ["ch3","distributed","neural"] },
+  { q: "章鱼断掉一条触手后，这条触手还能动几分钟。这说明什么？", options: ["触手已经死了，只是肌肉在抽搐", "章鱼有再生的超能力", "触手能再长回章鱼身上", "触手的神经节仍在工作，有自主性"], answer: 3, fact: "断掉的触手神经节依然活跃，能感受刺激、收缩肌肉——所以会继续动。科学家发现:断掉的触手甚至能完成'抓住食物'的动作！这就是分布式神经系统的奇迹。", difficulty: "hard", faction: "nature", cardId: "octopus_genius", type: "inference", principle: "mechanism", tags: ["ch3","autonomy","ganglia"] },
+
+  // — 大象 (3) —
+  { q: "大象群一般由谁来领导？", options: ["最年长的母象", "最强壮的公象", "投票选出的领袖", "没有领导各干各的"], answer: 0, fact: "大象群是母系社会——最年长的'族长母象'带领整群。她记得几十年的水源位置和迁徙路线，是整群的'活地图'。", difficulty: "easy", faction: "nature", cardId: "elephant_elder", type: "memorization", tags: ["ch3","matriarchy","social"] },
+  { q: "母象为什么是大象群的领导？", options: ["因为公象都太冲动不顾大局", "因为她是体型最大的母象", "因为她经验丰富记住所有水源", "因为大象社会有传统不能改"], answer: 2, fact: "大象寿命 60-70 年，老母象见过几次大旱、记得几百公里内每个水塘的位置。在干旱年——她的记忆就是整群的救命指南针。这是'经验比力量值钱'的极致体现。", difficulty: "medium", faction: "nature", cardId: "elephant_elder", type: "mechanism", principle: "mechanism", tags: ["ch3","memory","leadership"] },
+  { q: "如果一个大象群的老母象死了，最可能发生什么？", options: ["立刻有新的强壮母象接班，没影响", "公象会立刻接管整个象群", "象群会立刻解散各回各家", "整群可能在干旱时迷路，死亡率上升"], answer: 3, fact: "老母象的死亡是大象群的悲剧——年轻母象记忆有限，不熟悉远处的水源和危险区。研究表明，失去族长的象群，在干旱年的存活率明显下降。这就是'知识传承'的重要性。", difficulty: "hard", faction: "nature", cardId: "elephant_elder", type: "inference", principle: "tradeoff", tags: ["ch3","knowledge","survival"] },
+
+  // — 蚁后 (3) —
+  { q: "蚁后能活多久？", options: ["1 个月", "1 年", "5 年", "30 年"], answer: 3, fact: "蚁后是蚁群的核心，有的种类蚁后能活 30 年！她一生只交配一次，然后不停产卵几十年。工蚁通常只活几个月，但蚁后是真正的'家族基石'。", difficulty: "easy", faction: "nature", cardId: "ant_queen_colony", type: "memorization", tags: ["ch3","lifespan","colony"] },
+  { q: "上百万只蚂蚁怎么能像一个有机体一样协同工作？", options: ["因为每只蚂蚁都很聪明能自学", "因为它们能心电感应", "因为它们通过释放化学信号沟通", "因为蚁后会给每只蚂蚁打电话"], answer: 2, fact: "蚂蚁通过释放'信息素'告诉同伴:这里有食物、那里有危险、跟着我走。一万只蚂蚁的简单规则相加 = 整群表现出复杂的协同——这就是'涌现行为'。", difficulty: "medium", faction: "nature", cardId: "ant_queen_colony", type: "mechanism", principle: "mechanism", tags: ["ch3","emergence","pheromone"] },
+  { q: "如果蚁后死了，蚁群会发生什么？", options: ["立刻有新蚁后产生，没影响", "蚁群慢慢瓦解，几个月后消失", "工蚁会自动接班开始产卵", "蚂蚁会四散逃跑去其他蚁群"], answer: 1, fact: "大部分蚁群只有一个蚁后产卵——她死了，工蚁慢慢老死，没有新生力量补充。几个月内蚁群就会消亡。这是'单点故障'——所有鸡蛋放在一个篮子里的脆弱性。", difficulty: "hard", faction: "nature", cardId: "ant_queen_colony", type: "inference", principle: "tradeoff", tags: ["ch3","single_point","fragility"] },
+
+  // — 光合作用 (3) —
+  { q: "光合作用主要产生什么？", options: ["二氧化碳和水", "糖和氧气", "盐和氮气", "蛋白质和脂肪"], answer: 1, fact: "光合作用把阳光的能量转化成糖(植物的食物)和氧气(地球大气的来源)。没有光合作用，地球上不会有氧气也不会有动物。", difficulty: "easy", faction: "nature", cardId: "event_photosynthesis", type: "memorization", tags: ["ch3","photosynthesis","oxygen"] },
+  { q: "植物为什么主要白天'呼吸'放出氧气？", options: ["因为白天空气更新鲜清新", "因为植物害怕黑暗的环境", "因为光合作用需要阳光做能量", "因为植物的'肺'只白天工作"], answer: 2, fact: "光合作用必须有阳光——阳光的能量推动反应:CO2 + H2O → 糖 + O2。所以白天植物制造氧气，晚上反过来吸氧消耗糖(跟动物一样呼吸)。", difficulty: "medium", faction: "nature", cardId: "event_photosynthesis", type: "mechanism", principle: "mechanism", tags: ["ch3","day_night","energy"] },
+  { q: "如果世界上所有植物突然消失，空气会发生什么？", options: ["几年内氧气会慢慢用光，大气不适合呼吸", "空气变得很纯净，没杂质", "空气会变得很潮湿", "空气什么都不会变化"], answer: 0, fact: "大气中氧气来自亿万年累积的光合作用。停止生产 + 动物持续消耗 = 氧气浓度会逐渐下降。几年的存量足够，但几十年后地球可能像火星(没植物的氧含量极低)。", difficulty: "hard", faction: "nature", cardId: "event_photosynthesis", type: "inference", principle: "tradeoff", tags: ["ch3","ecosystem","oxygen_cycle"] },
+
+  // — 食物链爆发 (3) —
+  { q: "食物链中能量是怎么传递的？", options: ["从植物→食草动物→食肉动物", "从动物→植物→土壤", "从太阳直接传到每种动物", "从食肉动物→食草动物→植物"], answer: 0, fact: "食物链的能量源头是阳光——植物吸光合成糖，食草动物吃植物，食肉动物吃食草动物。每一级把上一级的能量传下去，这就是'能量流'。", difficulty: "easy", faction: "nature", cardId: "event_food_chain_burst", type: "memorization", tags: ["ch3","food_chain","energy"] },
+  { q: "为什么食物链顶端的猎手数量很少？", options: ["因为它们体型大占地方很多", "因为它们故意控制自己的数量", "因为每传一级能量都会大量损失", "因为它们没有耐心生孩子"], answer: 2, fact: "食物链每传一级，能量约 90% 在生命活动中以热的形式散失，只有 10% 留下来——所以养活 1 头狮子需要 100 只食草动物，养活 100 只食草动物需要 1 万棵植物。", difficulty: "medium", faction: "nature", cardId: "event_food_chain_burst", type: "mechanism", principle: "mechanism", tags: ["ch3","energy_pyramid"] },
+  { q: "森林里有 1000 只兔子和 10 只狼。把兔子保护起来不让狼吃，会发生什么？", options: ["兔子大量繁殖吃光草，然后自己大批饿死", "狼会改变习惯改成吃草维持生存", "兔子会变得越来越聪明躲危险", "森林会变成动物天堂大家都安全"], answer: 0, fact: "食物链的每一层都互相制约——失去捕食者，草食动物会爆增然后吃光所有植物，然后大批饿死。这就是为什么不能随便'保护一种动物'。生态平衡需要每一层。", difficulty: "hard", faction: "nature", cardId: "event_food_chain_burst", type: "inference", principle: "tradeoff", tags: ["ch3","balance","intervention"] },
+
+  // — 生态恢复 (3) —
+  { q: "1988 年黄石公园大火烧毁森林后，大约多久就恢复了？", options: ["1 年", "5 年", "20 年", "100 年"], answer: 2, fact: "1988 年黄石公园大火烧毁了大片森林，但仅 20 年后新生的树木就覆盖了烧焦的土地，野生动物也全部回归。生态系统有惊人的自我恢复能力。", difficulty: "easy", faction: "nature", cardId: "event_ecosystem_recovery", type: "memorization", tags: ["ch3","recovery","resilience"] },
+  { q: "烧光的森林为什么能自己长回来？", options: ["因为政府派人重新种了树", "因为土壤里和周围还有种子+物种多样", "因为森林里的灵魂在重生", "因为天会下'树木雨'"], answer: 1, fact: "大火虽然烧光了大树，但土壤里有种子库 + 周围未烧区的物种 + 一些火后才发芽的植物(有些种子需要高温激活)。所以生态系统能自己'重新洗牌'再生长。", difficulty: "medium", faction: "nature", cardId: "event_ecosystem_recovery", type: "mechanism", principle: "mechanism", tags: ["ch3","seed_bank","diversity"] },
+  { q: "如果热带雨林被砍光后铺成水泥地几十年，生态还能恢复吗？", options: ["还能，几十年就能回到原貌", "永远恢复不了，毫无希望", "几个月就能恢复，雨林强大", "还能，但需要几百到几千年"], answer: 3, fact: "烧火留下种子和土壤——能快速恢复。但水泥地杀死了种子库 + 土壤微生物，加上热带土壤本身贫瘠，需要几百到几千年才能慢慢回到原貌。所以'破坏比建设容易得多'。", difficulty: "hard", faction: "nature", cardId: "event_ecosystem_recovery", type: "inference", principle: "tradeoff", tags: ["ch3","tipping_point"] },
+
+  // — 物种大爆发 (3) —
+  { q: "寒武纪生物大爆发发生在多久前？", options: ["5400 万年前", "5.4 亿年前", "100 万年前", "10 亿年前"], answer: 1, fact: "5.4 亿年前的寒武纪大爆发是生命史上最神奇的事件——短短几百万年内几乎所有现代动物的祖先同时出现！从三叶虫到奇虾，生命多样性瞬间爆发。", difficulty: "easy", faction: "nature", cardId: "event_cambrian_explosion", type: "memorization", tags: ["ch3","evolution","timeline"] },
+  { q: "寒武纪为什么能短时间内爆发出这么多新生物？", options: ["因为外星人来了创造了它们", "因为地球突然变得好玩了", "新基因 + 海洋氧气增加 + 复杂环境互动", "因为有人故意安排好的"], answer: 2, fact: "海洋氧气足够后，生物能发展更复杂的身体结构 + 出现眼睛等新基因 + 各种生物彼此适应竞争 → 演化加速，几百万年内多样性爆发。这是'突破临界点'的典型例子。", difficulty: "medium", faction: "nature", cardId: "event_cambrian_explosion", type: "mechanism", principle: "mechanism", tags: ["ch3","threshold","oxygen"] },
+  { q: "如果今天再次出现一次生物大爆发，可能会怎样？", options: ["几年内就有无数新物种出现", "速度比寒武纪慢很多，要几百万年", "不可能再次发生大爆发", "会瞬间出现全新的动物种类"], answer: 1, fact: "演化的速度由突变率 + 选择压力 + 时间决定——这些是物理规律不可加速。即使有大量新机会(比如人类灭绝后)，新物种的爆发也需要几百万年。我们感觉'爆发'，其实是地质年代的'瞬间'。", difficulty: "hard", faction: "nature", cardId: "event_cambrian_explosion", type: "inference", principle: "mechanism", tags: ["ch3","evolution_speed"] },
+
+  // — 霸王龙 (3) —
+  { q: "霸王龙大约生活在多久前？", options: ["100 万年前", "1 亿年前", "6800 万年前", "5 亿年前"], answer: 2, fact: "霸王龙生活在 6800 万年前的白垩纪晚期，是有史以来最大的陆地掠食者之一。它的牙齿像香蕉一样大，咬合力高达 6 吨——相当于一辆卡车的重量压在一个点上！", difficulty: "easy", faction: "nature", cardId: "sp_trex", type: "memorization", tags: ["ch3","dinosaur","cretaceous"] },
+  { q: "霸王龙的咬合力为什么那么强？", options: ["因为它的牙齿有特殊磁力", "因为它的下颚肌肉特别巨大粗壮", "因为它喷火来配合咬合", "因为它的口水会腐蚀猎物"], answer: 1, fact: "霸王龙的头骨上有巨大的肌肉附着位置——下颚闭合的肌肉特别粗。这就像'大力士'，简单粗暴但有效。咬合力 6 吨是脊椎动物史上最高之一。", difficulty: "medium", faction: "nature", cardId: "sp_trex", type: "mechanism", principle: "mechanism", tags: ["ch3","bite_force","anatomy"] },
+  { q: "如果霸王龙复活到今天的世界，它的命运会怎样？", options: ["立刻称霸地球没人能挡住", "很可能饿死——找不到合适的猎物", "变成可爱的宠物被人养", "会立刻变成现代的动物"], answer: 1, fact: "霸王龙的食谱是其他大型恐龙——今天的猎物(牛、马)体型太小让它吃不饱，而且它行动慢容易被发现。生态系统已经不适合它，理论上'称霸'实际上会饿死。", difficulty: "hard", faction: "nature", cardId: "sp_trex", type: "inference", principle: "tradeoff", tags: ["ch3","extinction","ecological_niche"] },
 ]
 
 // 已出过的题目索引（避免重复）
