@@ -37,7 +37,9 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
   const isSp = card.type === 'sp'
   const hpPercent = Math.max(0, (hp / maxHp) * 100)
   const hpColor = hpPercent > 50 ? 'bg-green-500' : hpPercent > 25 ? 'bg-yellow-500' : 'bg-red-500'
-  const isDead = hp <= 0
+  // 事件卡没有 HP 概念，永远不算"死亡"。否则展示场景(showcase/图鉴/卡组/抽卡)
+  // 传 hp={card.hp || 0}=0 → 误判 isDead → 整张卡变灰。战斗里生物/SP 仍按 hp<=0 判死。
+  const isDead = !isEvent && hp <= 0
   const faction = FACTIONS[card.faction]
 
   const bgClass = isSp ? spBg : isEvent ? eventBg : rarityColors[card.rarity]
