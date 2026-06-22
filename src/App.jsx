@@ -193,7 +193,7 @@ export default function App() {
           prog.claimedRewards[rewardKey] = true
           const r = stageConfig.rewards.firstClear
           if (r?.coins) economy.addCoins(r.coins)
-          if (r?.diamonds) economy.addCoins(r.diamonds) // 暂用coins代替
+          if (r?.diamonds) economy.addDiamonds(r.diamonds)
         }
         if (stars >= 3) {
           const threeKey = `${stageConfig.stageId}_three`
@@ -227,8 +227,7 @@ export default function App() {
               economy.addCoins(500)
             } else if (chapterId === 'ch3') {
               economy.addCoins(500)
-              // diamonds: 暂用 coins 代替
-              economy.addCoins(10)
+              economy.addDiamonds(10)
             } else if (chapterId === 'ch4') {
               // "科学家🔬"称号 — 标记存在 claimedRewards 中
               // UI 在 TitleScreen / CampaignScreen 读取显示

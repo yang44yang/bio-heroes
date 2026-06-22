@@ -104,6 +104,10 @@ export function useEconomy() {
     setState(prev => ({ ...prev, coins: prev.coins + amount }))
   }, [])
 
+  const addDiamonds = useCallback((amount) => {
+    setState(prev => ({ ...prev, diamonds: (prev.diamonds || 0) + amount }))
+  }, [])
+
   const spendCoins = useCallback((amount) => {
     return setState(prev => {
       if (prev.coins < amount) return prev
@@ -368,6 +372,7 @@ export function useEconomy() {
     quizTotalAnswered: state.quizTotalAnswered ?? 0,
 
     addCoins,
+    addDiamonds,
     spendCoins,
     canAfford,
     calculateBattleReward,
