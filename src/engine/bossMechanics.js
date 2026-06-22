@@ -68,6 +68,10 @@ const covidBoss = {
 
   /**
    * onHPThreshold: HP < 50% → covid_invader ATK +2000 + 触发对话
+   * 修复：之前无论场上是否还有 covid_invader 都 addLog + BOSS_EVENT，
+   * 玩家先击杀 covid_invader 主体后再触及 50% HP 会看到"觉醒"动画但什么都没变。
+   * 现在：检查场上是否有 covid_invader 活着，没有则静默推进 phase（对话仍触发，
+   * 因为对话是 boss 主人台词，跟 covid_invader 在不在场无关）。
    */
   onHPThreshold({ currentHP, maxHP, enemyField, setEnemyField, addLog, bossState }) {
     if (bossState.phase >= 2) return { events: [], dialogue: null }
@@ -75,6 +79,15 @@ const covidBoss = {
     if (ratio >= 0.5) return { events: [], dialogue: null }
 
     bossState.phase = 2
+    const covidAlive = enemyField.some(
+      c => c && c.currentHp > 0 && c.id === 'covid_invader'
+    )
+
+    if (!covidAlive) {
+      // 主体已被击杀，觉醒无目标 → 不弹"+2000"动画，仅推进剧情对话
+      return { events: [], dialogue: 'bossHalfHP' }
+    }
+
     // Buff covid_invader ATK
     setEnemyField(prev =>
       prev.map(c => {
