@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21 续⁶（**填洞 ch3 Boss SP**：新增 sp_gaia_restoration 盖娅复苏·万物归野，ch2/ch3/ch4 三个 Boss SP 齐了。前序同日：成就三类 / 事件卡发灰 / 每日挑战 / 钻石+LanguageContext / SW dev 不接管）
+> 更新时间: 2026-06-22（**修 onDeath 技能事件路由错位**：干细胞分化/大肠杆菌分裂等 onDeath 召唤·复活·治疗类技能全部按攻击方 side 错路由 + 被杀方场被 .filter(Boolean) 删空位 → 改用防守方 side + 保留 null 空位。前序 2026-06-21 续⁶ 填洞 ch3 Boss SP）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,13 @@
 ---
 
 ## 最近完成
+
+### 2026-06-22 onDeath 技能事件路由错位修复（干细胞分化等失效）✅（a962f8c）
+齐齐实测：干细胞·万能变身者被敌方打死、场上有空位却不分化。**这是干细胞分化的"完整修复"**——此前 5d25ffc 只加了"分化失败 NARRATIVE_LOG"反馈，真正的路由错位根因没动。
+- **根因**（useBattle.js `handlePostAttackSkills`）两 bug 叠加：① onDeath 的 friendlyField 被 `.filter(Boolean)` 删掉 null 空位 → `revive_as`/`split` 按下标 `findEmptySlot` 找空位假阴性"场上没空位"；② onKill（攻击方技能）和 onDeath（防守方技能）混在同一 `allEvents` 用**攻击方 side** apply → 防守方的 `SUMMON_CARD{side:'friendly'}` 落到**攻击方**场，玩家看不到。
+- **改法**：onKill / onDeath 分开 apply，各用各的 side；onDeath 引入 `defenderSide` + 被杀方**原始场**（保留 null 空位）+ 被杀方弃牌堆。`skillTemplates.js` 不动（revive_as 本就对含 null 的原始 field 正确工作）。共享函数 → 玩家攻击(L1680)/敌方攻击(L1926)两条路径一次修好。
+- **影响面**（原全部按攻击方 side 错路由 → 本次一并修正）：`split`(大肠杆菌分裂)、`chance_revive`(章鱼/逆转录复活)、`heal_leader`(孢子散播)、`damage_random_enemy`(飞沫传播)、`debuff_allies`(Core of Life)、`revive_as`(干细胞)。孢子散播 heal_leader 从"回攻击方主人"翻成"回死亡卡自己主人"——修正不是回归。
+- **验证**：build 绿 / 9 套测试全绿（新增 `scripts/test-onDeath-routing.mjs` 10 接线断言 + `scripts/test-differentiation.mjs` 加空位定位 case [活卡,null,null]→slot1 / [活卡,活卡]→NARRATIVE_LOG，31 断言）/ vite preview 产物冒烟（标题屏全渲染、0 console error）。⏳ 齐齐真机实测：组含干细胞 + 人体系 R 卡的牌，先让 1-2 张 R 卡进弃牌堆，再让干细胞被敌方打死且留空位 → 应见日志"🧬 …分化为 XX"且新卡出现在**自己**场空位；顺带验大肠杆菌 Binary Fission 死亡分裂落到正确一方。
 
 ### 2026-06-21 续⁶ ch3 Boss SP 补完：sp_gaia_restoration 盖娅复苏·万物归野 ✅（beb2239）
 方向 D 已知洞：ch2/ch4 Boss 都有专属 SP，ch3 蓝鲸 Boss 通关空奖。本次填上，三章 SP 齐。
@@ -422,6 +429,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 - ~~ATK buff 永久叠加 bug~~ ✅ 已修（atk_boost status + tick）
 - ~~Conundrum effect enemyExtraTurns / antibiotic_weakened 未生效~~ ✅ 已修
 - ~~星数 UI 显示满星~~ ✅ 已修
+- ~~onDeath 技能事件按攻击方 side 错路由 + 被杀方场 .filter(Boolean) 删空位（干细胞分化/大肠杆菌分裂等所有 onDeath 召唤·复活·治疗失效）~~ ✅ 已修（a962f8c，⏳ 待齐齐实测分化落到自己场）
 
 ### 未覆盖功能
 - 深度战役测试：Sprint 23-30b 的改动需要实战暴露 bug
