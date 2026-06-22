@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-22（**修 onDeath 技能事件路由错位**：干细胞分化/大肠杆菌分裂等 onDeath 召唤·复活·治疗类技能全部按攻击方 side 错路由 + 被杀方场被 .filter(Boolean) 删空位 → 改用防守方 side + 保留 null 空位。前序 2026-06-21 续⁶ 填洞 ch3 Boss SP）
+> 更新时间: 2026-06-22 续（**老题库 legacy 精分类**：180 道老题 type 原是 difficulty 的 1:1 机械映射，按「严格认知动作」重标为 153 mem/23 mech/4 inf + 补 30 道 principle + 语义 tags；诚实暴露老题库 ~85% 是事实回忆题，产出 17 道可改写候选 backlog。前序同日：修 onDeath 路由错位）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,16 @@
 ---
 
 ## 最近完成
+
+### 2026-06-22 续 老题库 legacy 精分类（type/principle/tags）✅（07db703）
+180 道 legacy 老题的 `type` 原来是 `difficulty` 的 1:1 机械映射（easy→memorization / medium→mechanism / hard→inference，0 偏差），等于零信息量。按 Yang 校准的**严格认知动作**规则重新分类：
+- **规则**：「是什么/多少/哪个/哪里/有没有」= memorization（哪怕冷门）；「为什么/怎么/因为什么」= mechanism；「套第一性原理判断新场景」= inference（Yang 拍板 #29 捕蝇草食虫=inference 校准了边界）。principle「能套就补、套不上留空」。
+- **结果**：153 mem / 23 mech / 4 inf。**头号发现：老题库 ~85% 是事实回忆题（趣味冷知识），原理理解基本靠新 300 题在扛。** 双向修正——16 道「为什么/怎么」从 mem/inf **上修**为 mechanism（如"疫苗工作原理"/"为什么胃不被自己消化"/"洗手原理"）；约 120 道冷门事实从 mech/inf **下修**为 memorization。
+- **4 道 inference**：捕蝇草为什么食虫（异养/营养）、为什么医学发现多是意外、抗生素别滥用 + 吃完整个疗程（均=自然选择推理）。
+- **principle**：30 道补上（tradeoff 如蜜蜂蜇人会死/猎豹过热、homeostasis 如蓝鲸潜水心跳、coevolution 如切叶蚁种菌、mechanism）。type=mem 但暗含取舍/稳态/共生的题也补了 principle（type≠principle，分离两个维度才是这套分类的价值）。
+- **tags**：从 `[legacy, faction]` 换成 `[legacy, 内容标签…]`（如 `[legacy, hygiene, soap, handwashing]`）。**保留 `legacy` 标记**——`validate-quizzes.mjs` 靠它把老题排除在「答案位置/选项长度偏置」统计外（那批偏置只在新题修过，本轮没动）。
+- **产出 backlog**：`outputs/legacy_quiz_rewrite_candidates.md` 列了 **17 道可改写候选**——现在是 trivia 但 fact 里埋了原理，改写题干成「为什么/怎么」就能升级成 mechanism/inference（如绦虫为何不需消化系统、为什么红细胞是凹饼形）。这是**内容改写**活（动 q/options/fact），Yang 定哪些做。
+- **验证**：build 绿 / validate-quizzes 0 错 0 警（480 题 / 老题 180 仍正确识别）/ 9 套测试零回归。转换脚本 `outputs/apply-legacy-reclass.mjs`（gitignore，一次性）。详细方法见 `outputs/legacy_quiz_reclass_nature.md`。
 
 ### 2026-06-22 onDeath 技能事件路由错位修复（干细胞分化等失效）✅（a962f8c）
 齐齐实测：干细胞·万能变身者被敌方打死、场上有空位却不分化。**这是干细胞分化的"完整修复"**——此前 5d25ffc 只加了"分化失败 NARRATIVE_LOG"反馈，真正的路由错位根因没动。
@@ -465,14 +475,9 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 - 3 批 +189 道新题，卡覆盖 100% (136/136)
 - 详见上文 2026-06-21 续段
 
-### 推荐方向 A++++：老 180 题 'legacy' tag review
-Sprint 32 Step 7 给老题用 difficulty→type 近似映射，标了 legacy tag。
-真实分类需要逐道审：
-- 哪些 medium 是真"机制题"vs 只是"冷门事实趣事题"？
-- 哪些 hard 是真"推理题"vs 只是"知识深度题"？
-- 估计 180 道审 + 重新标 type/principle/tags 字段，预估 6-8h，
-  Yang 协作（需逐道决定）
-- 完成后整个题库（480 道）都是经过精分类的
+### ~~推荐方向 A++++：老 180 题 'legacy' tag review~~ ✅ 已完成（2026-06-22 续，07db703）
+- 180 道按严格认知动作重分类（153 mem / 23 mech / 4 inf），补 30 道 principle + 语义 tags，整个 480 题库已精分类。
+- **留尾（内容升级，未做）**：`outputs/legacy_quiz_rewrite_candidates.md` 的 17 道可改写候选——把暗含原理的 trivia 改写成机制/推理题。这是动 q/options/fact 的**内容活**，等 Yang 决定哪些做、改写还是新增。做完老题库的 mechanism/inference 占比能显著拉升。
 
 ### 推荐方向 A+：抽卡 Phase D / E（实测反馈良好后）
 spec 已为后续预留：
