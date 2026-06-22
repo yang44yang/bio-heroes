@@ -159,7 +159,9 @@ export function useBattle() {
     if (globalEffectsRef.current.includes('antibiotic_weakened') && card.tags?.includes('antibiotic')) {
       atk = Math.floor(atk / 2)
     }
-    return { ...card, atk, currentHp: card.hp, maxHp: card.hp, statuses: [] }
+    // baseAtk/baseHp 保留卡牌设计原值，供 UI 显示数值增量(buff/突变后差异化)
+    // 注意 atk 已经可能被 antibiotic_weakened 减半，baseAtk 仍取 card.atk(更"原始"的数据层值)
+    return { ...card, atk, baseAtk: card.atk, baseHp: card.hp, currentHp: card.hp, maxHp: card.hp, statuses: [] }
   }
 
   function hasGuard(field) {

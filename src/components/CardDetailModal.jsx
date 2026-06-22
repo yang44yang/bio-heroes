@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 import { FACTIONS } from '../data/deckRules'
 import { useLanguage } from '../i18n/LanguageContext'
+import { describeStatus } from '../utils/statusDescriptor'
 
 const rarityColor = {
   R: 'text-blue-300',
@@ -104,17 +105,59 @@ export default function CardDetailModal({
           </div>
 
           <div className="flex justify-center gap-4 text-sm mb-3">
-            {card.atk != null && <span className="text-red-400">⚔️ {card.atk}</span>}
-            {/* 战斗中点开卡显示当前 HP / 最大 HP(buff/突变后)；图鉴/卡组只 fallback base hp。
-                之前只显示 card.hp(base 字段) → buff 后 ATK 更新但 HP 永远显示原值，让玩家
-                误以为"ATK 涨了 HP 没动"(实际事件突变都是 ATK ×1.5 HP ×0.5/0.7)。*/}
-            {(card.currentHp != null && card.maxHp != null) ? (
-              <span className="text-green-400">❤️ {card.currentHp}/{card.maxHp}</span>
-            ) : card.hp != null && (
+            {card.atk != null && (() => {
+              // 战斗实例有 baseAtk → 显示当前值 + 增量(buff/突变/减益后)；图鉴/卡组无 baseAtk → 只显示数值
+              const delta = card.baseAtk != null ? card.atk - card.baseAtk : 0
+              return (
+                <span className="text-red-400">
+                  ⚔️ {card.atk}
+                  {delta !== 0 && (
+                    <span className={`ml-1 text-xs ${delta > 0 ? 'text-green-300' : 'text-orange-300'}`}>
+                      ({delta > 0 ? '+' : ''}{delta})
+                    </span>
+                  )}
+                </span>
+              )
+            })()}
+            {/* HP: 战斗实例显示 currentHp/maxHp + (vs baseHp 上限增量); 图鉴/卡组 fallback base hp */}
+            {(card.currentHp != null && card.maxHp != null) ? (() => {
+              const maxDelta = card.baseHp != null ? card.maxHp - card.baseHp : 0
+              return (
+                <span className="text-green-400">
+                  ❤️ {card.currentHp}/{card.maxHp}
+                  {maxDelta !== 0 && (
+                    <span className={`ml-1 text-xs ${maxDelta > 0 ? 'text-green-300' : 'text-orange-300'}`}>
+                      ({maxDelta > 0 ? '+' : ''}{maxDelta} 上限)
+                    </span>
+                  )}
+                </span>
+              )
+            })() : card.hp != null && (
               <span className="text-green-400">❤️ {card.hp}</span>
             )}
             {cost != null && <span className="text-blue-400">{t('collection.detail.cost', { n: cost })}</span>}
           </div>
+
+          {/* 当前状态区 — 仅战斗实例(有 statuses)显示。让齐齐看懂"ATK 为什么变这样" */}
+          {Array.isArray(card.statuses) && card.statuses.length > 0 && (
+            <div className="mb-3 bg-gray-800/50 rounded-lg p-2.5 border border-gray-700">
+              <div className="text-[10px] text-gray-400 mb-1.5 font-bold">✨ 当前状态</div>
+              <div className="space-y-1">
+                {card.statuses.map((s, i) => {
+                  const d = describeStatus(s)
+                  if (!d) return null
+                  const colorCls = d.kind === 'buff' ? 'text-green-300' : d.kind === 'debuff' ? 'text-orange-300' : 'text-gray-300'
+                  return (
+                    <div key={i} className="text-xs flex items-start gap-1.5">
+                      <span>{d.emoji}</span>
+                      <span className={`font-bold ${colorCls}`}>{d.label}</span>
+                      {d.detail && <span className="text-gray-300">— {d.detail}</span>}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {card.skills?.length > 0 && (
             <div className="mb-3 space-y-2">

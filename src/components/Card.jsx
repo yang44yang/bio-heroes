@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react'
 import { motion } from 'framer-motion'
 import { FACTIONS, RARITIES } from '../data/deckRules'
 import { useLanguage } from '../i18n/LanguageContext'
+import { smallBadgesFor } from '../utils/statusDescriptor'
 
 const rarityColors = {
   R: 'from-blue-600 to-blue-800',
@@ -141,6 +142,22 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
           🛡️{shieldAmount}
         </div>
       )}
+
+      {/* 额外 status 角标(atk_boost / immune_tech / swift_boost / herd_immunity / event_debuff)
+          叠在卡牌底部不抢顶部空间。中毒/护盾/沉睡 已经在上方有专属角标，这里跳过它们。 */}
+      {!isDead && !isEvent && (() => {
+        const badges = smallBadgesFor(statuses)
+        if (badges.length === 0) return null
+        return (
+          <div className="absolute bottom-0 left-0 right-0 flex flex-wrap gap-0.5 px-0.5 pb-0.5 z-10 pointer-events-none">
+            {badges.map(b => (
+              <span key={b.key} className={`text-[8px] sm:text-[9px] leading-tight px-1 rounded ${b.cls}`}>
+                {b.text}
+              </span>
+            ))}
+          </div>
+        )
+      })()}
 
       {/* 费用（左上） */}
       <div className={`absolute -top-1.5 -left-1.5 sm:-top-2 sm:-left-2 w-5 h-5 sm:w-6 sm:h-6 rounded-full border flex items-center justify-center text-[10px] sm:text-xs font-black text-white shadow z-20
