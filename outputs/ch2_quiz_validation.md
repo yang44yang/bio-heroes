@@ -1,6 +1,6 @@
 # Sprint 32 Step 8: 题库校验 + 全量统计报告
 
-> 生成时间: 2026-06-21T08:16:49.793Z
+> 生成时间: 2026-06-22T06:29:36.103Z
 > 数据源: src/data/quizzes.js
 
 ## 1. 完整性校验
@@ -17,18 +17,18 @@
 | 总题数 | **480** |
 | 新题(Sprint 32 三批) | 300 |
 | 老题(legacy) | 180 |
-| 涉及卡牌 | 136 / 136 (100%) |
-| 三层齐全卡 | 130 |
-| 部分覆盖卡 | 6 |
-| 完全无题卡 | 0 |
+| 涉及卡牌 | 136 / 137 (99%) |
+| 三层齐全卡 | 101 |
+| 部分覆盖卡 | 35 |
+| 完全无题卡 | 1 |
 
 ## 3. 题型分布 (type)
 
 | type | 数量 | 占比 |
 |---|---|---|
-| memorization | 167 | 35% |
-| mechanism | 161 | 34% |
-| inference | 152 | 32% |
+| memorization | 251 | 52% |
+| mechanism | 122 | 25% |
+| inference | 107 | 22% |
 
 ## 4. 难度分布 (difficulty)
 
@@ -51,10 +51,10 @@
 
 | principle | 数量 |
 |---|---|
-| mechanism | 113 |
-| homeostasis | 8 |
-| tradeoff | 73 |
-| coevolution | 8 |
+| coevolution | 11 |
+| mechanism | 134 |
+| tradeoff | 77 |
+| homeostasis | 10 |
 
 ## 7. 新题质量指标
 
@@ -64,41 +64,12 @@
 
 ## 8. ch2 涉及卡牌覆盖
 
-### ✅ 三层齐全 (130 张)
-- `ant_soldier`
-- `mimosa_timid`
-- `bee_worker`
-- `jellyfish_stealth`
-- `sunflower_charger`
-- `electric_eel_battery`
-- `orca_alpha`
-- `blue_whale_titan`
-- `platelet_guardian`
-- `red_blood_cell`
-- `stomach_acid`
-- `white_blood_cell`
-- `skin_barrier`
-- `neuron_messenger`
-- `antibody_missile`
+### ✅ 三层齐全 (101 张)
+- `venus_flytrap`
 - `lung_engine`
-- `skeleton_frame`
-- `heart_engine`
 - `flu_virus`
-- `cavity_bacteria`
-- `rabies_virus`
-- `ecoli_thug`
-- `tapeworm_lurker`
-- `plasmodium_parasite`
 - `bandaid_helper`
-- `thermometer_alarm`
-- `stethoscope_listener`
-- `xray_vision`
-- `microscope_eye`
-- `anesthesia_fog`
 - `penicillin_pioneer`
-- `vaccine_trainer`
-- `scalpel_blade`
-- `antibiotic_ultimate`
 - `smallpox_ghost`
 - `tear_drop_lysozyme`
 - `eyelash_interceptor`
@@ -196,16 +167,45 @@
 - `sp_quantum_healer`
 - `sp_vaccine_shield`
 
-### 🟡 部分覆盖 (6 张)
-- `cheetah_sprinter` (memo: 3, mech: 1, infer: 0)
-- `venus_flytrap` (memo: 0, mech: 2, infer: 1)
-- `bacteriophage_killer` (memo: 3, mech: 0, infer: 3)
-- `botulinum_chef` (memo: 0, mech: 0, infer: 4)
-- `hiv_hunter` (memo: 0, mech: 2, infer: 1)
-- `covid_invader` (memo: 3, mech: 0, infer: 2)
+### 🟡 部分覆盖 (35 张)
+- `ant_soldier` (memo: 6, mech: 0, infer: 0)
+- `mimosa_timid` (memo: 4, mech: 1, infer: 0)
+- `bee_worker` (memo: 5, mech: 0, infer: 0)
+- `jellyfish_stealth` (memo: 5, mech: 0, infer: 0)
+- `sunflower_charger` (memo: 4, mech: 0, infer: 0)
+- `electric_eel_battery` (memo: 4, mech: 0, infer: 0)
+- `cheetah_sprinter` (memo: 4, mech: 0, infer: 0)
+- `orca_alpha` (memo: 4, mech: 1, infer: 0)
+- `blue_whale_titan` (memo: 5, mech: 0, infer: 0)
+- `platelet_guardian` (memo: 3, mech: 0, infer: 0)
+- `red_blood_cell` (memo: 5, mech: 2, infer: 0)
+- `stomach_acid` (memo: 4, mech: 1, infer: 0)
+- `white_blood_cell` (memo: 2, mech: 2, infer: 0)
+- `skin_barrier` (memo: 4, mech: 0, infer: 1)
+- `neuron_messenger` (memo: 8, mech: 0, infer: 0)
+- `antibody_missile` (memo: 3, mech: 0, infer: 0)
+- `skeleton_frame` (memo: 5, mech: 0, infer: 1)
+- `heart_engine` (memo: 5, mech: 0, infer: 0)
+- `cavity_bacteria` (memo: 2, mech: 3, infer: 0)
+- `rabies_virus` (memo: 2, mech: 2, infer: 0)
+- `ecoli_thug` (memo: 5, mech: 0, infer: 0)
+- `tapeworm_lurker` (memo: 3, mech: 0, infer: 0)
+- `bacteriophage_killer` (memo: 6, mech: 0, infer: 0)
+- `plasmodium_parasite` (memo: 3, mech: 0, infer: 1)
+- `botulinum_chef` (memo: 3, mech: 1, infer: 0)
+- `hiv_hunter` (memo: 3, mech: 0, infer: 0)
+- `covid_invader` (memo: 4, mech: 1, infer: 0)
+- `thermometer_alarm` (memo: 3, mech: 2, infer: 0)
+- `stethoscope_listener` (memo: 3, mech: 0, infer: 0)
+- `xray_vision` (memo: 4, mech: 1, infer: 0)
+- `microscope_eye` (memo: 5, mech: 0, infer: 0)
+- `anesthesia_fog` (memo: 4, mech: 0, infer: 0)
+- `vaccine_trainer` (memo: 5, mech: 1, infer: 0)
+- `scalpel_blade` (memo: 4, mech: 1, infer: 0)
+- `antibiotic_ultimate` (memo: 2, mech: 0, infer: 3)
 
-### ⛔ 完全无题 (0 张)
-(无)
+### ⛔ 完全无题 (1 张)
+- `sp_gaia_restoration`
 
 ## 9. 结论
 
