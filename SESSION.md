@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-22 续（**老题库 legacy 精分类**：180 道老题 type 原是 difficulty 的 1:1 机械映射，按「严格认知动作」重标为 153 mem/23 mech/4 inf + 补 30 道 principle + 语义 tags；诚实暴露老题库 ~85% 是事实回忆题，产出 17 道可改写候选 backlog。前序同日：修 onDeath 路由错位）
+> 更新时间: 2026-06-22 续²（**legacy trivia 升级 16 道机制/推理题**：承接老题精分类的可改写 backlog，6 改写+10 新增，锚定第一性原理（异养/取舍/稳态/共生/剂量），题库 480→490，新题 gap≥12 仍 0。前序同日：老题精分类 / 修 onDeath 路由错位）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,15 @@
 ---
 
 ## 最近完成
+
+### 2026-06-22 续² legacy trivia 升级 16 道机制/推理题 ✅（52fbc16）
+承接老题精分类发现的「老题库 ~85% 是 trivia」缺口，按 `outputs/legacy_quiz_rewrite_candidates.md` 把暗含原理的 trivia 升级成 mechanism/inference 题，填补原理教学。
+- **Yang 定调**：「新增为主，弱题改写」+ 先做 3 道 inference 试水确认风格 → 通过后做完全部。
+- **6 道改写**（卡题数≥6 或弱 yes-no，不增题数）：绦虫为何不需消化系统(异养/inference)、红细胞为何凹饼形(表面积)、心脏为何离体还跳(窦房结)、喷嚏为何传病(飞沫)、伤口为何湿润愈合快、切叶蚁-菌何关系(共生)。
+- **10 道新增**：HIV 为何专攻 T 细胞(免疫指挥官/inference)、HIV 为何难根治(整合DNA/inference)、白细胞如何吞噬、新冠如何刺突-ACE2 入侵、疟疾为何周期发烧、蜜蜂为何蜇人即死(倒钩刺/tradeoff)、猎豹为何追一会就停(过热/tradeoff)、蓝鲸潜水反射(homeostasis)、大肠杆菌肠道共生(coevolution)、肉毒素剂量决定毒药/良药(tradeoff)。
+- **#95「抗生素能杀病毒吗」剔除**：主题已被 antibiotic_ultimate(5题)+flu_virus(8题) 饱和。
+- **质量**：每道 hard/medium，3 个错误项均为「常见误解」（非凑数），选项长度差<12，答案位置打散；锚定 CLAUDE.md 第一性原理。
+- **数据**：题库 480→490，legacy 180→174（6 改写脱离 legacy 标记）。build 绿 / validate 0 错 0 警 / 新题 gap≥12 仍为 0 / 9 套测试零回归。
 
 ### 2026-06-22 续 老题库 legacy 精分类（type/principle/tags）✅（07db703）
 180 道 legacy 老题的 `type` 原来是 `difficulty` 的 1:1 机械映射（easy→memorization / medium→mechanism / hard→inference，0 偏差），等于零信息量。按 Yang 校准的**严格认知动作**规则重新分类：
@@ -477,7 +486,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 
 ### ~~推荐方向 A++++：老 180 题 'legacy' tag review~~ ✅ 已完成（2026-06-22 续，07db703）
 - 180 道按严格认知动作重分类（153 mem / 23 mech / 4 inf），补 30 道 principle + 语义 tags，整个 480 题库已精分类。
-- **留尾（内容升级，未做）**：`outputs/legacy_quiz_rewrite_candidates.md` 的 17 道可改写候选——把暗含原理的 trivia 改写成机制/推理题。这是动 q/options/fact 的**内容活**，等 Yang 决定哪些做、改写还是新增。做完老题库的 mechanism/inference 占比能显著拉升。
+- **留尾（内容升级）**：~~`outputs/legacy_quiz_rewrite_candidates.md` 的 17 道可改写候选~~ ✅ 已完成（2026-06-22 续²，52fbc16，16 道落地 / #95 剔除）。老题库的 mechanism/inference 题量已显著拉升。
 
 ### 推荐方向 A+：抽卡 Phase D / E（实测反馈良好后）
 spec 已为后续预留：
