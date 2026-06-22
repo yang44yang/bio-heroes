@@ -1314,6 +1314,72 @@ export const skillRegistry = {
     timing: 'onKill',
     execute: (ctx) => skillRegistry['Piercing Strike'].execute(ctx),
   },
+
+  // ===========================================
+  // Phase 2 扩卡：能量主线（OCEAN/MICRO）
+  // ===========================================
+
+  // 深海管虫·热泉炼金师 — 化能合成滋养（自身 + 自然系友方）
+  'Chemosynthetic Bounty': {
+    timing: 'onTurnEnd',
+    execute: (ctx) => {
+      const self = ctx.card
+      if (!self || self.currentHp <= 0) return null
+      const results = []
+      const selfHeal = Math.min(2000, self.maxHp - self.currentHp)
+      if (selfHeal > 0) results.push({ type: 'HEAL', targetUid: self.uid, source: self.name, target: self.name, amount: selfHeal, message: `🔥 ${self.name} 细菌厨房，回复 ${selfHeal} HP` })
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0 && c.uid !== self.uid && c.faction === 'nature')
+      for (const ally of allies) {
+        const heal = Math.min(1000, ally.maxHp - ally.currentHp)
+        if (heal > 0) results.push({ type: 'HEAL', targetUid: ally.uid, source: self.name, target: ally.name, amount: heal, message: `🔥 ${self.name} 滋养 ${ally.name}，回复 ${heal} HP` })
+      }
+      return results.length > 0 ? results : null
+    },
+  },
+
+  // 蓝细菌 — 大氧化事件（出场给最多 3 张自然系永久 ATK +1000）
+  'Great Oxidation Event': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0 && c.faction === 'nature').slice(0, 3)
+      if (allies.length === 0) return null
+      return allies.map(a => ({ type: 'BUFF', targetUid: a.uid, stat: 'atk', amount: 1000, source: ctx.card.name, message: `🫧 ${ctx.card.name} 大氧化事件！${a.name} ATK 永久 +1000！` }))
+    },
+  },
+
+  // 蓝细菌 — 阳光造氧（回合末全自然系回 500）
+  'Oxygenic Photosynthesis': {
+    timing: 'onTurnEnd',
+    execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'nature', amount: 500 }),
+  },
+
+  // 叶绿体 — 光合爆发（出场 +2 能量，不进 Power Bank）
+  'Photosynthesis Burst': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      return { type: 'ENERGY_BOOST', source: card.name, amount: 2, message: `☀️ ${card.name} 光合爆发！本回合 +2 能量！` }
+    },
+  },
+
+  // 叶绿体 — 糖分供养（回合末全自然系回 500）
+  'Sugar Provision': {
+    timing: 'onTurnEnd',
+    execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'nature', amount: 500 }),
+  },
+
+  // 眼虫 — 晒太阳回血（自养：回合末自身回 1000）
+  'Photosynthesis Recovery': {
+    timing: 'onTurnEnd',
+    execute: (ctx) => T.passiveHeal(ctx, { scope: 'self', amount: 1000 }),
+  },
+
+  // 眼虫 — 缺光开饭（异养：攻击残血敌方额外 1500）
+  'Engulf Mode': {
+    timing: 'onAttack',
+    execute: (ctx) => T.conditionalAtk(ctx, { condition: 'vs_low_hp', hp_threshold: 0.5, amount: 1500 }),
+  },
 }
 
 // Sprint 24: Gene Rewrite 复用 Gene Edit（延迟绑定避免引用顺序问题）

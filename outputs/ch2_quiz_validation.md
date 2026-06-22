@@ -1,6 +1,6 @@
 # Sprint 32 Step 8: 题库校验 + 全量统计报告
 
-> 生成时间: 2026-06-22T08:15:07.679Z
+> 生成时间: 2026-06-22T10:07:55.630Z
 > 数据源: src/data/quizzes.js
 
 ## 1. 完整性校验
@@ -14,11 +14,11 @@
 
 | 维度 | 数字 |
 |---|---|
-| 总题数 | **503** |
-| 新题(Sprint 32 三批) | 329 |
+| 总题数 | **515** |
+| 新题(Sprint 32 三批) | 341 |
 | 老题(legacy) | 174 |
-| 涉及卡牌 | 137 / 137 (100%) |
-| 三层齐全卡 | 103 |
+| 涉及卡牌 | 141 / 141 (100%) |
+| 三层齐全卡 | 107 |
 | 部分覆盖卡 | 34 |
 | 完全无题卡 | 0 |
 
@@ -26,45 +26,45 @@
 
 | type | 数量 | 占比 |
 |---|---|---|
-| memorization | 246 | 49% |
-| mechanism | 144 | 29% |
-| inference | 113 | 22% |
+| memorization | 250 | 49% |
+| mechanism | 148 | 29% |
+| inference | 117 | 23% |
 
 ## 4. 难度分布 (difficulty)
 
 | difficulty | 数量 | 占比 |
 |---|---|---|
-| easy | 167 | 33% |
-| medium | 175 | 35% |
-| hard | 161 | 32% |
+| easy | 171 | 33% |
+| medium | 179 | 35% |
+| hard | 165 | 32% |
 
 ## 5. 阵营分布 (faction)
 
 | faction | 数量 | 占比 |
 |---|---|---|
-| nature | 127 | 25% |
-| body | 126 | 25% |
-| pathogen | 126 | 25% |
-| tech | 124 | 25% |
+| nature | 139 | 27% |
+| body | 126 | 24% |
+| pathogen | 126 | 24% |
+| tech | 124 | 24% |
 
 ## 6. principle 字段分布 (仅新题)
 
 | principle | 数量 |
 |---|---|
-| coevolution | 13 |
-| mechanism | 152 |
-| tradeoff | 81 |
+| coevolution | 15 |
+| mechanism | 157 |
+| tradeoff | 82 |
 | homeostasis | 11 |
 
 ## 7. 新题质量指标
 
-- 答案位置分布(0/1/2/3): 87 / 109 / 75 / 58
+- 答案位置分布(0/1/2/3): 91 / 112 / 79 / 59
 - 选项长度差 ≥ 12 字的题: **0** (应为 0)
 - 平均选项长度: 12 字
 
 ## 8. ch2 涉及卡牌覆盖
 
-### ✅ 三层齐全 (103 张)
+### ✅ 三层齐全 (107 张)
 - `venus_flytrap`
 - `lung_engine`
 - `flu_virus`
@@ -168,6 +168,10 @@
 - `sp_quantum_healer`
 - `sp_vaccine_shield`
 - `sp_gaia_restoration`
+- `tube_worm_vent`
+- `cyanobacteria_oxygen`
+- `chloroplast_solar_forge`
+- `euglena`
 
 ### 🟡 部分覆盖 (34 张)
 - `ant_soldier` (memo: 5, mech: 1, infer: 0)
@@ -212,7 +216,7 @@
 
 - ✅ **题库完整性**: 100% 通过校验
 - ✅ **新题选项长度**: 全部齐平 (gap < 12)
-- 📊 **新题 type 分布** (memo 99 / mech 121 / infer 109) 接近 spec 目标的 35/40/25 比例
+- 📊 **新题 type 分布** (memo 103 / mech 125 / infer 113) 接近 spec 目标的 35/40/25 比例
 - 🏷️ **老题 legacy 标记**: 174 张老题用 'legacy' 标记，便于未来 review 重新分类
 
 ---

@@ -3044,6 +3044,62 @@ const cards = [
     tags: ["artificial_intelligence","future_tech"],
   },
 
+  // ============================================================
+  // 🌊 Phase 2 能量主线（OCEAN 海洋深渊 / 🔬 MICRO 微观战场）
+  //    自养 vs 异养第一性原理：蓝细菌→叶绿体→线粒体→眼虫→深海管虫
+  // ============================================================
+  {
+    id: "tube_worm_vent", name: "深海管虫·热泉炼金师", nameEn: "Giant Tube Worm: Vent Alchemist",
+    type: "character", faction: "nature", subType: "invertebrate_other", set: "OCEAN",
+    cost: 5, rarity: "SSR", atk: 1500, hp: 8000,
+    factionRequirement: { faction: "nature", count: 2, type: "check", scienceNote: "深海热泉的化能合成生态需要稳定的环境基础支撑——身边得有其他自然系生命，才撑得起这片黑暗里的绿洲" },
+    skills: [
+      { name: "细菌厨房", nameEn: "Chemosynthetic Bounty", type: "unique", description: "回合结束时，自身回复 2000 HP，并为其他自然系友方卡各回复 1000 HP", scienceNote: "管虫体内住着细菌，它们靠海底硫化氢里的化学能造食物（化能合成），不靠阳光。化能合成是整个深海热泉生态的能量起点，所以表现为持续滋养自然系队友" },
+    ],
+    scienceCard: "在两千米深的海底，太阳光一点都照不到，却有一片热闹的'绿洲'——深海管虫就住在这里。它没有嘴也没有肚子，全靠体内住着的细菌！海底裂缝会喷出一种叫硫化氢、有臭鸡蛋味的气体，这些细菌不晒太阳，而是把硫化氢当作'电池'，从里面取出能量来造食物，喂饱管虫。我们常说'万物生长靠太阳'，但管虫证明：能量不一定来自阳光，化学反应也能养活生命！",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["marine", "deep_sea", "annelid", "chemosynthesis", "symbiosis"],
+  },
+  {
+    id: "cyanobacteria_oxygen", name: "蓝细菌·地球第一口氧气", nameEn: "Cyanobacteria: Oxygen Pioneer",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 4, rarity: "SSR", atk: 1500, hp: 6000,
+    factionRequirement: { faction: "nature", count: 2, type: "check", scienceNote: "蓝细菌产生的氧气让需氧生命成为可能，它的力量需要一个有生命的生态系统才能发挥——所以要求弃牌堆中已有 2 张自然系卡曾经存在" },
+    skills: [
+      { name: "大氧化事件", nameEn: "Great Oxidation Event", type: "unique", description: "出场时，己方最多 3 张自然系卡永久 ATK +1000", scienceNote: "蓝细菌很早就会产氧光合作用，到约24亿年前氧气在海洋和大气里大量积累，史称'大氧化事件'。氧气让靠呼吸获能的生物可以爆发出更大能量，整个生命世界从此变强——这正是全体自然系永久增益的科学原型" },
+      { name: "阳光造氧", nameEn: "Oxygenic Photosynthesis", type: "unique", description: "每回合结束时，为己方所有自然系卡回复 500 HP", scienceNote: "蓝细菌是地球上最早会'产氧光合作用'的生物：用阳光+水+二氧化碳造糖，同时放出氧气。它持续不断地为整个生态供氧供能，所以表现为每回合给自然系队友回血" },
+    ],
+    scienceCard: "蓝细菌（旧称蓝藻）是地球上的第一台'造氧小机器'。第一件大事：它很早（早到约25–30亿年前）就学会了用阳光造糖、放出氧气——这叫'产氧光合作用'。在它出现之前，空气里几乎没有氧气；是它把氧气一点点灌满了海洋和天空，不过氧气真正灌满是更晚的事，大约24亿年前才发生，科学家叫它'大氧化事件'，从此靠呼吸氧气获得能量的动物才有可能出现。第二件更神奇的事：很久以后，一个大细胞吞下了一只蓝细菌却没消化它，这只蓝细菌就住了下来，变成了植物细胞里负责光合作用的'叶绿体'！所以今天每一片绿叶里，都藏着蓝细菌的后代。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["bacteria", "prokaryote", "photosynthesis", "unicellular", "cyanobacteria"],
+  },
+  {
+    id: "chloroplast_solar_forge", name: "叶绿体·阳光熔炉", nameEn: "Chloroplast: Solar Forge",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 6, rarity: "SSR", atk: 2000, hp: 10000,
+    factionRequirement: { faction: "nature", count: 2, type: "check", scienceNote: "叶绿体只存在于植物和藻类的细胞里，需要场上有自然系生命才能发挥光合作用" },
+    skills: [
+      { name: "光合爆发", nameEn: "Photosynthesis Burst", type: "unique", description: "出场时，本回合立即获得 +2 能量（不进 Power Bank）", scienceNote: "叶绿体把阳光的能量装进糖分子里，是植物给整个细胞供能的源头——它一上场就把储备的阳光能量释放出来" },
+      { name: "糖分供养", nameEn: "Sugar Provision", type: "unique", description: "每回合结束时，为所有自然系友方卡回复 500 HP", scienceNote: "叶绿体造出的糖会运送到植物全身，养活根、茎、花——所以它喂养的是整株植物，而不只是自己" },
+    ],
+    scienceCard: "叶绿体是植物细胞里的绿色小工厂！里面的叶绿素像无数张小手，抓住阳光，把阳光+水+空气里的二氧化碳变成糖和氧气——这就是光合作用。你吃的米饭、动物吃的草，能量都是从这一步开始的。最神奇的是：很久很久以前，叶绿体本来是一只会晒太阳造糖的小细菌（蓝细菌），被大细胞一口吞下却没被消化，反而住下来一起干活，直到今天——这叫'内共生'。植物细胞里的线粒体也是这样被吞下来的另一种细菌哦！",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["organelle", "endosymbiosis", "plant", "photosynthesis"],
+  },
+  {
+    id: "euglena", name: "眼虫·两边都占的小机灵", nameEn: "Euglena: The Fence-Sitter",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 3, rarity: "SSR", atk: 2000, hp: 4000,
+    factionRequirement: { faction: "nature", count: 1, type: "check", scienceNote: "眼虫的光合模式需要有阳光的生态环境——身边得有其他自然系生命，它才能安心晒太阳自给自足" },
+    skills: [
+      { name: "晒太阳回血", nameEn: "Photosynthesis Recovery", type: "unique", description: "回合结束时，自己回复 1000 HP（自养：用阳光自己造食物）", scienceNote: "眼虫体内有叶绿体，有光时就像植物一样进行光合作用，用阳光+水+二氧化碳自己造出糖，不靠吃别人也能活" },
+      { name: "缺光开饭", nameEn: "Engulf Mode", type: "unique", description: "攻击 HP 低于一半的敌方卡时，额外造成 1500 伤害（异养：缺光时去吸食养分）", scienceNote: "没光的时候眼虫就切换成'异养'：甩动长鞭毛游过去，吸收水里溶解的有机养分，也能吞下小颗粒当饭吃" },
+    ],
+    scienceCard: "眼虫是个'两边都占'的小机灵鬼（大人叫它'骑墙派'）：有阳光时，它用身体里的叶绿体光合作用，像植物一样自己造食物（这叫'自养'）；天一黑没光了，它就甩动一根长鞭毛游来游去，把水里能吃的小碎渣和更小的微生物吸收、吞下来当饭吃（这叫'异养'）。它头上还有个红色的'眼点'专门感光，帮它找到亮的地方。植物只会自养、动物只会异养，眼虫却两样都行——它就站在'自养'和'异养'这条大分界线上，是研究生命怎么获取能量的活教材。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["protist", "unicellular", "flagellate", "mixotroph", "euglenid"],
+  },
+
 ];
 
 export default cards;
