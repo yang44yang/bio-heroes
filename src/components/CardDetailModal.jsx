@@ -105,7 +105,14 @@ export default function CardDetailModal({
 
           <div className="flex justify-center gap-4 text-sm mb-3">
             {card.atk != null && <span className="text-red-400">⚔️ {card.atk}</span>}
-            {card.hp != null && <span className="text-green-400">❤️ {card.hp}</span>}
+            {/* 战斗中点开卡显示当前 HP / 最大 HP(buff/突变后)；图鉴/卡组只 fallback base hp。
+                之前只显示 card.hp(base 字段) → buff 后 ATK 更新但 HP 永远显示原值，让玩家
+                误以为"ATK 涨了 HP 没动"(实际事件突变都是 ATK ×1.5 HP ×0.5/0.7)。*/}
+            {(card.currentHp != null && card.maxHp != null) ? (
+              <span className="text-green-400">❤️ {card.currentHp}/{card.maxHp}</span>
+            ) : card.hp != null && (
+              <span className="text-green-400">❤️ {card.hp}</span>
+            )}
             {cost != null && <span className="text-blue-400">{t('collection.detail.cost', { n: cost })}</span>}
           </div>
 
