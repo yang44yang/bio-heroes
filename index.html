@@ -17,11 +17,22 @@
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(() => {})
+      // 仅在生产 host 注册 Service Worker。dev/localhost/127/.local 不注册，
+      // 同时主动 unregister 老的 SW 并清掉 cache（保护历史装过 PWA 的用户/设备，
+      // 否则旧 SW 会 cache-first 截住 dev 资源 → 黑屏）。
+      ;(function(){
+        var h = location.hostname
+        var isDev = h === 'localhost' || h === '127.0.0.1' || h.endsWith('.local') || location.port === '5173' || location.port === '4174'
+        if (!('serviceWorker' in navigator)) return
+        if (isDev) {
+          navigator.serviceWorker.getRegistrations().then(function(rs){ rs.forEach(function(r){ r.unregister() }) })
+          if (window.caches) caches.keys().then(function(ks){ ks.forEach(function(k){ caches.delete(k) }) })
+          return
+        }
+        window.addEventListener('load', function(){
+          navigator.serviceWorker.register('/sw.js').catch(function(){})
         })
-      }
+      })()
     </script>
   </body>
 </html>
