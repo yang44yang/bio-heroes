@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-22 续³（**题库封顶**：补 13 道让 137 张卡全部三层齐全（记忆/机制/推理），0 题卡归零，题库 490→503。规划结论：老卡题已饱和，题库量级拓展需先扩卡（Phase 2 OCEAN/MICRO）。前序同日：legacy trivia 升级 16 道 / 老题精分类 / 修 onDeath 路由）
+> 更新时间: 2026-06-22 续⁴（**Phase 2 扩卡启动**：能量主线首批 4 张 SSR（深海管虫/蓝细菌/叶绿体/眼虫）+ 7 技能接线 + 12 题，经 design→对抗验证→综合 workflow 产出；卡 104→108、题 503→515、141/141 卡全有题。⚠️发现 7 个 onTurnStart 死技能（向日葵/线粒体等），已 spawn 任务待修。前序同日：题库封顶 / trivia 升级 16 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,15 @@
 ---
 
 ## 最近完成
+
+### 2026-06-22 续⁴ Phase 2 扩卡启动：能量主线首批 4 张 ✅（de4a94b）
+封顶后启动 Phase 2 横向扩卡。先做教育价值最高的「能量从哪来」主线（自养/异养第一性原理：蓝细菌→叶绿体→线粒体(已有)→眼虫→深海管虫），Yang 选「先做 1 张范例」→ 批准后做完 4 张。
+- **流程**：用 `Workflow` 跑 design→对抗验证(科学/平衡/题目/引擎/七岁 五维 lens)→综合（24 agent）。验证抓到真问题：① 一个 **onTurnStart 死 handler**（chloroplast 原技能永不触发→改 onPlay）② euglena 异养表述修正(吞食→吸收为主) ③ 数值/答案位置偏置。我作为集成方**否决**了 2 处：tube worm subType microbe→invertebrate_other(2米环节动物非微生物)、名保留 Yang 批准的「热泉炼金师」。
+- **4 张 SSR**：深海管虫(OCEAN/cost5,化能合成滋养)、蓝细菌(MICRO/cost4,大氧化事件出场最多3张nature永久+1000ATK + 阳光造氧)、叶绿体(MICRO/cost6,光合爆发+2能量 + 糖分供养)、眼虫(MICRO/cost3,晒太阳回血自养 + 缺光开饭异养斩杀)。
+- **引擎**：7 技能全复用现有机制(passiveHeal/conditionalAtk/ENERGY_BOOST/BUFF)注册到 skillRegistry，零新事件类型。set 仅数据标签无代码分支，新卡自动进 gacha(按稀有度)/图鉴。
+- **数据**：卡 104→108、题 503→515(每卡+3三层题)、141/141 卡全有题。`scripts/test-phase2-cards.mjs`(140 断言) + build + validate(0/0) + 10 套测试全绿。
+- **⚠️ 副产物 bug（已 spawn 任务 task_115164db）**：7 个 `onTurnStart` 技能(向日葵 Photosynthesis Supply / 线粒体 ATP Burst / 蚁后 Colony Summon / 变形虫 Rapid Mutation / 肝脏 Detoxification / 透析机 Hemodialysis / Super Computation)在 useBattle 中**从不触发**（缺玩家回合开始钩子）→ 这些卡技能对战中是哑的，待单独修。
+- **⏳ 待 Yang/齐齐**：①真机抽到/实测 4 张卡技能手感（尤其蓝细菌永久 AOE buff 会不会滚雪球，残留风险记于 workflow 输出）②从 `outputs/phase2_card_expansion_blueprint.md` 菜单挑第一批剩余 8 张（鮟鱇/抹香鲸/小丑鱼+海葵/海星/帝企鹅/黏菌/硅藻/水熊虫新版）继续设计。
 
 ### 2026-06-22 续³ 题库封顶 + 扩展规划结论 ✅（793ce3e）
 **封顶**：老题精分类暴露 10 张「纯记忆」卡（缺机制/推理）+ sp_gaia 0 题。补 13 道——10 张纯记忆卡各补 1 道机制/推理（水母神经网/向日葵光合/电鳗电定位/血小板凝血/神经元电信号/抗体特异性/噬菌体注射复制/听诊器诊断/显微镜发现病原/麻醉无痛手术）+ sp_gaia 建 3 道（灰狼重引入/海獭-海带食物链/关键物种）。**至此 137 张卡全部三层（记忆/机制/推理）齐全，0 题卡归零，涉及卡 137/137**。题库 490→503，新题 gap≥12 仍 0，build/validate/9 测试全绿。
