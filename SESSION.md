@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21 续⁵（**真根因 dev 黑屏修复**：PWA SW 在 dev 端口也接管 cache-first → 旧 cache 截住 vite 资源 → React 不挂载。改 index.html+sw.js 仅生产注册 SW + 老 SW dev 自杀。前序同日：钻石+LanguageContext / 成就三类 / 事件卡发灰 / 每日挑战）
+> 更新时间: 2026-06-21 续⁶（**填洞 ch3 Boss SP**：新增 sp_gaia_restoration 盖娅复苏·万物归野，ch2/ch3/ch4 三个 Boss SP 齐了。前序同日：成就三类 / 事件卡发灰 / 每日挑战 / 钻石+LanguageContext / SW dev 不接管）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,20 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 续⁶ ch3 Boss SP 补完：sp_gaia_restoration 盖娅复苏·万物归野 ✅（beb2239）
+方向 D 已知洞：ch2/ch4 Boss 都有专属 SP，ch3 蓝鲸 Boss 通关空奖。本次填上，三章 SP 齐。
+- 设计走 workflow 4 候选(共生/复原/碳汇/关键种)×3 视角(7岁/教育/平衡)+综合，"复原"赢(40分)+
+  嫁接其他候选亮点：黄石狼故事(2)/关键种科学锚点(4,删反噬)/治玩家本人血新设计轴(3)。
+- 最终卡：spCost 8 / ATK 6000 / HP 20000；技能1「万物归野」(onPlay): 弃牌堆所有友方 nature 卡
+  复活 50% HP + 主人 +5000；技能2「光合滋养」(onTurnEnd): 每回合主人 +1500。
+- scienceCard 用海獭/灰狼讲"重引入(rewilding)" — 对应通关"我守住了生态"的成就感。
+  scienceNote 1995 黄石公园 14 只灰狼真实案例。
+- 引擎改动：MASS_REVIVE 加可选 faction_filter(向后兼容 sp_quantum_healer 不传) + emptyMessage
+  防"空响"(弃牌堆 0 nature 时给独立 narrative)。
+- **Yang 拍板**(全跟推荐)：① 复活全部 nature(不加 limit)② 重引入主题为主 ③ 命名"盖娅复苏·万物归野"。
+- 验证：build 绿 + `scripts/test-sp-gaia.mjs` 31 断言(数据/SP_UNLOCK_MAP/技能注册/MASS_REVIVE
+  兼容性)全绿。⏳ 齐齐真机实测：打 ch3 蓝鲸 Boss 通关→见 SpUnlockModal→拿到卡→打一场看效果生效。
 
 ### 2026-06-21 续⁵ 真根因 dev 黑屏修复：SW 在 dev 不接管 ✅（75354bd）
 Yang 本机 npm run dev 也黑屏 → 真机 Chrome 抓到 root 完全空 + console 无 React 错（根本没起来）。
@@ -413,7 +427,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 - 深度战役测试：Sprint 23-30b 的改动需要实战暴露 bug
 - Card-designer skill 需在 Claude.ai 侧手动更新（反映 Sprint 26 新 subType + 30b SP unlockMode）
 - bio-heroes-knowledge-map.md（KP_ID + NGSS + 中国课标对应表）尚未创建
-- ch3 Boss SP（sp_gaia_restoration 地球生态复原）未设计 — 当前 ch3 Boss 通关无 SP 解锁
+- ~~ch3 Boss SP（sp_gaia_restoration 地球生态复原）未设计~~ ✅ 已完成（2026-06-21 续⁶，beb2239）
 
 ### 遗留数据层问题
 - ~~关卡 ID 数据层混用 `stage_2_2` vs `2-2` vs `stage_2_7_vaccine_dilemma`~~ ✅ 已统一为 stage_X_Y + 老存档无损迁移（e90c372）
