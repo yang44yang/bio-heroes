@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21 续³（每日挑战 Daily Challenge 核心闭环上线：约束=Conundrum 复用战斗引擎零改动 / streak / 周 SSR 券 / 当日主题问答彩蛋；产物预览实测全闭环。前序同日：成就三类齐全 + 事件卡发灰 bug 修复）
+> 更新时间: 2026-06-21 续⁴（清技术债：钻石占位修复(addDiamonds) + LanguageContext 单例化消除 dev 懒加载崩溃。前序同日：成就三类齐全 + 事件卡发灰修复 + 每日挑战核心闭环）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,14 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 续⁴ 清技术债：钻石占位 + LanguageContext 单例化 ✅
+- **钻石真生效**（a19a6e5）：useEconomy 加 `addDiamonds`；firstClear 的 diamonds 奖励 + ch3 章节奖励改用
+  addDiamonds（原来用 addCoins 占位，💎 显示与实际发放对不上）。`completionReward` 里的 diamonds 是未消费死配置。
+- **LanguageContext 单例化**（f5736f3）：用 `globalThis.__BIO_HEROES_LANG_CTX__` 缓存 Context，消除 dev 懒加载块
+  模块重复导致的 "must be used within LanguageProvider" 崩溃。生产单实例无影响（产物预览验证 Collection 正常）。
+  ⚠️ 但**沙箱 dev 预览懒加载页仍白屏**（更深层是 HMR websocket 连不上的环境问题，非代码；试 `server.hmr:false`
+  反而更糟已回退）→ 沙箱可视验证继续用 vite preview 产物，本地 Mac dev/生产不受影响。详见 [[project_bio_heroes_visual_verify]]。
 
 ### 2026-06-21 续³ 每日挑战 Daily Challenge ✅（核心闭环上线）
 方向 D「两个都要」的第二个（成就之后）。每天一场带约束的轮换战斗 + 连续天数 streak + 周 SSR 券 +
