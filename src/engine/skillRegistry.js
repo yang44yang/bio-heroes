@@ -664,6 +664,36 @@ export const skillRegistry = {
     },
   },
 
+  // 2b. Gene Correction (基因治疗·修复密码) — 永久给 ATK 最高的友方 +1500 ATK + +3000 HP
+  // 原设计是"二选一+手选目标"，但游戏没有 onPlay 玩家手选 UI；改成双效果 auto-target(one_highest_atk)
+  // 慷慨化(5费 SR 双 buff 价值合理)；BUFF 不带 turns 即永久（与 useBattle BUFF case 'atk'/'hp' 一致）
+  'Gene Correction': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      if (allies.length === 0) return null
+      const target = [...allies].sort((a, b) => b.atk - a.atk)[0]
+      return [
+        {
+          type: 'BUFF',
+          targetUid: target.uid,
+          stat: 'atk',
+          amount: 1500,
+          source: ctx.card.name,
+          message: `🧬 ${ctx.card.name} 修正 ${target.name} 的基因！永久 +1500 ATK`,
+        },
+        {
+          type: 'BUFF',
+          targetUid: target.uid,
+          stat: 'hp',
+          amount: 3000,
+          source: ctx.card.name,
+          message: `💪 ${target.name} 获得永久 +3000 HP！`,
+        },
+      ]
+    },
+  },
+
   // 3. AI Diagnosis & Treatment — ATK 最高的友方获得迅击 + HP 最低友方 +5000 HP
   'AI Diagnosis & Treatment': {
     timing: 'onPlay',

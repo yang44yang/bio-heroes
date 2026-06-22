@@ -2894,8 +2894,8 @@ const cards = [
                 "name": "基因修正",
                 "nameEn": "Gene Correction",
                 "type": "unique",
-                "description": "永久提升一个友方卡 ATK +1500 或 HP +3000（选择一项）",
-                "scienceNote": "基因治疗通过修正缺陷基因或引入功能基因来治疗遗传病"
+                "description": "登场时为场上 ATK 最高的友方卡永久 +1500 ATK 和 +3000 HP",
+                "scienceNote": "基因治疗通过修正缺陷基因或引入功能基因来治疗遗传病——升级身体的'源代码'"
           }
     ],
     scienceCard: "基因治疗是用正确的基因替换有问题的基因——就像修改电脑程序里的bug！2017年首个基因治疗药物获批，治好了一种会导致失明的遗传病。",

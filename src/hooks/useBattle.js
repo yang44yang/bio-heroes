@@ -299,6 +299,12 @@ export function useBattle() {
                   source: evt.source,
                 })
               }
+            } else if (target && evt.stat === 'hp') {
+              // HP 永久 buff(基因治疗·基因修正)：同时提升 maxHp 上限和 currentHp 当前值。
+              // 不支持 turns(没引入 hp_boost status)；若未来需要回合限定 HP buff 再扩展。
+              const baseMax = target.maxHp || target.hp || 0
+              target.maxHp = Math.max(0, baseMax + evt.amount)
+              target.currentHp = Math.max(0, (target.currentHp || 0) + evt.amount)
             }
             return next
           })
