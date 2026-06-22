@@ -1173,6 +1173,30 @@ export const skillRegistry = {
     },
   },
 
+  // 9b. Rewilding (SP·盖娅复苏) — 主人 +5000 HP + 复活弃牌堆所有自然系卡(50% HP)
+  'Rewilding': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      return [
+        {
+          type: 'HEAL_LEADER', amount: 5000, source: ctx.card.name,
+          message: `🌍 ${ctx.card.name} 盖娅守望！主人恢复 5000 HP`,
+        },
+        {
+          type: 'MASS_REVIVE', hp_percent: 0.5, faction_filter: 'nature', source: ctx.card.name,
+          message: `🌱 万物归野！沉睡的自然之力重新苏醒`,
+          emptyMessage: `🌍 ${ctx.card.name} 盖娅守望大地（弃牌堆尚无自然系卡可唤回）`,
+        },
+      ]
+    },
+  },
+
+  // 9c. Photosynthetic Nourishment (SP·盖娅复苏) — 每回合结束主人 +1500 HP
+  'Photosynthetic Nourishment': {
+    timing: 'onTurnEnd',
+    execute: (ctx) => T.passiveHeal(ctx, { scope: 'leader', amount: 1500 }),
+  },
+
   // 10. Full Repair (SP·纳米机器人) — 全队清负面 + 2000 盾
   'Full Repair': {
     timing: 'onPlay',

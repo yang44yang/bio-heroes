@@ -592,6 +592,45 @@ const spCards = [
     tags: ["vaccine","public_health"],
   },
 
+  {
+    id: "sp_gaia_restoration",
+    unlockMode: "campaign_only",
+    unlockStage: "stage_3_8",
+    name: "SP·盖娅复苏·万物归野",
+    nameEn: "SP: Gaia Restoration - Rewilding",
+    type: "sp",
+    faction: "nature",
+    subType: "plant",
+    set: "BASE",
+    spCost: 8,
+    rarity: "SSR",
+    atk: 6000,
+    hp: 20000,
+    factionRequirement: null,
+    skills: [
+      {
+        name: "万物归野",
+        nameEn: "Rewilding",
+        type: "unique",
+        timing: "onPlay",
+        description: "出场时从弃牌堆复活所有友方自然系卡（HP 50%），并立即为主人恢复 5000 HP。",
+        scienceNote: "1995 年科学家把 14 只灰狼放回美国黄石公园，10 年后河岸长出新树、河狸回来、连河流形态都变了——这叫'重引入'，是修复生态的真实方法",
+      },
+      {
+        name: "光合滋养",
+        nameEn: "Photosynthetic Nourishment",
+        type: "unique",
+        timing: "onTurnEnd",
+        description: "只要本卡在场，每回合结束时为主人额外恢复 1500 HP。",
+        scienceNote: "植物通过光合作用把阳光变成能量，是地球生态的能量基石——人类的呼吸也靠它们",
+      },
+    ],
+    scienceCard: "生态复原就是把消失的动植物再请回它们的家！海獭一回到海里，海带森林就能重新生长；灰狼回到黄石，整片山谷都活了过来。守护一只关键物种，等于守护一整个生态系统。",
+    evolutionFrom: null,
+    evolutionTo: null,
+    tags: ["rewilding","keystone_species","biodiversity","ch3"],
+  },
+
 ];
 
 export default spCards;

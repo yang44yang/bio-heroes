@@ -463,10 +463,17 @@ export function useBattle() {
         }
         case 'MASS_REVIVE': {
           // 从弃牌堆复活所有角色卡到空位（最多到 5 位）
+          // evt.faction_filter (可选)：仅复活该阵营卡。不传则复活全部（向后兼容 sp_quantum_healer）
           const hpPercent = evt.hp_percent || 0.5
           const discard = selfDiscardRef.current || []
-          const chars = discard.filter(c => c && (c.type === 'character' || !c.type))
-          if (chars.length === 0) { if (evt.message) addLog(evt.message); break }
+          let chars = discard.filter(c => c && (c.type === 'character' || !c.type))
+          if (evt.faction_filter) chars = chars.filter(c => c.faction === evt.faction_filter)
+          if (chars.length === 0) {
+            // 弃牌堆没有可复活的卡。给独立 narrative log，避免和 message(可能写"全员归来")矛盾。
+            if (evt.emptyMessage) addLog(evt.emptyMessage)
+            else if (evt.message) addLog(evt.message)
+            break
+          }
           friendlySetter(prev => {
             const next = [...prev]
             for (const killed of chars) {

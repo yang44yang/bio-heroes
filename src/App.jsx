@@ -19,8 +19,9 @@ import { detectNewlyUnlockedFrom, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS } from 
 
 // Boss 关 ID → 通关解锁的 SP 卡 ID（关卡 ID 统一为 stage_X_Y 后，Boss 为各章末关）
 const SP_UNLOCK_MAP = {
-  'stage_2_8': 'sp_vaccine_shield',   // ch2 Boss (新冠) → 疫苗之盾
-  'stage_4_8': 'sp_quantum_healer',   // ch4 Boss (超级细菌) → 量子医疗
+  'stage_2_8': 'sp_vaccine_shield',    // ch2 Boss (新冠) → 疫苗之盾
+  'stage_3_8': 'sp_gaia_restoration',  // ch3 Boss (蓝鲸) → 盖娅复苏·万物归野
+  'stage_4_8': 'sp_quantum_healer',    // ch4 Boss (超级细菌) → 量子医疗
 }
 
 // 战斗 + 答题成就池（在战斗结算点检测）
