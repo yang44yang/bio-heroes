@@ -11,6 +11,7 @@
  */
 
 import * as T from './skillTemplates'
+import { cardHasGuard } from '../utils/guardSkill'
 
 // Sprint 27: 揭示卡对象辅助函数 — 只传必要信息到 UI
 const revealObj = (c) => ({
@@ -57,9 +58,7 @@ export const skillRegistry = {
   'Piercing Strike': {
     timing: 'onKill',
     execute: (ctx) => {
-      const isGuard = ctx.defender?.skills?.some(
-        s => s.nameEn === 'Guard' || s.name === '守护'
-      )
+      const isGuard = cardHasGuard(ctx.defender)
       if (isGuard && ctx.overflow > 0) {
         return {
           type: 'PIERCING_DAMAGE',
@@ -489,11 +488,7 @@ export const skillRegistry = {
         })
       }
       // 对守护卡造成伤害
-      const guards = (ctx.enemyField || []).filter(c =>
-        c && c.currentHp > 0 && c.skills?.some(s =>
-          s.nameEn === 'Guard' || s.nameEn === 'Physical Barrier' || s.nameEn === 'Shell Defense'
-        )
-      )
+      const guards = (ctx.enemyField || []).filter(c => c && c.currentHp > 0 && cardHasGuard(c))
       for (const guard of guards) {
         const slot = (ctx.enemyField || []).findIndex(c => c && c.uid === guard.uid)
         events.push({

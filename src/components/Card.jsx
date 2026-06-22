@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { FACTIONS, RARITIES } from '../data/deckRules'
 import { useLanguage } from '../i18n/LanguageContext'
 import { smallBadgesFor } from '../utils/statusDescriptor'
+import { cardHasGuard } from '../utils/guardSkill'
 
 const rarityColors = {
   R: 'from-blue-600 to-blue-800',
@@ -126,6 +127,22 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
           transition={{ duration: 1, repeat: Infinity }}
         >
           🧠
+        </motion.div>
+      )}
+
+      {/* 守护卡视效：顶部正中漂浮 🛡️ + "守护中"小标签。
+          位置避开左角 ☠️/🛡️ 角标和右角 💤/🧠 摆动图标，与 SSR 金色边框/SP 金光晕分层不冲突。
+          识别 Guard / Shell Defense / Physical Barrier 三种 nameEn(走 utils/guardSkill)。 */}
+      {!isEvent && !isDead && cardHasGuard(card) && (
+        <motion.div
+          className="absolute -top-3 left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5 pointer-events-none z-10"
+          animate={{ y: [-2, -5, -2] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <span className="text-base sm:text-lg leading-none drop-shadow">🛡️</span>
+          <span className="text-[7px] sm:text-[8px] font-bold bg-cyan-700 text-white px-1 rounded leading-tight whitespace-nowrap">
+            守护中
+          </span>
         </motion.div>
       )}
 

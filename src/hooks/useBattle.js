@@ -9,6 +9,7 @@ import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
 import { pickRandomEvent } from '../data/events'
 import { getBossMechanic } from '../engine/bossMechanics'
+import { cardHasGuard, fieldHasGuard } from '../utils/guardSkill'
 import { getStageRule } from '../engine/stageRules'
 
 /**
@@ -164,16 +165,11 @@ export function useBattle() {
     return { ...card, atk, baseAtk: card.atk, baseHp: card.hp, currentHp: card.hp, maxHp: card.hp, statuses: [] }
   }
 
-  function hasGuard(field) {
-    return field.some(c =>
-      c && c.currentHp > 0 &&
-      c.skills?.some(s => s.nameEn === 'Guard')
-    )
-  }
-
-  function isGuardCard(card) {
-    return card.skills?.some(s => s.nameEn === 'Guard')
-  }
+  // hasGuard / isGuardCard 委托给 utils/guardSkill 统一识别多个 nameEn
+  // (Guard / Shell Defense / Physical Barrier 都算守护)，修复海龟·龟甲防御和
+  // 睫毛·物理屏障 description 写了"守护"但 hasGuard 识别不到的隐藏 bug。
+  const hasGuard = fieldHasGuard
+  const isGuardCard = cardHasGuard
 
   // ----------------------------------------------------------------
   //  被击败卡牌清理（将 HP<=0 的卡位清空）

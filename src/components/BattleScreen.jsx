@@ -6,6 +6,7 @@ import CardDetailModal from './CardDetailModal'
 import QuizModal from './QuizModal'
 import { useBattle } from '../hooks/useBattle'
 import { useHand } from '../hooks/useHand'
+import { cardHasGuard } from '../utils/guardSkill'
 import { FACTIONS, MAX_FIELD_SLOTS, LEADER_HP } from '../data/deckRules'
 import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
@@ -558,7 +559,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
         // 找攻击目标
         const pAlive = pFieldNow.map((c, i) => (c && c.currentHp > 0) ? { ...c, slot: i } : null).filter(Boolean)
-        const guardCards = pAlive.filter(c => c.skills?.some(s => s.nameEn === 'Guard'))
+        // 走统一 helper, 识别 Guard / Shell Defense / Physical Barrier 三种 nameEn
+        const guardCards = pAlive.filter(cardHasGuard)
 
         let defSlot
 
@@ -822,13 +824,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
   useEffect(() => {
     // 第一次遇到守护卡
-    if (isBattlePhase && battle.enemyField.some(c => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard'))) {
+    if (isBattlePhase && battle.enemyField.some(c => c && c.currentHp > 0 && cardHasGuard(c))) {
       showHint('guard')
     }
   }, [isBattlePhase, battle.enemyField, showHint])
 
   // 攻击目标判定
-  const hasEnemyGuard = battle.enemyField.some(c => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard'))
+  const hasEnemyGuard = battle.enemyField.some(c => c && c.currentHp > 0 && cardHasGuard(c))
   const enemyLeaderTargetable = isBattlePhase && selectedAtkSlot !== null && !hasEnemyGuard
   const enemyAlive = battle.enemyField.filter((c, i) => c && c.currentHp > 0).map((c, i) => {
     const realIdx = battle.enemyField.findIndex((cc, ii) => cc === c && ii >= 0)
@@ -837,7 +839,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   // 对面存活卡牌的 slot indexes（用于 Bug 4 高亮）
   const validEnemyTargets = isBattlePhase && selectedAtkSlot !== null
     ? (hasEnemyGuard
-        ? battle.enemyField.map((c, i) => c && c.currentHp > 0 && c.skills?.some(s => s.nameEn === 'Guard') ? i : -1).filter(i => i >= 0)
+        ? battle.enemyField.map((c, i) => c && c.currentHp > 0 && cardHasGuard(c) ? i : -1).filter(i => i >= 0)
         : battle.enemyField.map((c, i) => c && c.currentHp > 0 && !c.statuses?.some(s => s.type === 'stealth') ? i : -1).filter(i => i >= 0))
     : []
 
