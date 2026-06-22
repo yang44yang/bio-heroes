@@ -1,6 +1,6 @@
 # Sprint 32 Step 8: 题库校验 + 全量统计报告
 
-> 生成时间: 2026-06-22T07:59:20.411Z
+> 生成时间: 2026-06-22T08:15:07.679Z
 > 数据源: src/data/quizzes.js
 
 ## 1. 完整性校验
@@ -14,57 +14,57 @@
 
 | 维度 | 数字 |
 |---|---|
-| 总题数 | **490** |
-| 新题(Sprint 32 三批) | 316 |
+| 总题数 | **503** |
+| 新题(Sprint 32 三批) | 329 |
 | 老题(legacy) | 174 |
-| 涉及卡牌 | 136 / 137 (99%) |
-| 三层齐全卡 | 102 |
+| 涉及卡牌 | 137 / 137 (100%) |
+| 三层齐全卡 | 103 |
 | 部分覆盖卡 | 34 |
-| 完全无题卡 | 1 |
+| 完全无题卡 | 0 |
 
 ## 3. 题型分布 (type)
 
 | type | 数量 | 占比 |
 |---|---|---|
-| memorization | 245 | 50% |
-| mechanism | 135 | 28% |
-| inference | 110 | 22% |
+| memorization | 246 | 49% |
+| mechanism | 144 | 29% |
+| inference | 113 | 22% |
 
 ## 4. 难度分布 (difficulty)
 
 | difficulty | 数量 | 占比 |
 |---|---|---|
-| easy | 166 | 34% |
-| medium | 166 | 34% |
-| hard | 158 | 32% |
+| easy | 167 | 33% |
+| medium | 175 | 35% |
+| hard | 161 | 32% |
 
 ## 5. 阵营分布 (faction)
 
 | faction | 数量 | 占比 |
 |---|---|---|
-| nature | 121 | 25% |
-| body | 123 | 25% |
-| pathogen | 125 | 26% |
-| tech | 121 | 25% |
+| nature | 127 | 25% |
+| body | 126 | 25% |
+| pathogen | 126 | 25% |
+| tech | 124 | 25% |
 
 ## 6. principle 字段分布 (仅新题)
 
 | principle | 数量 |
 |---|---|
-| coevolution | 12 |
-| mechanism | 143 |
+| coevolution | 13 |
+| mechanism | 152 |
 | tradeoff | 81 |
 | homeostasis | 11 |
 
 ## 7. 新题质量指标
 
-- 答案位置分布(0/1/2/3): 84 / 105 / 72 / 55
+- 答案位置分布(0/1/2/3): 87 / 109 / 75 / 58
 - 选项长度差 ≥ 12 字的题: **0** (应为 0)
 - 平均选项长度: 12 字
 
 ## 8. ch2 涉及卡牌覆盖
 
-### ✅ 三层齐全 (102 张)
+### ✅ 三层齐全 (103 张)
 - `venus_flytrap`
 - `lung_engine`
 - `flu_virus`
@@ -167,51 +167,52 @@
 - `sp_crispr`
 - `sp_quantum_healer`
 - `sp_vaccine_shield`
+- `sp_gaia_restoration`
 
 ### 🟡 部分覆盖 (34 张)
 - `ant_soldier` (memo: 5, mech: 1, infer: 0)
 - `mimosa_timid` (memo: 4, mech: 1, infer: 0)
 - `bee_worker` (memo: 5, mech: 1, infer: 0)
-- `jellyfish_stealth` (memo: 5, mech: 0, infer: 0)
-- `sunflower_charger` (memo: 4, mech: 0, infer: 0)
-- `electric_eel_battery` (memo: 4, mech: 0, infer: 0)
+- `jellyfish_stealth` (memo: 5, mech: 1, infer: 0)
+- `sunflower_charger` (memo: 4, mech: 1, infer: 0)
+- `electric_eel_battery` (memo: 4, mech: 1, infer: 0)
 - `cheetah_sprinter` (memo: 4, mech: 1, infer: 0)
 - `orca_alpha` (memo: 4, mech: 1, infer: 0)
 - `blue_whale_titan` (memo: 5, mech: 1, infer: 0)
-- `platelet_guardian` (memo: 3, mech: 0, infer: 0)
+- `platelet_guardian` (memo: 3, mech: 1, infer: 0)
 - `red_blood_cell` (memo: 4, mech: 3, infer: 0)
 - `stomach_acid` (memo: 4, mech: 1, infer: 0)
 - `white_blood_cell` (memo: 2, mech: 3, infer: 0)
 - `skin_barrier` (memo: 4, mech: 0, infer: 1)
-- `neuron_messenger` (memo: 8, mech: 0, infer: 0)
-- `antibody_missile` (memo: 3, mech: 0, infer: 0)
+- `neuron_messenger` (memo: 8, mech: 1, infer: 0)
+- `antibody_missile` (memo: 3, mech: 1, infer: 0)
 - `skeleton_frame` (memo: 5, mech: 0, infer: 1)
 - `heart_engine` (memo: 4, mech: 1, infer: 0)
 - `cavity_bacteria` (memo: 2, mech: 3, infer: 0)
 - `rabies_virus` (memo: 2, mech: 2, infer: 0)
 - `ecoli_thug` (memo: 5, mech: 1, infer: 0)
 - `tapeworm_lurker` (memo: 2, mech: 0, infer: 1)
-- `bacteriophage_killer` (memo: 6, mech: 0, infer: 0)
+- `bacteriophage_killer` (memo: 6, mech: 1, infer: 0)
 - `botulinum_chef` (memo: 3, mech: 2, infer: 0)
 - `hiv_hunter` (memo: 3, mech: 0, infer: 2)
 - `covid_invader` (memo: 4, mech: 2, infer: 0)
 - `thermometer_alarm` (memo: 3, mech: 2, infer: 0)
-- `stethoscope_listener` (memo: 3, mech: 0, infer: 0)
+- `stethoscope_listener` (memo: 3, mech: 1, infer: 0)
 - `xray_vision` (memo: 4, mech: 1, infer: 0)
-- `microscope_eye` (memo: 5, mech: 0, infer: 0)
-- `anesthesia_fog` (memo: 4, mech: 0, infer: 0)
+- `microscope_eye` (memo: 5, mech: 0, infer: 1)
+- `anesthesia_fog` (memo: 4, mech: 0, infer: 1)
 - `vaccine_trainer` (memo: 5, mech: 1, infer: 0)
 - `scalpel_blade` (memo: 4, mech: 1, infer: 0)
 - `antibiotic_ultimate` (memo: 2, mech: 0, infer: 3)
 
-### ⛔ 完全无题 (1 张)
-- `sp_gaia_restoration`
+### ⛔ 完全无题 (0 张)
+(无)
 
 ## 9. 结论
 
 - ✅ **题库完整性**: 100% 通过校验
 - ✅ **新题选项长度**: 全部齐平 (gap < 12)
-- 📊 **新题 type 分布** (memo 98 / mech 112 / infer 106) 接近 spec 目标的 35/40/25 比例
+- 📊 **新题 type 分布** (memo 99 / mech 121 / infer 109) 接近 spec 目标的 35/40/25 比例
 - 🏷️ **老题 legacy 标记**: 174 张老题用 'legacy' 标记，便于未来 review 重新分类
 
 ---
