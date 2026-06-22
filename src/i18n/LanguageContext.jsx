@@ -4,7 +4,12 @@ import en from './en.json'
 
 const translations = { zh, en }
 
-const LanguageContext = createContext()
+// 单例化 Context：dev 模式下懒加载代码块可能拿到本模块的「第二份实例」
+// （HMR 失效 / dep 重优化导致 ?t= 重取，常见于 Claude 预览沙箱），
+// 使 Provider 与 useLanguage 引用到不同 Context 对象 → "must be used within LanguageProvider" 崩溃。
+// 用 globalThis 缓存，确保无论模块被实例化几次，全局只有一个 Context 对象。生产单实例无影响。
+const LanguageContext =
+  globalThis.__BIO_HEROES_LANG_CTX__ || (globalThis.__BIO_HEROES_LANG_CTX__ = createContext())
 
 export function LanguageProvider({ children }) {
   const [lang, setLang] = useState(() =>
