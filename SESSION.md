@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-21 续⁴（清技术债：钻石占位修复(addDiamonds) + LanguageContext 单例化消除 dev 懒加载崩溃。前序同日：成就三类齐全 + 事件卡发灰修复 + 每日挑战核心闭环）
+> 更新时间: 2026-06-21 续⁵（**真根因 dev 黑屏修复**：PWA SW 在 dev 端口也接管 cache-first → 旧 cache 截住 vite 资源 → React 不挂载。改 index.html+sw.js 仅生产注册 SW + 老 SW dev 自杀。前序同日：钻石+LanguageContext / 成就三类 / 事件卡发灰 / 每日挑战）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,21 @@
 ---
 
 ## 最近完成
+
+### 2026-06-21 续⁵ 真根因 dev 黑屏修复：SW 在 dev 不接管 ✅（75354bd）
+Yang 本机 npm run dev 也黑屏 → 真机 Chrome 抓到 root 完全空 + console 无 React 错（根本没起来）。
+查 / 返回的 HTML 正常、main.jsx HTTP 200、vite server 无报错。注意到 index.html 有 `navigator.serviceWorker.register('/sw.js')` →
+读 public/sw.js：**所有 JS/CSS cache-first**。任何一次访问过线上/产物预览的设备(齐齐 iPad / Yang 本机)
+都已激活这个 SW；dev 端口同 origin 也被它接管 → 首访缓存 /@vite/client、/src/main.jsx 后永久返回 cache，
+下次 dev 启动版本对不上 → React 不挂载 → 黑屏，且无错误线索(连第一次渲染都没到)。
+- **修法两道防线**：① **index.html**：仅生产 host 注册 SW；dev host(localhost/127/.local/5173/4174) 主动
+  unregister + 清 cache（救活历史装过 PWA 的设备）。② **public/sw.js**：自我兜底，IS_DEV_HOST 时只挂
+  install/activate(skipWaiting+清缓存+unregister+navigate 现有 client)，**不挂 fetch handler**，自杀干净。
+- **真机验证**：本机 Chrome localhost:5173 reload 后直接渲染（首屏教学→菜单→图鉴/今日挑战懒加载页全活，
+  不需要手动清缓存）。生产逻辑完全保留（else 分支原样）。
+- **结论修正**：此前以为只有沙箱 dev 崩、Yang 本机正常 — **错了**，Yang 本机也崩，是 SW 截住了；
+  沙箱本来还多叠了 HMR ws 连不上 + LanguageContext 模块重复（续⁴ globalThis 单例化已局部修）。
+- 教训：[[project_bio_heroes_visual_verify]] 关于"本地 Mac dev 不受影响"的说法是错的，需要更新。
 
 ### 2026-06-21 续⁴ 清技术债：钻石占位 + LanguageContext 单例化 ✅
 - **钻石真生效**（a19a6e5）：useEconomy 加 `addDiamonds`；firstClear 的 diamonds 奖励 + ch3 章节奖励改用
