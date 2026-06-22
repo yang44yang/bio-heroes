@@ -82,5 +82,23 @@ for (let i = 0; i < 100; i++) {
 ok('100 次随机里两个候选(red_blood_cell + platelet_guardian)都出现过', ids.has('red_blood_cell') && ids.has('platelet_guardian'))
 ok('100 次随机没出现不该出现的(white_blood_cell/flu_virus/event)', !ids.has('white_blood_cell') && !ids.has('flu_virus') && !ids.has('event_immune'))
 
+// === 边缘 7：空位定位 — 含 null 空位的原始场应按下标找到第一个空位 ===
+// (回归 onDeath 路由 bug：被杀方原始场含 null 空位，useBattle 不应再 .filter(Boolean) 删空位)
+const aliveCard = { id: 'red_blood_cell', name: '红细胞·氧气搬运工', type: 'character', faction: 'body', rarity: 'R', currentHp: 2000, maxHp: 2500 }
+const e7 = onDeathEffect(
+  { card: stemCard, friendlyField: [aliveCard, null, null], discardPile: mockDiscard },
+  params
+)
+ok('有空位[活卡,null,null] → SUMMON_CARD', e7?.type === 'SUMMON_CARD')
+ok('召唤落在第一个 null 下标 slot===1 (slot0 被活卡占)', e7?.slot === 1)
+
+// === 边缘 8：场上全是活卡(无 null 空位) → NARRATIVE_LOG ===
+const e8 = onDeathEffect(
+  { card: stemCard, friendlyField: [aliveCard, { ...aliveCard, id: 'platelet_guardian' }], discardPile: mockDiscard },
+  params
+)
+ok('无空位[活卡,活卡] → NARRATIVE_LOG', e8?.type === 'NARRATIVE_LOG')
+ok('无空位 → message 含"空位/暂缓"', /空位|暂缓/.test(e8?.message || ''))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

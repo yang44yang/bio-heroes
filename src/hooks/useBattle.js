@@ -534,7 +534,9 @@ export function useBattle() {
   //  在攻击后调用，处理 onKill / onDeath 时机
   // ----------------------------------------------------------------
   function handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, side) {
-    const allEvents = []
+    const allEvents = []                                    // 仅 onKill（攻击方技能）
+    const defenderSide = side === 'player' ? 'enemy' : 'player' // 被杀方（onDeath 技能拥有者）
+    let deathEvents = []
 
     if (defKilled) {
       const overflow = Math.max(0, atkDmg - defCard.currentHp)
@@ -550,22 +552,23 @@ export function useBattle() {
         friendlyField: killFriendlyField,
       })
 
-      // onDeath — 检查被杀方技能（side 是攻击方，所以被杀方友方/弃牌堆是反的）
-      const friendlyField = side === 'player'
-        ? enemyFieldRef.current.filter(Boolean)
-        : playerFieldRef.current.filter(Boolean)
-      const discardPile = side === 'player'
-        ? enemyDiscardRef.current
-        : playerDiscardRef.current
-      const deathEvents = triggerSkills('onDeath', {
+      // onDeath — 被杀方技能。friendlyField 用被杀方的原始场（保留 null 空位，
+      // 否则 revive_as/split 等按下标找空位的 effect 会假阴性"场上没空位"）。
+      const deathFriendlyField = defenderSide === 'player'
+        ? playerFieldRef.current
+        : enemyFieldRef.current
+      const deathDiscard = defenderSide === 'player'
+        ? playerDiscardRef.current
+        : enemyDiscardRef.current
+      deathEvents = triggerSkills('onDeath', {
         card: defCard,
-        friendlyField,
-        discardPile, // revive_as 等 onDeath effect 用，无此字段时 effect 应优雅 noop
+        friendlyField: deathFriendlyField,
+        discardPile: deathDiscard, // revive_as 等 onDeath effect 用，无此字段时 effect 应优雅 noop
       })
 
-      allEvents.push(...killEvents, ...deathEvents)
+      allEvents.push(...killEvents) // deathEvents 不混进来 — 它走防守方 side 单独 apply
 
-      // 处理溢出伤害到主人（Overpower / Piercing）
+      // 处理溢出伤害到主人（Overpower / Piercing，均来自 onKill）
       for (const evt of allEvents) {
         if ((evt.type === 'OVERFLOW_DAMAGE' || evt.type === 'PIERCING_DAMAGE') && evt.damage > 0) {
           if (side === 'player') {
@@ -590,19 +593,24 @@ export function useBattle() {
       }
     }
 
-    // 执行 BUFF / HEAL 等事件（如吞噬攻击 ATK +500）
+    // onKill 事件用攻击方 side（BUFF / HEAL 等，如吞噬攻击 ATK +500）
     const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
     const enemySetter = side === 'player' ? setEnemyField : setPlayerField
     applySkillEvents(allEvents, friendlySetter, enemySetter, side)
 
-    // 记录技能事件
-    for (const evt of allEvents) {
+    // onDeath 事件用被杀方 side（召唤/复活/分裂/治疗落到死亡卡自己那方）
+    const defFriendlySetter = defenderSide === 'player' ? setPlayerField : setEnemyField
+    const defEnemySetter = defenderSide === 'player' ? setEnemyField : setPlayerField
+    applySkillEvents(deathEvents, defFriendlySetter, defEnemySetter, defenderSide)
+
+    // 记录技能事件（onKill + onDeath 都记）
+    for (const evt of [...allEvents, ...deathEvents]) {
       if (evt.message && evt.type !== 'OVERFLOW_DAMAGE' && evt.type !== 'PIERCING_DAMAGE') {
         addLog(evt.message)
       }
     }
 
-    return allEvents
+    return [...allEvents, ...deathEvents]
   }
 
   // ----------------------------------------------------------------
