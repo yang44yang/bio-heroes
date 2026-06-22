@@ -608,24 +608,28 @@ export function onDeathEffect(ctx, params) {
       }))
     }
     case 'revive_as': {
-      // 从弃牌堆复活一张指定卡
-      // 需要 discard pile 数据 — 简化为召唤一个模板卡
+      // 从弃牌堆随机挑一张符合 faction/rarity 过滤的卡复活到场上。
+      // 干细胞·分化变身: revive_source:'discard', faction_filter:'body', rarity_filter:'R', revive_hp_percent:0.5
       const field = ctx.friendlyField || []
       const slot = findEmptySlot(field)
       if (slot < 0) return null
-      const template = {
-        id: 'revived_from_' + card.id,
-        uid: 'revived_' + Date.now() + '_' + Math.random(),
-        name: '复活战士',
-        nameEn: 'Revived Fighter',
-        atk: 1000,
-        hp: 2000,
-        currentHp: 2000,
-        maxHp: 2000,
-        cost: 1,
-        faction: params.faction_filter || card.faction,
-        rarity: params.rarity_filter || 'R',
-        skills: [],
+      const discard = ctx.discardPile || []
+      // 只挑生物卡(character)，跳过事件/SP；并保证不是自己(避免循环复活)
+      let candidates = discard.filter(c =>
+        c && (c.type === 'character' || !c.type) && c.id !== card.id
+      )
+      if (params.faction_filter) candidates = candidates.filter(c => c.faction === params.faction_filter)
+      if (params.rarity_filter)  candidates = candidates.filter(c => c.rarity  === params.rarity_filter)
+      if (candidates.length === 0) return null // 弃牌堆无符合卡(罕见，常见情境干细胞死时弃牌堆几乎必有人体卡)
+      const chosen = candidates[Math.floor(Math.random() * candidates.length)]
+      const baseMaxHp = chosen.maxHp || chosen.hp || 1000
+      const hpPercent = params.revive_hp_percent || 0.5
+      const reviveHp = Math.max(1, Math.floor(baseMaxHp * hpPercent))
+      const revived = {
+        ...chosen,
+        uid: (chosen.id || 'revived') + '_diff_' + Date.now() + '_' + Math.random(),
+        currentHp: reviveHp,
+        maxHp: baseMaxHp,
         statuses: [],
         summonSick: true,
       }
@@ -633,9 +637,9 @@ export function onDeathEffect(ctx, params) {
         type: 'SUMMON_CARD',
         side: 'friendly',
         slot,
-        card: template,
+        card: revived,
         source: cardName,
-        message: `🧬 ${cardName} 分化为 ${template.name}！`,
+        message: `🧬 ${cardName} 分化为 ${chosen.name}（HP ${reviveHp}）！`,
       }
     }
   }

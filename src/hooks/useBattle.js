@@ -540,13 +540,17 @@ export function useBattle() {
         friendlyField: killFriendlyField,
       })
 
-      // onDeath — 检查被杀方技能
+      // onDeath — 检查被杀方技能（side 是攻击方，所以被杀方友方/弃牌堆是反的）
       const friendlyField = side === 'player'
         ? enemyFieldRef.current.filter(Boolean)
         : playerFieldRef.current.filter(Boolean)
+      const discardPile = side === 'player'
+        ? enemyDiscardRef.current
+        : playerDiscardRef.current
       const deathEvents = triggerSkills('onDeath', {
         card: defCard,
         friendlyField,
+        discardPile, // revive_as 等 onDeath effect 用，无此字段时 effect 应优雅 noop
       })
 
       allEvents.push(...killEvents, ...deathEvents)
