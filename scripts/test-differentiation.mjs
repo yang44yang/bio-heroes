@@ -45,25 +45,27 @@ ok('statuses 清空', Array.isArray(revivedCard?.statuses) && revivedCard.status
 ok('uid 唯一(含 "_diff_")', revivedCard?.uid && revivedCard.uid.includes('_diff_'))
 ok('message 含分化文案 + 目标卡名', e1?.message && e1.message.includes('分化为') && e1.message.includes(revivedCard.name))
 
-// === 边缘 1：弃牌堆为空 → 返回 null(优雅降级，不崩) ===
+// === 边缘 1：弃牌堆为空 → NARRATIVE_LOG (含'细胞模板'提示, 让玩家看见为什么没动) ===
 const e2 = onDeathEffect({ card: stemCard, friendlyField: [null], discardPile: [] }, params)
-ok('弃牌堆空 → 返回 null(不崩)', e2 === null)
+ok('弃牌堆空 → NARRATIVE_LOG 事件', e2?.type === 'NARRATIVE_LOG')
+ok('弃牌堆空 → message 含"细胞模板"提示', /细胞模板|分化/.test(e2?.message || ''))
 
-// === 边缘 2：ctx.discardPile 缺失 → 返回 null ===
+// === 边缘 2：ctx.discardPile 缺失 → NARRATIVE_LOG (向后兼容) ===
 const e3 = onDeathEffect({ card: stemCard, friendlyField: [null] }, params)
-ok('ctx.discardPile 缺失 → 返回 null(向后兼容)', e3 === null)
+ok('ctx.discardPile 缺失 → NARRATIVE_LOG', e3?.type === 'NARRATIVE_LOG')
 
-// === 边缘 3：弃牌堆只有不匹配的卡 → 返回 null ===
+// === 边缘 3：弃牌堆只有不匹配的卡 → NARRATIVE_LOG ===
 const e4 = onDeathEffect(
   { card: stemCard, friendlyField: [null], discardPile: [{ id: 'flu_virus', type: 'character', faction: 'pathogen', rarity: 'R', hp: 1500, maxHp: 1500 }] },
   params
 )
-ok('弃牌堆全是不匹配卡 → 返回 null', e4 === null)
+ok('弃牌堆全是不匹配卡 → NARRATIVE_LOG', e4?.type === 'NARRATIVE_LOG')
 
-// === 边缘 4：场上无空位 → 返回 null(无地方召唤) ===
+// === 边缘 4：场上无空位 → NARRATIVE_LOG (含'空位'提示) ===
 const fullField = [stemCard, stemCard, stemCard, stemCard, stemCard].map(c => ({ ...c, currentHp: 1 }))
 const e5 = onDeathEffect({ card: stemCard, friendlyField: fullField, discardPile: mockDiscard }, params)
-ok('场上无空位 → 返回 null', e5 === null)
+ok('场上无空位 → NARRATIVE_LOG', e5?.type === 'NARRATIVE_LOG')
+ok('场上无空位 → message 含"空位"', /空位|暂缓/.test(e5?.message || ''))
 
 // === 边缘 5：弃牌堆里同时有干细胞本身(防自循环) ===
 const discardWithSelf = [...mockDiscard, { id: 'stem_cell_morph', type: 'character', faction: 'body', rarity: 'R', hp: 5000, maxHp: 5000 }]

@@ -253,6 +253,12 @@ export function useBattle() {
     const selfDiscardRef = side === 'player' ? playerDiscardRef : enemyDiscardRef
     for (const evt of events) {
       switch (evt.type) {
+        case 'NARRATIVE_LOG': {
+          // 只写战斗日志、不改任何 state。给"技能触发了但条件不满足"的场景用
+          // (如干细胞分化时弃牌堆没匹配卡)，避免静默 null 让玩家困惑"为什么没反应"。
+          if (evt.message) addLog(evt.message)
+          break
+        }
         case 'HEAL': {
           friendlySetter(prev => {
             const next = prev.map(c => c ? { ...c } : null)

@@ -612,7 +612,9 @@ export function onDeathEffect(ctx, params) {
       // 干细胞·分化变身: revive_source:'discard', faction_filter:'body', rarity_filter:'R', revive_hp_percent:0.5
       const field = ctx.friendlyField || []
       const slot = findEmptySlot(field)
-      if (slot < 0) return null
+      if (slot < 0) {
+        return { type: 'NARRATIVE_LOG', source: cardName, message: `🧬 ${cardName}：场上没有空位，分化暂缓` }
+      }
       const discard = ctx.discardPile || []
       // 只挑生物卡(character)，跳过事件/SP；并保证不是自己(避免循环复活)
       let candidates = discard.filter(c =>
@@ -620,7 +622,14 @@ export function onDeathEffect(ctx, params) {
       )
       if (params.faction_filter) candidates = candidates.filter(c => c.faction === params.faction_filter)
       if (params.rarity_filter)  candidates = candidates.filter(c => c.rarity  === params.rarity_filter)
-      if (candidates.length === 0) return null // 弃牌堆无符合卡(罕见，常见情境干细胞死时弃牌堆几乎必有人体卡)
+      if (candidates.length === 0) {
+        // 弃牌堆没有可分化模板 → 给齐齐看得见的反馈，否则会困惑"为什么干细胞死了什么都没发生"
+        return {
+          type: 'NARRATIVE_LOG',
+          source: cardName,
+          message: `🧬 ${cardName}：弃牌堆里还没有合适的细胞模板可分化（需要人体系 R 卡先进入弃牌堆）`,
+        }
+      }
       const chosen = candidates[Math.floor(Math.random() * candidates.length)]
       const baseMaxHp = chosen.maxHp || chosen.hp || 1000
       const hpPercent = params.revive_hp_percent || 0.5
