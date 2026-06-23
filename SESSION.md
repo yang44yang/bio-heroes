@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-22 续⁴（**Phase 2 扩卡启动**：能量主线首批 4 张 SSR（深海管虫/蓝细菌/叶绿体/眼虫）+ 7 技能接线 + 12 题，经 design→对抗验证→综合 workflow 产出；卡 104→108、题 503→515、141/141 卡全有题。⚠️发现 7 个 onTurnStart 死技能（向日葵/线粒体等），已 spawn 任务待修。前序同日：题库封顶 / trivia 升级 16 / 老题精分类 / onDeath 路由）
+> 更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +9,17 @@
 ---
 
 ## 最近完成
+
+### 2026-06-22 续⁵ Phase 2 扩卡第二批 8 张 + 接回两任务 ✅（a1855ca；onTurnStart df38569 / FIELD_SLOTS 58f6dcb）
+**接回两任务**（齐齐让"统一接回来一起操作"）：onTurnStart 死技能修复（useBattle 补回合开始钩子 processTurnStartEffects，救活向日葵/线粒体/蚁后等 7 卡）+ FIELD_SLOTS 5-vs-7 文档对齐，已 commit+push 到 main。
+**第二批 8 张卡**（扩卡蓝图"建议第一批"剩余 8 张，至此第一批 12 张全落地）：
+- 🌊 OCEAN：安康鱼·深海钓灯(守护+诱捕沉睡)、抹香鲸·深渊潜猎者(深潜隐身+回声秒杀)、小丑鱼·海葵之家(加盾+反击)、海星·断肢重生者(必定复活+击杀回血)、帝企鹅·极地守护(抱团/轮流取暖群回血)
+- 🔬 MICRO：黏菌·没有脑子的解题高手(觅食网络+试错成长)、硅藻·玻璃造氧师(产氧群回+玻璃护盾)、水熊虫·隐生不死(2回合免疫+遇水自愈)
+- **流程**：design→五维对抗验证(科学/平衡/题目/引擎/七岁)→综合 workflow（首次跑撞会话额度上限失败，**断点续跑** resumeFromRunId 复用缓存补完）。
+- **引擎**：16 技能注册全复用现有机制；2 处最小支持——guardSkill.js 白名单加 'Luring Lantern'(守护)；skillTemplates.js chance_revive 加 strip_skills(海星复活不带技能防无限链)。
+- **集成纠正**：slime_mold 觅食网络从 conditionalAtk(已知×2 bug)改走 onPlay BUFF；diatom 技能名去撇号 Oxygen Workhorse；清理 synth 多余字段；tube worm subType 保 invertebrate_other。
+- **数据**：卡 108→116、题 515→539、149/149 卡全有题。test-phase2-cards 393 断言 / build / validate 0/0 / 11 套测试全绿。
+- **⚠️ 验证揭示 3 个既有引擎 bug（已 spawn task_e96cb667）**：① conditionalAtk 固定加伤全退化成 ×2（虎鲸协同攻击/大王乌贼/眼虫 Engulf Mode 受影响）② 变色龙 Color Camouflage "隐身"实为一次性护盾 ③ 鲸鲨 Filter-Feed Guard 漏接白名单守护失效。另两任务 task_5b9a7c7c(反击 _side 路由)/task_1856a27c(蓝鲸"最响"文案冲突)workflow 已开。
 
 ### 2026-06-22 续⁴ Phase 2 扩卡启动：能量主线首批 4 张 ✅（de4a94b）
 封顶后启动 Phase 2 横向扩卡。先做教育价值最高的「能量从哪来」主线（自养/异养第一性原理：蓝细菌→叶绿体→线粒体(已有)→眼虫→深海管虫），Yang 选「先做 1 张范例」→ 批准后做完 4 张。
