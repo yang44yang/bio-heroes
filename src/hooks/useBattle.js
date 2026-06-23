@@ -1097,6 +1097,12 @@ export function useBattle() {
 
     if (!summonRule || spDeck.length === 0) return []
 
+    // 回合门槛（齐齐实测 bug 修正）：只挡开局第 1-2 回合，第 3 回合起放行。
+    // 旧实现用 spCost<=turn 卡死——spCost(5-10) 与回合序号(1,2,3…) 量纲不同，
+    // 把所有 SP 推到第 5-10 回合，亲子对战撑不到 → SP「根本打不出来」。
+    // ⚠️ 临时解封；正式「答对2题 / 主人HP≤50% / 第8回合」三条触发见后续任务（phase B）。
+    if (turnRef.current < 3) return []
+
     let candidates = []
     switch (summonRule.type) {
       case 'cost_limit':
@@ -1123,10 +1129,7 @@ export function useBattle() {
       default:
         break
     }
-    // 回合门槛（齐齐实测 bug：SP 第 1-2 回合就被召唤，严重失衡）：
-    // SP 的 spCost 必须 ≤ 当前回合数 —— 高费 SP 自然推迟（cost5 超级细菌→第 5 回合起、
-    // cost8 霸王龙→第 8 回合起），杜绝"一上来/第二回合就出 SP"。玩家与 AI 对称生效。
-    return candidates.filter(sp => sp.spCost <= turnRef.current)
+    return candidates
   }
 
   // ----------------------------------------------------------------

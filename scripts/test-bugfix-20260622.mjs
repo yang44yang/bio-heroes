@@ -13,12 +13,14 @@ const shieldBlock = card.slice(card.indexOf('{/* 护盾数值'), card.indexOf('{
 ok('bug1: 护盾数值用 left-1/2 -translate-x-1/2(顶部居中)', /left-1\/2\s+-translate-x-1\/2/.test(shieldBlock))
 ok('bug1: 护盾数值不再用 top-0 left-0(老的左上角重叠位)', !/top-0 left-0/.test(shieldBlock))
 
-// ============ bug2: SP 召唤加回合门槛(spCost <= 当前回合)，杜绝 1-2 回合出 SP ============
+// ============ bug2: SP 召唤门槛改为「只挡第 1-2 回合」(turn<3)，不再用 spCost<=turn 量纲错配卡死高费 SP ============
 const ub = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
 const spFn = ub.slice(ub.indexOf('function getEligibleSpCards'), ub.indexOf('function getEligibleSpCards') + 2400)
-ok('bug2: getEligibleSpCards 末尾按回合过滤 spCost <= turnRef.current',
-  /candidates\.filter\(\s*sp\s*=>\s*sp\.spCost\s*<=\s*turnRef\.current\s*\)/.test(spFn))
-ok('bug2: 改为先收集 candidates 再统一过滤(不再 switch 内直接 return spDeck.filter)',
+ok('bug2: getEligibleSpCards 挡住开局第 1-2 回合(turnRef.current < 3 return [])',
+  /turnRef\.current\s*<\s*3/.test(spFn))
+ok('bug2: 不再用 spCost<=turn 量纲错配门槛(那会把所有 SP 推到第 5-10 回合，SP 永远出不来)',
+  !/sp\.spCost\s*<=\s*turnRef\.current/.test(spFn))
+ok('bug2: 仍先收集 candidates 再统一返回(switch 内不直接 return spDeck.filter)',
   /let candidates = \[\]/.test(spFn))
 
 // ============ bug3: spendCoins 同步更新 stateRef，扣款不被 pullCards 覆盖 ============

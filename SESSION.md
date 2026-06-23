@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-23（**齐齐实测 bug 20260622 三连修**：护盾数值重叠→移顶部正中 / SP 过早召唤→加回合门槛 spCost≤turn / 抽卡不扣币→spendCoins 同步更新 stateRef。bug3 已 preview 实测。前序 2026-06-22 续⁵：Phase 2 扩卡第二批 8 张）
+> 更新时间: 2026-06-23（**SP「根本打不出来」解封（Phase A）**：上一轮三连修 bug2 给 `getEligibleSpCards` 加的回合门槛 `spCost<=turn` 量纲错配——spCost(5-10) 比回合序号(1,2,3…)，把所有 SP 推到第 5-10 回合、亲子局撑不到 → SP 永远出不来。改为只挡第 1-2 回合 `turnRef.current<3`。新增 `test-sp-chain.mjs` 11 断言 + vite preview 真机 `🌟SP:3` 确认。**Phase A 解封完成；Phase B（设计文档三条触发）齐齐定「先A后B」待排期**。同日早些：三连修（护盾位/SP过早/抽卡不扣币 a6bf0cb）；前序 2026-06-22 续⁵：Phase 2 扩卡第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
@@ -11,7 +11,16 @@
 
 ## 最近完成
 
+### 2026-06-23 SP「根本打不出来」解封（Phase A）✅
+齐齐实测：SP 卡在战斗里**根本召唤不出来**。根因是同日早些「三连修」bug2（a6bf0cb）修「SP 过早召唤」时**修过头**：`getEligibleSpCards` 末尾加了 `candidates.filter(sp => sp.spCost <= turnRef.current)` —— **量纲错配**：SP 的 `spCost` 是能量量纲(5/6/7/8/9/10)，`turn` 是回合序号(每玩家回合 +1，1,2,3…)，`spCost<=turn` 等于「cost5 SP 第 5 回合、cost8 霸王龙第 8 回合才放行」。叠加「必须打出带 spSummonRule 事件卡 + 场上空位 + 事件卡自身 cost 上限」，亲子局根本撑不到 → SP 永远出不来。
+- **修法（Phase A 最小解封）**：去掉按 spCost 的回合过滤，改为开头 `if (turnRef.current < 3) return []` —— 只挡齐齐原抱怨的第 1-2 回合（AI 甩 SP），第 3 回合起放行；玩家/AI 对称。`useBattle.js` L1098 后 + 末尾 return。
+- **第二嫌疑排除（SP 卡组是否真进战斗）**：追全链确认有兜底、永不空——`App.jsx:340 playerSpDeckCards → BattleScreen startBattle({player: …||playerTestSpDeck}) → useBattle setPlayerSpDeck → playerSpDeckRef`。预设触发路径完整（玩家 CAR-T/大脑/纳米 ← 抗原呈递/临床试验/紧急手术/干细胞分化）。
+- **验证**：build 绿 + **13 套测试零回归**（含**新增 `scripts/test-sp-chain.mjs` 11 断言**：真实 spCards/eventCards/预设卡组复刻门槛，证 turn1/2 全锁、turn3 解封且列出召唤路径、所有 spCost≥3 不误伤）+ 更新 `test-bugfix-20260622.mjs` bug2 断言（旧断言查的正是被删的 `spCost<=turn`）。**vite preview 真机**：默认测试卡组进自由对战 → 战斗显示 `🌟SP:3`/`🌟敌SP:3`、0 console error（运行时确认 SP 卡组已加载）。
+- **⏳ 齐齐真机实测**：组带触发事件卡 + SP 卡组的牌，确认第 3 回合后能正常打出 SP；AI 不再第 1-2 回合甩 SP（两头都测）。
+- **🔴 Phase B 待排期**（齐齐定「先A后B」）：按 `.claude/rules/battle-system.md` 实现 SP 三条触发「连续答对2题 / 主人HP≤50% / 第8回合」+「3张随机翻2选1」——当前代码**完全没这套**，SP 仅靠事件卡触发。详见「下次启动时优先 → 🔴 最优先」。
+
 ### 2026-06-23 齐齐实测 bug 20260622 三连修 ✅（a6bf0cb）
+> ⚠️ 其中 bug2「SP 过早召唤→加门槛 spCost≤turn」当日即被发现修过头（SP 反而永远出不来），见上方 Phase A 解封条目。
 来自 Notion「bug 20260622」页面（用 notion MCP 读取），3 个 bug：
 1. **护盾数值重叠**：`Card.jsx` 护盾 🛡️{amount} 原在 `top-0 left-0`，与左上角 cost 徽章 + ☠️ 中毒角标三者重叠 → 移到顶部正中 `left-1/2 -translate-x-1/2`（齐齐："往中间来一点"）。
 2. **SP 过早召唤失衡**：超级细菌(cost5)/霸王龙(cost8) 第 1-2 回合就被 AI 召唤。根因 `getEligibleSpCards` 的 cost_limit/faction_only 只按 spCost≤maxCost(99) 放行、无回合/能量门槛 → 加回合门槛 `spCost <= turnRef.current`(cost5→第5回合起、cost8→第8回合起)，玩家/AI 对称。
@@ -496,6 +505,13 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 
 ## 下次启动时优先
 
+### 🔴 最优先：SP Phase B — 实现设计文档的三条触发（齐齐定「先A后B」，A 已于 2026-06-23 解封）
+**背景**：`.claude/rules/battle-system.md` 写 SP 触发 =「连续答对2题 / 主人HP≤50% / 第8回合」三选一，触发后「从3张SP随机翻2选1」。**但代码完全没这套**——现状 SP 只能靠打出带 `spSummonRule` 的事件卡触发（Phase A 已把这条路从「永远出不来」解封）。
+- **⚠️ 动手前先问齐齐的子决策**：三条触发是 **替换** 事件卡触发，还是 **并存**（事件卡 + 三条件都能触发）？这决定改法与工作量。
+- **要做**：① quiz 连续答对计数（连2触发）② 主人 HP≤50% 检测 ③ 第8回合检测 ④ 触发后「翻2选1」UI（`pendingSpSummon` 状态 + 现有 SP 召唤弹窗可复用）⑤ 决定与现有事件卡触发如何共存（含 Phase A 的 `turnRef.current<3` 门槛是否保留/调整）。
+- **关键文件**：`src/hooks/useBattle.js`（`getEligibleSpCards` L1089 / `playEventCard` L1308 / 答题觉醒逻辑 / turn 递增 L2018）、`src/components/BattleScreen.jsx`（SP 召唤弹窗 ~L1459 / 答题 modal）、`.claude/rules/battle-system.md`（设计源）。
+- **验证**：扩 `scripts/test-sp-chain.mjs` 覆盖新触发条件；vite preview 实测三条触发各自能召出 SP，且 Phase A 的「不过早」不被破坏。
+
 ### 推荐方向 A：齐齐持续实测反馈（永远最高优先级）
 - 抽卡完整闭环（Phase A+B+C）+ 全场景卡片详情（Sprint 33）+ 平衡 4 连修都已上线
 - 让齐齐刷新 iPad → 验证：
@@ -531,9 +547,9 @@ spec 已为后续预留：
 - ch3（森林抉择/江豚的家）+ ch4（基因抉择/AI还是医生）各 2 关已上线，⏳ 待齐齐实测手感
 - 后续若还想扩：ch1/ch2 也可补两难关；或给现有两难关加更多 effect 类型（需新引擎代码）
 
-### 推荐方向 C：完整化 SP 系统
-- **ch3 Boss SP 设计**：sp_gaia_restoration 地球生态复原 + ch3 Boss 通关解锁
-- 当前 ch3 Boss 通关无 SP 解锁是个空洞 — 蓝鲸 Boss 应该有专属 SP
+### ~~推荐方向 C：完整化 SP 系统~~ → 见上方「🔴 最优先：SP Phase B」
+- ~~ch3 Boss SP 设计（sp_gaia_restoration + 蓝鲸 Boss 通关解锁空洞）~~ ✅ 已完成（2026-06-21 续⁶，beb2239）
+- SP 系统剩余大缺口已收敛为 **Phase B（三条触发，见置顶）**。
 
 ### 推荐方向 D：新功能
 - ~~成就系统（收集/战斗/答题三类勋章）~~ ✅ 已完成（2026-06-21 续²，9 新成就 + 三段展示 + 累计计数器）
