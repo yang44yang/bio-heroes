@@ -89,5 +89,12 @@ for (const [who, deckName, spName] of [
 // 兜底：全体 SP 的 spCost 都 ≥ 3（否则 turn<3 门槛会误伤——当前最小 5，安全）
 ok('所有 SP 的 spCost ≥ 3（回合门槛不会误伤合法 SP）', spCards.every(sp => sp.spCost >= 3))
 
+// 兜底：无"死规则"——每张带 spSummonRule 的事件卡，至少能召出 1 张 SP。
+// （会抓出 maxCost < 最小 spCost 这类配置错误，如发烧反应原 maxCost=4 < 5 → 永远召不出。）
+for (const e of eventCards.filter(c => c.spSummonRule)) {
+  const reachable = spCards.some(sp => gate(e.spSummonRule, [sp], 3, ample).length > 0)
+  ok(`无死规则：${e.name} 至少能召出 1 张 SP`, reachable)
+}
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

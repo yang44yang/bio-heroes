@@ -194,7 +194,7 @@ const eventCards = [
     effectTarget: "all_friendly_body_buff_with_cost",
     spSummonRule: {
       type: "cost_limit",
-      maxCost: 4,
+      maxCost: 5, // 修死规则：原 4 < 最小 spCost(5) → 永远召不出任何 SP；改 5 可召 5 费 SP（与生态恢复/临床试验同级）
     },
     skills: [],
     scienceCard: "发烧不是坏事！体温升高1-2度能让白细胞活动加快、抗体产生增多，同时大部分细菌在高温下繁殖变慢。但代价是身体消耗更多能量，所以发烧时会觉得很累。这就是为什么发烧后免疫细胞（人体系）变强了，但身体（所有卡）会消耗更多能量——这是一个值得的代价！",
