@@ -11,7 +11,7 @@
 | 主卡组 | 20 张生物卡 | 同一张卡（完整卡名）最多 3 张 |
 | SP 卡组 | 3 张 SP 觉醒卡 | 同一张卡最多 1 张 |
 
-> ⚠️ 当前实际实现：主卡组 25 张、SP 卡组 5 张、战场位 7 个（详见 `src/data/deckRules.js` 的 `DECK_SIZE` / `SP_LIMIT` / `FIELD_SLOTS` 常量）。
+> ⚠️ 当前实际实现：主卡组 25 张、SP 卡组 5 张、战场位 5 个（详见 `src/data/deckRules.js` 的 `DECK_SIZE` / `SP_DECK_SIZE` / `MAX_FIELD_SLOTS` 常量）。
 
 ## 卡组编辑器（Deck Builder）
 

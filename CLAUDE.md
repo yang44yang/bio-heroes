@@ -46,7 +46,7 @@ bio-heroes/
 │   │   ├── eventCards.js      # 事件卡数据 — 16张（四阵营各4张）
 │   │   ├── spCards.js         # SP觉醒卡数据 — 16张（四阵营各4张）
 │   │   ├── evolutions.js      # 进化链数据（含羞草→捕蝇草, 创可贴→青霉素→抗生素注射器）
-│   │   ├── deckRules.js       # 卡组构建规则常量（DECK_SIZE=25, FIELD_SLOTS=7 等）
+│   │   ├── deckRules.js       # 卡组构建规则常量（DECK_SIZE=25, MAX_FIELD_SLOTS=5 等）
 │   │   ├── testDecks.js       # 玩家/AI 预设卡组 + SP卡组（开发用）
 │   │   ├── tutorialData.js    # 教学关卡数据（3基础+2进阶）
 │   │   ├── campaignData.js    # 闯关战役数据（4章23关）

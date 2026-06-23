@@ -251,14 +251,14 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 - [x] eventCards.js — 16 张事件卡（四阵营各 4 张，含 4 种 SP 召唤规则）
 - [x] spCards.js — 8 张 SP 觉醒卡（四阵营各 2 张，SSR 级别）
 - [x] cards.js 全 40 张卡添加 `type: "character"` 字段
-- [x] deckRules.js 更新：DECK_SIZE=25, FIELD_SLOTS=7, SP_LIMIT=5
+- [x] deckRules.js 更新：DECK_SIZE=25, MAX_FIELD_SLOTS=5, SP_DECK_SIZE=5
 - [x] testDecks.js 扩展至 25 张主卡组 + SP 卡组
 - [x] 事件卡出牌逻辑 — 扣能量 → 执行效果 → 进弃牌堆 → 贡献阵营标记
 - [x] 6 种效果类型：buff / damage / heal / draw / energy / special
 - [x] SP 召唤系统 — 4 种规则：cost_limit / spend_all_energy / faction_only / discard_check
 - [x] SP 卡召唤到战场（免费，不消耗能量）+ 8 张 SP 登场效果
 - [x] Card.jsx 事件卡/SP 卡视觉区分（绿底事件卡、金色 SP 卡）
-- [x] 战场位扩展 5→7
+- [x] 战场位维持 5 个（注：早期文档曾误记为扩展到 7，实际代码常量 `MAX_FIELD_SLOTS` 始终为 5）
 - [x] SP 区域 UI + SP 召唤选择弹窗
 - [x] AI 事件卡使用策略 + SP 召唤决策（20% 遗忘率）
 - [x] spSummon 音效（史诗登场音）
