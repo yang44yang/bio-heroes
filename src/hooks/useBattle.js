@@ -671,6 +671,57 @@ export function useBattle() {
     return allEvents
   }
 
+  // applySkillEvents 内部已自行 addLog 的事件类型 —— 下方回合开始日志循环跳过它们，避免重复记录
+  const TURN_START_SELF_LOGGED = new Set([
+    'ENERGY_BOOST', 'DRAW_CARD', 'HEAL_LEADER', 'NARRATIVE_LOG', 'CLEANSE',
+    'APPLY_STATUS', 'REMOVE_STATUS', 'REMOVE_SHIELD', 'REPAIR_POWER_BANK',
+    'MASS_REVIVE', 'REVEAL_HAND',
+  ])
+
+  // ----------------------------------------------------------------
+  //  回合开始时的 onTurnStart 技能（核心战斗循环接线）
+  //  覆盖：向日葵/线粒体充能(ENERGY_BOOST)、蚁后召唤(SUMMON_CARD)、
+  //        变形虫变异(BUFF/HEAL)、肝/肾清毒(cleanse)、超算抽牌(DRAW_CARD)
+  //  对称服务玩家 & 敌方：side 决定 friendly/enemy setter 与能量/抽牌走向
+  //  （结构参考 processEndOfTurnEffects 的 onTurnEnd 调用，但走 applySkillEvents 全量分派）
+  // ----------------------------------------------------------------
+  function processTurnStartEffects(side) {
+    const fieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
+    const oppFieldRef = side === 'player' ? enemyFieldRef : playerFieldRef
+    const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
+    const enemySetter = side === 'player' ? setEnemyField : setPlayerField
+
+    // 遍历己方场上存活卡触发 onTurnStart（triggerSkills 内部逐卡注入 ctx.card）
+    const events = triggerSkills('onTurnStart', {
+      friendlyField: fieldRef.current.filter(c => c && c.currentHp > 0),
+      enemyField: oppFieldRef.current.filter(c => c && c.currentHp > 0),
+      playerHand: side === 'player' ? handsRef.current.playerHand : handsRef.current.enemyHand,
+      enemyHand: side === 'player' ? handsRef.current.enemyHand : handsRef.current.playerHand,
+      discardPile: side === 'player' ? playerDiscardRef.current : enemyDiscardRef.current,
+      turn: turnRef.current,
+    })
+    if (events.length === 0) return events
+
+    // 透析/肾脏的「主人回血」：cleanse 模板发 HEAL+__leader__，转成 applySkillEvents 能处理的 HEAL_LEADER
+    const applied = events.map(evt =>
+      (evt.type === 'HEAL' && evt._leaderHeal)
+        ? { ...evt, type: 'HEAL_LEADER' }
+        : evt
+    )
+    applySkillEvents(applied, friendlySetter, enemySetter, side)
+
+    // cleanse 模板原地修改 statuses 且只回 RUSH_BOOST（无 setter），强制提交一次 re-render 反映清除
+    friendlySetter(prev => prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null))
+
+    // 日志：跳过 applySkillEvents 已内部记录的事件类型，避免重复
+    const prefix = side === 'player' ? '🔵' : '🔴'
+    for (const evt of applied) {
+      if (evt.message && !TURN_START_SELF_LOGGED.has(evt.type)) addLog(`${prefix} ${evt.message}`)
+    }
+    pushSkillEvents(applied)
+    return applied
+  }
+
   // ----------------------------------------------------------------
   //  Power Bank：回合结束时剩余能量流入
   // ----------------------------------------------------------------
@@ -1735,10 +1786,16 @@ export function useBattle() {
   // ----------------------------------------------------------------
   const beginEnemyTurn = useCallback(() => {
     const t = turnRef.current
-    const gain = Math.min(Math.ceil(t / 2) + 1, ENERGY_CAP)
+    let gain = Math.min(Math.ceil(t / 2) + 1, ENERGY_CAP)
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
     setEnemyEnergy(gain)
     addLog(`\n🔴 敌方回合（能量 ${gain}）`)
+    // onTurnStart 技能（向日葵/线粒体充能、蚁后召唤、变形虫、肝/肾、超算）
+    const tsEvents = processTurnStartEffects('enemy')
+    // 充能须反映到 AI 本回合可用能量：applySkillEvents 已更新 enemyEnergy state，
+    // 但 AI 出牌按本函数返回值核算，故把 ENERGY_BOOST 同步进 gain（与 state 一致，封顶 ENERGY_CAP）
+    const energyBoost = tsEvents.reduce((s, e) => s + (e.type === 'ENERGY_BOOST' ? (e.amount || 0) : 0), 0)
+    if (energyBoost > 0) gain = Math.min(ENERGY_CAP, gain + energyBoost)
     return gain
   }, [addLog])
 
@@ -1960,6 +2017,10 @@ export function useBattle() {
     addLog(`\n🔵 你的回合 ${newTurn}（能量 ${gain}）`)
     summonedThisTurn.current.clear()
     attackedThisTurn.current.clear()
+
+    // onTurnStart 技能（向日葵/线粒体充能、蚁后召唤、变形虫、肝/肾、超算）
+    // 必须在 summonedThisTurn.clear() 之后：蚁后新召唤的蚂蚁需保留召唤疲劳（本回合不能攻击）
+    processTurnStartEffects('player')
 
     // Boss onTurnStart 钩子（玩家新回合开始时触发）
     const boss = bossMechanicRef.current
