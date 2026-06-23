@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
+> 更新时间: 2026-06-23（**齐齐实测 bug 20260622 三连修**：护盾数值重叠→移顶部正中 / SP 过早召唤→加回合门槛 spCost≤turn / 抽卡不扣币→spendCoins 同步更新 stateRef。bug3 已 preview 实测。前序 2026-06-22 续⁵：Phase 2 扩卡第二批 8 张）
+> 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
 - **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
@@ -9,6 +10,13 @@
 ---
 
 ## 最近完成
+
+### 2026-06-23 齐齐实测 bug 20260622 三连修 ✅（a6bf0cb）
+来自 Notion「bug 20260622」页面（用 notion MCP 读取），3 个 bug：
+1. **护盾数值重叠**：`Card.jsx` 护盾 🛡️{amount} 原在 `top-0 left-0`，与左上角 cost 徽章 + ☠️ 中毒角标三者重叠 → 移到顶部正中 `left-1/2 -translate-x-1/2`（齐齐："往中间来一点"）。
+2. **SP 过早召唤失衡**：超级细菌(cost5)/霸王龙(cost8) 第 1-2 回合就被 AI 召唤。根因 `getEligibleSpCards` 的 cost_limit/faction_only 只按 spCost≤maxCost(99) 放行、无回合/能量门槛 → 加回合门槛 `spCost <= turnRef.current`(cost5→第5回合起、cost8→第8回合起)，玩家/AI 对称。
+3. **抽卡不扣金币**：`doPull` 先 `spendCoins` 再同步 `pullCards`；spendCoins 原用函数式 setState(updater 事件后才跑、不更新 stateRef)，而 pullCards 同步读 `stateRef.current` 重建整份 state 覆盖式 setState → 把扣款覆盖。修：spendCoins 改同步更新 stateRef.current(与 pullCards/recordBattleResult 同款)。**vite preview 实测：单抽 3000→2900**。
+- `scripts/test-bugfix-20260622.mjs`(7 断言) + build 绿 + 12 套测试零回归。
 
 ### 2026-06-22 续⁵ Phase 2 扩卡第二批 8 张 + 接回两任务 ✅（a1855ca；onTurnStart df38569 / FIELD_SLOTS 58f6dcb）
 **接回两任务**（齐齐让"统一接回来一起操作"）：onTurnStart 死技能修复（useBattle 补回合开始钩子 processTurnStartEffects，救活向日葵/线粒体/蚁后等 7 卡）+ FIELD_SLOTS 5-vs-7 文档对齐，已 commit+push 到 main。
