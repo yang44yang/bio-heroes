@@ -13,8 +13,10 @@ const MAX_SLOTS = 10
 
 // allMainCards 包含所有卡（用于 resolveCard / costCurve 等需要查找已入组卡牌的场景）
 const allMainCards = [...cards, ...eventCards]
-// 卡池显示只包含生物卡(character)，事件卡不能手动放入卡组
+// 卡池显示：生物卡(character) + 事件卡(event) —— deckRules 设计为"生物+事件混编"，
+// 事件卡（含"可触发 SP"的）可与生物卡一起选入主卡组（25 张主卡组共享名额）。
 const selectableMainCards = cards.filter(c => c.type === 'character')
+const selectableMainPool = [...selectableMainCards, ...eventCards]
 const allSpCards = spCards
 
 // Load saved decks from localStorage
@@ -88,8 +90,8 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
   const { t, cardName, lang, localName } = useLanguage()
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
-    if (!collection || Object.keys(collection).length === 0) return selectableMainCards
-    return selectableMainCards.filter(c => collection[c.id])
+    if (!collection || Object.keys(collection).length === 0) return selectableMainPool
+    return selectableMainPool.filter(c => collection[c.id])
   }, [collection])
   const ownedSpCards = useMemo(() => {
     if (!collection || Object.keys(collection).length === 0) return allSpCards
@@ -108,7 +110,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
 
   // Filters
   const [filterFaction, setFilterFaction] = useState('all')
-  // filterType 已移除 — 卡池只显示 character 卡
+  const [filterType, setFilterType] = useState('all') // all | character | event（仅主卡组）
   const [filterRarity, setFilterRarity] = useState('all')
   const [filterSubType, setFilterSubType] = useState('all')
   const [sortBy, setSortBy] = useState('cost') // cost | atk | rarity
@@ -200,6 +202,10 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
     if (filterSubType !== 'all') {
       filtered = filtered.filter(c => c.subType === filterSubType)
     }
+    // 类型筛选（仅主卡组；事件卡与生物卡混编，可单独筛出"事件"找触发 SP 的卡）
+    if (!showSp && filterType !== 'all') {
+      filtered = filtered.filter(c => filterType === 'event' ? c.type === 'event' : c.type === 'character')
+    }
 
     // Sort
     if (sortBy === 'cost') {
@@ -212,7 +218,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
     }
 
     return filtered
-  }, [showSp, filterFaction, filterRarity, filterSubType, sortBy])
+  }, [showSp, filterFaction, filterType, filterRarity, filterSubType, sortBy])
 
   // Cost curve data
   const costCurve = useMemo(() => {
@@ -528,7 +534,18 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
           </select>
         )}
 
-        {/* Type filter 已移除 — 卡池只显示生物卡，事件卡不可手动选入 */}
+        {/* Type filter — 生物/事件（仅主卡组；SP 区无事件卡）*/}
+        {!showSp && (
+          <select
+            className="bg-gray-800 text-xs text-gray-300 rounded px-2 py-1 border border-gray-700"
+            value={filterType}
+            onChange={e => setFilterType(e.target.value)}
+          >
+            <option value="all">{t('deck.allType')}</option>
+            <option value="character">{t('deck.typeBio')}</option>
+            <option value="event">{t('deck.typeEvent')}</option>
+          </select>
+        )}
 
         {/* Rarity filter */}
         <select

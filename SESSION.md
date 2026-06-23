@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-23（**SP「根本打不出来」解封（Phase A）**：上一轮三连修 bug2 给 `getEligibleSpCards` 加的回合门槛 `spCost<=turn` 量纲错配——spCost(5-10) 比回合序号(1,2,3…)，把所有 SP 推到第 5-10 回合、亲子局撑不到 → SP 永远出不来。改为只挡第 1-2 回合 `turnRef.current<3`。新增 `test-sp-chain.mjs` 11 断言 + vite preview 真机 `🌟SP:3` 确认。**Phase A 解封完成；Phase B（设计文档三条触发）齐齐定「先A后B」待排期**。同日早些：三连修（护盾位/SP过早/抽卡不扣币 a6bf0cb）；前序 2026-06-22 续⁵：Phase 2 扩卡第二批 8 张）
+> 更新时间: 2026-06-23（**DeckBuilder 加事件卡支持**：齐齐发现抽到的「可触发SP」事件卡在卡组里无处可加 → 自建卡组永远触发不了 SP。根因 DeckBuilder 只让 character 进池、排除事件卡（与 deckRules"生物+事件混编"矛盾）。修：事件卡混入主卡池 + 加「类型」筛选（全部/生物/事件）。vite preview 实测事件卡可筛出、可加入（主卡0→1/25）。**同日早些：SP「根本打不出来」解封（Phase A）**——三连修 bug2 的 `spCost<=turn` 回合门槛量纲错配，改 `turnRef.current<3`；Phase B（设计文档三条触发）齐齐定「先A后B」待排期。更早：三连修 a6bf0cb；Phase 2 扩卡第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
@@ -10,6 +10,14 @@
 ---
 
 ## 最近完成
+
+### 2026-06-23 DeckBuilder 加事件卡支持（自建卡组终于能触发 SP）✅
+齐齐实测延伸：抽到「抗药性进化」等**可触发SP的事件卡**，但在卡组编辑器里**无处可加**——SP 区只收 SP 卡、主卡池只收 character 生物卡。后果：**自建卡组永远没有触发事件卡 → 战斗里永远触发不了 SP**（只有 testDecks 把事件卡硬编码进去才行）。这是「SP 打不出来」的**第二道锁**（Phase A 解的回合门槛是第一道）。
+- **根因/矛盾**：`deckRules.js` 写 `DECK_SIZE=25 // 生物卡+事件卡混编`，但 `DeckBuilder.jsx` 的 `selectableMainCards = cards.filter(character)` 把事件卡完全排除（注释明写"事件卡不能手动放入卡组"）。底层其实早支持（`allMainCards` 含 eventCards、collection 含 event、战斗路径 testDecks 证明可混编），缺的只是**选择 UI**。
+- **修法**：① `selectableMainPool = [...character, ...eventCards]`，`ownedMainCards` 改基于它过滤；② 加「类型」筛选下拉（全部/生物卡/事件卡，仅主卡组 `!showSp` 守卫），可单独筛出"事件"找触发SP的卡；③ i18n zh/en 加 `deck.allType/typeBio/typeEvent`。事件卡 hp=0 在 Card.jsx 已有 `!isEvent` 守卫不置灰。
+- **验证**：build 绿 + **14 套测试零回归**（新增 `scripts/test-deckbuilder-events.mjs` 16 断言：接线 + 类型过滤 + i18n + 12张可触发SP事件卡覆盖全四阵营）。**vite preview 真机**：进卡组编辑→类型选「事件卡」→池里出现拥有的事件卡（免疫应答/实验观察，满色）→点击加入主卡组（0→1/25）→「全部类型」生物+事件混显 20 张→ 0 console error。
+- **⚠️ 留尾**：① 触发SP的事件卡（抗原呈递/临床试验/紧急手术等）需**抽卡获得**——starter collection 只送 2 张非触发事件卡（免疫应答/实验观察），所以新存档要先抽到触发卡才能在卡组里放。② **暂未给事件卡设上限**（理论上可堆满 25 张事件卡的畸形卡组）——testDecks 是 7/25≈28%，未来可加事件卡数量上限作平衡杠杆。
+- **⏳ 齐齐真机实测**：把抽到的「抗药性进化」选进自建卡组主卡区 → 配上 SP 卡组 → 战斗中第 3 回合后打出它 → 应能召唤 SP。
 
 ### 2026-06-23 SP「根本打不出来」解封（Phase A）✅
 齐齐实测：SP 卡在战斗里**根本召唤不出来**。根因是同日早些「三连修」bug2（a6bf0cb）修「SP 过早召唤」时**修过头**：`getEligibleSpCards` 末尾加了 `candidates.filter(sp => sp.spCost <= turnRef.current)` —— **量纲错配**：SP 的 `spCost` 是能量量纲(5/6/7/8/9/10)，`turn` 是回合序号(每玩家回合 +1，1,2,3…)，`spCost<=turn` 等于「cost5 SP 第 5 回合、cost8 霸王龙第 8 回合才放行」。叠加「必须打出带 spSummonRule 事件卡 + 场上空位 + 事件卡自身 cost 上限」，亲子局根本撑不到 → SP 永远出不来。
