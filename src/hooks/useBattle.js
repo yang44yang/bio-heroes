@@ -1097,30 +1097,36 @@ export function useBattle() {
 
     if (!summonRule || spDeck.length === 0) return []
 
+    let candidates = []
     switch (summonRule.type) {
-      case 'cost_limit': {
-        return spDeck.filter(sp => sp.spCost <= summonRule.maxCost)
-      }
-      case 'spend_all_energy': {
+      case 'cost_limit':
+        candidates = spDeck.filter(sp => sp.spCost <= summonRule.maxCost)
+        break
+      case 'spend_all_energy':
         // After spending all remaining energy, match spCost <= that amount
-        return spDeck.filter(sp => sp.spCost <= remainingEnergy)
-      }
+        candidates = spDeck.filter(sp => sp.spCost <= remainingEnergy)
+        break
       case 'faction_only': {
         const faction = summonRule.factionLimit
-        return spDeck.filter(sp => sp.faction === faction && sp.spCost <= (summonRule.maxCost || 99))
+        candidates = spDeck.filter(sp => sp.faction === faction && sp.spCost <= (summonRule.maxCost || 99))
+        break
       }
       case 'discard_check': {
         const markers = getFactionMarkers(discardPile)
         const needed = summonRule.discardCount || 0
         const faction = summonRule.discardFaction
         if (markers[faction] >= needed) {
-          return spDeck.filter(sp => sp.spCost <= (summonRule.maxCost || 99))
+          candidates = spDeck.filter(sp => sp.spCost <= (summonRule.maxCost || 99))
         }
-        return []
+        break
       }
       default:
-        return []
+        break
     }
+    // 回合门槛（齐齐实测 bug：SP 第 1-2 回合就被召唤，严重失衡）：
+    // SP 的 spCost 必须 ≤ 当前回合数 —— 高费 SP 自然推迟（cost5 超级细菌→第 5 回合起、
+    // cost8 霸王龙→第 8 回合起），杜绝"一上来/第二回合就出 SP"。玩家与 AI 对称生效。
+    return candidates.filter(sp => sp.spCost <= turnRef.current)
   }
 
   // ----------------------------------------------------------------

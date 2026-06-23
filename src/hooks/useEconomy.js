@@ -109,10 +109,15 @@ export function useEconomy() {
   }, [])
 
   const spendCoins = useCallback((amount) => {
-    return setState(prev => {
-      if (prev.coins < amount) return prev
-      return { ...prev, coins: prev.coins - amount }
-    })
+    // 必须同步更新 stateRef.current：抽卡时 doPull 先 spendCoins 再同步调 pullCards，
+    // 而 pullCards 读 stateRef.current 重建整份 state 后 setState（覆盖式）。若这里只用
+    // 函数式 setState（updater 在事件结束后才跑、不更新 ref），pullCards 会读到未扣款的旧 coins
+    // 并把扣款覆盖掉 → "抽卡不消耗金币"。改用与 pullCards 同款的同步 stateRef 模式。
+    const prev = stateRef.current
+    if (prev.coins < amount) return
+    const next = { ...prev, coins: prev.coins - amount }
+    stateRef.current = next
+    setState(next)
   }, [])
 
   const canAfford = useCallback((amount) => {

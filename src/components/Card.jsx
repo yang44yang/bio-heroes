@@ -153,9 +153,9 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
         </div>
       )}
 
-      {/* 护盾数值 */}
+      {/* 护盾数值 — 移到顶部正中，避开左角 cost 徽章 / ☠️ 中毒角标的重叠（齐齐实测：护甲数值与左上角重叠） */}
       {hasShield && !isDead && (
-        <div className="absolute top-0 left-0 text-[10px] bg-blue-900/80 text-blue-300 px-1 rounded-br z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 text-[10px] bg-blue-900/80 text-blue-300 px-1 rounded-b z-10">
           🛡️{shieldAmount}
         </div>
       )}
