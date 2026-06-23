@@ -582,6 +582,9 @@ export function onDeathEffect(ctx, params) {
         maxHp: params.revive_hp || card.maxHp,
         statuses: [],
         summonSick: true,
+        // strip_skills: 复活体不再带技能（海星断肢重生：每场限一次，杜绝必定复活的无限链）。
+        // 章鱼 Ink Escape / HIV 不传该 param，行为不变。
+        skills: params.strip_skills ? [] : card.skills,
       }
       return {
         type: 'SUMMON_CARD',

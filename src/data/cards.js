@@ -3100,6 +3100,108 @@ const cards = [
     tags: ["protist", "unicellular", "flagellate", "mixotroph", "euglenid"],
   },
 
+  // ============================================================
+  // 🌊🔬 Phase 2 第二批（OCEAN 海洋深渊 / MICRO 微观战场）
+  // ============================================================
+  {
+    id: "anglerfish", name: "安康鱼·深海钓灯", nameEn: "Anglerfish: Abyssal Lantern",
+    type: "character", faction: "nature", subType: "fish", set: "OCEAN",
+    cost: 3, rarity: "SR", atk: 2000, hp: 4500, factionRequirement: null,
+    skills: [
+      { name: "诱饵钓灯", nameEn: "Luring Lantern", type: "unique", description: "守护：本卡在场时，对手只能攻击本卡（头顶发光小灯笼吸引所有目光）", scienceNote: "安康鱼头顶有一根像钓竿的小灯笼（叫做拟饵 esca），里面住着会发光的共生细菌。在漆黑的深海里，这盏灯会把好奇的小鱼引到它嘴边——所有注意力都被那点光吸过去，所以表现为守护：敌人只盯着它打。" },
+      { name: "一口吞噬", nameEn: "Gulp Trap", type: "unique", description: "攻击时，使被攻击的敌方卡陷入沉睡 1 回合（被灯光迷住、一口被吞，下回合无法行动）", scienceNote: "猎物被灯光引到跟前的一瞬间，安康鱼张开巨口、制造强大水流把猎物连水一起吸进嘴里，整个过程快到猎物来不及反应。游戏里表现为：被它咬中的敌人像被定住一样，下回合动不了。" },
+    ],
+    scienceCard: "我们说的是住在深海里的安康鱼（学名鮟鱇，属于角鮟鱇一类），和你在菜市场见到的安康鱼是亲戚，但本领很不一样！深海两千米下一片漆黑，它却自带一盏小灯笼。这盏灯长在它头顶，像一根钓鱼竿。灯里住着一群会发光的细菌。细菌用一种叫荧光素酶的特殊蛋白发光。这种不靠发热就能发出的光，叫做生物发光。鱼给细菌住的地方和食物，细菌帮鱼发光引猎物——这种互相帮忙叫共生。它还能控制送给灯笼的氧气多少，像开关一样让灯一闪一闪。小鱼好奇地游过来，安康鱼张开大嘴咕咚一口就吞下去！还有个深海冷知识：因为深海又黑又空旷，同伴太难遇到了，所以小小的雄鱼一旦找到雌鱼，就会一辈子挂在雌鱼身上、和她长在一起，再也不分开——这是动物界最特别的相处方式之一。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["fish", "deep_sea", "bioluminescent", "symbiosis", "marine", "predator"],
+  },
+  {
+    id: "sperm_whale", name: "抹香鲸·深渊潜猎者", nameEn: "Sperm Whale: Abyss Stalker",
+    type: "character", faction: "nature", subType: "mammal", set: "OCEAN",
+    cost: 6, rarity: "SSR", atk: 6000, hp: 8000,
+    factionRequirement: { faction: "nature", count: 2, type: "check", scienceNote: "抹香鲸是深海食物链顶端的猎手，需要一个完整的海洋生态（大王乌贼等猎物）才能存活" },
+    skills: [
+      { name: "极限深潜", nameEn: "Abyssal Dive", type: "unique", description: "出场时潜入漆黑深渊，1 回合内不能被选为攻击目标（隐身）", scienceNote: "抹香鲸是潜得最深的哺乳动物，能一口气下潜超过 2000 米、屏息约 90 分钟。它的身体像装了很多小氧气罐，把氧气慢慢省着用，还会放慢心跳——所以能在黑暗深海待很久" },
+      { name: "回声定位猎杀", nameEn: "Echo Hunt Strike", type: "unique", description: "出场时对敌方 HP 最低的一张卡造成 2500 点伤害", scienceNote: "漆黑深海里看不见，抹香鲸就用头部发出'咔哒'声——动物界最响的声音，比喷气式飞机起飞还响——声音碰到猎物弹回来，它就靠回声锁定并猎杀大王乌贼" },
+    ],
+    scienceCard: "抹香鲸是潜得最深的哺乳动物，能一口气下潜 2000 多米、屏息约 90 分钟，到漆黑的深海里猎杀大王乌贼！海里黑得什么都看不见，它就用头部发出'咔哒'声——这是动物界最响的声音，比喷气式飞机起飞还响！声音碰到猎物弹回来，它一听回声就知道乌贼在哪，这叫回声定位。它还拥有地球上最大的大脑。抹香鲸的皮肤上常常布满大王乌贼吸盘留下的圆形伤疤，那是深海搏斗的勋章！",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["mammal", "marine", "predator", "deep_sea", "echolocation"],
+  },
+  {
+    id: "clownfish_anemone", name: "小丑鱼·海葵之家", nameEn: "Clownfish: Anemone Home",
+    type: "character", faction: "nature", subType: "fish", set: "OCEAN",
+    cost: 2, rarity: "SR", atk: 1000, hp: 3000, factionRequirement: null,
+    skills: [
+      { name: "钻进触手", nameEn: "Tentacle Shelter", type: "unique", description: "出场时，为当前 HP 最低的一张友方卡添加 2000 点护盾", scienceNote: "小丑鱼身上裹着一层特别厚的黏液（比别的鱼厚 3-4 倍），让海葵的毒刺把它'认成自家人'不发射。于是它能钻进海葵的触手丛里躲天敌——就像给自己披了一层护盾，游戏里表现为给最虚弱的队友加盾。" },
+      { name: "海葵蜇人", nameEn: "Anemone Sting", type: "unique", description: "被攻击时，对攻击者反击造成 1000 点伤害", scienceNote: "海葵的触手上长满'刺细胞'，像无数支微型毒针。小丑鱼帮海葵赶走啃食者、清理垃圾、用粪便给它'施肥'、游动带来氧气和食物碎屑；作为回报，海葵的毒刺替小丑鱼蜇退靠近的敌人——这是双方互相帮忙的互利共生。" },
+    ],
+    scienceCard: "小丑鱼和海葵是大海里最有名的'好搭档'！海葵的触手上长满会射毒针的'刺细胞'，别的鱼一碰就被蜇。可小丑鱼身上裹着一层特别厚的黏液（比普通鱼厚 3-4 倍，可能还会沾上海葵的黏液当'通行证'），毒刺就把它当自家人、不发射。于是小丑鱼住进触手丛里，天敌不敢追进来。它也没白住：帮海葵赶走专啃触手的蝴蝶鱼、清理垃圾、用粪便当肥料，游动时还带来新鲜氧气和食物碎屑。一个出'房子'，一个出'打扫和保安'，谁也离不开谁——这就是'互利共生'。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["fish", "marine", "reef", "mutualism", "symbiosis"],
+  },
+  {
+    id: "sea_star", name: "海星·断肢重生者", nameEn: "Sea Star: Reborn from a Limb",
+    type: "character", faction: "nature", subType: "invertebrate_other", set: "OCEAN",
+    cost: 3, rarity: "SR", atk: 1500, hp: 4000, factionRequirement: null,
+    skills: [
+      { name: "断肢重生", nameEn: "Regenerate", type: "unique", description: "被击败时必定原地复活，以 2000 HP（半血）回到战场（每场限一次，复活后不再拥有技能）", scienceNote: "海星再生力惊人：断掉一条腕能慢慢长回来；如果断腕还带着一小块中央的身体（中央盘），这条腕甚至能独自长成一整只全新的海星。它把'失去一部分'变成'再活一次'，所以表现为被击败后必定复活——而不是看运气。复活后的它就像那只重新长成的、还很脆弱的小海星。" },
+      { name: "翻胃消化", nameEn: "Stomach Eversion", type: "unique", description: "击败一张敌方卡后，自身回复 1000 HP（把猎物消化吸收）", scienceNote: "海星吃东西很特别：它把胃从嘴里翻出体外，直接塞进贝壳的缝里就地把猎物消化成糊，再把养分吸回身体。击杀后吸收养分回血，正是这套'体外消化'的写照。" },
+    ],
+    scienceCard: "海星住在海底，看起来软软的、动作慢吞吞，却藏着超能力！第一，它不靠脚走路，身体下面有几百根细细的'管足'，像无数只小吸盘，一拉一放慢慢挪动。第二，它没有大脑，靠分布在每条腕上的神经网就能感知和行动。第三，也是最神奇的：海星的再生力惊人——断掉一条腕能重新长回来；要是断腕还带着一小块中央的身体，这条腕甚至能独自长成一整只全新的海星！第四，它吃东西时会把胃从嘴里翻出来，塞进贝壳缝里就地把猎物消化掉，再把养分吸回去。慢，不等于弱——海星用'重生'和'怎么也打不死'的本事，在海底活得稳稳的。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["marine", "echinoderm", "invertebrate", "regeneration", "benthic"],
+  },
+  {
+    id: "emperor_penguin", name: "帝企鹅·极地守护", nameEn: "Emperor Penguin: Polar Guardian",
+    type: "character", faction: "nature", subType: "bird", set: "OCEAN",
+    cost: 4, rarity: "SR", atk: 3500, hp: 6000, factionRequirement: null,
+    skills: [
+      { name: "抱团取暖", nameEn: "Huddle Warmth", type: "unique", description: "回合结束时，为场上每一张自然系友方卡回复 1000 HP（同伴越多，被暖到的越多）", scienceNote: "南极严冬零下数十度，成百上千只帝企鹅紧紧挤成一团'抱团取暖'，挤在最里面的地方温度能升到约 37℃，比外面暖和得多。挤在一起的同伴越多，能被暖到、熬过严冬的就越多——所以表现为自然系同伴越多，回复的总量越大" },
+      { name: "轮流取暖", nameEn: "Rotation Relief", type: "unique", description: "回合结束时，额外为 HP 最低的 1 张友方卡回复 1500 HP（把它换到温暖的内圈）", scienceNote: "抱团时外圈的企鹅最冷，它们会不停往里挤、轮流换到中间取暖，没有谁被一直冻在外面。游戏里表现为每回合把最虚弱的队友'换到内圈'回血" },
+    ],
+    scienceCard: "帝企鹅是世界上潜得最深的鸟！它能一口气潜到五百多米深的海里抓鱼，最长能憋气超过 20 分钟。冬天的南极冷到零下几十度，成百上千只帝企鹅会紧紧挤成一团'抱团取暖'，挤在最里面的地方温度能升到约 37℃——比外面暖和得多，挤得太热的还要轮流换到外圈透透气，谁也不会被一直冻在外面。最了不起的是企鹅爸爸：妈妈把蛋交给爸爸后就去海里吃东西，爸爸把蛋放在脚背上、用肚皮盖住，站在风雪里孵蛋，差不多四个月不吃一口饭，体重掉掉一半，硬是把宝宝熬到孵出来。这就是大自然里最暖的'守护'。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["bird", "marine", "seabird", "cold_adapted", "diver"],
+  },
+  {
+    id: "slime_mold", name: "黏菌·没有脑子的解题高手", nameEn: "Slime Mold: The Brainless Solver",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 3, rarity: "SSR", atk: 1500, hp: 3500,
+    factionRequirement: { faction: "nature", count: 1, type: "check", scienceNote: "黏菌靠把一个个食物点连成网络来'解题'——身边得有别的自然系生命当落脚点和食物点，它的网络才铺得开" },
+    skills: [
+      { name: "觅食网络", nameEn: "Foraging Network", type: "unique", description: "出场时，每有 1 张其他自然系友方卡，自身永久 ATK +500（连成的网络节点越多，发力越强）", scienceNote: "黏菌会把每个食物点连成一张管道网，连上的节点越多，越能把养分高效地汇到一处发力。所以场上自然系同伴越多，它出场时就长得越强——这是把'多点连网更高效'做成了战斗机制" },
+      { name: "越练越强", nameEn: "Trial and Error", type: "unique", description: "每回合开始时，随机让自身 ATK 永久 +500，或回复 500 HP（靠一次次试错把自己调得越来越好）", scienceNote: "黏菌没有大脑也没有神经，却靠'哪条管道流量大就让它变粗、流量小的就退掉'这种简单规则反复试错，一点点把自己调到最好。每回合的随机微调，就是它一次次'试错变强'的过程" },
+    ],
+    scienceCard: "黏菌是个大怪咖：它既不是动物，也不是真正的真菌，而是一团会爬的'变形虫'类小生物。最不可思议的是——它没有大脑，没有神经，连一个脑细胞都没有，却会'解题'！科学家把它放进迷宫，两头放上食物，它居然能缩成一条连接两头、最近最省事的路线。后来科学家在一张地图上、按东京周边各个城市的位置摆好燕麦片，让黏菌从中间长出去，它连成的网络竟然和工程师花了几十年设计出来的东京地铁网几乎一样好用！它的秘诀很简单：有食物的方向，管道里流得多就长粗；没用的方向就慢慢缩掉。靠这条'哪条路有用就加强哪条'的笨办法反复试错，没有脑子也能找出最聪明的走法。它让科学家重新想：'聪明'到底需不需要一个大脑？",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["protist", "slime_mold", "myxomycete", "unicellular", "network", "optimization"],
+  },
+  {
+    id: "diatom", name: "硅藻·玻璃造氧师", nameEn: "Diatom: Glass Oxygen Maker",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 3, rarity: "SR", atk: 1500, hp: 3500, factionRequirement: null,
+    skills: [
+      { name: "一刻不停造氧", nameEn: "Oxygen Workhorse", type: "unique", description: "每回合结束时，为己方所有自然系卡回复 500 HP", scienceNote: "硅藻是当今海洋里最勤劳的产氧小工：它用阳光、水和二氧化碳光合作用造糖、放出氧气。科学家估计地球上每呼吸 5 口气，大约就有 1 口（约 20%）的氧气来自硅藻这样的海洋浮游植物——它们放出的氧气比全世界的雨林加起来还多。所以它持续不断地为整个生态供氧，表现为每回合给自然系队友回血。" },
+      { name: "玻璃铠甲", nameEn: "Glass Armor", type: "unique", description: "出场时，为自己添加 2000 点护盾（玻璃外壳替自己挡伤害）", scienceNote: "硅藻给自己穿了一身用二氧化硅（也就是玻璃、沙子的成分）做成的精致几何外壳，叫'硅壳/壳瓣'。这层玻璃盒子又硬又轻，能挡住想咬它的小动物，研究还发现它能帮硅藻挡掉伤害 DNA 的紫外线——所以游戏里表现为出场就给自己套一层护盾。" },
+    ],
+    scienceCard: "硅藻是住在海里、湖里的单细胞小藻类，是当今地球最重要的'造氧小机器'之一。它最特别的本领有两个。第一，它会光合作用：用阳光+水+二氧化碳造糖、放出氧气。别看它小，海里到处都是漂在水面上、像植物一样会晒太阳造氧的小家伙们（海洋浮游植物），硅藻就是其中的主力，它们放出的氧气加起来非常惊人——科学家估计地球上大约每 5 口氧气就有 1 口来自硅藻这样的海洋浮游植物，比全世界雨林放的还多；它还像个小仓库一样，把空气里的二氧化碳吸进身体里收起来（大人把这个本领叫'碳汇'）。第二，它给自己穿了一身玻璃外壳：用二氧化硅（玻璃和沙子的成分）做成像花纹一样精致的几何小盒子，又硬又透明，能挡住想吃它的小动物，还能挡紫外线。它是海洋食物网最底层的'饭'，几乎所有海里的动物，能量都要从硅藻这一口光合作用开始往上传。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["microbe", "protist", "phytoplankton", "marine", "photosynthesis", "silica", "diatom", "carbon_sink"],
+  },
+  {
+    id: "tardigrade", name: "水熊虫·隐生不死", nameEn: "Tardigrade: Cryptobiosis",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 3, rarity: "SR", atk: 1500, hp: 5000, factionRequirement: null,
+    skills: [
+      { name: "缩成小桶", nameEn: "Tun Cryptobiosis", type: "unique", description: "出场时，自身进入隐生状态：免疫一切伤害，持续 2 回合（期间靠'装死'硬扛）。", scienceNote: "缺水或环境恶劣时，水熊虫会把身体脱水、缩成一个圆滚滚的'小桶'(tun)，几乎停止身体里的一切活动，像在装死。这种状态叫'隐生'(cryptobiosis)，能扛住真空、太空辐射、煮沸般的高温，还有冷到比地球上任何地方都冷得多的极冷——表现为一段时间内免疫伤害。" },
+      { name: "遇水复活", nameEn: "Rehydration Recovery", type: "unique", description: "每回合结束时，自身回复 1000 HP。", scienceNote: "环境一旦回到有水，缩成小桶的水熊虫会重新吸水'复活'、慢慢恢复活动。这种从极端损伤中自我修复、东山再起的能力，表现为每回合稳定自愈。" },
+    ],
+    scienceCard: "水熊虫（缓步动物）是地球上有名的'最强生存者'，身长不到 1 毫米，要用显微镜才看得清。它最厉害的本领叫'隐生'：当周围没水、太冷、太热或太危险时，它会把身体里的水排掉、缩成一个圆滚滚的'小桶'，几乎停止身体里的一切活动，像在装死。在这种状态下，它扛得住太空的真空和强辐射、扛得住冷到比地球上任何地方都冷得多的极冷（接近绝对零度，宇宙里最冷的极限）、也能挺过滚烫的高温——科学家真的把水熊虫送上过太空，回来还能活！一旦重新遇到水，它就吸水'醒'过来，继续爬来爬去。要记住：它不是真的'不死'，而是靠'缩起来硬扛、遇水再复活'活成了最顽强的小动物。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["microbe", "tardigrade", "invertebrate", "extremophile", "cryptobiosis"],
+  },
+
 ];
 
 export default cards;

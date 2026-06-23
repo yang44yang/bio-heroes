@@ -1,6 +1,6 @@
 # Sprint 32 Step 8: 题库校验 + 全量统计报告
 
-> 生成时间: 2026-06-22T10:07:55.630Z
+> 生成时间: 2026-06-23T01:21:32.275Z
 > 数据源: src/data/quizzes.js
 
 ## 1. 完整性校验
@@ -14,57 +14,57 @@
 
 | 维度 | 数字 |
 |---|---|
-| 总题数 | **515** |
-| 新题(Sprint 32 三批) | 341 |
+| 总题数 | **539** |
+| 新题(Sprint 32 三批) | 365 |
 | 老题(legacy) | 174 |
-| 涉及卡牌 | 141 / 141 (100%) |
-| 三层齐全卡 | 107 |
-| 部分覆盖卡 | 34 |
+| 涉及卡牌 | 149 / 149 (100%) |
+| 三层齐全卡 | 114 |
+| 部分覆盖卡 | 35 |
 | 完全无题卡 | 0 |
 
 ## 3. 题型分布 (type)
 
 | type | 数量 | 占比 |
 |---|---|---|
-| memorization | 250 | 49% |
-| mechanism | 148 | 29% |
-| inference | 117 | 23% |
+| memorization | 258 | 48% |
+| mechanism | 157 | 29% |
+| inference | 124 | 23% |
 
 ## 4. 难度分布 (difficulty)
 
 | difficulty | 数量 | 占比 |
 |---|---|---|
-| easy | 171 | 33% |
-| medium | 179 | 35% |
-| hard | 165 | 32% |
+| easy | 179 | 33% |
+| medium | 187 | 35% |
+| hard | 173 | 32% |
 
 ## 5. 阵营分布 (faction)
 
 | faction | 数量 | 占比 |
 |---|---|---|
-| nature | 139 | 27% |
-| body | 126 | 24% |
-| pathogen | 126 | 24% |
-| tech | 124 | 24% |
+| nature | 163 | 30% |
+| body | 126 | 23% |
+| pathogen | 126 | 23% |
+| tech | 124 | 23% |
 
 ## 6. principle 字段分布 (仅新题)
 
 | principle | 数量 |
 |---|---|
-| coevolution | 15 |
-| mechanism | 157 |
-| tradeoff | 82 |
-| homeostasis | 11 |
+| coevolution | 16 |
+| mechanism | 167 |
+| tradeoff | 86 |
+| homeostasis | 12 |
 
 ## 7. 新题质量指标
 
-- 答案位置分布(0/1/2/3): 91 / 112 / 79 / 59
+- 答案位置分布(0/1/2/3): 97 / 120 / 84 / 64
 - 选项长度差 ≥ 12 字的题: **0** (应为 0)
 - 平均选项长度: 12 字
 
 ## 8. ch2 涉及卡牌覆盖
 
-### ✅ 三层齐全 (107 张)
+### ✅ 三层齐全 (114 张)
 - `venus_flytrap`
 - `lung_engine`
 - `flu_virus`
@@ -172,8 +172,15 @@
 - `cyanobacteria_oxygen`
 - `chloroplast_solar_forge`
 - `euglena`
+- `sperm_whale`
+- `clownfish_anemone`
+- `sea_star`
+- `emperor_penguin`
+- `slime_mold`
+- `diatom`
+- `tardigrade`
 
-### 🟡 部分覆盖 (34 张)
+### 🟡 部分覆盖 (35 张)
 - `ant_soldier` (memo: 5, mech: 1, infer: 0)
 - `mimosa_timid` (memo: 4, mech: 1, infer: 0)
 - `bee_worker` (memo: 5, mech: 1, infer: 0)
@@ -208,6 +215,7 @@
 - `vaccine_trainer` (memo: 5, mech: 1, infer: 0)
 - `scalpel_blade` (memo: 4, mech: 1, infer: 0)
 - `antibiotic_ultimate` (memo: 2, mech: 0, infer: 3)
+- `anglerfish` (memo: 1, mech: 2, infer: 0)
 
 ### ⛔ 完全无题 (0 张)
 (无)
@@ -216,7 +224,7 @@
 
 - ✅ **题库完整性**: 100% 通过校验
 - ✅ **新题选项长度**: 全部齐平 (gap < 12)
-- 📊 **新题 type 分布** (memo 103 / mech 125 / infer 113) 接近 spec 目标的 35/40/25 比例
+- 📊 **新题 type 分布** (memo 111 / mech 134 / infer 120) 接近 spec 目标的 35/40/25 比例
 - 🏷️ **老题 legacy 标记**: 174 张老题用 'legacy' 标记，便于未来 review 重新分类
 
 ---

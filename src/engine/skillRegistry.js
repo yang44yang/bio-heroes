@@ -1380,6 +1380,72 @@ export const skillRegistry = {
     timing: 'onAttack',
     execute: (ctx) => T.conditionalAtk(ctx, { condition: 'vs_low_hp', hp_threshold: 0.5, amount: 1500 }),
   },
+
+  // ===========================================
+  // Phase 2 第二批（OCEAN 海洋深渊 / MICRO 微观战场）
+  // ===========================================
+
+  // 安康鱼·深海钓灯 — 守护(走 GUARD_SKILL_NAMES 白名单，此 passive 仅为登记一致性) + 攻击使敌沉睡
+  'Luring Lantern': { timing: 'passive' },
+  'Gulp Trap': { timing: 'onAttack', execute: (ctx) => T.onAttackDebuff(ctx, { effect: 'paralyze', duration: 1 }) },
+
+  // 抹香鲸·深渊潜猎者 — 出场隐身 1 回合 + 回声定位秒最低血
+  'Abyssal Dive': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      return { type: 'APPLY_STATUS', targetUid: card.uid, status: { type: 'stealth', turnsLeft: 1 }, source: card.name, message: `🌊 ${card.name} 极限深潜！1 回合内不被选为攻击目标！` }
+    },
+  },
+  'Echo Hunt Strike': { timing: 'onPlay', execute: (ctx) => T.onPlayDamage(ctx, { target: 'one_lowest_hp', amount: 2500 }) },
+
+  // 小丑鱼·海葵之家 — 出场给最虚弱友方加盾 + 被攻击反击
+  'Tentacle Shelter': { timing: 'onPlay', execute: (ctx) => T.onPlayHeal(ctx, { effect: 'shield', target: 'one_lowest_hp', amount: 2000 }) },
+  'Anemone Sting': { timing: 'onHit', execute: (ctx) => T.onHitCounter(ctx, { effect: 'counter_damage', amount: 1000 }) },
+
+  // 海星·断肢重生者 — 必定复活(半血,复活体无技能防无限链) + 击杀回血
+  'Regenerate': { timing: 'onDeath', execute: (ctx) => T.onDeathEffect(ctx, { effect: 'chance_revive', chance: 1.0, revive_hp: 2000, strip_skills: true }) },
+  'Stomach Eversion': { timing: 'onKill', execute: (ctx) => T.onKillEffect(ctx, { effect: 'heal_self', amount: 1000 }) },
+
+  // 帝企鹅·极地守护 — 抱团取暖(全自然系回血) + 轮流取暖(最虚弱友方回血)
+  'Huddle Warmth': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'nature', amount: 1000 }) },
+  'Rotation Relief': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'one_lowest_hp', amount: 1500 }) },
+
+  // 黏菌·没有脑子的解题高手 — 觅食网络(出场每张自然系友方永久+500ATK，复用 BUFF 已验证路径) + 越练越强(随机成长)
+  'Foraging Network': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0 && c.uid !== card.uid && c.faction === 'nature')
+      if (allies.length === 0) return null
+      return { type: 'BUFF', targetUid: card.uid, stat: 'atk', amount: 500 * allies.length, source: card.name, message: `🕸️ ${card.name} 觅食网络！连上 ${allies.length} 个节点，ATK 永久 +${500 * allies.length}！` }
+    },
+  },
+  'Trial and Error': { timing: 'onTurnStart', execute: (ctx) => T.passiveRandomBuff(ctx, { amount: 500 }) },
+
+  // 硅藻·玻璃造氧师 — 每回合全自然系回血 + 出场自身护盾
+  'Oxygen Workhorse': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'nature', amount: 500 }) },
+  'Glass Armor': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      return { type: 'APPLY_SHIELD', targetUid: card.uid, source: card.name, target: card.name, amount: 2000, message: `🛡️ ${card.name} 玻璃铠甲！硅壳挡下 2000 伤害！` }
+    },
+  },
+
+  // 水熊虫·隐生不死 — 出场免疫 2 回合 + 每回合自愈
+  'Tun Cryptobiosis': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      return { type: 'APPLY_STATUS', targetUid: card.uid, status: { type: 'immune', turnsLeft: 2 }, source: card.name, message: `🛡️ ${card.name} 缩成小桶，隐生！2 回合内免疫一切伤害` }
+    },
+  },
+  'Rehydration Recovery': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'self', amount: 1000 }) },
 }
 
 // Sprint 24: Gene Rewrite 复用 Gene Edit（延迟绑定避免引用顺序问题）
