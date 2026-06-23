@@ -214,6 +214,8 @@
 
   "card.event": "Event",
   "card.spTrigger": "🌟 SP Trigger",
+  "card.spSummonTurn": "Turn {n}+",
+  "card.spSummonTurnDetail": "Summonable from turn {n} onward (higher SP cost = later)",
   "card.factionReq": "🔒{icon}{count} {name}",
 
   "collection.detail.cost": "💎 Cost {n}",

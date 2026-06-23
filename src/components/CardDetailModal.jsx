@@ -1,7 +1,7 @@
 import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
-import { FACTIONS } from '../data/deckRules'
+import { FACTIONS, spEarliestSummonTurn } from '../data/deckRules'
 import { useLanguage } from '../i18n/LanguageContext'
 import { describeStatus } from '../utils/statusDescriptor'
 
@@ -137,6 +137,13 @@ export default function CardDetailModal({
             )}
             {cost != null && <span className="text-blue-400">{t('collection.detail.cost', { n: cost })}</span>}
           </div>
+
+          {/* SP 召唤回合门槛（看费用；与 useBattle 门槛逻辑同一公式 spEarliestSummonTurn）*/}
+          {card.type === 'sp' && card.spCost != null && (
+            <div className="mb-3 bg-amber-900/20 border-l-4 border-amber-400 rounded p-2.5 text-xs text-amber-100 leading-relaxed">
+              🕐 {t('card.spSummonTurnDetail', { n: spEarliestSummonTurn(card.spCost) })}
+            </div>
+          )}
 
           {/* 当前状态区 — 仅战斗实例(有 statuses)显示。让齐齐看懂"ATK 为什么变这样" */}
           {Array.isArray(card.statuses) && card.statuses.length > 0 && (

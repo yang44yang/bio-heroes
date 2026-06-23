@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react'
 import { motion } from 'framer-motion'
-import { FACTIONS, RARITIES } from '../data/deckRules'
+import { FACTIONS, RARITIES, spEarliestSummonTurn } from '../data/deckRules'
 import { useLanguage } from '../i18n/LanguageContext'
 import { smallBadgesFor } from '../utils/statusDescriptor'
 import { cardHasGuard } from '../utils/guardSkill'
@@ -233,6 +233,13 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
             )}
           </div>
         </>
+      )}
+
+      {/* SP 召唤回合门槛（看费用；与 useBattle 门槛逻辑同一公式 spEarliestSummonTurn）*/}
+      {isSp && (
+        <div className="text-center text-[8px] sm:text-[9px] text-amber-300/90 mt-0.5 leading-tight">
+          🕐 {t('card.spSummonTurn', { n: spEarliestSummonTurn(card.spCost) })}
+        </div>
       )}
 
       {/* 阵营标记需求 */}

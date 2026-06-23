@@ -30,6 +30,16 @@ export const SP_QUIZ_STREAK = 2      // 连续答对 N 题触发
 export const SP_LEADER_HP_RATIO = 0.5 // 主人 HP 降至此比例触发
 export const SP_TURN_TRIGGER = 8     // 第 N 回合触发
 
+// === SP 召唤回合门槛（看费用）===
+// 打出"可触发SP"事件卡后，SP 还需满足 turn ≥ max(SP_SUMMON_MIN_TURN, spCost − SP_SUMMON_COST_OFFSET) 才能召唤。
+// 小 SP(5-6费) 第 3 回合可召；大 SP 自然推迟：7费→T4 / 8费→T5 / 9费→T6 / 10费→T7。
+// 既挡住第 1-2 回合（齐齐原抱怨"AI 早期甩 SP"），又拦掉"无视费事件 2 费秒高费巨兽"。
+// ⚠️ 门槛逻辑(useBattle.getEligibleSpCards)与 SP 卡面显示(Card/CardDetailModal)共用此函数，改一处即同步。
+export const SP_SUMMON_MIN_TURN = 3      // 最早可召回合（地板）
+export const SP_SUMMON_COST_OFFSET = 3   // spCost 高于此值的部分逐回合推迟
+export const spEarliestSummonTurn = (spCost) =>
+  Math.max(SP_SUMMON_MIN_TURN, (spCost || 0) - SP_SUMMON_COST_OFFSET)
+
 // === 环境事件 ===
 export const EVENT_INTERVAL = 3      // 每 N 回合触发环境事件
 

@@ -214,6 +214,8 @@
 
   "card.event": "事件",
   "card.spTrigger": "🌟 可触发SP",
+  "card.spSummonTurn": "第{n}回合起可召",
+  "card.spSummonTurnDetail": "需第 {n} 回合起才能召唤（SP 费用越高，可召唤的回合越晚）",
   "card.factionReq": "🔒{icon}{count}张{name}",
 
   "collection.detail.cost": "💎 费用 {n}",

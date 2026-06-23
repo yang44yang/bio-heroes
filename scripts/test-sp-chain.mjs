@@ -14,6 +14,7 @@ import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
 import eventCardsRaw from '../src/data/eventCards.js'
 import spCardsRaw from '../src/data/spCards.js'
+import { spEarliestSummonTurn } from '../src/data/deckRules.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const eventCards = eventCardsRaw.default || eventCardsRaw
@@ -37,7 +38,6 @@ const spById = id => spCards.find(c => c.id === id)
 function gate(rule, spDeck, turn, { remainingEnergy = 99, markers = {}, hasEmpty = true } = {}) {
   if (!hasEmpty) return []
   if (!rule || spDeck.length === 0) return []
-  if (turn < 3) return []                       // ← 本次修复：只挡第 1-2 回合
   let candidates = []
   switch (rule.type) {
     case 'cost_limit':
@@ -52,7 +52,8 @@ function gate(rule, spDeck, turn, { remainingEnergy = 99, markers = {}, hasEmpty
       break
     default: break
   }
-  return candidates                              // ← 本次修复：不再 .filter(sp.spCost<=turn)
+  // 召唤门槛（看费用）：turn ≥ spEarliestSummonTurn(spCost)=max(3,spCost−3)，与 useBattle 同公式
+  return candidates.filter(sp => turn >= spEarliestSummonTurn(sp.spCost))
 }
 
 // discard_check 给足标记，让该规则在「资格」层面可评估（真机靠弃牌堆累计）
@@ -90,11 +91,24 @@ for (const [who, deckName, spName] of [
 ok('所有 SP 的 spCost ≥ 3（回合门槛不会误伤合法 SP）', spCards.every(sp => sp.spCost >= 3))
 
 // 兜底：无"死规则"——每张带 spSummonRule 的事件卡，至少能召出 1 张 SP。
-// （会抓出 maxCost < 最小 spCost 这类配置错误，如发烧反应原 maxCost=4 < 5 → 永远召不出。）
+// （会抓出 maxCost < 最小 spCost 这类配置错误，如发烧反应原 maxCost=4 < 5 → 永远召不出。
+//  用高回合 turn=20 隔离回合门槛，只验"规则本身配置"是否能召出任何 SP。）
 for (const e of eventCards.filter(c => c.spSummonRule)) {
-  const reachable = spCards.some(sp => gate(e.spSummonRule, [sp], 3, ample).length > 0)
+  const reachable = spCards.some(sp => gate(e.spSummonRule, [sp], 20, ample).length > 0)
   ok(`无死规则：${e.name} 至少能召出 1 张 SP`, reachable)
 }
+
+// ===== 看费用门槛（turn ≥ max(3, spCost−3)）：小 SP 照常 T3、大 SP 自然推迟 =====
+ok('门槛公式 spEarliestSummonTurn: 5→3 / 6→3 / 7→4 / 8→5 / 9→6 / 10→7',
+  [[5, 3], [6, 3], [7, 4], [8, 5], [9, 6], [10, 7]].every(([c, t]) => spEarliestSummonTurn(c) === t))
+const facRule = f => ({ type: 'faction_only', factionLimit: f, maxCost: 99 })
+const cost5p = spCards.find(s => s.spCost === 5 && s.faction === 'pathogen') // 超级细菌
+const cost9p = spCards.find(s => s.spCost === 9 && s.faction === 'pathogen') // 丧尸瘟疫
+ok('看费用：cost5 SP 第 3 回合可召（小 SP 照常解封）', gate(facRule('pathogen'), [cost5p], 3, ample).length === 1)
+ok('看费用：cost9 巨兽 第 5 回合仍召不出（拦"2费秒巨兽"）', gate(facRule('pathogen'), [cost9p], 5, ample).length === 0)
+ok('看费用：cost9 巨兽 第 6 回合起可召（自然推迟）', gate(facRule('pathogen'), [cost9p], 6, ample).length === 1)
+ok('看费用：任何 SP 第 1-2 回合都召不出（地板 turn≥3）',
+  [1, 2].every(t => spCards.every(sp => gate(facRule(sp.faction), [sp], t, ample).length === 0)))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

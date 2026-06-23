@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-23（**SP 链路一条龙**：①SP「打不出来」解封（回合门槛 `spCost≤turn` 量纲错配→`turn<3`）→ ②DeckBuilder 加事件卡支持（"可触发SP"的事件卡终于能入组，自建卡组才触发得了 SP）→ ③事件×SP 全组合穷举(98/204)+平衡诊断+修死规则（发烧反应 maxCost 4→5）。**平衡留档（齐齐选"先只修死规则"，其余待定）**：🟠"无视费"事件让 2 费第 3 回合秒 30000 属性巨兽（待 Phase B / 看费用门槛解）、🟡tech 阵营弱 2.8 倍。Phase B（三条触发）齐齐定「先A后B」待排期。前序：三连修 a6bf0cb；Phase 2 扩卡第二批 8 张）
+> 更新时间: 2026-06-23（**SP 链路一条龙**：①「打不出来」解封（`spCost≤turn`量纲错配→门槛）→ ②DeckBuilder 加事件卡支持（"可触发SP"事件卡能入组，自建卡组才触发得了 SP）→ ③事件×SP 全组合穷举(98/204)+平衡诊断+修死规则（发烧反应 maxCost4→5）→ **④召唤门槛改"看费用" `turn≥max(3,spCost−3)`（小SP照常T3、大SP推迟T4-7）+ SP 卡面/详情显示"第N回合起可召"** ——🟠"2费秒巨兽"超模已解。🟡tech 阵营弱 2.8 倍仍待定。Phase B（三条触发：答对2题/HP≤50%/第8回合）齐齐定「先A后B」待排期。前序：三连修 a6bf0cb；Phase 2 第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
@@ -10,6 +10,14 @@
 ---
 
 ## 最近完成
+
+### 2026-06-23 SP 召唤门槛改"看费用" + 卡面显示可召回合 ✅
+接上一条平衡诊断的 🟠"无视费事件 2 费秒巨兽"：把召唤门槛从平铺 `turn≥3` 改成**看费用** `turn ≥ max(3, spCost−3)`，并在 SP 卡面/详情显示"第几回合起可召唤"。
+- **单一真相源**：`deckRules.js` 加 `spEarliestSummonTurn(spCost)=max(3,spCost−3)`（+ 常量 SP_SUMMON_MIN_TURN=3 / SP_SUMMON_COST_OFFSET=3）。门槛逻辑(`useBattle.getEligibleSpCards`)与卡面显示(`Card.jsx`/`CardDetailModal.jsx`)**共用此函数**——改一处即同步。
+- **门槛**：去掉 `getEligibleSpCards` 顶部 `if(turn<3)return[]`，末尾改 `candidates.filter(sp => turnRef.current >= spEarliestSummonTurn(sp.spCost))`。小 SP(5-6费)照常 T3；大 SP 自然推迟：7→T4 / 8→T5 / 9→T6 / 10→T7。既保住"不过早"(地板 T3 挡第1-2回合)，又拦掉"2费秒30000属性巨兽"。
+- **显示**：Card.jsx SP 卡面加"🕐第{n}回合起可召"（`card.spSummonTurn`）；CardDetailModal 加"需第 {n} 回合起才能召唤（SP 费用越高越晚）"块（`card.spSummonTurnDetail`）。i18n zh/en 各 2 键。
+- **验证**：build 绿 + 全 14 套零回归（`test-sp-chain.mjs` 升级用真公式 spEarliestSummonTurn + 加看费用断言：5→T3 / 9费T5挡 / 9费T6召 / turn1-2全锁，28 断言；`test-bugfix-20260622.mjs` bug2 断言同步更新）。**vite preview 真机**：图鉴 17 张 SP 全显正确回合(3×7 / 4×4 / 5×4 / 6 / 7)；种入 6 张 SP 进 DeckBuilder SP 页，卡面 T3/T3/T4/T5/T6/T7 截图确认；量子医疗(cost10)详情弹窗"需第 7 回合起才能召唤"；0 console error。
+- **🟡 仍待定**：tech 阵营 SP 偏弱（大 SP 是 campaign_only）；Phase B（三条触发）仍排着——本次只动"事件触发后何时能召"，没加新触发条件。
 
 ### 2026-06-23 事件×SP 全组合穷举 + 平衡诊断 + 修死规则 ✅
 应齐齐要求穷举全部「触发事件 × SP」组合：12 触发事件 × 17 SP = 204 对 → **98 对成立**（分析脚本 `outputs/analyze-sp-combos.mjs`，gitignore）。
@@ -525,7 +533,7 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 ### 🔴 最优先：SP Phase B — 实现设计文档的三条触发（齐齐定「先A后B」，A 已于 2026-06-23 解封）
 **背景**：`.claude/rules/battle-system.md` 写 SP 触发 =「连续答对2题 / 主人HP≤50% / 第8回合」三选一，触发后「从3张SP随机翻2选1」。**但代码完全没这套**——现状 SP 只能靠打出带 `spSummonRule` 的事件卡触发（Phase A 已把这条路从「永远出不来」解封）。
 - **⚠️ 动手前先问齐齐的子决策**：三条触发是 **替换** 事件卡触发，还是 **并存**（事件卡 + 三条件都能触发）？这决定改法与工作量。
-- **要做**：① quiz 连续答对计数（连2触发）② 主人 HP≤50% 检测 ③ 第8回合检测 ④ 触发后「翻2选1」UI（`pendingSpSummon` 状态 + 现有 SP 召唤弹窗可复用）⑤ 决定与现有事件卡触发如何共存（含 Phase A 的 `turnRef.current<3` 门槛是否保留/调整）。
+- **要做**：① quiz 连续答对计数（连2触发）② 主人 HP≤50% 检测 ③ 第8回合检测 ④ 触发后「翻2选1」UI（`pendingSpSummon` 状态 + 现有 SP 召唤弹窗可复用）⑤ 决定与现有事件卡触发如何共存（现有门槛已是"看费用" `spEarliestSummonTurn(spCost)=max(3,spCost−3)`，三条触发是否也走同一门槛/或各自独立，需定）。
 - **关键文件**：`src/hooks/useBattle.js`（`getEligibleSpCards` L1089 / `playEventCard` L1308 / 答题觉醒逻辑 / turn 递增 L2018）、`src/components/BattleScreen.jsx`（SP 召唤弹窗 ~L1459 / 答题 modal）、`.claude/rules/battle-system.md`（设计源）。
 - **验证**：扩 `scripts/test-sp-chain.mjs` 覆盖新触发条件；vite preview 实测三条触发各自能召出 SP，且 Phase A 的「不过早」不被破坏。
 

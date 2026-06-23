@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
 import {
-  ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS,
+  ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
 } from '../data/deckRules'
 import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { calcCardBattle, calcLeaderDamage } from '../utils/damage'
@@ -1097,12 +1097,6 @@ export function useBattle() {
 
     if (!summonRule || spDeck.length === 0) return []
 
-    // 回合门槛（齐齐实测 bug 修正）：只挡开局第 1-2 回合，第 3 回合起放行。
-    // 旧实现用 spCost<=turn 卡死——spCost(5-10) 与回合序号(1,2,3…) 量纲不同，
-    // 把所有 SP 推到第 5-10 回合，亲子对战撑不到 → SP「根本打不出来」。
-    // ⚠️ 临时解封；正式「答对2题 / 主人HP≤50% / 第8回合」三条触发见后续任务（phase B）。
-    if (turnRef.current < 3) return []
-
     let candidates = []
     switch (summonRule.type) {
       case 'cost_limit':
@@ -1129,7 +1123,10 @@ export function useBattle() {
       default:
         break
     }
-    return candidates
+    // 召唤回合门槛（看费用）：turn ≥ max(3, spCost−3)，见 deckRules.spEarliestSummonTurn。
+    // 小 SP 第 3 回合可召；大 SP 自然推迟（7→T4 / 8→T5 / 9→T6 / 10→T7）——
+    // 既挡第 1-2 回合，又拦"无视费事件秒召高费巨兽"。与 SP 卡面显示同一公式。
+    return candidates.filter(sp => turnRef.current >= spEarliestSummonTurn(sp.spCost))
   }
 
   // ----------------------------------------------------------------
