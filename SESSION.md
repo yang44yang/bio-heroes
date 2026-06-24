@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-23（**SP 链路一条龙**：①「打不出来」解封（`spCost≤turn`量纲错配→门槛）→ ②DeckBuilder 加事件卡支持（"可触发SP"事件卡能入组，自建卡组才触发得了 SP）→ ③事件×SP 全组合穷举(98/204)+平衡诊断+修死规则（发烧反应 maxCost4→5）→ **④召唤门槛改"看费用" `turn≥max(3,spCost−3)`（小SP照常T3、大SP推迟T4-7）+ SP 卡面/详情显示"第N回合起可召"** ——🟠"2费秒巨兽"超模已解。🟡tech 阵营弱 2.8 倍仍待定。Phase B（三条触发：答对2题/HP≤50%/第8回合）齐齐定「先A后B」待排期。前序：三连修 a6bf0cb；Phase 2 第二批 8 张）
+> 更新时间: 2026-06-23（**SP 链路一条龙**：①「打不出来」解封（`spCost≤turn`量纲错配→门槛）→ ②DeckBuilder 加事件卡支持（"可触发SP"事件卡能入组，自建卡组才触发得了 SP）→ ③事件×SP 全组合穷举(98/204)+平衡诊断+修死规则（发烧反应 maxCost4→5）→ ④召唤门槛改"看费用" `turn≥max(3,spCost−3)`（小SP照常T3、大SP推迟T4-7）+ SP 卡面/详情显示"第N回合起可召"——🟠"2费秒巨兽"超模已解 → **⑤修通关解锁真 bug：campaign SP（盖娅/疫苗之盾/量子医疗）解锁只写 unlockedSPs、不写 collection → 永远进不了卡组；修 unlockCampaignSP 写库 + loadEconomy 回填老存档**——🟡tech 失衡实战层面已解（大 SP 通关即得；抽卡池仍弱留待以后）。Phase B（三条触发：答对2题/HP≤50%/第8回合）齐齐定「先A后B」待排期。前序：三连修 a6bf0cb；Phase 2 第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
@@ -10,6 +10,15 @@
 ---
 
 ## 最近完成
+
+### 2026-06-23 修通关解锁 bug：campaign SP 终于能进卡组（tech 失衡真正根因）✅
+做"tech 阵营弱 2.8 倍"平衡时（plan 模式调查）挖出更深的**真 bug**：campaign_only 的 3 张 SP（盖娅复苏 nature / 疫苗之盾 tech / 量子医疗 tech）打通关 boss 解锁后**根本进不了卡组**——`unlockCampaignSP` 只 push `unlockedSPs` 数组，而 DeckBuilder SP 池 / 图鉴拥有判定**只读 `collection`**（全 src 没有任何 UI 读 unlockedSPs）→ 解锁=空欢喜。tech 两张大 SP(23000/30000) 不可用即源于此。齐齐选"只修这个 bug"（不转 gacha、不加卡）。
+- **修法（`src/hooks/useEconomy.js` 两处）**：① `unlockCampaignSP` 改 stateRef 同步模式（防 bug20260622 同款「函数式更新被后续 addCoins 覆盖式写回覆盖」）+ 解锁时同时写 `collection[spId]=1`（镜像 pullCards）；② `loadEconomy` 回填——历史存档里 unlockedSPs 有、collection 没有的 SP 加载时补进 collection（老玩家迁移）。①管本局新解锁即时显示、②管历史存档，幂等互补。
+- **不动**：GachaScreen 分子已 `Math.max/min` 钳位、DeckBuilder/Collection 只读 collection 自动生效、SP_UNLOCK_MAP/SpUnlockModal 逻辑正交。
+- **效果**：tech 大 SP 通过通关即得 → 紧急手术(tech 无视费事件) 可召量子医疗(30000) → **tech 阵营事件×SP 性价比恢复齐平**；盖娅复苏一并修好。
+- **验证**：build 绿 + 全 15 套零回归（新增 `scripts/test-campaign-sp-unlock.mjs` 12 断言：写 collection / stateRef 同步 / 非函数式 / loadEconomy 回填 / 每张 campaign SP 都有 SP_UNLOCK_MAP 入口且 unlockStage 一致）。**vite preview 真机**：种 `unlockedSPs=['sp_vaccine_shield']` 且 collection 无 → reload → collection 回填成功(true) → DeckBuilder SP 池出现疫苗之盾（显"第4回合起可召"，cost7→T4 顺带印证看费用门槛）、0 console error。
+- **未做（齐齐保留）**：抽卡池 tech 仍偏弱（两张大 SP 仍 campaign_only、不在抽卡池）——纯抽卡/早期玩法的 tech 强 SP 缺口留待以后（转 gacha 或新增卡）。
+- **⚠️ 衍生发现（未处理）**：`unlockedSPs` 数组现在基本是冗余记录（collection 已是唯一拥有真相源）；`spCards.unlockStage` 字段除本测试外仍只在数据层。可日后清理。
 
 ### 2026-06-23 SP 召唤门槛改"看费用" + 卡面显示可召回合 ✅
 接上一条平衡诊断的 🟠"无视费事件 2 费秒巨兽"：把召唤门槛从平铺 `turn≥3` 改成**看费用** `turn ≥ max(3, spCost−3)`，并在 SP 卡面/详情显示"第几回合起可召唤"。

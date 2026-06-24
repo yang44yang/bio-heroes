@@ -69,7 +69,12 @@ function loadEconomy() {
       if (!localStorage.getItem('bio-heroes-intro-seen')) {
         localStorage.setItem('bio-heroes-intro-seen', 'true')
       }
-      return { ...DEFAULT_STATE, ...(migrated || parsed) }
+      const st = { ...DEFAULT_STATE, ...(migrated || parsed) }
+      // 迁移：历史 campaign 通关解锁的 SP 只写进了 unlockedSPs、未进 collection（旧 bug）→ 回填使其真正可用。
+      // 幂等；与 unlockCampaignSP 的写库互补（①管本局新解锁即时显示，②管历史存档）。
+      st.collection = { ...st.collection }
+      for (const id of st.unlockedSPs || []) if (!st.collection[id]) st.collection[id] = 1
+      return st
     }
   } catch (e) { /* ignore */ }
   // 全新玩家：给初始卡牌礼包
@@ -322,11 +327,18 @@ export function useEconomy() {
 
   // 通关解锁 campaign_only SP 卡（幂等：已解锁则不变）
   const unlockCampaignSP = useCallback((spId) => {
-    setState(prev => {
-      const list = prev.unlockedSPs || []
-      if (list.includes(spId)) return prev
-      return { ...prev, unlockedSPs: [...list, spId] }
-    })
+    // ⚠️ 必须同步 stateRef（非函数式 setState）：handleExitBattle 里本调用之后还会跑多个 addCoins，
+    // 用函数式更新会有被覆盖式写回覆盖的风险（bug20260622 同款）。沿用 spendCoins/pullCards 同款模式。
+    const prev = stateRef.current
+    if ((prev.unlockedSPs || []).includes(spId)) return // 幂等
+    const next = {
+      ...prev,
+      unlockedSPs: [...(prev.unlockedSPs || []), spId],
+      // 真正进库（镜像 pullCards）：DeckBuilder/图鉴 只认 collection，不写就永远进不了卡组 → 解锁=空欢喜
+      collection: { ...prev.collection, [spId]: prev.collection[spId] || 1 },
+    }
+    stateRef.current = next
+    setState(next)
   }, [])
 
   // 标记成就为已解锁（幂等，支持批量）
