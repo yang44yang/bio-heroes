@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-25（**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
+> 更新时间: 2026-06-25（**干细胞"死了不复活"真·真根因 a3fa492**：React18 自动批处理下 cleanupDeadCards 同步读 dead.length 恒 0 的 eager-bailout 竞态 → 死卡不进弃牌堆+onDeath 全哑火；改「提交后 useEffect 扫 currentHp≤0」根治，preview 实锤(敌方回合杀我方卡也触发)。前条 785db6b 收口 onDeath 是必要但不充分。**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
@@ -11,7 +11,16 @@
 
 ## 最近完成
 
-### 2026-06-25 干细胞"死了不复活"真根因：onDeath 触发架构修复（核心战斗）✅
+### 2026-06-25 干细胞"死了不复活" **真·真根因**：React18 异步 dead 竞态 → 提交后 useEffect 扫场（核心战斗）✅✅
+**承上条**：上一条（785db6b）把 onDeath 收口到 `cleanupDeadCards` 是**必要但不充分**——`cleanupDeadCards` 自己还有一个更深的 bug，齐齐实测"还是不行"。这次**没再想当然，直接 preview 加调试日志实测抓真因**：
+- **真根因（实测确认）**：`cleanupDeadCards` 里 `setter(prev => {...dead.push...})` 后**同步**读 `dead.length` 决定是否进弃牌堆 / 触发 onDeath。React18 自动批处理下，当该 field 已有 pending 更新（刚扣的伤害）时，`setState(updater)` 的 updater **被延迟到 render 才执行** → 同步读 `dead.length` **恒为 0**（eager-bailout 竞态：无 pending 时 updater 又 eager 执行、dead 有值 → **时灵时不灵**，正是"修了好几次还偶尔不行"的根源）。实测日志铁证：敌方向日葵/我方白细胞**确实死了**（场上消失），但 `[CLEANUP] dead.length(sync)` 那一刻**恒为 0** → 死卡不进弃牌堆 + onDeath 全不触发。**连"死卡进弃牌堆"也被这 bug 静默跳过**（之前没人发现）。
+- **flushSync 试过但弃用**：`flushSync` 强制同步提交、对**玩家攻击路径**有效（实测 dead.length=2、onDeath 触发）；但 `cleanupDeadCards` 也会从 effect/commit 上下文被调到 → 报 `flushSync was called from inside a lifecycle method` 且**不刷新** → 对 AI 回合等路径仍失效 + 刷屏报错。不可用。
+- **最终修法**：死亡清理从"各路径同步 `cleanupDeadCards`"改为**「提交后 `useEffect` 扫场」**——`useEffect(()=>{…},[playerField,enemyField])` 每次提交后读**最新** field 扫 `currentHp≤0`，按 uid 去重(`processedDeathsRef`，每张死卡只处理一次防重复复活)，依次：触发 onDeath → 进弃牌堆 → 仅按 deadUids 移除(不误删复活进来的新卡) → 关卡规则。**天然覆盖攻击/反击/AOE/中毒/环境/敌方回合杀我方卡全部死法**（effect 不在乎 HP 怎么归零）。`cleanupDeadCards` 降为 no-op(兼容历史 18 处调用点)。
+- **preview 真机实测确认**：组牌→出白细胞→敌方回合白细胞被杀→`[SWEEP] player fresh dead: 白细胞 skills: Phagocytosis` + `[SWEEP] enemy fresh dead: 蛀牙菌 skills: Acid Erosion` **均触发 onDeath**（含**敌方回合杀我方卡**这条 flushSync 处理不了的路径），fresh load **console 干净无报错无崩溃**。
+- **验证**：`test-onDeath-routing` 重写为验证 effect 架构（18/18：useEffect 依赖/扫 currentHp≤0/去重/fireOnDeath/进弃牌堆/按 uid 移除/关卡规则/no-op cleanupDeadCards）+ 全 17 套零回归 + build 绿。commit a3fa492。
+- **⏳ 留齐齐的唯一实测**：onDeath**触发**已 preview 实锤；剩**干细胞复活 e2e**——让干细胞被打死且**弃牌堆里有非自身的人体系 R 生物卡**（revive_as 的模板条件），应见"🧬 …分化为 XX"且该卡半血落空位。**注意**：弃牌堆没 body R 卡则不复活（正常，会显示"没有合适模板"narrative）。
+
+### 2026-06-25 干细胞"死了不复活"真根因①：onDeath 触发架构修复（核心战斗）✅ ←被上条补完
 齐齐实测：干细胞·万能变身者死亡后一直不分化复活，**之前修了好几次没好**。起 ondeath-trigger-fix workflow（3 agent）彻查，挖出**两个缠在一起的核心架构 bug**：
 - **① onDeath 触发面太窄**：`triggerSkills('onDeath')` 只在 `handlePostAttackSkills` 的 `if(defKilled)`（防守方被直接攻击打死）触发。**反击死/AOE死/中毒死/环境死/SP死**全不触发 → 所有 onDeath 卡（干细胞分化/海星复活/章鱼·HIV复活/大肠杆菌分裂/孢子散播）在常见死法下哑火。肉盾干细胞最常见的死法恰是这些 → "从来不复活"。
 - **② 死卡残留**：10+ 条死亡路径（反击/AOE/中毒/环境/SP/混乱）根本不调 `cleanupDeadCards`，HP≤0 死卡残留场上。
