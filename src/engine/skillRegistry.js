@@ -833,18 +833,21 @@ export const skillRegistry = {
     },
   },
 
-  // 10. Color Camouflage — 出场后 1 回合不可被选为攻击目标
+  // 10. Color Camouflage — 出场后 1 回合不可被选为攻击目标（真隐身 stealth status，mirror 抹香鲸 Abyssal Dive）
+  // 旧实现用 9999 护盾"近似隐身"，导致变色龙几乎打不死（齐齐实测撞到 5499 残余护盾）；_stealth 标记是死代码无人读。
   'Color Camouflage': {
     timing: 'onPlay',
-    execute: (ctx) => ({
-      type: 'APPLY_SHIELD',
-      targetUid: ctx.card.uid,
-      source: ctx.card.name,
-      target: ctx.card.name,
-      amount: 9999,  // 用高护盾近似隐身（未来可改为正式 stealth status）
-      _stealth: true,
-      message: `🦎 ${ctx.card.name} 变色伪装！1 回合内不被选为目标！`,
-    }),
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      return {
+        type: 'APPLY_STATUS',
+        targetUid: card.uid,
+        status: { type: 'stealth', turnsLeft: 1 },
+        source: card.name,
+        message: `🦎 ${card.name} 变色伪装！1 回合内不被选为攻击目标！`,
+      }
+    },
   },
 
   // 11. Precision Excision — 无视守护选择攻击任意目标

@@ -17,8 +17,19 @@ let pass = 0, fail = 0
 const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error(`❌ ${name}`) } }
 
 // ============ 1. isGuardSkill ============
-ok('GUARD_SKILL_NAMES 含 Guard + Shell Defense + Physical Barrier',
-  ['Guard', 'Shell Defense', 'Physical Barrier'].every(n => GUARD_SKILL_NAMES.includes(n)))
+ok('GUARD_SKILL_NAMES 含全部 5 个守护别名（含 Filter-Feed Guard 鲸鲨）',
+  ['Guard', 'Shell Defense', 'Physical Barrier', 'Luring Lantern', 'Filter-Feed Guard'].every(n => GUARD_SKILL_NAMES.includes(n)))
+ok('isGuardSkill: Filter-Feed Guard 识别（鲸鲨守护，task_e96cb667 ③ 修复）', isGuardSkill({ nameEn: 'Filter-Feed Guard' }) === true)
+ok('数据一致性: 鲸鲨·深海巨墙 description 写"守护" → cardHasGuard 必须 true',
+  cardHasGuard(cards.find(c => c.id === 'whale_shark_wall')) === true)
+// 通用一致性：凡技能 description 以"守护"开头（= 本卡拥有守护机制），其 nameEn 必须在白名单。
+// 根治"写了守护但不生效"——海龟/睫毛/鲸鲨/骨骼巨人/生物膜同款。用"开头"精确排除"给友方加守护"(创可贴)、
+// "对敌方守护卡造成伤害"(X光) 这类与守护交互但本卡并不拥有守护的技能。
+const _guardClaimers = [...cards, ...spCards].flatMap(c => (c.skills || [])
+  .filter(s => /^守护/.test((s.description || '').trim()))
+  .filter(s => !GUARD_SKILL_NAMES.includes(s.nameEn))
+  .map(s => `${c.name}/${s.nameEn || s.name}`))
+ok(`数据一致性: 所有"守护"开头的技能都在白名单 —— 违规: ${_guardClaimers.join('、') || '无'}`, _guardClaimers.length === 0)
 ok('isGuardSkill: Guard 识别', isGuardSkill({ nameEn: 'Guard' }) === true)
 ok('isGuardSkill: Shell Defense 识别', isGuardSkill({ nameEn: 'Shell Defense' }) === true)
 ok('isGuardSkill: Physical Barrier 识别', isGuardSkill({ nameEn: 'Physical Barrier' }) === true)

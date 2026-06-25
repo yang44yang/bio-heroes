@@ -557,8 +557,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         const atkCard = eFieldNow[atkSlot]
         if (!atkCard || atkCard.currentHp <= 0) continue
 
-        // 找攻击目标
-        const pAlive = pFieldNow.map((c, i) => (c && c.currentHp > 0) ? { ...c, slot: i } : null).filter(Boolean)
+        // 找攻击目标（排除隐身 stealth 卡 —— 与玩家攻击选靶 843 行对称；全员隐身则 pAlive 空 → 走直攻主人）
+        const pAlive = pFieldNow.map((c, i) => (c && c.currentHp > 0 && !c.statuses?.some(s => s.type === 'stealth')) ? { ...c, slot: i } : null).filter(Boolean)
         // 走统一 helper, 识别 Guard / Shell Defense / Physical Barrier 三种 nameEn
         const guardCards = pAlive.filter(cardHasGuard)
 

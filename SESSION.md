@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-23（**SP 链路一条龙**：①「打不出来」解封（`spCost≤turn`量纲错配→门槛）→ ②DeckBuilder 加事件卡支持（"可触发SP"事件卡能入组，自建卡组才触发得了 SP）→ ③事件×SP 全组合穷举(98/204)+平衡诊断+修死规则（发烧反应 maxCost4→5）→ ④召唤门槛改"看费用" `turn≥max(3,spCost−3)`（小SP照常T3、大SP推迟T4-7）+ SP 卡面/详情显示"第N回合起可召"——🟠"2费秒巨兽"超模已解 → **⑤修通关解锁真 bug：campaign SP（盖娅/疫苗之盾/量子医疗）解锁只写 unlockedSPs、不写 collection → 永远进不了卡组；修 unlockCampaignSP 写库 + loadEconomy 回填老存档**——🟡tech 失衡实战层面已解（大 SP 通关即得；抽卡池仍弱留待以后）。Phase B（三条触发：答对2题/HP≤50%/第8回合）齐齐定「先A后B」待排期。前序：三连修 a6bf0cb；Phase 2 第二批 8 张）
+> 更新时间: 2026-06-25（**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
@@ -10,6 +10,25 @@
 ---
 
 ## 最近完成
+
+### 2026-06-25 引擎 bug：变色龙隐身 + 3 张卡守护失效（描述≠实现）✅
+齐齐实测：敌方变色龙顶着 5499 护盾几乎打不死。根因 task_e96cb667 ②（之前 spawn 没真落地）。借此起 engine-bug-sweep workflow（6 agent）彻查连带 bug + skillRegistry"描述≠实现"错配，又揪出 2 张守护失效卡。
+- **① 变色龙隐身**：「Color Camouflage」(skillRegistry:837) 被实现成 9999 护盾"近似隐身"（注释自述"未来可改 stealth status"）→ 几乎无敌（5499=9999 吸收约 4500 后残余）；`_stealth` 是死代码无人读。**改用真 `{type:'stealth',turnsLeft:1}`（镜像抹香鲸 Abyssal Dive；APPLY_STATUS 同 APPLY_SHIELD 按 _side 路由到敌方变色龙）。**
+- **② 隐身单向 bug**：真 stealth 只被玩家攻击选靶尊重(BattleScreen:843)、AI 选靶(561)不尊重 → 玩家隐身卡(抹香鲸)被 AI 照打。**BattleScreen:561 AI 选靶也过滤 stealth（与 843 对称；全员隐身→pAlive 空→直攻主人）。**
+- **③ 守护失效（同 bug 类：description 写"守护"但 nameEn 漏登记 GUARD_SKILL_NAMES）**：task_e96cb667 ③ **鲸鲨·深海巨墙(Filter-Feed Guard, 5000/20000)** + 测试一致性断言新揪出 **骨骼巨人·钢铁之躯(Calcified Armor, 10000/15000)** 和 **生物膜·细菌堡垒(Biofilm Shield, 6000/22000)**——三张大肉盾守护全失效（对手不被强制打它们）。**`guardSkill.js` 白名单加这 3 个 nameEn。**（骨骼巨人是齐齐 SP 卡组里就有的牌。）
+- **永久兜底**：`test-guard.mjs` 加通用一致性断言——凡 description 以"守护"开头的技能 nameEn 必须在白名单（根治海龟/睫毛/鲸鲨/骨骼巨人/生物膜同款 bug 类；用"开头"精确排除创可贴"给友方加守护"、X光"打敌方守护卡"两个误报）。
+- **验证**：build 绿 + 全 16 套零回归（新增 `scripts/test-stealth.mjs` 8 断言；test-guard 59 断言）+ vite preview 自由对战冒烟 0 console error。真·变色龙隐身/鲸鲨守护需对应卡上场复现 → 留齐齐实测。
+- **⚠️ workflow 揪出的更大 backlog（待用户定优先级、未改）**：
+  - HIGH ① **T-Cell Training(胸腺)** 实现成回血(passiveHeal)而非"搜牌"——完全不对(skillRegistry:609)
+  - HIGH ② **Nutrient Hijack(蛔虫)** 实现成吸血而非"减少敌方主人回复"(skillRegistry:607)
+  - HIGH ③ task_5b9a7c7c **反击 _side 路由**：Thorn Counter/Anemone Sting 的 onHit 缺 friendlyField/enemyField + AOE_DAMAGE 不读 _side='attacker_side'(useBattle:317/1340, skillTemplates:684)
+  - HIGH ④ Snap Trap(捕蝇草)/Precision Kill(CAR-T) 用 `currentHp+99999` hack 代替无视护盾击杀（能用但脏，skillRegistry:390/1049）
+  - MEDIUM ⑤ **Neural Hijack(狂犬)** 的 `_neuralHijackActive` 是死代码无人读 → 技能无效(skillRegistry:731)
+  - MEDIUM ⑥ **Gene Correction 重复定义**(skillRegistry:665 与 867)，第二个漏 HP buff
+  - MEDIUM ⑦ Spore Dormancy(炭疽孢子)"2回合后满血复活"实为立即50%(skillRegistry:746)
+  - MEDIUM ⑧ 蓝鲸 **Sonar Shockwave 2000 是最弱 AOE**，与"动物界最响"文案不符(task_1856a27c；改 3000 或改文案，需用户定)
+  - MEDIUM ⑨ Gene Edit(ATK/HP互换"近似")、Calcified Armor 死亡盾实为 heal、Emergency Bandage 给的"守护"是 500 盾(非真守护)
+  - ✅ conditionalAtk ①（固定加伤退化×2）经核实**已修**(is_multiplier 分支)。
 
 ### 2026-06-23 修通关解锁 bug：campaign SP 终于能进卡组（tech 失衡真正根因）✅
 做"tech 阵营弱 2.8 倍"平衡时（plan 模式调查）挖出更深的**真 bug**：campaign_only 的 3 张 SP（盖娅复苏 nature / 疫苗之盾 tech / 量子医疗 tech）打通关 boss 解锁后**根本进不了卡组**——`unlockCampaignSP` 只 push `unlockedSPs` 数组，而 DeckBuilder SP 池 / 图鉴拥有判定**只读 `collection`**（全 src 没有任何 UI 读 unlockedSPs）→ 解锁=空欢喜。tech 两张大 SP(23000/30000) 不可用即源于此。齐齐选"只修这个 bug"（不转 gacha、不加卡）。
