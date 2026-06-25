@@ -15,8 +15,8 @@
 接上条 workflow backlog，齐齐选"先清能快修的"。核实后 2 项真·快修、1 项不是：
 - ✅ **蓝鲸·深海巨灵 Sonar Shockwave 2000→3000**（skillRegistry:254）：原为最弱 all_enemy AOE（同类 Ancient Plague/Extinction Roar 均 3000），与"188分贝·动物界最响"科学事实不符。调齐平（cost8 SSR，不过模）；科学文案保留（真事实+教育价值）。
 - ✅ **Gene Correction 重复定义修复**：skillRegistry 有两处 `'Gene Correction'` key —— 旧"仅+1500ATK"版(原 L867) JS 后键覆盖 shadow 了完整"双 buff"版(L665) → **+3000HP 永久丢失**。删旧版恢复双 buff。`test-gene-correction` 加"只定义一次"断言（原测试用 `indexOf` 只查首处、查不出 shadow，是测试盲区）。
-- ⏸️ **Neural Hijack(狂犬) 不是快修，待决策**：handler 返回空壳 RUSH_BOOST + 死标记 `_neuralHijackActive`，还弹"下个敌方卡将被控制!"的**假消息**（注释自承"简化为逻辑标记"）。真·控制敌方卡是无先例的大机制 → 需先定"这技能到底该做什么"（实现控制 / 简化成别的真效果 / 仅改文案）。
-- 验证：build 绿 + 全 16 套零回归（gene-correction 29 断言）。
+- ✅ **Neural Hijack(狂犬) 简化成真效果**（齐齐选"简化成真效果"）：原是空壳 RUSH_BOOST + 没人读的死标记 + "将被控制!"假消息、实际无任何效果。改为 `onAttack debuff_atk -1000/2回合`（攻击时劫持目标神经→削弱其 ATK，mirror 蜘蛛 Silk Trap 的 onAttackDebuff），描述/scienceNote 同步对齐，新增 `scripts/test-neural-hijack.mjs` 6 断言（防退回空壳）。真·控制敌方卡(翻转卡归属+UI+AI)是大机制，未做。
+- 验证：build 绿 + 全 17 套零回归（gene-correction 29 断言 + 新增 neural-hijack 6 断言）。
 
 ### 2026-06-25 引擎 bug：变色龙隐身 + 3 张卡守护失效（描述≠实现）✅
 齐齐实测：敌方变色龙顶着 5499 护盾几乎打不死。根因 task_e96cb667 ②（之前 spawn 没真落地）。借此起 engine-bug-sweep workflow（6 agent）彻查连带 bug + skillRegistry"描述≠实现"错配，又揪出 2 张守护失效卡。

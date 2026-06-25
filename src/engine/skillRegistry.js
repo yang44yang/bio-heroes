@@ -721,21 +721,11 @@ export const skillRegistry = {
     },
   },
 
-  // 4. Neural Hijack — 击杀后 50% 控制对方下一张出场的卡
-  'Neural Hijack': {
-    timing: 'onKill',
-    execute: (ctx) => {
-      const attacker = ctx.attacker || ctx.card
-      if (!attacker || Math.random() > 0.5) return null
-      // 简化：转换为击杀后的控制标记
-      return {
-        type: 'RUSH_BOOST',
-        source: attacker.name,
-        _neuralHijackActive: true,
-        message: `🧠 ${attacker.name} 神经劫持！下个出场的敌方卡将被控制！（简化为逻辑标记）`,
-      }
-    },
-  },
+  // 4. Neural Hijack — 攻击时劫持目标神经，削弱其 ATK。
+  //    原"击杀后50%控制对方卡"是无引擎支持的空壳（返回畸形 RUSH_BOOST + 没人读的死标记 + 误导性假消息、
+  //    实际无任何效果）。简化为真效果：onAttack debuff_atk -1000/2回合，贴"狂犬病毒入侵神经系统、削弱宿主"
+  //    科学；mirror 蜘蛛 Silk Trap 的 onAttackDebuff 模板。
+  'Neural Hijack': { timing: 'onAttack', execute: (ctx) => T.onAttackDebuff(ctx, { effect: 'debuff_atk', amount: 1000, duration: 2 }) },
 
   // 5. Spore Dormancy — 被击杀时不进弃牌堆，2 回合后满 HP 复活
   'Spore Dormancy': {
