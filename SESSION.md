@@ -11,6 +11,15 @@
 
 ## 最近完成
 
+### 2026-06-25 干细胞"死了不复活"真根因：onDeath 触发架构修复（核心战斗）✅
+齐齐实测：干细胞·万能变身者死亡后一直不分化复活，**之前修了好几次没好**。起 ondeath-trigger-fix workflow（3 agent）彻查，挖出**两个缠在一起的核心架构 bug**：
+- **① onDeath 触发面太窄**：`triggerSkills('onDeath')` 只在 `handlePostAttackSkills` 的 `if(defKilled)`（防守方被直接攻击打死）触发。**反击死/AOE死/中毒死/环境死/SP死**全不触发 → 所有 onDeath 卡（干细胞分化/海星复活/章鱼·HIV复活/大肠杆菌分裂/孢子散播）在常见死法下哑火。肉盾干细胞最常见的死法恰是这些 → "从来不复活"。
+- **② 死卡残留**：10+ 条死亡路径（反击/AOE/中毒/环境/SP/混乱）根本不调 `cleanupDeadCards`，HP≤0 死卡残留场上。
+- **为什么修了几次没好**：之前都在改"防守方被打死"那条**能触发**的路的细节（side/空位/弃牌堆，a962f8c）；真洞是 onDeath 没接到 `cleanupDeadCards`（所有死亡咽喉）。而 `test-differentiation` 一直绿——它只 `import onDeathEffect` 直接测**模板逻辑**、喂现成弃牌堆，从没测"真死了会不会触发"（**假绿**，与 Gene Correction 同套路）。
+- **修法**：① 加 `fireOnDeathRef`（useRef 持最新闭包，绕开 cleanupDeadCards 是 useCallback([]) 的 stale-closure；triggerSkills 是稳定 import）统一触发 onDeath，**收口到 cleanupDeadCards**（所有死亡咽喉），按死卡那方 deadSide 路由。② 从 handlePostAttackSkills 移除 onDeath（防双触发；连带揪出并修掉 `deathEvents` 残留——它会让**任何防守方死亡**时 `spread undefined` 崩溃，被新测试抓到）。③ 给**全部死亡路径**补 `cleanupDeadCards`：中毒 tick / 环境事件 / 出牌 onPlay AOE(声纳等) / 混乱友伤 / 事件卡 AOE(全球大流行)（共 18 处调用点；SP/攻击本就有）。④ 死循环防护：`chance_revive` 复活体一律 strip 技能（防章鱼/HIV 反复复活无限链）。
+- **验证**：build 绿 + 全 17 套零回归。**`test-onDeath-routing` 重写**成验证**真实接线**（fireOnDeath 收口 / handlePostAttackSkills 不再触发 / deadSide 路由 / 各死亡路径调 cleanupDeadCards），13 断言——堵住假绿盲区。**vite preview 真机**：init + 出牌 + 攻击 + AI 回合 + 多回合全程稳定、零 console error、无死循环（新增的"每次出牌都 cleanup"高频路径不崩）。
+- **⏳ 齐齐定夺式实测**：用你含干细胞 + 人体系 R 卡的牌，让干细胞被**中毒/AOE/反击**打死（之前不复活的死法）→ 应见日志"🧬 …分化为 XX"且 body R 卡出现在你方空位。鉴于"修了几次"史，这条真机确认很关键。
+
 ### 2026-06-25 引擎 bug 快修 2 项（蓝鲸 AOE + Gene Correction shadow）✅
 接上条 workflow backlog，齐齐选"先清能快修的"。核实后 2 项真·快修、1 项不是：
 - ✅ **蓝鲸·深海巨灵 Sonar Shockwave 2000→3000**（skillRegistry:254）：原为最弱 all_enemy AOE（同类 Ancient Plague/Extinction Roar 均 3000），与"188分贝·动物界最响"科学事实不符。调齐平（cost8 SSR，不过模）；科学文案保留（真事实+教育价值）。

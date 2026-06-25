@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// onDeath 事件路由回归测试
-// 确保被杀方 onDeath 技能(召唤/复活/分裂/治疗)按"死亡卡自己那方"路由，而非攻击方。
-// 跟 test-guard 同款：不 import useBattle(避免 ESM 路径解析)，只读源码文本断言接线。
+// onDeath 触发 + 路由回归测试
+// 2026-06-25 重构：onDeath 从 handlePostAttackSkills 的"防守方被直接攻击打死"分支，收口到 cleanupDeadCards
+// (所有死亡的唯一清理咽喉)，覆盖反击/AOE/中毒/环境等全部死亡路径。修齐齐实测"干细胞死了不复活"。
+// grep 源码接线（不 import useBattle，避 ESM 路径解析）。
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
@@ -12,39 +13,44 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error(`❌
 
 const ub = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
 
-// 只取 handlePostAttackSkills 函数体(到下一个函数 processEndOfTurnEffects 之前)
-const fnStart = ub.indexOf('function handlePostAttackSkills')
-const fnEnd = ub.indexOf('function processEndOfTurnEffects')
-ok('找到 handlePostAttackSkills 函数', fnStart >= 0)
-ok('找到函数结束边界(processEndOfTurnEffects)', fnEnd > fnStart)
-const fn = ub.slice(fnStart, fnEnd)
+// ① onDeath 统一触发器 fireOnDeathRef（用 ref 持最新闭包，绕开 cleanupDeadCards 是 useCallback([]) 的陷阱）
+ok('① 定义 fireOnDeathRef = useRef', /fireOnDeathRef\s*=\s*useRef/.test(ub))
+const fodStart = ub.indexOf('fireOnDeathRef.current =')
+const fod = fodStart >= 0 ? ub.slice(fodStart, fodStart + 1200) : ''
+ok('① fireOnDeathRef 用 triggerSkills(onDeath) 且传 friendlyField + discardPile',
+  /triggerSkills\(\s*'onDeath'[\s\S]{0,160}friendlyField[\s\S]{0,80}discardPile/.test(fod))
 
-// ① onDeath 的 friendlyField 不再 .filter(Boolean) 删 null 空位
-ok('① 函数内不含 playerFieldRef.current.filter(Boolean)(空位 null 被保留)',
-  !/playerFieldRef\.current\.filter\(Boolean\)/.test(fn))
-ok('① 函数内不含 enemyFieldRef.current.filter(Boolean)(空位 null 被保留)',
-  !/enemyFieldRef\.current\.filter\(Boolean\)/.test(fn))
+// ② cleanupDeadCards（所有死亡咽喉）内调用 fireOnDeathRef → 覆盖全部死亡路径
+const cleanStart = ub.indexOf('const cleanupDeadCards = useCallback')
+const clean = cleanStart >= 0 ? ub.slice(cleanStart, cleanStart + 1300) : ''
+ok('② cleanupDeadCards 内调用 fireOnDeathRef.current(dead, side)',
+  /fireOnDeathRef\.current\?\.\(\s*dead\s*,\s*side\s*\)/.test(clean))
 
-// ② defenderSide 变量定义(被杀方 side)存在
-ok('② 定义 defenderSide = side===player ? enemy : player',
-  /const\s+defenderSide\s*=\s*side\s*===\s*['"]player['"]\s*\?\s*['"]enemy['"]\s*:\s*['"]player['"]/.test(fn))
+// ③ 路由：按死卡那方(deadSide)派生 setter（复活/召唤/分裂落到死亡卡自己那方，而非攻击方）
+ok('③ fSet 按 deadSide 派生(死卡那方为 friendly)',
+  /deadSide\s*===\s*'player'\s*\?\s*setPlayerField\s*:\s*setEnemyField/.test(fod))
+ok('③ applySkillEvents 用 fSet/eSet + deadSide',
+  /applySkillEvents\(\s*events\s*,\s*fSet\s*,\s*eSet\s*,\s*deadSide\s*\)/.test(fod))
+ok('③ friendlyField 用 fRef.current（保留 null 空位，不 .filter(Boolean) 假阴性"没空位"）',
+  /friendlyField:\s*fRef\.current/.test(fod) && !/fRef\.current\.filter\(Boolean\)/.test(fod))
 
-// ③ 第二个 applySkillEvents 调用 deathEvents 且用 defenderSide 派生 setter
-ok('③ 存在 applySkillEvents(deathEvents, ...) 调用',
-  /applySkillEvents\(\s*deathEvents\s*,/.test(fn))
-ok('③ deathEvents 的 apply 末参用 defenderSide',
-  /applySkillEvents\(\s*deathEvents\s*,[^)]*defenderSide\s*\)/.test(fn))
+// ④ handlePostAttackSkills 不再触发 onDeath（已收口，避免双触发），但仍触发 onKill
+const hpStart = ub.indexOf('function handlePostAttackSkills')
+const hpEnd = ub.indexOf('function processEndOfTurnEffects')
+const hp = (hpStart >= 0 && hpEnd > hpStart) ? ub.slice(hpStart, hpEnd) : ''
+ok('④ handlePostAttackSkills 不再含 triggerSkills(onDeath)（防双触发）', !/triggerSkills\(\s*'onDeath'/.test(hp))
+ok('④ handlePostAttackSkills 仍触发 onKill（攻击方击杀技能不受影响）', /triggerSkills\(\s*'onKill'/.test(hp))
+ok('④ handlePostAttackSkills 不再残留 deathEvents 变量', !/deathEvents/.test(hp))
 
-// ④ 日志循环遍历 [...allEvents, ...deathEvents](onKill + onDeath 都记)
-ok('④ 日志循环遍历 [...allEvents, ...deathEvents]',
-  /for\s*\(\s*const\s+evt\s+of\s*\[\s*\.\.\.allEvents\s*,\s*\.\.\.deathEvents\s*\]\s*\)/.test(fn))
-
-// 回归保护：deathEvents 不再被 push 进 allEvents(否则会被攻击方 side 重复 apply)
-ok('回归: allEvents.push 不再含 deathEvents(两类事件已拆分)',
-  !/allEvents\.push\([^)]*deathEvents/.test(fn))
-// 回归保护：onKill 仍用攻击方 side apply(穿透/压制溢出逻辑不受影响)
-ok('回归: onKill 仍 applySkillEvents(allEvents, ..., side)',
-  /applySkillEvents\(\s*allEvents\s*,[^)]*\bside\s*\)/.test(fn))
+// ⑤ 非攻击死亡路径也调用 cleanupDeadCards（中毒/环境/混乱）→ 这些路径的死卡才会清理 + 触发 onDeath
+ok('⑤ 中毒 tick (processEndOfTurnEffects) 末尾调 cleanupDeadCards',
+  /function processEndOfTurnEffects[\s\S]{0,2500}cleanupDeadCards\(side\)/.test(ub))
+ok('⑤ 环境事件 applyEnvironmentEvent 调 cleanupDeadCards 双方',
+  /function applyEnvironmentEvent[\s\S]{0,1600}cleanupDeadCards\('player'\)[\s\S]{0,120}cleanupDeadCards\('enemy'\)/.test(ub))
+ok('⑤ 事件卡 AOE：playEventCard 执行后调 cleanupDeadCards（全球大流行等）',
+  /executeEventEffect\(card, 'player'[\s\S]{0,120}cleanupDeadCards/.test(ub))
+ok('⑤ cleanupDeadCards 覆盖足够多死亡路径（≥12 处：攻击/反击/中毒/环境/出牌AOE/混乱/事件/SP）',
+  (ub.match(/cleanupDeadCards\(/g) || []).length >= 12)
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)
