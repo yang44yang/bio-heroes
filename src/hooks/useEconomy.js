@@ -45,7 +45,7 @@ const DEFAULT_STATE = {
   fragments: {},             // 碎片 { cardId: count }
   pityCounter: 0,           // SSR 保底计数器
   totalPulls: 0,
-  unlockedSPs: [],          // 已通关解锁的 campaign_only SP 卡 ID 列表
+  unlockedSPs: [],          // campaign 通关解锁记录 — 驱动首次解锁庆祝弹窗(App.jsx:213) + loadEconomy 老存档迁移回填(L76)。⚠️拥有真相源是 collection；此数组别删（删了修复前已通关玩家的迁移会断）
   unlockedAchievements: [], // 已解锁的主题成就 ID 列表（向后兼容：老存档默认空数组）
   battlesWon: 0,            // 累计胜场（战斗成就用，向后兼容默认 0）
   battlesTotal: 0,          // 累计场次

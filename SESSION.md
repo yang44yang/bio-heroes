@@ -18,7 +18,7 @@
 - **效果**：tech 大 SP 通过通关即得 → 紧急手术(tech 无视费事件) 可召量子医疗(30000) → **tech 阵营事件×SP 性价比恢复齐平**；盖娅复苏一并修好。
 - **验证**：build 绿 + 全 15 套零回归（新增 `scripts/test-campaign-sp-unlock.mjs` 12 断言：写 collection / stateRef 同步 / 非函数式 / loadEconomy 回填 / 每张 campaign SP 都有 SP_UNLOCK_MAP 入口且 unlockStage 一致）。**vite preview 真机**：种 `unlockedSPs=['sp_vaccine_shield']` 且 collection 无 → reload → collection 回填成功(true) → DeckBuilder SP 池出现疫苗之盾（显"第4回合起可召"，cost7→T4 顺带印证看费用门槛）、0 console error。
 - **未做（齐齐保留）**：抽卡池 tech 仍偏弱（两张大 SP 仍 campaign_only、不在抽卡池）——纯抽卡/早期玩法的 tech 强 SP 缺口留待以后（转 gacha 或新增卡）。
-- **⚠️ 衍生发现（未处理）**：`unlockedSPs` 数组现在基本是冗余记录（collection 已是唯一拥有真相源）；`spCards.unlockStage` 字段除本测试外仍只在数据层。可日后清理。
+- **2026-06-25 扫尾核实（纠正上条）**：~~unlockedSPs 基本冗余 / unlockStage 可清理~~ **核实后都不删** —— `unlockedSPs` 是 load-bearing 的（首次解锁庆祝弹窗 App.jsx:213 + `loadEconomy:76` 老存档迁移回填），`unlockStage` 被 test-sp-gaia / test-campaign-sp-unlock 做数据一致性校验。已在 `useEconomy:48` 加注释防误删。**唯一真瑕疵（留作已知小问题、不动）**：GachaScreen 图鉴进度分子 `Object.keys(collection).length` 含事件卡/campaign SP，而分母 `TOTAL_OBTAINABLE` 只含生物卡+gacha SP → 满收藏时轻微溢出（已被 `Math.max/min` 钳住、无害、且是历史行为）；改它会改动全体玩家可见数字，不值当。
 
 ### 2026-06-23 SP 召唤门槛改"看费用" + 卡面显示可召回合 ✅
 接上一条平衡诊断的 🟠"无视费事件 2 费秒巨兽"：把召唤门槛从平铺 `turn≥3` 改成**看费用** `turn ≥ max(3, spCost−3)`，并在 SP 卡面/详情显示"第几回合起可召唤"。
