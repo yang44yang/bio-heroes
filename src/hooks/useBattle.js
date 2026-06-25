@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
 } from '../data/deckRules'
@@ -198,42 +198,46 @@ export function useBattle() {
     }
   }
 
-  const cleanupDeadCards = useCallback((side) => {
-    const dead = []
-    const setter = side === 'player' ? setPlayerField : setEnemyField
-    const setDiscardPile = side === 'player' ? setPlayerDiscard : setEnemyDiscard
-    setter(prev => {
-      const next = [...prev]
-      for (let i = 0; i < next.length; i++) {
-        if (next[i] && next[i].currentHp <= 0) {
-          dead.push(next[i])
-          next[i] = null
+  // ── 死亡清理：统一在「每次提交后」扫场（useEffect），不再各死亡路径里同步 cleanupDeadCards。
+  // 为什么必须改成 effect（2026-06-25 preview 实测确认的真根因）：
+  //   React18 自动批处理下，旧 cleanupDeadCards 里 setter(updater) 的 updater 被延迟到 render 才执行，
+  //   而紧接着同步读 dead.length → 恒为 0（eager-bailout 竞态：该 field 已有 pending 伤害更新时延迟、
+  //   无 pending 时又 eager → 时灵时不灵）。结果：死卡不进弃牌堆 + onDeath 不触发
+  //   ——齐齐反复实测"干细胞死了不复活"的真根因（实测日志 [CLEANUP] dead.length(sync) 恒 0，但卡确实死了）。
+  //   flushSync 能强制同步、对玩家攻击路径有效，但在 effect/commit 上下文会报 "called from inside a lifecycle method"
+  //   且不刷新 → 不能用。改用提交后 effect：读最新 field（死卡 currentHp≤0 仍在场）→ onDeath → 进弃牌堆 → 移除。
+  // processedDeathsRef 按 uid 去重：每张死卡只处理一次（防 onDeath 重复触发 → 重复复活/分裂）。
+  const processedDeathsRef = useRef(new Set())
+  useEffect(() => {
+    for (const side of ['player', 'enemy']) {
+      const field = side === 'player' ? playerField : enemyField
+      const fresh = field.filter(c => c && c.currentHp <= 0 && !processedDeathsRef.current.has(c.uid))
+      if (fresh.length === 0) continue
+      fresh.forEach(c => processedDeathsRef.current.add(c.uid))
+      // 1) 先触发 onDeath（此刻死卡仍在 fRef.current，findEmptySlot 视其位为空 → 复活/分裂能落位）
+      fireOnDeathRef.current?.(fresh, side)
+      // 2) 进弃牌堆（阵营标记 / SP discard_check / 进化复用）
+      const setDiscardPile = side === 'player' ? setPlayerDiscard : setEnemyDiscard
+      setDiscardPile(prev => [...prev, ...fresh])
+      // 3) 从战场移除（仅移除这批确切 uid，避免误删 onDeath 复活进来的新卡）
+      const deadUids = new Set(fresh.map(c => c.uid))
+      const setter = side === 'player' ? setPlayerField : setEnemyField
+      setter(prev => prev.map(c => (c && deadUids.has(c.uid)) ? null : c))
+      // 4) 关卡特殊规则：敌方卡死亡触发（孢子蔓延等）
+      if (side === 'enemy' && stageRuleRef.current?.onEnemyCardDeath) {
+        for (const deadCard of fresh) {
+          const ruleEvents = stageRuleRef.current.onEnemyCardDeath({
+            deadCard, enemyField: enemyFieldRef.current, setEnemyField, addLog,
+          })
+          if (ruleEvents?.length > 0) setBossMechanicEvents(prev => [...prev, ...ruleEvents])
         }
       }
-      return next
-    })
-    // Dead cards go to discard pile (for faction markers)
-    if (dead.length > 0) {
-      setDiscardPile(prev => [...prev, ...dead])
     }
-    // 统一触发死卡的 onDeath（干细胞分化/海星复活/大肠杆菌分裂/孢子散播等），覆盖所有死亡路径
-    fireOnDeathRef.current?.(dead, side)
-    // 关卡特殊规则：敌方卡死亡时触发（孢子蔓延等）
-    if (side === 'enemy' && dead.length > 0 && stageRuleRef.current?.onEnemyCardDeath) {
-      for (const deadCard of dead) {
-        const ruleEvents = stageRuleRef.current.onEnemyCardDeath({
-          deadCard,
-          enemyField: enemyFieldRef.current,
-          setEnemyField,
-          addLog,
-        })
-        if (ruleEvents?.length > 0) {
-          setBossMechanicEvents(prev => [...prev, ...ruleEvents])
-        }
-      }
-    }
-    return dead
-  }, [])
+  }, [playerField, enemyField])
+
+  // 死亡清理已统一到上面的提交后 effect。cleanupDeadCards 保留为 no-op，仅兼容历史 18 处调用点
+  // （死卡会在下一次提交被 effect 扫掉，无需各处再同步清理；逐处删除反而引入风险）。
+  const cleanupDeadCards = useCallback(() => {}, [])
 
   // ----------------------------------------------------------------
   //  Boss HP 阈值检查（攻击后调用）
