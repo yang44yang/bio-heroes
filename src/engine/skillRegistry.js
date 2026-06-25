@@ -251,7 +251,7 @@ export const skillRegistry = {
   // Phase 1 — 模板 1: onPlayDamage（7 技能）
   // ===========================================
 
-  'Sonar Shockwave':    { timing: 'onPlay', execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 2000 }) },
+  'Sonar Shockwave':    { timing: 'onPlay', execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 3000 }) }, // 2000→3000：原为最弱 all_enemy AOE，与同类终极 AOE(Ancient Plague/Extinction Roar 均 3000)齐平 + 匹配蓝鲸"动物界最响(188分贝)"科学事实
   'Ancient Plague':     { timing: 'onPlay', execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 3000 }) },
   'Wave Wash':          { timing: 'onPlay', execute: (ctx) => T.onPlayDamage(ctx, { target: 'one_lowest_hp', amount: 3000 }) },
   'Alcohol Disinfect':  { timing: 'onPlay', execute: (ctx) => T.onPlayDamage(ctx, { target: 'one_faction', faction_filter: 'pathogen', amount: 1000 }) },
@@ -863,20 +863,9 @@ export const skillRegistry = {
     },
   },
 
-  // 12. Gene Correction — 选择 +1500 ATK 或 +3000 HP（AI 选 ATK，玩家简化为 ATK）
-  'Gene Correction': {
-    timing: 'onPlay',
-    execute: (ctx) => {
-      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0 && c.uid !== ctx.card.uid)
-      if (allies.length === 0) return null
-      // 选 ATK 最高的加 ATK（简化）
-      const target = [...allies].sort((a, b) => b.atk - a.atk)[0]
-      return {
-        type: 'BUFF', targetUid: target.uid, stat: 'atk', amount: 1500, source: ctx.card.name,
-        message: `🧬 ${ctx.card.name} 基因校正！${target.name} ATK +1500！`,
-      }
-    },
-  },
+  // 12. Gene Correction — 旧的"仅 +1500 ATK"重复定义已删除。
+  // JS 对象字面量重复键后者覆盖前者：这个旧版会 shadow 上方 L665 的完整双 buff 版（ATK+1500 + HP+3000），
+  // 导致 +3000 HP 永久丢失（test 用 indexOf 只查到第一处、没发现 shadow）。完整实现见上方 'Gene Correction'。
 
   // Immune Memory / Immune Programming — 疫苗类：出场时给己方全体添加免疫状态
   // Sprint 25: 新增抗"可疫苗预防"病原（天花/流感等）的 5000 伤害

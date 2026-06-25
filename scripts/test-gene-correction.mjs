@@ -17,6 +17,8 @@ const ub  = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
 
 // ---- 1. skillRegistry: Gene Correction 已注册 ----
 ok("skillRegistry: 'Gene Correction' 已注册", /'Gene Correction'\s*:\s*\{/.test(reg))
+ok("skillRegistry: 'Gene Correction' 只定义一次（防旧'仅ATK'版重复定义 shadow 完整双buff版 → +3000HP 丢失，2026-06-25 修）",
+  (reg.match(/'Gene Correction'\s*:\s*\{/g) || []).length === 1)
 const idx = reg.indexOf("'Gene Correction'")
 const body = idx > 0 ? reg.slice(idx, idx + 1000) : ''
 ok('timing onPlay', /timing:\s*'onPlay'/.test(body))
