@@ -260,6 +260,8 @@
   "battleLog.title": "📜 Battle Log",
   "battleLog.empty": "No battle log yet",
   "battleLog.footer": "Scroll for the full battle · tap outside or × to close",
+  "battleLog.copy": "📋 Copy all",
+  "battleLog.copied": "✓ Copied",
 
   "card.reqCondition": "⚠️ Play condition: needs {icon} {name} marker ×{count}",
   "card.consumeOnPlay": " (consumed on play)",

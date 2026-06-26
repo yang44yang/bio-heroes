@@ -260,6 +260,8 @@
   "battleLog.title": "📜 战斗记录",
   "battleLog.empty": "还没有战斗记录哦",
   "battleLog.footer": "滚动查看完整战斗历程 · 点击空白处或 × 关闭",
+  "battleLog.copy": "📋 复制全部",
+  "battleLog.copied": "✓ 已复制",
 
   "card.reqCondition": "⚠️ 出场条件：需要 {icon} {name} 标记 ×{count}",
   "card.consumeOnPlay": "（出场时消耗）",

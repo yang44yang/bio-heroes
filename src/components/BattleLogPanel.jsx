@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLanguage } from '../i18n/LanguageContext'
 
 function classifyLog(msg) {
@@ -29,12 +29,32 @@ const CATEGORY_STYLES = {
 export default function BattleLogPanel({ logs, open, onClose }) {
   const { t } = useLanguage()
   const scrollRef = useRef(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (open && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight
     }
   }, [open, logs.length])
+
+  // 复制完整战斗记录（带行号），方便贴给开发者排查（如"干细胞复活"是否触发）
+  const handleCopy = async () => {
+    const text = logs.map((m, i) => `${i + 1}. ${m}`).join('\n')
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      const ta = document.createElement('textarea')
+      ta.value = text
+      ta.style.position = 'fixed'
+      ta.style.opacity = '0'
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch { /* noop */ }
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
 
   return (
     <AnimatePresence>
@@ -55,10 +75,23 @@ export default function BattleLogPanel({ logs, open, onClose }) {
           >
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-700">
               <div className="text-lg font-bold text-white">{t('battleLog.title')}</div>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-800"
-              >×</button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleCopy}
+                  disabled={logs.length === 0}
+                  className={`text-sm px-3 py-1.5 rounded-lg border transition-colors ${
+                    copied
+                      ? 'bg-green-600/30 border-green-500/50 text-green-300'
+                      : 'bg-cyan-600/20 border-cyan-500/40 text-cyan-200 hover:bg-cyan-600/40 disabled:opacity-40 disabled:cursor-not-allowed'
+                  }`}
+                >
+                  {copied ? t('battleLog.copied') : t('battleLog.copy')}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-white text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-800"
+                >×</button>
+              </div>
             </div>
 
             <div
