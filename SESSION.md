@@ -20,6 +20,7 @@
 - **顺带查清「日志全翻倍」**：齐齐 log 里每条技能日志 ×2、霸王龙 AOE 打两次(干细胞被打 6000)，是 **React StrictMode 在 `npm run dev` 下的双调**（impure setState updater 被双跑）。**vite preview 生产构建实测零翻倍** → Vercel 部署版不受影响（齐齐若在 localhost dev 测会看到翻倍，属正常 dev 行为）。
 - **验证**：`test-onDeath-routing` 20/20（新增 ①b 同批死卡断言）+ 全 17 套 + build 绿。commit 9f2be8c（修复）+ b40be76（复制按钮）。
 - **完整三连**：① 785db6b onDeath 收口 cleanupDeadCards → ② a3fa492 提交后 useEffect 扫场（修异步 dead 竞态）→ ③ 9f2be8c 同批死卡并入模板池。三层缺一不可。
+- **✅ 齐齐实测确认通过**：硬重启 dev server 后（关键！Vite HMR 不会热替换 useBattle 这种 hook 结构大改，必须杀进程重启），实战日志「🧬 干细胞·万能变身者 分化为 汗腺·温度管家（HP 1000）！」——复活成功上场。坑见记忆 [[dev-server-hmr-strictmode-gotchas]]：之前几轮"还是不行"全是 dev server 跑旧代码。
 
 ### 2026-06-25 干细胞"死了不复活" **真·真根因**：React18 异步 dead 竞态 → 提交后 useEffect 扫场（核心战斗）✅✅
 **承上条**：上一条（785db6b）把 onDeath 收口到 `cleanupDeadCards` 是**必要但不充分**——`cleanupDeadCards` 自己还有一个更深的 bug，齐齐实测"还是不行"。这次**没再想当然，直接 preview 加调试日志实测抓真因**：
