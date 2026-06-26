@@ -216,17 +216,21 @@ const eventCards = [
     hp: null,
     factionRequirement: null,
     effectType: "special",
-    effectDescription: "复活弃牌堆中一张人体系生物卡到战场（50% HP）",
+    effectDescription: "复活弃牌堆中一张人体系生物卡到战场（50% HP）；并可分化出一张强力人体系 SP",
     effectValue: 0.5,
     effectTarget: "revive_body_from_discard",
+    // 齐齐定调：把这张 SSR 的身份做成"分化出大 body SP"。原 discard_check(弃牌堆要先有3张body)
+    // 触发条件太苛刻、几乎永远不满足 → 齐齐从没见它召出大 SP，只觉得是张废复活卡。
+    // 改 faction_only(随时可触发，仍受回合门槛 turn≥max(3,spCost−3) 约束) → 打出即可分化出
+    // 大脑(7)/骨骼巨人(6)/免疫风暴(8)/CAR-T(5) 这类人体系大 SP，主题贴合（干细胞分化成重要器官/系统）。
+    // 复活仍保留 → 复活一张小细胞 + 分化一个大系统 = 名副其实的 SSR（不再和那张 R 生物卡撞、显废）。
     spSummonRule: {
-      type: "discard_check",
-      discardFaction: "body",
-      discardCount: 3,
+      type: "faction_only",
+      factionLimit: "body",
       maxCost: 99,
     },
     skills: [],
-    scienceCard: "干细胞是身体里的\"万能细胞\"——它们可以分化成任何类型的细胞！骨髓中的造血干细胞每天制造数千亿个血液细胞，皮肤干细胞不断更新皮肤。科学家正在研究用干细胞修复受损的心脏和神经！",
+    scienceCard: "干细胞是身体里的\"万能细胞\"——它们可以分化成任何类型的细胞！骨髓的造血干细胞每天造数千亿血细胞，还能分化成神经、骨骼、肌肉……科学家正研究用干细胞修复受损的大脑和心脏。一颗小小的干细胞，能变成身体里最强大的器官！",
     evolutionFrom: null,
     evolutionTo: null,
     tags: [],
