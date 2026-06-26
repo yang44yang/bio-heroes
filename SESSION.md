@@ -11,6 +11,16 @@
 
 ## 最近完成
 
+### 2026-06-25 干细胞复活**最后一环**：同批 AOE 一起死时模板卡并入弃牌堆 + 战斗记录复制按钮 ✅✅✅
+齐齐用**新加的「📋 复制全部」按钮**贴来完整战斗记录，一举定位真因（第 96 行）：
+- **现象**：onDeath **已正常触发**（日志打了「🧬 干细胞：弃牌堆里还没有合适的细胞模板可分化」）——所以前面 effect-sweep 架构修复是对的、onDeath 真的触发了；但复活**找不到模板**。
+- **真因**：霸王龙 SP「灭世咆哮」AOE 把 **干细胞 + 红细胞(body R) 在同一次提交里一起打死**。死卡进弃牌堆（`setDiscardPile`）发生在 effect 里 `fireOnDeath` **之后** → 干细胞 revive 读 `dRef.current` 看不到刚死的红细胞 → 误判「没有模板」。之前单卡 preview 测试是让两卡**先后**死，所以没复现到这个"同批"边界。
+- **修法**（`useBattle.js` fireOnDeath）：触发每张死卡 onDeath 时，把 `deadCards` 里**非自身的同批死卡**并入传给 `triggerSkills` 的 `discardPile`：`batchDiscard = [...dRef.current, ...deadCards.filter(c => c.uid !== dc.uid)]`。revive_as 仍按 id 过滤自身，安全。引擎链路此前 window 实测：discardPile 含 body R → 必返 SUMMON_CARD。
+- **战斗记录复制按钮**（`BattleLogPanel.jsx`）：右上角「📋 复制全部」，带行号纯文本，clipboard 失败回退 execCommand，点完显「✓ 已复制」。**这是齐齐建议的，也是这次定位真因的关键工具**——以后实测完一键贴 log。
+- **顺带查清「日志全翻倍」**：齐齐 log 里每条技能日志 ×2、霸王龙 AOE 打两次(干细胞被打 6000)，是 **React StrictMode 在 `npm run dev` 下的双调**（impure setState updater 被双跑）。**vite preview 生产构建实测零翻倍** → Vercel 部署版不受影响（齐齐若在 localhost dev 测会看到翻倍，属正常 dev 行为）。
+- **验证**：`test-onDeath-routing` 20/20（新增 ①b 同批死卡断言）+ 全 17 套 + build 绿。commit 9f2be8c（修复）+ b40be76（复制按钮）。
+- **完整三连**：① 785db6b onDeath 收口 cleanupDeadCards → ② a3fa492 提交后 useEffect 扫场（修异步 dead 竞态）→ ③ 9f2be8c 同批死卡并入模板池。三层缺一不可。
+
 ### 2026-06-25 干细胞"死了不复活" **真·真根因**：React18 异步 dead 竞态 → 提交后 useEffect 扫场（核心战斗）✅✅
 **承上条**：上一条（785db6b）把 onDeath 收口到 `cleanupDeadCards` 是**必要但不充分**——`cleanupDeadCards` 自己还有一个更深的 bug，齐齐实测"还是不行"。这次**没再想当然，直接 preview 加调试日志实测抓真因**：
 - **真根因（实测确认）**：`cleanupDeadCards` 里 `setter(prev => {...dead.push...})` 后**同步**读 `dead.length` 决定是否进弃牌堆 / 触发 onDeath。React18 自动批处理下，当该 field 已有 pending 更新（刚扣的伤害）时，`setState(updater)` 的 updater **被延迟到 render 才执行** → 同步读 `dead.length` **恒为 0**（eager-bailout 竞态：无 pending 时 updater 又 eager 执行、dead 有值 → **时灵时不灵**，正是"修了好几次还偶尔不行"的根源）。实测日志铁证：敌方向日葵/我方白细胞**确实死了**（场上消失），但 `[CLEANUP] dead.length(sync)` 那一刻**恒为 0** → 死卡不进弃牌堆 + onDeath 全不触发。**连"死卡进弃牌堆"也被这 bug 静默跳过**（之前没人发现）。
