@@ -19,9 +19,17 @@ const ub = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
 // ① onDeath 统一触发器 fireOnDeathRef（用 ref 持最新闭包，绕开 cleanupDeadCards 是 useCallback([]) 的陷阱）
 ok('① 定义 fireOnDeathRef = useRef', /fireOnDeathRef\s*=\s*useRef/.test(ub))
 const fodStart = ub.indexOf('fireOnDeathRef.current =')
-const fod = fodStart >= 0 ? ub.slice(fodStart, fodStart + 1200) : ''
+const fod = fodStart >= 0 ? ub.slice(fodStart, fodStart + 1800) : ''
 ok('① fireOnDeathRef 用 triggerSkills(onDeath) 且传 friendlyField + discardPile',
-  /triggerSkills\(\s*'onDeath'[\s\S]{0,160}friendlyField[\s\S]{0,80}discardPile/.test(fod))
+  /triggerSkills\(\s*'onDeath'[\s\S]{0,200}friendlyField[\s\S]{0,80}discardPile/.test(fod))
+
+// ①b 同批死卡并入 discardPile —— 修齐齐实测：霸王龙 AOE 同时打死 干细胞 + 红细胞(body R) 时，
+//     红细胞还没进弃牌堆(setDiscardPile 在 fireOnDeath 之后)，干细胞 revive 误判"没有合适模板"。
+//     把 deadCards 里"非自身"的同批死卡并入模板池即修正。删掉这层 = 同回合 AOE 一起死时复活失效。
+ok('①b fireOnDeath 把同批死卡(deadCards 去自身)并入 discardPile',
+  /\[\s*\.\.\.\(dRef\.current[\s\S]{0,60}\.\.\.deadCards\.filter\(\s*c\s*=>\s*c\.uid\s*!==\s*dc\.uid\s*\)/.test(fod))
+ok('①b triggerSkills 用并入后的 batchDiscard(而非裸 dRef.current)',
+  /triggerSkills\(\s*'onDeath'[\s\S]{0,160}discardPile:\s*batchDiscard/.test(fod))
 
 // ② 死亡清理 = 提交后 useEffect 扫场（真根因修复，见文件头注）
 ok('② 顶部 import useEffect', /import\s*\{[^}]*\buseEffect\b[^}]*\}\s*from\s*'react'/.test(ub))

@@ -188,9 +188,13 @@ export function useBattle() {
     const fSet = deadSide === 'player' ? setPlayerField : setEnemyField
     const eSet = deadSide === 'player' ? setEnemyField : setPlayerField
     for (const dc of deadCards) {
-      // friendlyField 用 fRef.current（死卡 currentHp≤0 仍在 → findEmptySlot 视为空位，复活落到本方）；
-      // discardPile 用 dRef.current（尚未加入刚死的卡，与原 handlePostAttackSkills 行为一致；revive_as 也过滤自身）。
-      const events = triggerSkills('onDeath', { card: dc, friendlyField: fRef.current, discardPile: dRef.current })
+      // friendlyField 用 fRef.current（死卡 currentHp≤0 仍在 → findEmptySlot 视为空位，复活落到本方）。
+      // discardPile：dRef.current（已提交的弃牌堆）+ 同一批一起死的其他卡。
+      //   ★ 修齐齐实测：霸王龙 AOE 同时打死 干细胞 + 红细胞(body R) 时，红细胞还没进弃牌堆
+      //   （setDiscardPile 在本 effect 的 fireOnDeath 之后才调），干细胞 revive 读 dRef.current 看不到它 →
+      //   误判"弃牌堆里没有合适的细胞模板"。把同批死卡并入模板池即修正（revive_as 仍按 id 过滤自身）。
+      const batchDiscard = [...(dRef.current || []), ...deadCards.filter(c => c.uid !== dc.uid)]
+      const events = triggerSkills('onDeath', { card: dc, friendlyField: fRef.current, discardPile: batchDiscard })
       if (events && events.length) {
         applySkillEvents(events, fSet, eSet, deadSide)
         for (const e of events) if (e.message && e.type !== 'OVERFLOW_DAMAGE' && e.type !== 'PIERCING_DAMAGE') addLog(e.message)
