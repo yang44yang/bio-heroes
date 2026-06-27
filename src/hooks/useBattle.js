@@ -1449,8 +1449,9 @@ export function useBattle() {
   }, [addLog])
 
   // ----------------------------------------------------------------
-  //  Phase B: SP 三条件自动触发公共入口
-  //  reason: 'quiz'（连对2题）| 'hp'（主人 HP≤50%）| 'turn'（第8回合）
+  //  Phase B: SP 自动触发公共入口
+  //  reason（玩家）: 'combo'（连对2题 且 HP≤50%）| 'turn'（第8回合，硬条件）
+  //  reason（敌方）: 'hp'（HP≤50% 单独，AI 不答题）| 'turn'（第8回合，硬条件）
   //  复用事件卡管线：玩家 → setPendingSpSummon 弹「翻牌选1」；敌方 → 直接召唤。
   //  「翻2选1」：从合格候选里随机翻 2 张。每条件本局只触发一次（spTriggeredRef 去重）。
   // ----------------------------------------------------------------
@@ -2243,8 +2244,12 @@ export function useBattle() {
       setQuizStreak(newStreak)
       addLog(`🌟 觉醒！ATK ×2.0！(连续答对 ${newStreak} 题)${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
 
-      // Phase B 条件①：连续答对 ≥ SP_QUIZ_STREAK 题 → 玩家 SP 自动触发
-      if (newStreak >= SP_QUIZ_STREAK) tryTriggerSp('player', 'quiz')
+      // Phase B 组合触发：连对 ≥ SP_QUIZ_STREAK 题「且」主人 HP ≤ 50% 才触发玩家 SP
+      // （两个软条件单独都不够，须同时满足；此处补 HP 侧检查，另一半在 HP useEffect）
+      if (newStreak >= SP_QUIZ_STREAK &&
+          playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
+        tryTriggerSp('player', 'combo')
+      }
 
       // 连续答对3题 → 触发科学家模式（全队 ATK +20% 持续2回合）
       let scientistTriggered = false
@@ -2263,13 +2268,17 @@ export function useBattle() {
   }, [currentQuiz, addLog, scientistMode.active, tryTriggerSp])
 
   // ----------------------------------------------------------------
-  //  Phase B 条件②：主人 HP 降至初始值的 50% 以下 → 该侧 SP 自动触发
-  //  监听双方主人 HP；阈值用各自初始 HP（campaign Boss 可能 ≠ 30000）。
+  //  Phase B 软条件②：主人 HP 降至初始值的 50% 以下（监听双方 HP；阈值用各自初始 HP，
+  //  campaign Boss 可能 ≠ 30000）。
+  //  · 玩家：须「同时」已连对 ≥ SP_QUIZ_STREAK 题才触发（组合条件，另一半在 answerQuiz）。
+  //  · 敌方：AI 不答题，HP≤50% 单独触发（保留"残血召 SP 反击"）。
   // ----------------------------------------------------------------
   useEffect(() => {
     if (phase === 'init' || phase === 'mulligan' || phase === 'over') return
-    if (playerLeaderHp > 0 && playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
-      tryTriggerSp('player', 'hp')
+    if (playerLeaderHp > 0 &&
+        playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO &&
+        quizStreakRef.current >= SP_QUIZ_STREAK) {
+      tryTriggerSp('player', 'combo')
     }
     if (enemyLeaderHp > 0 && enemyLeaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
       tryTriggerSp('enemy', 'hp')

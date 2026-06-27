@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Phase B —— SP 三条件自动触发 回归测试
+// Phase B —— SP 自动触发 回归测试
 //
-// 设计（.claude/rules/battle-system.md）：SP 触发条件「满足任一」即触发——
-//   ① 连续答对 SP_QUIZ_STREAK(=2) 题  ② 己方主人 HP 降至初始 50% 以下  ③ 战斗进入第 8 回合。
+// 触发规则（齐齐 2026-06-27 定）：
+//   · 第 8 回合 = 硬条件，单独满足即触发（双方）。
+//   · 玩家组合：连对 SP_QUIZ_STREAK(=2) 题「且」主人 HP≤初始50% —— 两个软条件须同时满足。
+//   · 敌方单独：AI 不答题，主人 HP≤50% 单独触发（保留"残血召 SP 反击"）。
 // 触发流程：从合格 SP 里随机翻 2 张，玩家选 1 张上场；敌方 AI 直接召唤。
 // 每条件本局只触发一次（spTriggeredRef 按 `${side}:${reason}` 去重；startBattle 清空）。
 //
@@ -36,16 +38,23 @@ ok("tryTriggerSp 调 getEligibleSpCards({ type: 'auto' }", has("getEligibleSpCar
 ok('玩家走弹窗 setPendingSpSummon、敌方走 summonSpCard',
   has("setPendingSpSummon({ side: 'player', candidates: picks") && has("summonSpCard(chosen, 'enemy')"))
 
-// ===== C. 三条件各自接线 =====
-ok('① 连对2题：answerQuiz 内判 >= SP_QUIZ_STREAK 调 player/quiz',
-  has('newStreak >= SP_QUIZ_STREAK') && has("tryTriggerSp('player', 'quiz')"))
-ok('② 主人HP≤50%：useEffect 监听 + 初始HP×比例阈值（双方）',
-  has('playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
-  has('enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
-  has("tryTriggerSp('player', 'hp')") && has("tryTriggerSp('enemy', 'hp')"))
-ok('③ 第8回合：玩家 startPlayerTurn + 敌方 beginEnemyTurn 各判 >= SP_TURN_TRIGGER',
+// ===== C. 触发接线 =====
+ok('硬条件 第8回合：玩家 startPlayerTurn + 敌方 beginEnemyTurn 各判 >= SP_TURN_TRIGGER',
   has('newTurn >= SP_TURN_TRIGGER') && has("tryTriggerSp('player', 'turn')") &&
   has('t >= SP_TURN_TRIGGER') && has("tryTriggerSp('enemy', 'turn')"))
+ok('玩家组合A：answerQuiz 内 连对≥SP_QUIZ_STREAK「且」HP≤阈值 → player/combo',
+  has('newStreak >= SP_QUIZ_STREAK') &&
+  has('playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has("tryTriggerSp('player', 'combo')"))
+ok('玩家组合B：HP useEffect 内 HP≤阈值「且」连对≥SP_QUIZ_STREAK → player/combo',
+  has('playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has('quizStreakRef.current >= SP_QUIZ_STREAK') &&
+  has("tryTriggerSp('player', 'combo')"))
+ok('敌方单独：HP≤阈值 → enemy/hp（AI 不答题）',
+  has('enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has("tryTriggerSp('enemy', 'hp')"))
+ok('玩家无单独 quiz / 单独 hp 触发（软条件已合并为 combo）',
+  !has("tryTriggerSp('player', 'quiz')") && !has("tryTriggerSp('player', 'hp')"))
 
 // ===== D. 去重（本局每条件一次）+ 新对局清空 =====
 ok('spTriggeredRef 定义为 useRef(new Set())', has('const spTriggeredRef = useRef(new Set())'))
