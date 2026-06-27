@@ -686,8 +686,10 @@ export function onHitCounter(ctx, params) {
       const counterDmg = params.is_ratio
         ? Math.floor(attacker.atk * params.amount)
         : params.amount
-      const atkSlot = (ctx.friendlyField || []).findIndex(c => c && c.uid === attacker.uid)
-      // 反击伤害：注意 attacker 在 "enemy" 侧
+      // 反击打"攻击者"。攻击者所在的场 = onHit 触发时 applySkillEvents 的 friendlySetter 那一方，
+      // 故 ctx.attackerField（由触发点传入）= 攻击者的场；_side:'attacker' 让 AOE_DAMAGE 走 friendlySetter。
+      // （旧代码用 ctx.friendlyField(从不传)→slot 永远=0 + _side:'attacker_side'(applySkillEvents 不认)→反击落错方，技能哑火）
+      const atkSlot = (ctx.attackerField || []).findIndex(c => c && c.uid === attacker.uid)
       return {
         type: 'AOE_DAMAGE',
         source: defender.name,
@@ -695,7 +697,7 @@ export function onHitCounter(ctx, params) {
         targetName: attacker.name,
         targetUid: attacker.uid,
         damage: counterDmg,
-        _side: 'attacker_side',
+        _side: 'attacker',
         message: `🔄 ${defender.name} 反击！对 ${attacker.name} 造成 ${counterDmg} 伤害！`,
       }
     }

@@ -348,7 +348,10 @@ export function useBattle() {
           break
         }
         case 'AOE_DAMAGE': {
-          enemySetter(prev => {
+          // 默认打敌方(enemySetter)。反击(_side==='attacker', 荆棘反击/海葵刺)打"攻击者"那方 → friendlySetter
+          // （攻击者所在场 = 本次 applySkillEvents 的 friendly 那一方，见 onHit 触发点）。其它 AOE_DAMAGE 无此标记，行为不变。
+          const dmgSetter = evt._side === 'attacker' ? friendlySetter : enemySetter
+          dmgSetter(prev => {
             const next = prev.map(c => c ? { ...c } : null)
             if (evt.targetSlot !== undefined && next[evt.targetSlot]) {
               next[evt.targetSlot].currentHp = Math.max(0, next[evt.targetSlot].currentHp - evt.damage)
@@ -1725,7 +1728,8 @@ export function useBattle() {
       attacker: atkCard, defender: defCard, target: 'card',
       defSlot, enemyField: enemyFieldRef.current,
     })
-    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard })
+    // attackerField = 攻击者(玩家)的场 → onHitCounter 据此定位攻击者 slot，反击才能落到正确目标
+    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: playerFieldRef.current })
     const allPreEvents = [...preAtkEvents, ...preHitEvents]
     applySkillEvents(allPreEvents, setPlayerField, setEnemyField, 'player')
     for (const evt of allPreEvents) {
@@ -1985,7 +1989,8 @@ export function useBattle() {
       attacker: atkCard, defender: defCard, target: 'card',
       defSlot, enemyField: playerFieldRef.current,
     })
-    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard })
+    // attackerField = 攻击者(敌方)的场 → onHitCounter 据此定位攻击者 slot（友方反击卡的反伤才能打到正确目标）
+    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: enemyFieldRef.current })
     const allPreEvents = [...preAtkEvents, ...preHitEvents]
     applySkillEvents(allPreEvents, setEnemyField, setPlayerField, 'enemy')
     for (const evt of allPreEvents) {
