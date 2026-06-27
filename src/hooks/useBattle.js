@@ -634,16 +634,23 @@ export function useBattle() {
     const fieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
     const field = fieldRef.current
     const setter = side === 'player' ? setPlayerField : setEnemyField
+    const selfLeaderSetter = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
+    const enemyLeaderSetter = side === 'player' ? setEnemyLeaderHp : setPlayerLeaderHp
     const allEvents = []
 
-    // onTurnEnd 技能（自愈等）
+    // onTurnEnd 技能（自愈等）。传 turn → 让 interval 类技能(如胸腺 T-Cell Training 每2回合抽牌)能判回合。
     const turnEndEvents = triggerSkills('onTurnEnd', {
       friendlyField: field.filter(c => c && c.currentHp > 0),
+      turn: turnRef.current,
     })
 
     // 处理回合结束技能事件
     for (const evt of turnEndEvents) {
-      if (evt.type === 'HEAL' && evt.amount > 0) {
+      if (evt.type === 'HEAL' && evt.amount > 0 && evt._leaderHeal) {
+        // 主人回血（蛔虫吸血回己方主人等）：onTurnEnd 原本按字段卡 uid 找 '__leader__' 找不到 → 走主人 setter
+        selfLeaderSetter(hp => Math.min(LEADER_HP, hp + evt.amount))
+        addLog(evt.message)
+      } else if (evt.type === 'HEAL' && evt.amount > 0) {
         setter(prev => {
           const next = prev.map(c => c ? { ...c } : null)
           const target = next.find(c => c && c.uid === evt.targetUid) || next.find(c => c && c.name === evt.target)
@@ -653,6 +660,15 @@ export function useBattle() {
           return next
         })
         addLog(evt.message)
+      } else if (evt.type === 'OVERFLOW_DAMAGE' && evt.damage > 0) {
+        // 扣敌方主人血（蛔虫 Nutrient Hijack 吸血等）：onTurnEnd 原本完全不处理 OVERFLOW_DAMAGE → 技能哑火
+        enemyLeaderSetter(hp => Math.max(0, hp - evt.damage))
+        addLog(evt.message)
+      } else if (evt.type === 'DRAW_CARD') {
+        // 抽牌（胸腺 T-Cell Training 每2回合抽1张等）：复用 applySkillEvents 的 drawCards/aiDrawCards 机制
+        const drawFn = side === 'player' ? handsRef.current.drawCards : handsRef.current.aiDrawCards
+        if (typeof drawFn === 'function') drawFn(evt.amount || 1)
+        if (evt.message) addLog(evt.message)
       } else if (evt.type === 'SUMMON_CARD') {
         // 骨髓造血等召唤技能
         setter(prev => {

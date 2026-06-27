@@ -604,9 +604,9 @@ export const skillRegistry = {
 
   // Phase 3 — passiveAura 回合触发部分（4 技能）
   'Nutrient Drain':       { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDrain(ctx, { amount: 500 }) },
-  'Nutrient Hijack':      { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDrain(ctx, { amount: 500 }) }, // 近似：也是吸血
+  'Nutrient Hijack':      { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDrain(ctx, { amount: 500 }) }, // 蛔虫掠夺宿主营养：扣敌方主人+回己方主人(描述已对齐)
   'Resistance Crisis':    { timing: 'onTurnEnd',   execute: (ctx) => T.passiveSelfDebuff(ctx, { amount: 1000, min: 2000 }) },
-  'T-Cell Training':      { timing: 'onTurnEnd',   execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'body', amount: 500 }) }, // 简化
+  'T-Cell Training':      { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDraw(ctx, { amount: 1, interval: 2 }) }, // 胸腺产出新免疫细胞：每2回合抽1张(原 passiveHeal 与描述不符，齐齐选抽牌型)
   'Hematopoiesis':        { timing: 'onTurnEnd',   execute: (ctx) => T.passiveDraw(ctx, { amount: 1, interval: 2 }) },
 
   // ===========================================
