@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 // Phase B —— SP 自动触发 回归测试
 //
-// 触发规则（齐齐 2026-06-27 定）：
-//   · 第 8 回合 = 硬条件，单独满足即触发（双方）。
-//   · 玩家组合：连对 SP_QUIZ_STREAK(=2) 题「且」主人 HP≤初始50% —— 两个软条件须同时满足。
-//   · 敌方单独：AI 不答题，主人 HP≤50% 单独触发（保留"残血召 SP 反击"）。
+// 触发规则（齐齐 2026-06-27 定，最终版）：第8回合 = "开闸"门槛（不是硬触发），第8回合前不判断。
+//   · 玩家 = turn≥SP_TURN_TRIGGER(8) AND（连对 SP_QUIZ_STREAK(2) 题 OR 主人 HP≤初始50%）。
+//   · 敌方 = turn≥8 AND 主人 HP≤50%（AI 不答题，无"连对2题"那半）。
+//   · 撑到第8回合但满血且没连对2题 → 不召。
 // 触发流程：从合格 SP 里随机翻 2 张，玩家选 1 张上场；敌方 AI 直接召唤。
-// 每条件本局只触发一次（spTriggeredRef 按 `${side}:${reason}` 去重；startBattle 清空）。
+// 每侧本局只触发一次（reason 统一 'gated'，spTriggeredRef 按 `${side}:gated` 去重；startBattle 清空）。
 //
 // 沿用仓库惯例：grep 源码接线（不 import useBattle/组件）+ import 纯数据/纯函数做功能断言。
 import { readFileSync } from 'fs'
@@ -38,23 +38,29 @@ ok("tryTriggerSp 调 getEligibleSpCards({ type: 'auto' }", has("getEligibleSpCar
 ok('玩家走弹窗 setPendingSpSummon、敌方走 summonSpCard',
   has("setPendingSpSummon({ side: 'player', candidates: picks") && has("summonSpCard(chosen, 'enemy')"))
 
-// ===== C. 触发接线 =====
-ok('硬条件 第8回合：玩家 startPlayerTurn + 敌方 beginEnemyTurn 各判 >= SP_TURN_TRIGGER',
-  has('newTurn >= SP_TURN_TRIGGER') && has("tryTriggerSp('player', 'turn')") &&
-  has('t >= SP_TURN_TRIGGER') && has("tryTriggerSp('enemy', 'turn')"))
-ok('玩家组合A：answerQuiz 内 连对≥SP_QUIZ_STREAK「且」HP≤阈值 → player/combo',
-  has('newStreak >= SP_QUIZ_STREAK') &&
-  has('playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
-  has("tryTriggerSp('player', 'combo')"))
-ok('玩家组合B：HP useEffect 内 HP≤阈值「且」连对≥SP_QUIZ_STREAK → player/combo',
+// ===== C. 触发接线（第8回合=门槛 AND 软条件 OR；reason 统一 'gated'）=====
+ok('答题点：turn≥SP_TURN_TRIGGER 且 连对≥SP_QUIZ_STREAK → player/gated',
+  has('turnRef.current >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK') &&
+  has("tryTriggerSp('player', 'gated')"))
+ok('HP useEffect：第8回合前提前返回（turnRef.current < SP_TURN_TRIGGER）',
+  has('turnRef.current < SP_TURN_TRIGGER'))
+ok('HP useEffect：玩家/敌方 HP≤阈值 → gated',
   has('playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
-  has('quizStreakRef.current >= SP_QUIZ_STREAK') &&
-  has("tryTriggerSp('player', 'combo')"))
-ok('敌方单独：HP≤阈值 → enemy/hp（AI 不答题）',
-  has('enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
-  has("tryTriggerSp('enemy', 'hp')"))
-ok('玩家无单独 quiz / 单独 hp 触发（软条件已合并为 combo）',
-  !has("tryTriggerSp('player', 'quiz')") && !has("tryTriggerSp('player', 'hp')"))
+  has('enemyLeaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has("tryTriggerSp('player', 'gated')") && has("tryTriggerSp('enemy', 'gated')"))
+ok('玩家回合点：newTurn≥SP_TURN_TRIGGER 且（连对2题 OR HP≤阈值）→ player/gated',
+  has('newTurn >= SP_TURN_TRIGGER') &&
+  has('quizStreakRef.current >= SP_QUIZ_STREAK ||') &&
+  has('playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO'))
+ok('敌方回合点：t≥SP_TURN_TRIGGER 且 HP≤阈值 → enemy/gated',
+  has('t >= SP_TURN_TRIGGER') &&
+  has('enemyLeaderHpRef.current <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has("tryTriggerSp('enemy', 'gated')"))
+ok('旧 reason 已全部替换：tryTriggerSp 调用只用 gated（无 combo/turn/quiz/hp）', (() => {
+  const calls = [...src.matchAll(/tryTriggerSp\([^)]*\)/g)].map(m => m[0])
+  return calls.length > 0 && calls.every(c => c.includes("'gated'")) &&
+    !calls.some(c => /'(combo|turn|quiz|hp)'/.test(c))
+})())
 
 // ===== D. 去重（本局每条件一次）+ 新对局清空 =====
 ok('spTriggeredRef 定义为 useRef(new Set())', has('const spTriggeredRef = useRef(new Set())'))

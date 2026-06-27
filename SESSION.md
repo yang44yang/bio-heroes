@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-27 续²（**Phase B —— SP 自动触发**：扩展为"事件卡 + 自动触发"，复用 `getEligibleSpCards→setPendingSpSummon` 管线 + 新加 `tryTriggerSp(side,reason)`/`auto` 规则分支/`spTriggeredRef` 每条件本局一次去重/双方初始HP阈值。**触发规则齐齐定**：第8回合=硬条件(双方单独触发)；玩家=连对2题「且」HP≤50%(组合，两软条件须同满足)；敌方=HP≤50%单独(AI 不答题，保留残血召SP反击)。玩家弹「翻2选1」、敌方AI直接召。test-phase-b-sp-triggers 26 断言 + 全 20 套 + build 绿 + preview 入战零报错。**齐齐真机待测**：①连对2题+被压到≤15000才弹 ②撑到第8回合必弹；敌方残血/第8回合会召。前序同日见下）
+> 更新时间: 2026-06-27 续³（**Phase B 触发规则定稿（齐齐第3次调）**：第8回合从"硬触发"降为**"开闸"门槛**——第8回合前完全不判断；第8回合起 `玩家=连对2题 OR 主人HP≤15000`、`敌方=主人HP≤15000`(AI不答题)任一满足即召 SP；满血且没连对2题撑到第8回合也不召。即谓词 `turn≥8 AND 软条件OR`。4 个 tryTriggerSp 调用点统一 reason `'gated'`(每侧本局一次去重)，三事件点(quiz/HP/回合)都查谓词。test 27 断言 + 全20套 + build + preview mount 零报错。**齐齐真机待测**见下。前序"续²"是上一版(第8回合硬+玩家AND组合)，已被本次取代。）
+> 历史更新时间: 2026-06-27 续²（**Phase B —— SP 自动触发**：扩展为"事件卡 + 自动触发"，复用 `getEligibleSpCards→setPendingSpSummon` 管线 + 新加 `tryTriggerSp(side,reason)`/`auto` 规则分支/`spTriggeredRef` 每条件本局一次去重/双方初始HP阈值。**触发规则齐齐定**：第8回合=硬条件(双方单独触发)；玩家=连对2题「且」HP≤50%(组合，两软条件须同满足)；敌方=HP≤50%单独(AI 不答题，保留残血召SP反击)。玩家弹「翻2选1」、敌方AI直接召。test-phase-b-sp-triggers 26 断言 + 全 20 套 + build 绿 + preview 入战零报错。**齐齐真机待测**：①连对2题+被压到≤15000才弹 ②撑到第8回合必弹；敌方残血/第8回合会召。前序同日见下）
 > 历史更新时间: 2026-06-25（**干细胞"死了不复活"真·真根因 a3fa492**：React18 自动批处理下 cleanupDeadCards 同步读 dead.length 恒 0 的 eager-bailout 竞态 → 死卡不进弃牌堆+onDeath 全哑火；改「提交后 useEffect 扫 currentHp≤0」根治，preview 实锤(敌方回合杀我方卡也触发)。前条 785db6b 收口 onDeath 是必要但不充分。**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
@@ -12,7 +13,22 @@
 
 ## 最近完成
 
-### 2026-06-27 Phase B —— SP 自动触发（第8回合硬 / 玩家组合 / 敌方HP单独）✅
+### 2026-06-27 Phase B 触发规则定稿：第8回合"开闸"门槛 + 任一软条件（齐齐第3次调）✅
+齐齐对 SP 自动触发规则连调三版，本条是**最终版**（取代下面"续²"那条的第8回合硬触发+玩家AND组合）：
+- **第8回合 = "开闸"门槛，不再是硬触发**：第1-7回合完全不判断、不召 SP。
+- **第8回合起**持续判断，软条件 **OR**：`玩家 = 连对2题 OR 主人HP≤15000(50%)`；`敌方 = 主人HP≤15000`（AI 不答题，无"连对2题"那半）。撑到第8回合但满血且没连对2题 → **不召**。
+- 统一谓词：`turn ≥ SP_TURN_TRIGGER(8) AND 软条件`。
+- **实现**（`useBattle.js`，AskUserQuestion 双重确认后）：4 个 `tryTriggerSp` 调用点统一 reason `'gated'`（去重键 `${side}:gated` → 每侧本局一次）。谓词可能在 quiz / HP / 回合 三个事件点之一变真，故三处都查谓词、调同一入口，去重保证只召一次：
+  - 答题点(`answerQuiz`)：`turnRef.current >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK` → player/gated。
+  - HP `useEffect`：开头 `if (turnRef.current < SP_TURN_TRIGGER) return`；玩家/敌方 HP≤阈值 → gated。
+  - 玩家回合点(`startPlayerTurn`)：`newTurn>=8 && (quizStreakRef>=2 || playerHP≤阈值)` → gated（"满血到第8回合不召"的关键判断点：HP 早于第8回合掉到≤50% 的玩家，靠这里在开闸瞬间补判）。
+  - 敌方回合点(`beginEnemyTurn`)：`t>=8 && enemyHP≤阈值` → gated。
+  - `tryTriggerSp` 函数体 / `getEligibleSpCards` 的 `'auto'` 分支 / `spTriggeredRef` / 初始HP refs **均未动**，只改 4 个调用点条件 + 注释。
+- **保留**：每侧本局只召一次（去重防"HP≤50% 后每回合都弹"，handoff 明确警告）；`连对2题`=连续(streak `quizStreakRef`)。
+- **验证**：`test-phase-b-sp-triggers.mjs` 27 断言（含"tryTriggerSp 只用 gated、无旧 reason"反向断言）+ 全 20 套零回归 + `npm run build` 绿 + `vite preview` 入战 mount 零 console error。commit 待填。
+- **⚠️ 齐齐真机待测**（硬重启 dev server）：① 第1-7回合无论连对几题/血多低都不召；② 第8回合起 连对2题→召 或 被压到主人≤15000→召；③ 满血且没连对2题撑到第8回合→不召；④ 敌方第8回合起血≤15000→自动召、满血→不召。每侧一局一次。
+
+### 2026-06-27 Phase B —— SP 自动触发（第8回合硬 / 玩家组合 / 敌方HP单独）⛔被上条取代
 承前一窗口 HANDOFF（已删）。脚手架本就铺了一半（常量 `SP_QUIZ_STREAK/SP_LEADER_HP_RATIO/SP_TURN_TRIGGER` + `quizStreakRef` + 完整 `getEligibleSpCards→setPendingSpSummon→summonSpCard` 管线，但唯一触发入口是"可触发SP事件卡"）。本次扩展成"事件卡 + 自动触发"：
 - **公共入口 `tryTriggerSp(side, reason)`**（`useBattle.js`，定义在 `cancelSpSummon` 后、`startBattle` 前以避开 `summonSpCard` 的 TDZ）：去重 → `getEligibleSpCards({type:'auto'}, side)` 取候选 → 随机翻 **2** 张 → 玩家 `setPendingSpSummon`(弹「翻2选1」) / 敌方 AI 直接 `summonSpCard`(选最高费)。
 - **`getEligibleSpCards` 新增 `'auto'` 分支**：阵营/费用不限（maxCost 99），**仍走原回合门槛** `turn ≥ spEarliestSummonTurn(spCost)` → 第8回合/HP低时大 SP 自然够回合数，第1-2回合一律锁。

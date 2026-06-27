@@ -1449,9 +1449,11 @@ export function useBattle() {
   }, [addLog])
 
   // ----------------------------------------------------------------
-  //  Phase B: SP 自动触发公共入口
-  //  reason（玩家）: 'combo'（连对2题 且 HP≤50%）| 'turn'（第8回合，硬条件）
-  //  reason（敌方）: 'hp'（HP≤50% 单独，AI 不答题）| 'turn'（第8回合，硬条件）
+  //  Phase B: SP 自动触发公共入口（reason 统一 'gated'，去重键 `${side}:gated` → 每侧本局一次）
+  //  触发谓词：第8回合"开闸"门槛 AND 软条件——
+  //    · 玩家 = turn≥8 AND（连对2题 OR 主人HP≤50%）
+  //    · 敌方 = turn≥8 AND 主人HP≤50%（AI 不答题，无 quiz 那半）
+  //  谓词可能在 quiz/HP/回合 三个事件点之一变真，故三处都调本入口，去重保证只召一次。
   //  复用事件卡管线：玩家 → setPendingSpSummon 弹「翻牌选1」；敌方 → 直接召唤。
   //  「翻2选1」：从合格候选里随机翻 2 张。每条件本局只触发一次（spTriggeredRef 去重）。
   // ----------------------------------------------------------------
@@ -1904,8 +1906,11 @@ export function useBattle() {
     const energyBoost = tsEvents.reduce((s, e) => s + (e.type === 'ENERGY_BOOST' ? (e.amount || 0) : 0), 0)
     if (energyBoost > 0) gain = Math.min(ENERGY_CAP, gain + energyBoost)
 
-    // Phase B 条件③：第 8 回合 → 敌方 SP 自动触发（AI 直接召唤，不弹窗）
-    if (t >= SP_TURN_TRIGGER) tryTriggerSp('enemy', 'turn')
+    // Phase B：敌方第8回合"开闸"——主人HP≤50% 才召（AI 不答题，无"连对2题"那半）
+    if (t >= SP_TURN_TRIGGER &&
+        enemyLeaderHpRef.current <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
+      tryTriggerSp('enemy', 'gated')
+    }
     return gain
   }, [addLog, tryTriggerSp])
 
@@ -2137,8 +2142,13 @@ export function useBattle() {
     // 必须在 summonedThisTurn.clear() 之后：蚁后新召唤的蚂蚁需保留召唤疲劳（本回合不能攻击）
     processTurnStartEffects('player')
 
-    // Phase B 条件③：战斗进入第 8 回合 → 玩家 SP 自动触发
-    if (newTurn >= SP_TURN_TRIGGER) tryTriggerSp('player', 'turn')
+    // Phase B：第8回合"开闸"——此刻若已连对2题 或 主人HP≤50%（软条件 OR），立即召玩家 SP
+    // （满血且没连对2题则不召；这是"撑到第8回合也不一定召"的关键判断点）
+    if (newTurn >= SP_TURN_TRIGGER &&
+        (quizStreakRef.current >= SP_QUIZ_STREAK ||
+         playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO)) {
+      tryTriggerSp('player', 'gated')
+    }
 
     // Boss onTurnStart 钩子（玩家新回合开始时触发）
     const boss = bossMechanicRef.current
@@ -2244,11 +2254,10 @@ export function useBattle() {
       setQuizStreak(newStreak)
       addLog(`🌟 觉醒！ATK ×2.0！(连续答对 ${newStreak} 题)${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
 
-      // Phase B 组合触发：连对 ≥ SP_QUIZ_STREAK 题「且」主人 HP ≤ 50% 才触发玩家 SP
-      // （两个软条件单独都不够，须同时满足；此处补 HP 侧检查，另一半在 HP useEffect）
-      if (newStreak >= SP_QUIZ_STREAK &&
-          playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
-        tryTriggerSp('player', 'combo')
+      // Phase B：第8回合起"开闸"，连对 ≥ SP_QUIZ_STREAK 题（软条件之一）即召玩家 SP
+      // （软条件 OR：连对2题 或 主人HP≤50% 任一即可；HP 那半在 HP useEffect / 回合点）
+      if (turnRef.current >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK) {
+        tryTriggerSp('player', 'gated')
       }
 
       // 连续答对3题 → 触发科学家模式（全队 ATK +20% 持续2回合）
@@ -2268,20 +2277,18 @@ export function useBattle() {
   }, [currentQuiz, addLog, scientistMode.active, tryTriggerSp])
 
   // ----------------------------------------------------------------
-  //  Phase B 软条件②：主人 HP 降至初始值的 50% 以下（监听双方 HP；阈值用各自初始 HP，
-  //  campaign Boss 可能 ≠ 30000）。
-  //  · 玩家：须「同时」已连对 ≥ SP_QUIZ_STREAK 题才触发（组合条件，另一半在 answerQuiz）。
-  //  · 敌方：AI 不答题，HP≤50% 单独触发（保留"残血召 SP 反击"）。
+  //  Phase B 软条件：主人 HP 降至初始值的 50% 以下（监听双方 HP；阈值用各自初始 HP，
+  //  campaign Boss 可能 ≠ 30000）。**第8回合前不判断**（第8回合是"开闸"门槛）。
+  //  软条件 OR：HP≤50% 单独即可触发（玩家的另一软条件"连对2题"在 answerQuiz 侧）。
   // ----------------------------------------------------------------
   useEffect(() => {
     if (phase === 'init' || phase === 'mulligan' || phase === 'over') return
-    if (playerLeaderHp > 0 &&
-        playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO &&
-        quizStreakRef.current >= SP_QUIZ_STREAK) {
-      tryTriggerSp('player', 'combo')
+    if (turnRef.current < SP_TURN_TRIGGER) return // 第8回合起才判断
+    if (playerLeaderHp > 0 && playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
+      tryTriggerSp('player', 'gated')
     }
     if (enemyLeaderHp > 0 && enemyLeaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
-      tryTriggerSp('enemy', 'hp')
+      tryTriggerSp('enemy', 'gated')
     }
   }, [playerLeaderHp, enemyLeaderHp, phase, tryTriggerSp])
 
