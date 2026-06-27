@@ -11,6 +11,13 @@
 
 ## 最近完成
 
+### 2026-06-27 引擎正确性 A 波②：反击落错方修复 + conditionalAtk/99999 核实 ✅
+A 波剩余 3 项，用 investigate-engine-A-remaining workflow(3 Explore agent 并行核实，Haiku) + 我逐个复核：
+- **✅ 反击 _side 路由(task_5b9a7c7c) — 真 bug，已修(commit 490e89d)**：荆棘反击(仙人掌+500)/海葵刺(小丑鱼+1000)反伤一直哑火 —— 三处复合：① onHitCounter 用 `ctx.friendlyField`(onHit 从不传)定位攻击者 slot→恒 fallback 0；② 发 `_side:'attacker_side'`(applySkillEvents 不认)；③ AOE_DAMAGE 写死 enemySetter→反伤打错方错位。修法：两个 onHit 触发点传 `attackerField`；onHitCounter 用 `ctx.attackerField` 定位真实 slot + 发 `_side:'attacker'`；applySkillEvents AOE_DAMAGE 按 `_side==='attacker'` 选 friendlySetter(=攻击者那方)。功能测试(import onHitCounter)+grep 共 10 断言。
+- **⏭️ conditionalAtk(task_e96cb667① "固定加伤退化×2") — 非 bug，跳过**：复核发现固定加伤走 `ratio=(atk+bonus)/atk` 近似(非 ×2)，各模式工作正常；Haiku agent 报的"vs_highest_hp 缺 bonusDmg"也无害(is_multiplier 路径用 params.amount、不读 bonusDmg)。SESSION 该项过时(同 onTurnStart 假 backlog)。
+- **🟡 99999 击杀 hack(捕蝇草 Snap Trap/CAR-T Precision Kill) — 能用、零可见副作用，留作低优先级**：`damage: currentHp+99999` 走 AOE_DAMAGE 保证击杀；message 不显示数字、AOE_DAMAGE 本就直扣 HP 绕盾 → 无 ugly 显示。agent 建议日后加 `INSTANT_KILL` 事件类型替代(更显式)，但纯清洁、改动有风险、无玩家影响 → **暂不动**(齐齐可定)。
+- **A 波小结**：3 个"真 backlog"里只 1 个是真 bug(反击)，已修；另 2 个(conditionalAtk/99999)核实后非紧急。加上①(onTurnEnd 一波救活蛔虫/胸腺/造血)，A 的引擎正确性实质完成。
+
 ### 2026-06-27 引擎正确性 A 波①：补全 onTurnEnd 分派 → 救活一批哑火技能 + 对齐描述 ✅
 齐齐选「做A」(引擎正确性 cluster)。先核实 backlog 头部项（**onTurnStart 8 死技能其实早修好了** —— 我开头 `grep -c` 假阴性，processTurnStartEffects 已接线 player 2062 + enemy 1829，test-onturnstart-skills 也在）。真正还没修的是「描述≠实现」+ 一个更深的 dispatcher 缺口：
 - **真根因（比"改描述"深）**：`processEndOfTurnEffects` 的 onTurnEnd dispatcher 只处理 `HEAL`(字段卡)+`SUMMON_CARD`，**不处理 OVERFLOW_DAMAGE / DRAW_CARD，且不传 turn** → 一批 onTurnEnd 技能其实**完全哑火**：蛔虫 Nutrient Hijack/Nutrient Drain(passiveDrain 的 OVERFLOW_DAMAGE 被忽略 + 回己方主人血的 HEAL 按字段卡 uid 找 '__leader__' 找不到)、Hematopoiesis(passiveDraw interval:2 因无 turn 永假 + DRAW_CARD 不处理)。SESSION 之前误记蛔虫"近似吸血"——其实啥也没干。
