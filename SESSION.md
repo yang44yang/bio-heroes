@@ -11,6 +11,15 @@
 
 ## 最近完成
 
+### 2026-06-27 引擎正确性 A 波①：补全 onTurnEnd 分派 → 救活一批哑火技能 + 对齐描述 ✅
+齐齐选「做A」(引擎正确性 cluster)。先核实 backlog 头部项（**onTurnStart 8 死技能其实早修好了** —— 我开头 `grep -c` 假阴性，processTurnStartEffects 已接线 player 2062 + enemy 1829，test-onturnstart-skills 也在）。真正还没修的是「描述≠实现」+ 一个更深的 dispatcher 缺口：
+- **真根因（比"改描述"深）**：`processEndOfTurnEffects` 的 onTurnEnd dispatcher 只处理 `HEAL`(字段卡)+`SUMMON_CARD`，**不处理 OVERFLOW_DAMAGE / DRAW_CARD，且不传 turn** → 一批 onTurnEnd 技能其实**完全哑火**：蛔虫 Nutrient Hijack/Nutrient Drain(passiveDrain 的 OVERFLOW_DAMAGE 被忽略 + 回己方主人血的 HEAL 按字段卡 uid 找 '__leader__' 找不到)、Hematopoiesis(passiveDraw interval:2 因无 turn 永假 + DRAW_CARD 不处理)。SESSION 之前误记蛔虫"近似吸血"——其实啥也没干。
+- **修法**(`useBattle.js`)：onTurnEnd ctx 补 `turn: turnRef.current`；派生 self/enemyLeaderSetter；dispatcher 补三 case —— OVERFLOW_DAMAGE(扣敌方主人)/DRAW_CARD(drawCards 抽牌)/`_leaderHeal` HEAL(回己方主人)。**一次修复救活 蛔虫×2 + Hematopoiesis + 新改的胸腺**。
+- **两张描述≠实现**(齐齐 AskUserQuestion 选向)：胸腺 T-Cell Training `passiveHeal`→`passiveDraw`(每2回合抽1张，齐齐选**抽牌型**) + 描述改"抽牌"；蛔虫 Nutrient Hijack 保持 passiveDrain(齐齐选**吸血型**) + 描述对齐"吸取敌方主人500+回己方500"。
+- **preview 实测**：蛔虫上场结束回合 → 敌方主人 **30000→29500**(吸血真生效)✅。胸腺抽牌因 cost8 难即时验，但 DRAW_CARD case 是 applySkillEvents 现成机制的直接复制 + turn 已传，逻辑确定。
+- **验证**：新增 `test-onturnend-skills.mjs` 10 断言 + 全 18 套 + build 绿。commit 3f4256a。
+- **A 波剩余(待续)**：反击 _side 路由(task_5b9a7c7c, Thorn Counter/海葵刺)、99999 击杀 hack(捕蝇草/CAR-T 2处)、conditionalAtk 固定加伤退化成×2(task_e96cb667① 虎鲸/大王乌贼/眼虫)。
+
 ### 2026-06-25 「干细胞分化」SSR 事件卡改造：可靠召出大 body SP（消除"废卡"）✅
 接「干细胞复活」收尾后的独立小任务（原 HANDOFF.md，已删）。齐齐定调方向「让它召唤 6-7 费人体系 SP」。
 - **根因**：这张 SSR 的主效果（复活弃牌堆 body 卡半血）和那张 R 生物卡「干细胞·万能变身者」撞车 → 显废。它**本来就能**召大 SP（`maxCost:99`，SP 卡组有大脑7/CAR-T5），但触发条件 `discard_check`（弃牌堆要先有 3 张 body 卡）太苛刻、几乎永不满足 → 齐齐从没见它召出大 SP。
