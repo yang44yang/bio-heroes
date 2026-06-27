@@ -3202,6 +3202,106 @@ const cards = [
     tags: ["microbe", "tardigrade", "invertebrate", "extremophile", "cryptobiosis"],
   },
 
+  // ============================================================
+  // 🌊🔬 Phase 2 第三批（OCEAN 深海奇兵·共生伙伴 / MICRO 单细胞·细胞零件）
+  // ============================================================
+  {
+    id: "hermit_crab", name: "寄居蟹·借壳安家", nameEn: "Hermit Crab: Borrowed Home",
+    type: "character", faction: "nature", subType: "arthropod", set: "OCEAN",
+    cost: 2, rarity: "R", atk: 1500, hp: 4000, factionRequirement: null,
+    skills: [
+      { name: "借壳换甲", nameEn: "Shell Swap", type: "unique", description: "出场时，为自己添加 2000 点护盾（借来的硬壳替柔软的肚子挡伤害）", scienceNote: "寄居蟹自己不长硬壳，柔软的肚子很怕被咬。它会找一个空的海螺壳钻进去当'房子'保护自己，身体长大了就换一个更大的壳。这层借来的硬壳像一面盾，替它挡下伤害——所以出场就给自己套一层护盾。" },
+    ],
+    scienceCard: "寄居蟹是个'租房子'高手！它的肚子软软的、没有硬壳保护，所以专门找别人不要的空螺壳钻进去住，把软肚子藏在里面。等身体慢慢长大、旧壳住不下了，它就得搬家——找一个更大的空壳，飞快地从旧壳挪进新壳。有时候好几只寄居蟹还会排成一队'换房子'：大的换走大壳，留下的壳正好给小一号的住。更妙的是，有的寄居蟹会把会蜇人的海葵驮在自己壳上当'保镖'，海葵帮它吓退敌人，它带着海葵到处找吃的——这是互相帮忙的'互利共生'。寄居蟹告诉我们：保护自己不一定靠自己长盔甲，借用、合作也是大自然的好办法。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["arthropod", "crustacean", "marine", "symbiosis"],
+  },
+  {
+    id: "cleaner_shrimp", name: "清洁虾·海底诊所", nameEn: "Cleaner Shrimp: Reef Clinic",
+    type: "character", faction: "nature", subType: "arthropod", set: "OCEAN",
+    cost: 3, rarity: "SR", atk: 1500, hp: 4500, factionRequirement: null,
+    skills: [
+      { name: "清洁站", nameEn: "Cleaning Station", type: "unique", description: "回合结束时，为当前 HP 最低的一张友方卡回复 1000 HP（帮它清掉寄生虫和坏死的皮）", scienceNote: "清洁虾会在珊瑚礁上开一个固定的'清洁站'。大鱼游过来停下，清洁虾就爬上去，把它们身上的寄生虫、坏死的皮和食物残渣一点点吃掉、清理干净——大鱼变得更健康，清洁虾也吃饱了。所以表现为每回合给最虚弱的队友'做清洁'回血。" },
+      { name: "信任休战", nameEn: "Trusted Truce", type: "unique", description: "出场时，解除所有友方卡的负面状态（中毒、沉睡等）", scienceNote: "神奇的是：连凶猛的大鱼、海鳗都会乖乖排队、张大嘴巴让小小的清洁虾钻进嘴里和鳃里清理，绝不把它吃掉——因为有清洁虾帮忙，大家都活得更好，这份'信任休战'是双方的互利共生。清理掉病灶和寄生虫，正像替全队解除负面状态。" },
+    ],
+    scienceCard: "在珊瑚礁里有一种神奇的'海底诊所'，开诊所的就是清洁虾！它会找一个固定的地方当'清洁站'，挥舞着白色的长触须打招呼：'看病的来排队啦～'。大鱼们就一条接一条游过来，安静地停下、张开嘴巴、撑开鳃盖。清洁虾爬上爬下，把它们身上的寄生虫、坏死的皮、食物残渣统统吃掉，连嘴里、牙缝里都清理得干干净净。最不可思议的是：哪怕是会吃虾的凶猛大鱼、长着尖牙的海鳗，也绝不会趁机一口吞掉清洁虾——因为大家都需要它'看病'，吃掉它就再也没人帮忙清理了。大鱼变健康，清洁虾吃饱饭，谁也离不开谁，这就是互利共生。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["arthropod", "crustacean", "marine", "reef", "mutualism", "symbiosis"],
+  },
+  {
+    id: "giant_squid", name: "大王乌贼·深渊巨怪", nameEn: "Giant Squid: Abyssal Kraken",
+    type: "character", faction: "nature", subType: "invertebrate_other", set: "OCEAN",
+    cost: 7, rarity: "SSR", atk: 9000, hp: 9000,
+    factionRequirement: { faction: "nature", count: 3, type: "check", scienceNote: "大王乌贼是深海食物链高位的巨型掠食者，需要一个完整、繁盛的海洋生态（鱼群、深海生物链）才撑得起这样的庞然大物" },
+    skills: [
+      { name: "十腕缠击", nameEn: "Ten-Arm Grapple", type: "unique", description: "攻击时，使被攻击的敌方卡麻痹 1 回合（被长长的腕足死死缠住，下回合无法行动）", scienceNote: "大王乌贼有 8 条腕和 2 条更长的'触腕'，触腕末端布满带齿的吸盘，能像套索一样弹出去抓住猎物，再把猎物拉向中央那张坚硬的鹦鹉嘴般的喙。被它缠住的猎物几乎挣不开——所以表现为攻击使敌人麻痹、下回合动不了。" },
+      { name: "巨眼夜视", nameEn: "Abyssal Eyesight", type: "unique", description: "攻击 HP 不足一半的敌方卡时，额外造成 2000 伤害（动物界最大的眼睛在弱光中精准锁定虚弱猎物）", scienceNote: "大王乌贼长着动物界最大的眼睛，直径可达 27 厘米、像个篮球！在几乎没有阳光的深海里，超大的眼睛能收集到最微弱的光，帮它发现远处游动的猎物（以及抹香鲸这样的天敌）。看得清，就打得准——尤其是对付已经虚弱的目标。" },
+    ],
+    scienceCard: "大王乌贼是真实存在的'深海巨怪'，能长到十几米长，比一辆公交车还长！它有 8 条腕和 2 条更长的'触腕'，上面布满带齿的吸盘，中间藏着一张像鹦鹉嘴一样坚硬的喙，用来咬碎食物。它最出名的是那双眼睛——直径能有 27 厘米，像篮球那么大，是整个动物界最大的眼睛！在漆黑的深海里，这么大的眼睛能收集到最微弱的一点光，帮它看清远处的猎物和危险。它最大的对手是抹香鲸：抹香鲸潜到深海猎杀大王乌贼，而大王乌贼会用腕足拼命缠斗反抗——抹香鲸皮肤上那些圆形伤疤，就是大王乌贼吸盘留下的'战斗勋章'。人类很久都只见过它的尸体，直到 2004 年才第一次在深海拍到活的大王乌贼。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["mollusk", "cephalopod", "marine", "deep_sea", "predator", "invertebrate"],
+  },
+  {
+    id: "humpback_whale", name: "座头鲸·泡泡网猎手", nameEn: "Humpback Whale: Bubble-Net Hunter",
+    type: "character", faction: "nature", subType: "mammal", set: "OCEAN",
+    cost: 6, rarity: "SSR", atk: 4500, hp: 10000,
+    factionRequirement: { faction: "nature", count: 2, type: "check", scienceNote: "座头鲸群体协作的'泡泡网'捕食需要伙伴配合，要求场上有完整的自然系生态支撑" },
+    skills: [
+      { name: "泡泡网", nameEn: "Bubble-Net Feeding", type: "unique", description: "出场时，对所有敌方卡造成 2000 点伤害（一群鲸吐气泡织成网把鱼群围在中间，一起张口吞下）", scienceNote: "座头鲸会几头一起合作捕食：它们一边在水下绕圈游、一边从呼吸孔吐出气泡，无数气泡升起像一张圆圆的'泡泡网'，把小鱼群团团围住、越逼越紧。然后大家一起从下往上冲、张开巨口把鱼群连水一起吞掉——这是动物界少见的群体协作捕猎，所以表现为对全体敌人造成范围伤害。" },
+      { name: "鲸歌共鸣", nameEn: "Whale Song", type: "unique", description: "回合结束时，为所有自然系友方卡回复 500 HP（悠长的鲸歌在海里传得很远，联络鼓舞同伴）", scienceNote: "雄座头鲸会唱长达几小时、有结构有'段落'的'鲸歌'，声音能在海里传到很远很远的地方。同一片海域的座头鲸还会一起学唱同一首'流行歌'。这种远距离的声音交流帮它们联络同伴、协调行动——表现为持续鼓舞、回复自然系队友。" },
+    ],
+    scienceCard: "座头鲸是大海里的'歌唱家'和'团队猎手'。它最拿手的绝活是'泡泡网捕食'：几头座头鲸合作，一边绕着鱼群转圈，一边从鼻孔吐出一串串气泡，气泡升起来围成一张圆圆的'网'，把小鱼困在中间不敢游出去；然后大家一起从下面猛冲上来，张开能装下一整个浴缸水的大嘴，把鱼连水一起吞进去，再用嘴里像梳子一样的'鲸须'把水滤出去、留下小鱼。它还会唱歌——雄座头鲸能连续唱好几个小时，歌声有高有低、像真正的乐曲，能在海里传到几十甚至上百公里外；同一片海的座头鲸还会一起'换新歌'。座头鲸的胸鳍特别长，差不多有身体的三分之一，像一对大翅膀，所以它的英文名意思是'长翅膀的鲸'。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["mammal", "marine", "predator", "cooperative", "vocal"],
+  },
+  {
+    id: "blue_ringed_octopus", name: "蓝环章鱼·剧毒警戒", nameEn: "Blue-Ringed Octopus: Venom Warning",
+    type: "character", faction: "nature", subType: "invertebrate_other", set: "OCEAN",
+    cost: 3, rarity: "SR", atk: 2000, hp: 2500, factionRequirement: null,
+    skills: [
+      { name: "致命一咬", nameEn: "Venom Bite", type: "unique", description: "攻击时，使被攻击的敌方卡中毒（每回合 1000 伤害，持续 2 回合）", scienceNote: "蓝环章鱼只有巴掌大，却带着剧毒。它咬一口会注入'河豚毒素'(TTX)——一种比许多动物的毒都猛的神经毒素，能让被咬的猎物动弹不得。游戏里表现为咬中目标后持续中毒掉血。（毒素其实是它体内的共生细菌帮忙制造的。）" },
+      { name: "蓝环警戒", nameEn: "Warning Rings", type: "unique", description: "被攻击时，对攻击者反击造成 1000 点伤害（生气时全身亮出蓝环警告：别碰我！）", scienceNote: "平时蓝环章鱼颜色暗淡、不起眼；一旦受到威胁，它身上几十个蓝色圆环会在不到一秒内亮起来、闪烁发光，向捕食者发出明确的警告：'我有剧毒，别碰我！'这种用鲜艳颜色警告敌人的本领叫'警戒色'。谁不听劝硬要碰它，就会受到反击。" },
+    ],
+    scienceCard: "蓝环章鱼是海里有名的'小不点大魔王'：它只有高尔夫球到巴掌那么大，看起来软软的、人畜无害，却是地球上毒性最强的海洋动物之一。它的唾液里有一种叫'河豚毒素'的神经毒素，毒性极猛，一只小小的蓝环章鱼带的毒据说足以放倒好几个大人，而且目前没有专门的解毒药。最特别的是它的'警告系统'：平时它颜色暗暗的趴着不动，可一旦觉得有危险，全身几十个蓝色的圆环会在不到一秒里突然亮起来、一闪一闪，像在大喊'我有毒，离我远点！'——这种用鲜艳颜色提醒敌人'别碰我'的招数叫'警戒色'，自然界里很多有毒的动物都用它。聪明的做法是：在海边看到漂亮的小蓝环章鱼，千万只能看、不能碰。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["mollusk", "cephalopod", "marine", "venomous", "aposematism"],
+  },
+  {
+    id: "archaea", name: "古菌·极端分子", nameEn: "Archaea: The Extremophile",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 4, rarity: "SR", atk: 2500, hp: 6500, factionRequirement: null,
+    skills: [
+      { name: "极端生存", nameEn: "Extremophile", type: "unique", description: "回合结束时，自身回复 500 HP（住在滚烫温泉、强酸、死咸盐湖里都不怕）", scienceNote: "很多古菌是'极端微生物'：有的住在快烧开的火山温泉里，有的住在酸得能腐蚀金属的酸湖里，有的住在咸到别的生命都活不了的死咸盐湖里。能在这种地狱般的环境里好好活着、不断修复自己，所以表现为每回合稳定自愈。" },
+      { name: "产甲烷", nameEn: "Methanogenesis", type: "unique", description: "出场时，本回合获得 +1 能量（在无氧环境里把简单物质变成甲烷，释放能量）", scienceNote: "有一类古菌叫'产甲烷菌'，住在没有氧气的地方（如沼泽、牛的肚子、垃圾堆深处），靠把氢气和二氧化碳变成甲烷气体来获取能量——这也是沼气、天然气的来源之一。它把环境里的简单物质变成能量，所以表现为出场提供额外能量。" },
+    ],
+    scienceCard: "古菌是一类特别的小生命，小到要用显微镜才看得见。它长得有点像细菌，但其实是完全不同的一大类——科学家把地球上所有生命分成三大'族'（叫'三域'）：细菌、古菌，还有包括动物、植物、真菌和我们人类在内的'真核生物'。古菌最出名的是'专挑最艰苦的地方住'：有的泡在快烧开的火山温泉里，有的住在酸得能化掉金属的酸水里，有的待在咸得发苦、别的生命全都活不了的死咸盐湖里，还有的藏在没有一点氧气的沼泽和动物肚子里。住在无氧环境里的'产甲烷古菌'，会把简单的气体变成甲烷（沼气）来获得能量。正因为古菌能在这些'极端'环境里活下来，科学家相信：地球最早的生命可能就长得像它们，甚至别的星球上若有生命，也可能是这种'极端分子'的样子。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["microbe", "archaea", "prokaryote", "extremophile", "three_domains"],
+  },
+  {
+    id: "ribosome", name: "核糖体·蛋白质打印机", nameEn: "Ribosome: Protein Printer",
+    type: "character", faction: "body", subType: "cellular", set: "MICRO",
+    cost: 3, rarity: "SR", atk: 1000, hp: 4500, factionRequirement: null,
+    skills: [
+      { name: "蛋白质打印", nameEn: "Protein Synthesis", type: "unique", description: "回合结束时，为当前 HP 最低的一张友方卡回复 1000 HP（照基因图纸造出修复用的蛋白质）", scienceNote: "核糖体的工作是照着基因（mRNA）的'图纸'，把一个个氨基酸串成蛋白质。身体里修补伤口、组成新细胞用的都是蛋白质。它源源不断地造出修复用的蛋白，所以表现为持续给最虚弱的队友回血。" },
+      { name: "翻译加速", nameEn: "Translation Boost", type: "unique", description: "出场时，为 ATK 最高的一张友方卡 ATK 永久 +1000（造出更多功能蛋白让队友更强壮）", scienceNote: "细胞里干活的'机器'几乎都是蛋白质——肌肉的力量、消化的酶、运氧的血红蛋白，全是蛋白质。核糖体造蛋白的速度越快，细胞就越强。它给主力队友'多造点蛋白'，表现为永久强化其攻击力。" },
+    ],
+    scienceCard: "核糖体是细胞里的'蛋白质 3D 打印机'，小到要用最厉害的显微镜才看得见，可你身体里的每个细胞都有成千上万台！它的工作特别重要：照着从基因（DNA）抄下来的'图纸'（叫 mRNA），把一个个叫'氨基酸'的小积木按顺序串起来，拼成一条条蛋白质。蛋白质是生命的'万能零件'——你的肌肉、皮肤、头发，帮你消化食物的酶，血液里运送氧气的血红蛋白，统统都是蛋白质做的。可以说，基因是'设计图'，核糖体就是照图施工的'工厂'，没有它，再好的基因图纸也变不成真正能干活的零件。有趣的是，植物细胞和细菌里也都有核糖体——它是几乎所有生命共用的'造蛋白机器'，足见它有多重要。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["organelle", "cellular", "protein_synthesis", "molecular_machine"],
+  },
+  {
+    id: "yeast", name: "酵母·发酵小帮手", nameEn: "Yeast: Fermentation Helper",
+    type: "character", faction: "nature", subType: "microbe", set: "MICRO",
+    cost: 2, rarity: "R", atk: 1500, hp: 4000, factionRequirement: null,
+    skills: [
+      { name: "发酵产能", nameEn: "Fermentation", type: "unique", description: "回合开始时，本回合获得 +1 能量（把糖分解成二氧化碳和酒精，释放能量）", scienceNote: "酵母吃糖，会把糖分解、产生二氧化碳气体和酒精，同时为自己获得能量——这个过程叫'发酵'。面包里的气孔是它放出的二氧化碳撑出来的，酒里的酒精也是它造的。它把糖变成能量，所以表现为每回合提供额外能量。" },
+    ],
+    scienceCard: "酵母是一种小小的真菌，小到一滴水里能装下好几百万个，可它是人类几千年的好帮手！它最爱吃糖，吃完糖会做两件事：放出二氧化碳气体，还有造出酒精——这个本领叫'发酵'。做面包时，面团里的酵母一边吃糖一边放气，气泡撑得面团鼓鼓的，烤出来才松松软软；酿酒、酿酱油也都靠酵母把糖变成酒精和香味。酵母的繁殖方式也很特别，叫'出芽'：母细胞身上先鼓出一个小芽，小芽慢慢长大，再'啵'地分出去变成一个新酵母，就像吹小泡泡一样。别看它小，科学家还特别喜欢研究它——因为酵母也是由细胞构成、和我们人体细胞有不少相似的地方，是了解生命怎么运转的好'模范生'。",
+    evolutionFrom: null, evolutionTo: null,
+    tags: ["microbe", "fungus", "yeast", "fermentation", "model_organism"],
+  },
+
 ];
 
 export default cards;

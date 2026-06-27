@@ -13,6 +13,16 @@
 
 ## 最近完成
 
+### 2026-06-27 Phase 2 扩卡第三批 8 张（OCEAN 共生/深海 + MICRO 单细胞/细胞零件）✅
+齐齐选"Phase 2 扩卡剩 8 张"。先核实（SESSION line 190"剩余8张"清单已过时——那批早做完了），从 `outputs/phase2_card_expansion_blueprint.md` 菜单未做候选里挑了平衡的 8 张，设计稿先 review 通过再落代码：
+- **8 张**（卡 116→124）：🦀寄居蟹(R,借壳护盾) / 🦐清洁虾(SR,清洁站回血+解负面) / 🦑大王乌贼(SSR cost7,缠击麻痹+巨眼打残血) / 🐋座头鲸(SSR,泡泡网AOE+鲸歌回血) / 🐙蓝环章鱼(SR,致命中毒+蓝环反击,玻璃大炮) / 🌋古菌(SR,极端自愈+产甲烷能量) / 🧬核糖体(**body**,蛋白回血+翻译加速buff) / 🍞酵母(R,发酵产能)。
+- **主题**：共生×2(寄居蟹/清洁虾，呼应小丑鱼-海葵) / 深海×1(大王乌贼,抹香鲸宿敌) / 协作×1(座头鲸) / 毒·警戒色×1(蓝环) / 生命三域×1(古菌) / 细胞零件×1(核糖体,凑线粒体/叶绿体) / 发酵×1(酵母)。稀有度 R×2/SR×4/SSR×2，费用 2~7，7 nature+1 body。
+- **0 新引擎代码**：14 个技能全复用现有模板（`passiveHeal`/`cleanse`/`onAttackDebuff` poison·paralyze/`onPlayDamage all_enemy`/`onHitCounter`/`conditionalAtk vs_low_hp`/`passiveEnergy`）+ 2 处内联(寄居蟹 APPLY_SHIELD、核糖体 BUFF，镜像 Glass Armor/Great Oxidation)。
+- **⚠️ 踩坑修正**：酵母「发酵产能」初版写 onTurnEnd —— 但 `processEndOfTurnEffects` dispatcher **不处理 ENERGY_BOOST**（只 HEAL/OVERFLOW/DRAW/SUMMON）→ 能量会静默丢失。改 `onTurnStart`（与向日葵/线粒体产能一致），描述同步"回合开始时"。test 加专门断言守此规则。
+- **24 道 3 层题**（记忆/机制/推理，每卡齐全）；3 道选项过长(diff≥12)已rebalance防"最长=答案"露馅。
+- **验证**：新增 `scripts/test-phase2-batch3.mjs` **277 断言**（卡 schema/数值/标记规则 + 14 技能 timing + 能量安全 + 模板存在 + 24 题质量）+ 全 21 套零回归 + `npm run build` 绿 + `vite preview` 图鉴 8 张全渲染、0 console error。commit 待填。
+- **菜单仍剩**：OCEAN 灯笼鱼/鹦鹉螺/海马；MICRO 轮虫/团藻（蓝图已更新勾选）。
+
 ### 2026-06-27 Phase B 触发规则定稿：第8回合"开闸"门槛 + 任一软条件（齐齐第3次调）✅
 齐齐对 SP 自动触发规则连调三版，本条是**最终版**（取代下面"续²"那条的第8回合硬触发+玩家AND组合）：
 - **第8回合 = "开闸"门槛，不再是硬触发**：第1-7回合完全不判断、不召 SP。

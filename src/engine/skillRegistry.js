@@ -1428,6 +1428,57 @@ export const skillRegistry = {
     },
   },
   'Rehydration Recovery': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'self', amount: 1000 }) },
+
+  // ===========================================
+  // Phase 2 第三批（OCEAN 深海奇兵·共生 / MICRO 单细胞·细胞零件）
+  // ===========================================
+
+  // 寄居蟹·借壳安家 — 出场给自己加护盾（借来的硬壳，复用 Glass Armor 内联模式）
+  'Shell Swap': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      return { type: 'APPLY_SHIELD', targetUid: card.uid, source: card.name, target: card.name, amount: 2000, message: `🐚 ${card.name} 借壳换甲！硬壳挡下 2000 伤害！` }
+    },
+  },
+
+  // 清洁虾·海底诊所 — 清洁站(回合末最虚弱友方回血) + 信任休战(解除全队负面状态)
+  'Cleaning Station': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'one_lowest_hp', amount: 1000 }) },
+  'Trusted Truce': { timing: 'onPlay', execute: (ctx) => T.cleanse(ctx, { status_filter: 'all_negative' }) },
+
+  // 大王乌贼·深渊巨怪 — 十腕缠击(攻击使敌麻痹) + 巨眼夜视(打残血敌额外伤害)
+  'Ten-Arm Grapple': { timing: 'onAttack', execute: (ctx) => T.onAttackDebuff(ctx, { effect: 'paralyze', duration: 1 }) },
+  'Abyssal Eyesight': { timing: 'onAttack', execute: (ctx) => T.conditionalAtk(ctx, { condition: 'vs_low_hp', hp_threshold: 0.5, amount: 2000 }) },
+
+  // 座头鲸·泡泡网猎手 — 泡泡网(出场全体敌方 AOE) + 鲸歌共鸣(回合末全自然系回血)
+  'Bubble-Net Feeding': { timing: 'onPlay', execute: (ctx) => T.onPlayDamage(ctx, { target: 'all_enemy', amount: 2000 }) },
+  'Whale Song': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'faction', faction_filter: 'nature', amount: 500 }) },
+
+  // 蓝环章鱼·剧毒警戒 — 致命一咬(攻击使敌中毒) + 蓝环警戒(被攻击反击)
+  'Venom Bite': { timing: 'onAttack', execute: (ctx) => T.onAttackDebuff(ctx, { effect: 'poison', amount: 1000, duration: 2 }) },
+  'Warning Rings': { timing: 'onHit', execute: (ctx) => T.onHitCounter(ctx, { effect: 'counter_damage', amount: 1000 }) },
+
+  // 古菌·极端分子 — 极端生存(回合末自愈) + 产甲烷(出场 +1 能量)
+  'Extremophile': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'self', amount: 500 }) },
+  'Methanogenesis': { timing: 'onPlay', execute: (ctx) => T.passiveEnergy(ctx, { amount: 1 }) },
+
+  // 核糖体·蛋白质打印机 — 蛋白质打印(回合末最虚弱友方回血) + 翻译加速(出场给最高ATK友方永久+1000)
+  'Protein Synthesis': { timing: 'onTurnEnd', execute: (ctx) => T.passiveHeal(ctx, { scope: 'one_lowest_hp', amount: 1000 }) },
+  'Translation Boost': {
+    timing: 'onPlay',
+    execute: (ctx) => {
+      const card = ctx.card
+      if (!card || card.currentHp <= 0) return null
+      const allies = (ctx.friendlyField || []).filter(c => c && c.currentHp > 0)
+      if (allies.length === 0) return null
+      const target = allies.reduce((best, c) => (c.atk > best.atk ? c : best), allies[0])
+      return { type: 'BUFF', targetUid: target.uid, stat: 'atk', amount: 1000, source: card.name, message: `🧬 ${card.name} 翻译加速！${target.name} ATK 永久 +1000！` }
+    },
+  },
+
+  // 酵母·发酵小帮手 — 发酵产能(回合开始 +1 能量；ENERGY_BOOST 只在 onTurnStart/onPlay 被分派)
+  'Fermentation': { timing: 'onTurnStart', execute: (ctx) => T.passiveEnergy(ctx, { amount: 1 }) },
 }
 
 // Sprint 24: Gene Rewrite 复用 Gene Edit（延迟绑定避免引用顺序问题）
