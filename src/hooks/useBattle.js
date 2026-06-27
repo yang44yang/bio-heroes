@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import {
   ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
+  SP_QUIZ_STREAK, SP_LEADER_HP_RATIO, SP_TURN_TRIGGER,
 } from '../data/deckRules'
 import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { calcCardBattle, calcLeaderDamage } from '../utils/damage'
@@ -82,6 +83,13 @@ export function useBattle() {
 
   // === 事件卡效果日志（供 UI 展示动画用）===
   const [pendingSpSummon, setPendingSpSummon] = useState(null) // { side, candidates }
+  const pendingSpSummonRef = useRef(null)
+  pendingSpSummonRef.current = pendingSpSummon
+  // Phase B: SP 三条件自动触发 —— 每条件本局只触发一次（按 `${side}:${reason}` 去重）
+  const spTriggeredRef = useRef(new Set())
+  // 主人初始 HP（用于 50% 触发阈值；campaign Boss 主人 HP 可能 ≠ 30000）
+  const playerInitLeaderHpRef = useRef(LEADER_HP)
+  const enemyInitLeaderHpRef = useRef(LEADER_HP)
 
   // === 问答连续答对次数（用于难度升级 + 科学家模式）===
   const quizStreakRef = useRef(0)
@@ -1137,6 +1145,10 @@ export function useBattle() {
 
     let candidates = []
     switch (summonRule.type) {
+      case 'auto':
+        // Phase B 三条件自动触发：阵营不限、费用不限，仍受下方回合门槛过滤
+        candidates = spDeck.filter(sp => sp.spCost <= (summonRule.maxCost || 99))
+        break
       case 'cost_limit':
         candidates = spDeck.filter(sp => sp.spCost <= summonRule.maxCost)
         break
@@ -1437,6 +1449,41 @@ export function useBattle() {
   }, [addLog])
 
   // ----------------------------------------------------------------
+  //  Phase B: SP 三条件自动触发公共入口
+  //  reason: 'quiz'（连对2题）| 'hp'（主人 HP≤50%）| 'turn'（第8回合）
+  //  复用事件卡管线：玩家 → setPendingSpSummon 弹「翻牌选1」；敌方 → 直接召唤。
+  //  「翻2选1」：从合格候选里随机翻 2 张。每条件本局只触发一次（spTriggeredRef 去重）。
+  // ----------------------------------------------------------------
+  const tryTriggerSp = useCallback((side, reason) => {
+    const key = `${side}:${reason}`
+    if (spTriggeredRef.current.has(key)) return
+    // 玩家侧：已有待选弹窗（事件卡/其它条件）时不重复弹，避免双触发
+    if (side === 'player' && pendingSpSummonRef.current) return
+
+    const candidates = getEligibleSpCards({ type: 'auto' }, side)
+    if (candidates.length === 0) return // 无空位 / 无够回合的 SP → 不消耗触发资格
+
+    spTriggeredRef.current.add(key)
+
+    // 随机翻 2 张（候选不足 2 则全给）
+    const pool = [...candidates]
+    const picks = []
+    while (picks.length < 2 && pool.length > 0) {
+      const i = Math.floor(Math.random() * pool.length)
+      picks.push(pool.splice(i, 1)[0])
+    }
+
+    if (side === 'player') {
+      setPendingSpSummon({ side: 'player', candidates: picks, rule: { type: 'auto', reason } })
+      addLog(`🌟 SP 觉醒条件达成！翻开 ${picks.length} 张 SP，选 1 张召唤！`)
+    } else {
+      // AI：直接选费用最高的一张召唤（与事件卡 AI 路径一致）
+      const chosen = picks.reduce((best, sp) => (sp.spCost > best.spCost ? sp : best), picks[0])
+      summonSpCard(chosen, 'enemy')
+    }
+  }, [addLog, summonSpCard])
+
+  // ----------------------------------------------------------------
   //  环境事件 UI 回调
   // ----------------------------------------------------------------
   const dismissEnvEvent = useCallback(() => {
@@ -1455,6 +1502,10 @@ export function useBattle() {
     setEnemyEnergy(1)
     setPlayerLeaderHp(spDecks.playerLeaderHP || LEADER_HP)
     setEnemyLeaderHp(spDecks.enemyLeaderHP || LEADER_HP)
+    // Phase B：记录初始主人 HP（50% 触发阈值用）+ 清空三条件触发记录
+    playerInitLeaderHpRef.current = spDecks.playerLeaderHP || LEADER_HP
+    enemyInitLeaderHpRef.current = spDecks.enemyLeaderHP || LEADER_HP
+    spTriggeredRef.current = new Set()
     setPlayerField(emptyField())
     setEnemyField(emptyField())
     setBattleLog(['⚔️ 战斗开始！'])
@@ -1851,8 +1902,11 @@ export function useBattle() {
     // 但 AI 出牌按本函数返回值核算，故把 ENERGY_BOOST 同步进 gain（与 state 一致，封顶 ENERGY_CAP）
     const energyBoost = tsEvents.reduce((s, e) => s + (e.type === 'ENERGY_BOOST' ? (e.amount || 0) : 0), 0)
     if (energyBoost > 0) gain = Math.min(ENERGY_CAP, gain + energyBoost)
+
+    // Phase B 条件③：第 8 回合 → 敌方 SP 自动触发（AI 直接召唤，不弹窗）
+    if (t >= SP_TURN_TRIGGER) tryTriggerSp('enemy', 'turn')
     return gain
-  }, [addLog])
+  }, [addLog, tryTriggerSp])
 
   // ----------------------------------------------------------------
   //  AI 出牌到场上
@@ -2082,6 +2136,9 @@ export function useBattle() {
     // 必须在 summonedThisTurn.clear() 之后：蚁后新召唤的蚂蚁需保留召唤疲劳（本回合不能攻击）
     processTurnStartEffects('player')
 
+    // Phase B 条件③：战斗进入第 8 回合 → 玩家 SP 自动触发
+    if (newTurn >= SP_TURN_TRIGGER) tryTriggerSp('player', 'turn')
+
     // Boss onTurnStart 钩子（玩家新回合开始时触发）
     const boss = bossMechanicRef.current
     if (boss?.onTurnStart) {
@@ -2186,6 +2243,9 @@ export function useBattle() {
       setQuizStreak(newStreak)
       addLog(`🌟 觉醒！ATK ×2.0！(连续答对 ${newStreak} 题)${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
 
+      // Phase B 条件①：连续答对 ≥ SP_QUIZ_STREAK 题 → 玩家 SP 自动触发
+      if (newStreak >= SP_QUIZ_STREAK) tryTriggerSp('player', 'quiz')
+
       // 连续答对3题 → 触发科学家模式（全队 ATK +20% 持续2回合）
       let scientistTriggered = false
       if (newStreak >= 3 && !scientistMode.active) {
@@ -2200,7 +2260,21 @@ export function useBattle() {
     setQuizStreak(0)
     addLog(`❌ 答错了，正常攻击${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
     return { fact: currentQuiz.fact, streak: 0 }
-  }, [currentQuiz, addLog, scientistMode.active])
+  }, [currentQuiz, addLog, scientistMode.active, tryTriggerSp])
+
+  // ----------------------------------------------------------------
+  //  Phase B 条件②：主人 HP 降至初始值的 50% 以下 → 该侧 SP 自动触发
+  //  监听双方主人 HP；阈值用各自初始 HP（campaign Boss 可能 ≠ 30000）。
+  // ----------------------------------------------------------------
+  useEffect(() => {
+    if (phase === 'init' || phase === 'mulligan' || phase === 'over') return
+    if (playerLeaderHp > 0 && playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
+      tryTriggerSp('player', 'hp')
+    }
+    if (enemyLeaderHp > 0 && enemyLeaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
+      tryTriggerSp('enemy', 'hp')
+    }
+  }, [playerLeaderHp, enemyLeaderHp, phase, tryTriggerSp])
 
   // ----------------------------------------------------------------
   //  动画控制

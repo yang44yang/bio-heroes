@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-25（**干细胞"死了不复活"真·真根因 a3fa492**：React18 自动批处理下 cleanupDeadCards 同步读 dead.length 恒 0 的 eager-bailout 竞态 → 死卡不进弃牌堆+onDeath 全哑火；改「提交后 useEffect 扫 currentHp≤0」根治，preview 实锤(敌方回合杀我方卡也触发)。前条 785db6b 收口 onDeath 是必要但不充分。**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
+> 更新时间: 2026-06-27 续（**Phase B —— SP 三条件自动触发**：把"仅事件卡触发 SP"扩展为"事件卡 + 三条件(连对2题/主人HP≤50%/第8回合)自动触发"，复用现成 `getEligibleSpCards→setPendingSpSummon` 管线。新加 `tryTriggerSp(side,reason)` 公共入口 + `auto` 规则分支 + `spTriggeredRef` 每条件本局一次去重 + 双方初始HP阈值。玩家弹「翻2选1」、敌方AI直接召。新增 test-phase-b-sp-triggers 24 断言 + 全 20 套 + build 绿 + preview 入战零报错(hook mount 安全)。**齐齐真机待测**：①连答2题 ②打到主人≤15000 ③撑到第8回合，各一局一次。前序同日见下）
+> 历史更新时间: 2026-06-25（**干细胞"死了不复活"真·真根因 a3fa492**：React18 自动批处理下 cleanupDeadCards 同步读 dead.length 恒 0 的 eager-bailout 竞态 → 死卡不进弃牌堆+onDeath 全哑火；改「提交后 useEffect 扫 currentHp≤0」根治，preview 实锤(敌方回合杀我方卡也触发)。前条 785db6b 收口 onDeath 是必要但不充分。**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
 
 ## 项目位置
@@ -10,6 +11,16 @@
 ---
 
 ## 最近完成
+
+### 2026-06-27 Phase B —— SP 三条件自动触发（连对2题 / 主人HP≤50% / 第8回合）✅
+承前一窗口 HANDOFF（已删）。脚手架本就铺了一半（常量 `SP_QUIZ_STREAK/SP_LEADER_HP_RATIO/SP_TURN_TRIGGER` + `quizStreakRef` + 完整 `getEligibleSpCards→setPendingSpSummon→summonSpCard` 管线，但唯一触发入口是"可触发SP事件卡"）。本次把它扩展成"事件卡 + 三条件"：
+- **公共入口 `tryTriggerSp(side, reason)`**（`useBattle.js`，定义在 `cancelSpSummon` 后、`startBattle` 前以避开 `summonSpCard` 的 TDZ）：去重 → `getEligibleSpCards({type:'auto'}, side)` 取候选 → 随机翻 **2** 张 → 玩家 `setPendingSpSummon`(弹「翻2选1」) / 敌方 AI 直接 `summonSpCard`(选最高费)。
+- **`getEligibleSpCards` 新增 `'auto'` 分支**：阵营/费用不限（maxCost 99），**仍走原回合门槛** `turn ≥ spEarliestSummonTurn(spCost)` → 第8回合/HP低时大 SP 自然够回合数，第1-2回合一律锁。
+- **三条件接线**：①`answerQuiz` 内 `newStreak >= SP_QUIZ_STREAK` → `tryTriggerSp('player','quiz')`；②`useEffect` 监听双方 `playerLeaderHp/enemyLeaderHp`，`≤ 初始HP×0.5` → 各自侧（初始HP记在 `player/enemyInitLeaderHpRef`，兼容 campaign Boss ≠30000）；③`startPlayerTurn`(`newTurn>=8`)+`beginEnemyTurn`(`t>=8`) → 各自侧。
+- **每条件本局一次**：`spTriggeredRef = useRef(new Set())`，键 `${side}:${reason}`（玩家/敌方各自独立，一局最多 3 自动 + 事件卡）；`startBattle` 清空 + 记录初始HP。玩家侧 `pendingSpSummonRef` 非空时跳过 → 不和事件卡/其它条件双弹窗。
+- **验证**：新增 `scripts/test-phase-b-sp-triggers.mjs` 24 断言（常量值 / 三条件 grep 接线 / 去重 / `auto` 资格随回合单调放开 / 翻2选1 抽样）+ 全 20 套零回归 + `npm run build` 绿 + `vite preview` 入战 useBattle mount 零 console error（排除 hook 改动的 TDZ/运行时崩溃）。commit 待填。
+- **⚠️ 齐齐真机待测**（设计是"满足任一"、每条件一局一次，先实现看手感）：①连答2题→弹 SP 选1；②打到主人 ≤15000→弹；③撑到第8回合→弹；AI 侧三条件也会自动召。**改 useBattle 后记得硬重启 dev server**（HMR 不热替换 hook 结构改动，见 [[dev-server-hmr-strictmode-gotchas]]）。
+- **可能要调的手感**：三条件 + 事件卡 + 回合门槛叠加后 SP 会不会太频繁？平衡留待实测。
 
 ### 2026-06-27 引擎正确性 A 波②：反击落错方修复 + conditionalAtk/99999 核实 ✅
 A 波剩余 3 项，用 investigate-engine-A-remaining workflow(3 Explore agent 并行核实，Haiku) + 我逐个复核：

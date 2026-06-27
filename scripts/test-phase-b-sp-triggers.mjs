@@ -1,0 +1,101 @@
+#!/usr/bin/env node
+// Phase B —— SP 三条件自动触发 回归测试
+//
+// 设计（.claude/rules/battle-system.md）：SP 触发条件「满足任一」即触发——
+//   ① 连续答对 SP_QUIZ_STREAK(=2) 题  ② 己方主人 HP 降至初始 50% 以下  ③ 战斗进入第 8 回合。
+// 触发流程：从合格 SP 里随机翻 2 张，玩家选 1 张上场；敌方 AI 直接召唤。
+// 每条件本局只触发一次（spTriggeredRef 按 `${side}:${reason}` 去重；startBattle 清空）。
+//
+// 沿用仓库惯例：grep 源码接线（不 import useBattle/组件）+ import 纯数据/纯函数做功能断言。
+import { readFileSync } from 'fs'
+import { fileURLToPath } from 'url'
+import { dirname, join } from 'path'
+import spCardsRaw from '../src/data/spCards.js'
+import {
+  spEarliestSummonTurn, LEADER_HP,
+  SP_QUIZ_STREAK, SP_LEADER_HP_RATIO, SP_TURN_TRIGGER,
+} from '../src/data/deckRules.js'
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
+const spCards = spCardsRaw.default || spCardsRaw
+const src = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
+let pass = 0, fail = 0
+const ok = (n, c) => { if (c) pass++; else { fail++; console.error(`❌ ${n}`) } }
+const has = (...subs) => subs.every(s => src.includes(s))
+
+// ===== A. 常量（设计值）=====
+ok('SP_QUIZ_STREAK === 2', SP_QUIZ_STREAK === 2)
+ok('SP_LEADER_HP_RATIO === 0.5', SP_LEADER_HP_RATIO === 0.5)
+ok('SP_TURN_TRIGGER === 8', SP_TURN_TRIGGER === 8)
+ok('50% 阈值 = 15000（标准主人）', LEADER_HP * SP_LEADER_HP_RATIO === 15000)
+
+// ===== B. 公共触发器 + 'auto' 规则接线 =====
+ok("getEligibleSpCards 含 'auto' 规则分支", has("case 'auto':"))
+ok('tryTriggerSp 公共入口存在', has('const tryTriggerSp = useCallback('))
+ok("tryTriggerSp 调 getEligibleSpCards({ type: 'auto' }", has("getEligibleSpCards({ type: 'auto' }"))
+ok('玩家走弹窗 setPendingSpSummon、敌方走 summonSpCard',
+  has("setPendingSpSummon({ side: 'player', candidates: picks") && has("summonSpCard(chosen, 'enemy')"))
+
+// ===== C. 三条件各自接线 =====
+ok('① 连对2题：answerQuiz 内判 >= SP_QUIZ_STREAK 调 player/quiz',
+  has('newStreak >= SP_QUIZ_STREAK') && has("tryTriggerSp('player', 'quiz')"))
+ok('② 主人HP≤50%：useEffect 监听 + 初始HP×比例阈值（双方）',
+  has('playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has('enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has("tryTriggerSp('player', 'hp')") && has("tryTriggerSp('enemy', 'hp')"))
+ok('③ 第8回合：玩家 startPlayerTurn + 敌方 beginEnemyTurn 各判 >= SP_TURN_TRIGGER',
+  has('newTurn >= SP_TURN_TRIGGER') && has("tryTriggerSp('player', 'turn')") &&
+  has('t >= SP_TURN_TRIGGER') && has("tryTriggerSp('enemy', 'turn')"))
+
+// ===== D. 去重（本局每条件一次）+ 新对局清空 =====
+ok('spTriggeredRef 定义为 useRef(new Set())', has('const spTriggeredRef = useRef(new Set())'))
+ok('去重：has(key) 跳过 + add(key) 记账',
+  has('spTriggeredRef.current.has(key)') && has('spTriggeredRef.current.add(key)'))
+ok("去重键含 side+reason（`${side}:${reason}`）", has('const key = `${side}:${reason}`'))
+ok('startBattle 清空 spTriggeredRef', has('spTriggeredRef.current = new Set()'))
+ok('startBattle 记录双方初始主人HP',
+  has('playerInitLeaderHpRef.current = spDecks.playerLeaderHP || LEADER_HP') &&
+  has('enemyInitLeaderHpRef.current = spDecks.enemyLeaderHP || LEADER_HP'))
+
+// ===== E. 防双触发 / 防多弹窗 =====
+ok('玩家侧已有 pendingSpSummon 时不重复弹', has("side === 'player' && pendingSpSummonRef.current"))
+ok('pendingSpSummonRef 已同步', has('pendingSpSummonRef.current = pendingSpSummon'))
+
+// ===== F. 'auto' 规则资格判定（复刻，与 useBattle 同公式）=====
+// auto：阵营/费用不限（maxCost 默认 99），仍受回合门槛 turn ≥ spEarliestSummonTurn(spCost)。
+function autoGate(spDeck, turn) {
+  return spDeck.filter(sp => sp.spCost <= 99).filter(sp => turn >= spEarliestSummonTurn(sp.spCost))
+}
+ok('auto@turn1/2：任何 SP 都召不出（地板 turn≥3）',
+  [1, 2].every(t => autoGate(spCards, t).length === 0))
+ok('auto@turn3：恰好放行 spCost≤6 的 SP（小 SP 解封）',
+  autoGate(spCards, 3).every(sp => sp.spCost <= 6) &&
+  autoGate(spCards, 3).length === spCards.filter(sp => sp.spCost <= 6).length)
+ok('auto@turn8（条件③回合）：全部 SP 都够回合门槛',
+  autoGate(spCards, 8).length === spCards.length)
+ok('auto 候选随 turn 单调不减（大 SP 逐步解封）',
+  [3, 4, 5, 6, 7, 8].every((t, i, a) => i === 0 || autoGate(spCards, a[i]).length >= autoGate(spCards, a[i - 1]).length))
+
+// ===== G. 「翻2选1」抽样逻辑（复刻 tryTriggerSp 内随机翻牌）=====
+function pickTwo(candidates) {
+  const pool = [...candidates]; const picks = []
+  while (picks.length < 2 && pool.length > 0) {
+    const i = Math.floor(Math.random() * pool.length)
+    picks.push(pool.splice(i, 1)[0])
+  }
+  return picks
+}
+ok('翻牌：候选≥2 → 恰好翻 2 张且互不相同', (() => {
+  const c = autoGate(spCards, 8)
+  if (c.length < 2) return false
+  for (let i = 0; i < 50; i++) {
+    const p = pickTwo(c)
+    if (p.length !== 2 || p[0] === p[1]) return false // splice 保证两张是不同对象
+    if (!p.every(x => c.includes(x))) return false
+  }
+  return true
+})())
+ok('翻牌：候选不足2 → 全给（≤2）', pickTwo([spCards[0]]).length === 1 && pickTwo([]).length === 0)
+
+console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
+process.exit(fail === 0 ? 0 : 1)
