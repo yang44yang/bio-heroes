@@ -305,7 +305,7 @@ const cards = [
         name: "声纳震荡",
         nameEn: "Sonar Shockwave",
         type: "unique",
-        description: "出场时对所有敌方卡牌造成 2000 点伤害",
+        description: "出场时对所有敌方卡牌造成 3000 点伤害",
         scienceNote: "蓝鲸的叫声可达188分贝，能传播上千公里"
       },
       {
@@ -2442,8 +2442,8 @@ const cards = [
                 "name": "孢子休眠",
                 "nameEn": "Spore Dormancy",
                 "type": "unique",
-                "description": "被击杀时不进入弃牌堆，2 回合后以满 HP 复活到场上",
-                "scienceNote": "炭疽杆菌能形成极其耐久的孢子，在土壤中存活数十年后仍有致命性"
+                "description": "被击杀时必定立即以满 HP 复活到场上（复活体不再带技能，每场限一次）",
+                "scienceNote": "炭疽杆菌能形成极其耐久的孢子，在土壤中存活数十年后仍有致命性——再恶劣也'死不透'，一有机会就复活"
           }
     ],
     scienceCard: "炭疽杆菌的孢子是自然界最顽强的生存者——能在土壤中沉睡100年以上！即使经过高温、干燥和化学消毒，它们也不死。一旦条件合适就'复活'致病。",

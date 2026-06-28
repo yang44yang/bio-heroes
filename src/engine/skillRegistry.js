@@ -727,32 +727,12 @@ export const skillRegistry = {
   //    科学；mirror 蜘蛛 Silk Trap 的 onAttackDebuff 模板。
   'Neural Hijack': { timing: 'onAttack', execute: (ctx) => T.onAttackDebuff(ctx, { effect: 'debuff_atk', amount: 1000, duration: 2 }) },
 
-  // 5. Spore Dormancy — 被击杀时不进弃牌堆，2 回合后满 HP 复活
+  // 5. Spore Dormancy — 被击杀时必定以满 HP 复活一次（复用 onDeathEffect chance_revive，同海星）
+  //    chance:1.0=必定；revive_hp=maxHp(6000)=满血；模板对复活体一律 skills:[] → 不再触发 → 每场限一次。
+  //    （原 bespoke 代码为"立即 50% 概率复活"，与卡面"必定复活"不符，齐齐定改必定，删随机代码。）
   'Spore Dormancy': {
     timing: 'onDeath',
-    execute: (ctx) => {
-      const card = ctx.card
-      if (!card) return null
-      // 简化为立即 50% 概率复活（无延迟触发引擎）
-      if (Math.random() > 0.5) return null
-      const field = ctx.friendlyField || []
-      let slot = -1
-      for (let i = 0; i < field.length; i++) {
-        if (!field[i] || field[i].currentHp <= 0) { slot = i; break }
-      }
-      if (slot < 0) return null
-      const revived = {
-        ...card,
-        uid: card.uid + '_revived_' + Date.now(),
-        currentHp: card.maxHp,
-        statuses: [],
-        summonSick: true,
-      }
-      return {
-        type: 'SUMMON_CARD', side: 'friendly', slot, card: revived, source: card.name,
-        message: `🧫 ${card.name} 孢子休眠！满 HP 复活！`,
-      }
-    },
+    execute: (ctx) => T.onDeathEffect(ctx, { effect: 'chance_revive', chance: 1.0, revive_hp: 6000, strip_skills: true }),
   },
 
   // 6. Spike Protein — 攻击人体系时无视护盾
