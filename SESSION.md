@@ -13,6 +13,15 @@
 
 ## 最近完成
 
+### 2026-06-28 题库系统升级 Phase 1 落地（通用题 + 模式选择 + 当天不重复）✅
+按 `outputs/quiz-system-plan.md` Phase 1 实现（齐齐定的 4 决策）：
+- **通用题（不绑卡）**：新建 `src/data/quizzesGeneral.js` —— **61 道原创通用题**，4 类（C2 人体16 / C6 食物链16 / C10 生物之最15 / C12 健康习惯14），三档难度、机制·推理为主、全原创措辞。schema 加 `scope:'general'`/`category`/`cardId:null`。
+- **合并 + 稳定 id**：`quizzes.js` 把原数组改名 `cardQuizzes`，`export const quizzes = [...cardQuizzes, ...generalQuizzes].map(加 scope/_qid)`。`_qid = id || hashStr(q.q)`（题干 hash 稳定、跨增删不漂移；完全相同题干共享 id = 当天去重按内容算一次，合理）。总池 564→625。
+- **getRandomQuiz({battleCardIds,streak,mode})**：`mode:'card'` 只出卡相关；`mode:'any'`(默认) 软混合(有匹配卡时~70%卡相关/30%通用，不够平滑滑向通用)。**当天不重复**：date-keyed localStorage seen-set(`bio-heroes-quiz-seen`={date,ids}，复用 `dailyChallenges.localDateStr`，跨天自动重置、无需午夜定时器)；抽干优雅降级允许重复、绝不卡住。**`resetQuizHistory` 改 no-op**（原每局清空正是重复根源；当天去重须跨局保持）。
+- **模式开关**：新建 `src/utils/settings.js`(`getQuizMode/setQuizMode`,localStorage `bio-heroes-settings`,默认 any)；`TitleScreen` 存档面板加 🌍任意/🃏只卡 双按钮 + **家长门(7×8=56)**；`useBattle.tryQuiz` 读设置传 mode；i18n 加 7 键(zh/en)。
+- **验证**：新增 `scripts/test-quiz-system.mjs` **504 断言**(通用题schema/合并/_qid无hash碰撞/mode card纯卡/mode any混合/当天不重复50连不重/resetQuizHistory no-op跨局保持/跨天重置/抽干降级) + 全 23 套零回归 + build 绿 + preview(开关渲染+家长门对错都验+0 console error;QuizModal 只用 question/options→通用题 cardId:null 安全)。commit 待填。
+- **Phase 2 押后**：通用池补到 ~360-480(跟季)、Leitner 间隔复习 v2、与决策⑦ legacy 改写合流。
+
 ### 2026-06-28 题库系统升级计划（通用题 + 模式选择 + 当天不重复）✅（规划，未改代码）
 `outputs/quiz-system-plan.md`：回应齐齐三诉求——① 加不绑卡的"通用题"降重复 ② 模式选择(只卡题/任意题) ③ 当天不重复。研究 NGSS+中国课标题型 + 间隔重复 vs 不重复对 6-9 岁的影响 + 客户端去重/儿童UX。现状：564 题全绑 cardId、`getRandomQuiz` 重度优先卡匹配→反复同题；`usedIndices` 内存单局不跨天；已有 `dailyChallenges.localDateStr` 可复用做当天 key；无游戏设置系统。
 - **4 决策定 Phase 1**：①默认 `any` 软混合(保证≥1卡题+~70/30) ②首批 ~60-90 通用题(C2人体/C6食物链/C10生物之最/C12健康习惯,全原创) ③只做当天不重复(date-keyed localStorage seen-set,Leitner 间隔复习押后 v2) ④模式开关放设置屏+家长门(不做战前图标)。

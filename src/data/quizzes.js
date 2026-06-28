@@ -1,9 +1,10 @@
 // Bio Heroes 生物英雄传 - 完整题库
-// Total: 180 questions
+// 卡题（cardQuizzes，每题关联 cardId）+ 通用题（generalQuizzes，scope:'general'，不绑卡）合并成 quizzes。
 // 难度分布: easy ~45% / medium ~35% / hard ~20%
-// 四大阵营全覆盖，每题关联 cardId
+import { localDateStr } from './dailyChallenges.js'
+import { generalQuizzes } from './quizzesGeneral.js'
 
-export const quizzes = [
+const cardQuizzes = [
 
   // ============================================================
   // 🌱 自然系 (nature) — 46题
@@ -839,46 +840,93 @@ export const quizzes = [
   { q: "酵母靠'出芽'繁殖，它是怎么变出一个新酵母的？", options: ["身上先鼓出一个小芽，长大后分出去成新酵母", "把自己一刀切成两半", "像母鸡一样下蛋孵出来", "吐一口口水就变出来"], answer: 0, fact: "酵母繁殖叫'出芽'：母细胞身上先冒出一个小芽，小芽慢慢长大，再'啵'地分出去变成一个新酵母，就像吹小泡泡一样。", difficulty: "hard", faction: "nature", cardId: "yeast", type: "inference", principle: "mechanism", tags: ["phase2","yeast","budding"] },
 ]
 
-// 已出过的题目索引（避免重复）
-const usedIndices = new Set()
+// ============================================================
+//  合并卡题 + 通用题；给每题派生稳定 _qid（用于"当天不重复"持久化）
+// ============================================================
+function hashStr(s) {
+  let h = 5381
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0
+  return h.toString(36)
+}
+export const quizzes = [...cardQuizzes, ...generalQuizzes].map(q => ({
+  ...q,
+  scope: q.scope || 'card',          // 旧卡题无 scope → 视为 'card'
+  _qid: q.id || hashStr(q.q),        // 通用题有显式 id；卡题用题干 hash（稳定、跨增删不漂移）
+}))
+
+// ------------------------------------------------------------
+//  当天已出题持久化（localStorage，按本地日期自动重置）
+//  存单 key { date, ids:[] }：换天即整体重置，不漏 key、无需午夜定时器（Wordle 同款）。
+// ------------------------------------------------------------
+const SEEN_KEY = 'bio-heroes-quiz-seen'
+function todayStr() { return localDateStr(new Date()) }
+function readSeen() {
+  try {
+    if (typeof localStorage === 'undefined') return { date: todayStr(), ids: [] }
+    const raw = localStorage.getItem(SEEN_KEY)
+    const today = todayStr()
+    if (!raw) return { date: today, ids: [] }
+    const obj = JSON.parse(raw)
+    return obj && obj.date === today ? obj : { date: today, ids: [] } // 跨天重置
+  } catch { return { date: todayStr(), ids: [] } }
+}
+function getSeenToday() { return new Set(readSeen().ids) }
+function markSeen(qid) {
+  try {
+    if (typeof localStorage === 'undefined') return
+    const store = readSeen()
+    if (!store.ids.includes(qid)) store.ids.push(qid)
+    localStorage.setItem(SEEN_KEY, JSON.stringify(store))
+  } catch { /* localStorage 不可用：当天去重退化为无，不影响出题 */ }
+}
+
+const isCardQuiz = q => (q.scope || 'card') === 'card'
 
 /**
  * 智能出题
- * - 优先选与当前战斗卡牌 cardId 匹配的题
- * - 按难度筛选（连续答对3题升 medium，5题升 hard）
- * - 避免重复出题（题库用完自动重置）
+ * - mode 'card'：只出与场上卡牌相关的卡题（无匹配 → 任意卡题）
+ * - mode 'any' ：软混合——有匹配卡题时约 70% 出卡相关、30% 出通用；不够则平滑滑向另一边
+ * - 难度随 streak（连对 3 升 medium、5 升 hard）
+ * - 当天不重复（localStorage seen-set，跨局保持、跨天自动重置）；抽干时优雅降级允许重复，绝不卡住战斗
  *
- * @param {Object} opts
- * @param {string[]} opts.battleCardIds - 当前战场上双方所有卡牌的 id
+ * @param {Object}   opts
+ * @param {string[]} opts.battleCardIds - 当前战场上双方所有卡牌 id
  * @param {number}   opts.streak        - 连续答对次数
+ * @param {string}   opts.mode          - 'card' | 'any'（默认 'any'）
  */
-export function getRandomQuiz({ battleCardIds = [], streak = 0 } = {}) {
-  // 难度升级
+export function getRandomQuiz({ battleCardIds = [], streak = 0, mode = 'any' } = {}) {
   let targetDifficulty = 'easy'
   if (streak >= 5) targetDifficulty = 'hard'
   else if (streak >= 3) targetDifficulty = 'medium'
 
-  // 题库用完时重置
-  if (usedIndices.size >= quizzes.length) usedIndices.clear()
+  const seen = getSeenToday()
 
-  // 可用题目
-  const available = quizzes
-    .map((q, i) => ({ ...q, _idx: i }))
-    .filter(q => !usedIndices.has(q._idx))
+  // 从一组候选里挑：优先未出过 + 匹配难度；抽干则放宽（允许重复）保证有题
+  function pickFrom(cands) {
+    if (!cands.length) return null
+    const unseen = cands.filter(q => !seen.has(q._qid))
+    const base = unseen.length ? unseen : cands           // 降级：全出过则允许重复
+    const byDiff = base.filter(q => q.difficulty === targetDifficulty)
+    const pool = byDiff.length ? byDiff : base
+    return pool[Math.floor(Math.random() * pool.length)]
+  }
 
-  // 按匹配度和难度分层
-  const matchAndDiff = available.filter(q => battleCardIds.includes(q.cardId) && q.difficulty === targetDifficulty)
-  const matchOnly    = available.filter(q => battleCardIds.includes(q.cardId))
-  const diffOnly     = available.filter(q => q.difficulty === targetDifficulty)
+  const cardMatch = quizzes.filter(q => isCardQuiz(q) && battleCardIds.includes(q.cardId))
+  const anyCard   = quizzes.filter(isCardQuiz)
+  const general   = quizzes.filter(q => q.scope === 'general')
 
-  // 优先级：关联卡+匹配难度 > 关联卡 > 匹配难度 > 全随机
-  const pool = matchAndDiff.length > 0 ? matchAndDiff
-             : matchOnly.length > 0   ? matchOnly
-             : diffOnly.length > 0    ? diffOnly
-             : available
+  let picked
+  if (mode === 'card') {
+    picked = pickFrom(cardMatch.length ? cardMatch : anyCard)   // 只卡相关；无匹配→任意卡题
+  } else {
+    // any 软混合：有匹配卡题时 ~70% 卡相关，否则通用
+    const useRelevant = cardMatch.length > 0 && (general.length === 0 || Math.random() < 0.7)
+    picked = useRelevant ? pickFrom(cardMatch) : pickFrom(general.length ? general : anyCard)
+    if (!picked) picked = pickFrom(quizzes)                     // 兜底：整池
+  }
+  if (!picked) picked = quizzes[Math.floor(Math.random() * quizzes.length)]
 
-  const picked = pool[Math.floor(Math.random() * pool.length)]
-  usedIndices.add(picked._idx)
+  markSeen(picked._qid)
 
   // 返回统一格式（兼容 QuizModal 和 answerQuiz）
   return {
@@ -893,8 +941,7 @@ export function getRandomQuiz({ battleCardIds = [], streak = 0 } = {}) {
 }
 
 /**
- * 重置已出题记录（新一局时调用）
+ * 旧：每局开战清空已出题记录。现在"当天不重复"要跨局保持（诉求③）→ 本函数改为 no-op；
+ * 当天 seen 由本地日期 key 自动在新的一天重置，无需每局清。保留导出避免改调用点报错。
  */
-export function resetQuizHistory() {
-  usedIndices.clear()
-}
+export function resetQuizHistory() { /* no-op：当天去重跨局保持，跨天自动重置 */ }

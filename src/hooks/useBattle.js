@@ -6,6 +6,7 @@ import {
 import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { calcCardBattle, calcLeaderDamage } from '../utils/damage'
 import { getRandomQuiz, resetQuizHistory } from '../data/quizzes'
+import { getQuizMode } from '../utils/settings'
 import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
 import { pickRandomEvent } from '../data/events'
@@ -2236,7 +2237,7 @@ export function useBattle() {
       ...playerFieldRef.current.filter(Boolean).map(c => c.id),
       ...enemyFieldRef.current.filter(Boolean).map(c => c.id),
     ]
-    const quiz = getRandomQuiz({ battleCardIds, streak: quizStreakRef.current })
+    const quiz = getRandomQuiz({ battleCardIds, streak: quizStreakRef.current, mode: getQuizMode() })
     setCurrentQuiz(quiz)
     return quiz
   }, [])

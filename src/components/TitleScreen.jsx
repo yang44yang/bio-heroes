@@ -1,13 +1,29 @@
 import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exportSave, importSave, resetSave } from '../utils/saveManager'
+import { getQuizMode, setQuizMode } from '../utils/settings'
 import { useLanguage } from '../i18n/LanguageContext'
 
 export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, daily, economy }) {
   const { t, lang, toggleLang } = useLanguage()
   const [showSettings, setShowSettings] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
+  const [quizMode, setQuizModeState] = useState(() => getQuizMode())
   const fileRef = useRef(null)
+
+  // 切换题库模式：家长门（简单算术）防孩子误改；持久化到设置
+  const handleQuizMode = (mode) => {
+    if (mode === quizMode) return
+    const ans = window.prompt(t('settings.parentGate'))
+    if (ans === null) return
+    if (ans.trim() !== '56') {
+      setImportMsg({ success: false, message: t('settings.parentGateFail') })
+      return
+    }
+    setQuizMode(mode)
+    setQuizModeState(mode)
+    setImportMsg(null)
+  }
 
   const handleImport = async (e) => {
     const file = e.target.files?.[0]
@@ -211,6 +227,28 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
               >
                 {t('settings.reset')}
               </button>
+
+              {/* 题库模式（家长门） */}
+              <div className="pt-2 mt-1 border-t border-gray-700">
+                <div className="text-xs text-gray-400 mb-1.5">{t('settings.quizMode')}</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    className={`py-2 rounded-lg text-xs font-bold transition-colors ${quizMode === 'any' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                    onClick={() => handleQuizMode('any')}
+                  >
+                    {t('settings.quizModeAny')}
+                  </button>
+                  <button
+                    className={`py-2 rounded-lg text-xs font-bold transition-colors ${quizMode === 'card' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
+                    onClick={() => handleQuizMode('card')}
+                  >
+                    {t('settings.quizModeCard')}
+                  </button>
+                </div>
+                <div className="text-[10px] text-gray-500 mt-1 text-center">
+                  {quizMode === 'any' ? t('settings.quizModeAnyHint') : t('settings.quizModeCardHint')}
+                </div>
+              </div>
 
               {importMsg && (
                 <motion.div

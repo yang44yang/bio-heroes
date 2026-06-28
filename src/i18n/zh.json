@@ -17,6 +17,13 @@
   "settings.export": "💾 导出存档",
   "settings.import": "📂 导入存档",
   "settings.reset": "🗑️ 重置存档",
+  "settings.quizMode": "📝 题目范围（家长设置）",
+  "settings.quizModeAny": "🌍 任意生物题",
+  "settings.quizModeCard": "🃏 只出卡片题",
+  "settings.quizModeAnyHint": "卡相关 + 各种有趣生物题，更多样",
+  "settings.quizModeCardHint": "只出和场上卡牌有关的题",
+  "settings.parentGate": "家长验证：请回答 7 × 8 = ?",
+  "settings.parentGateFail": "答错啦，设置未改动",
 
   "battle.you": "你",
   "battle.enemy": "对手",

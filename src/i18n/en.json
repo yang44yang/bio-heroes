@@ -17,6 +17,13 @@
   "settings.export": "💾 Export Save",
   "settings.import": "📂 Import Save",
   "settings.reset": "🗑️ Reset Save",
+  "settings.quizMode": "📝 Quiz Pool (parent setting)",
+  "settings.quizModeAny": "🌍 Any biology",
+  "settings.quizModeCard": "🃏 This battle's cards only",
+  "settings.quizModeAnyHint": "Card-related + fun general biology, more variety",
+  "settings.quizModeCardHint": "Only questions about cards on the board",
+  "settings.parentGate": "Parent check: what is 7 × 8 = ?",
+  "settings.parentGateFail": "Wrong answer — setting unchanged",
 
   "battle.you": "You",
   "battle.enemy": "Enemy",
