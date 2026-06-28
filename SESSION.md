@@ -15,7 +15,9 @@
 
 ### 2026-06-28 题库系统升级 Phase 1 落地（通用题 + 模式选择 + 当天不重复）✅
 按 `outputs/quiz-system-plan.md` Phase 1 实现（齐齐定的 4 决策）：
-- **通用题（不绑卡）**：新建 `src/data/quizzesGeneral.js` —— **61 道原创通用题**，4 类（C2 人体16 / C6 食物链16 / C10 生物之最15 / C12 健康习惯14），三档难度、机制·推理为主、全原创措辞。schema 加 `scope:'general'`/`category`/`cardId:null`。
+- **通用题（不绑卡）**：新建 `src/data/quizzesGeneral.js` —— **182 道原创通用题**（每类约45：C2 人体46 / C6 食物链46 / C10 生物之最46 / C12 健康习惯44），三档难度、机制·推理为主、全原创措辞。schema 加 `scope:'general'`/`category`/`cardId:null`。
+  - **生成方式**：quiz-general-expand workflow(每类生成30+对抗校验) → 装配 → **quiz-balance-tell workflow(循环修正"正确答案最长"露馅，JS 程序门把关直到 0)** → 打乱选项位置均衡答案分布。
+  - **防露馅**：齐齐反馈"正确答案太长一眼看穿"——修掉全部 74 处(占初版74%)；test 加硬断言【正确答案不能是最长选项 + 答案位置不过度集中】，永久防回归。
 - **合并 + 稳定 id**：`quizzes.js` 把原数组改名 `cardQuizzes`，`export const quizzes = [...cardQuizzes, ...generalQuizzes].map(加 scope/_qid)`。`_qid = id || hashStr(q.q)`（题干 hash 稳定、跨增删不漂移；完全相同题干共享 id = 当天去重按内容算一次，合理）。总池 564→625。
 - **getRandomQuiz({battleCardIds,streak,mode})**：`mode:'card'` 只出卡相关；`mode:'any'`(默认) 软混合(有匹配卡时~70%卡相关/30%通用，不够平滑滑向通用)。**当天不重复**：date-keyed localStorage seen-set(`bio-heroes-quiz-seen`={date,ids}，复用 `dailyChallenges.localDateStr`，跨天自动重置、无需午夜定时器)；抽干优雅降级允许重复、绝不卡住。**`resetQuizHistory` 改 no-op**（原每局清空正是重复根源；当天去重须跨局保持）。
 - **模式开关**：新建 `src/utils/settings.js`(`getQuizMode/setQuizMode`,localStorage `bio-heroes-settings`,默认 any)；`TitleScreen` 存档面板加 🌍任意/🃏只卡 双按钮 + **家长门(7×8=56)**；`useBattle.tryQuiz` 读设置传 mode；i18n 加 7 键(zh/en)。

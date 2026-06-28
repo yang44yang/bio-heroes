@@ -19,7 +19,19 @@ const ok = (n, c) => { if (c) pass++; else { fail++; console.error(`❌ ${n}`) }
 // ===== A. 通用题 schema =====
 const ALLOWED_DIFF = ['easy', 'medium', 'hard']
 const ALLOWED_TYPE = ['memorization', 'mechanism', 'inference']
-ok(`通用题数量 ≥ 60（实际 ${generalQuizzes.length}）`, generalQuizzes.length >= 60)
+ok(`通用题数量 ≥ 180（实际 ${generalQuizzes.length}）`, generalQuizzes.length >= 180)
+// 防露馅硬断言：正确答案【不能是最长的选项】（否则孩子一眼能猜）
+{
+  const tell = generalQuizzes.filter(q => {
+    const L = q.options.map(o => o.length)
+    return L[q.answer] > Math.max(...L.filter((_, i) => i !== q.answer))
+  })
+  ok(`通用题无露馅：正确答案不是最长选项（违反 ${tell.length} 题：${tell.slice(0, 3).map(q => q.id).join(',')}）`, tell.length === 0)
+  // 答案位置不应过度集中在某一位（防"答案总在第一个"的位置露馅）
+  const dist = generalQuizzes.reduce((a, q) => { a[q.answer] = (a[q.answer] || 0) + 1; return a }, {})
+  const maxPos = Math.max(...[0, 1, 2, 3].map(i => dist[i] || 0))
+  ok(`通用题答案位置分布均衡（最多一位 ${maxPos} ≤ 半数）`, maxPos <= generalQuizzes.length * 0.5)
+}
 for (const q of generalQuizzes) {
   ok(`通用题 "${(q.id || q.q).slice(0, 16)}" scope=general`, q.scope === 'general')
   ok(`通用题 "${q.id}" cardId=null`, q.cardId === null)
