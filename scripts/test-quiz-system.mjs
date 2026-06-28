@@ -16,6 +16,19 @@ const { generalQuizzes } = await import('../src/data/quizzesGeneral.js')
 let pass = 0, fail = 0
 const ok = (n, c) => { if (c) pass++; else { fail++; console.error(`❌ ${n}`) } }
 
+// ===== 0. 查重守卫：通用题不得与卡题/彼此考同一知识点（字符二元组 Jaccard 近似）=====
+{
+  const strip = s => (s || '').replace(/[\s，。？！、：；（）()"'·‘’“”→]/g, '')
+  const bg = s => { const t = strip(s); const set = new Set(); for (let i = 0; i < t.length - 1; i++) set.add(t.slice(i, i + 2)); return set }
+  const jac = (a, b) => { let inter = 0; for (const x of a) if (b.has(x)) inter++; return inter / (a.size + b.size - inter || 1) }
+  const cardBg = quizzes.filter(q => (q.scope || 'card') === 'card').map(c => bg(c.q))
+  const gBg = generalQuizzes.map(g => ({ g, bg: bg(g.q) }))
+  let vsCard = 0; for (const x of gBg) { let bs = 0; for (const cb of cardBg) { const s = jac(x.bg, cb); if (s > bs) bs = s } if (bs >= 0.5) vsCard++ }
+  let internal = 0; for (let i = 0; i < gBg.length; i++) for (let j = i + 1; j < gBg.length; j++) if (jac(gBg[i].bg, gBg[j].bg) >= 0.4) internal++
+  ok(`通用题不与卡题撞车（高相似 ${vsCard} 道，应为 0）`, vsCard === 0)
+  ok(`通用题内部无近似重复（${internal} 对，应为 0）`, internal === 0)
+}
+
 // ===== A. 通用题 schema =====
 const ALLOWED_DIFF = ['easy', 'medium', 'hard']
 const ALLOWED_TYPE = ['memorization', 'mechanism', 'inference']
