@@ -40,6 +40,8 @@ cost 8：  ATK+HP ≤ 30000
 cost 9：  ATK+HP ≤ 35000
 cost 10： ATK+HP ≤ 40000
 ```
+> 本表是设计权威；可执行副本在 `src/data/deckRules.js` 的 `POWER_CURVE`，两者数值必须一致。
+> `scripts/test-power-curve.mjs` 同时校验「卡牌不超预算」与「代码表 == 本表」，改一处务必同步另一处。
 
 ### 4. 技能扣减属性
 有技能的卡，ATK+HP 总和要低于同费用无技能卡：

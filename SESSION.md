@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-27 续³（**Phase B 触发规则定稿（齐齐第3次调）**：第8回合从"硬触发"降为**"开闸"门槛**——第8回合前完全不判断；第8回合起 `玩家=连对2题 OR 主人HP≤15000`、`敌方=主人HP≤15000`(AI不答题)任一满足即召 SP；满血且没连对2题撑到第8回合也不召。即谓词 `turn≥8 AND 软条件OR`。4 个 tryTriggerSp 调用点统一 reason `'gated'`(每侧本局一次去重)，三事件点(quiz/HP/回合)都查谓词。test 27 断言 + 全20套 + build + preview mount 零报错。**齐齐真机待测**见下。前序"续²"是上一版(第8回合硬+玩家AND组合)，已被本次取代。）
+> 更新时间: 2026-06-29（**批 0 地基三件套**：①POWER_CURVE 收成单一权威常量（取 SKILL.md 值 cost3=9k/cost6=20k…），新增 `scripts/test-power-curve.mjs` 同时校验「代码表==SKILL.md 文档」+「124 张生物卡全不超预算、全 500 倍数」（核实 0 超标）；旧死表 cost6=14k 等弃用、SKILL.md 加反向引用注释防漂移。②gacha 文档对齐：`deckRules.RARITIES.pullRate` 0.70→0.68 + 注释指明可执行权重在 useGacha.RARITY_WEIGHTS(R68/SR25/SSR5/SP2)，决策3 仅文档不改机制。③进化 build 校验：新增 `scripts/test-evolution-integrity.mjs`——核实「17 声明=3 实现+14 计划」**非活 bug**(UI 只读 getEvolutionTarget/EVOLUTION_CHAINS，evolutionTo 字符串是元数据)；守 14 个 planned 白名单+链一致性+无僵尸目标，防未来手滑断头。负向测试实证 guard 真咬人(注入漂移→红、还回→绿)。全 25 套绿 + build 绿。**未做**：进化"敬请期待"UI 提示(面向产品、留齐齐在场)。）
+> 历史更新时间: 2026-06-27 续³（**Phase B 触发规则定稿（齐齐第3次调）**：第8回合从"硬触发"降为**"开闸"门槛**——第8回合前完全不判断；第8回合起 `玩家=连对2题 OR 主人HP≤15000`、`敌方=主人HP≤15000`(AI不答题)任一满足即召 SP；满血且没连对2题撑到第8回合也不召。即谓词 `turn≥8 AND 软条件OR`。4 个 tryTriggerSp 调用点统一 reason `'gated'`(每侧本局一次去重)，三事件点(quiz/HP/回合)都查谓词。test 27 断言 + 全20套 + build + preview mount 零报错。**齐齐真机待测**见下。前序"续²"是上一版(第8回合硬+玩家AND组合)，已被本次取代。）
 > 历史更新时间: 2026-06-27 续²（**Phase B —— SP 自动触发**：扩展为"事件卡 + 自动触发"，复用 `getEligibleSpCards→setPendingSpSummon` 管线 + 新加 `tryTriggerSp(side,reason)`/`auto` 规则分支/`spTriggeredRef` 每条件本局一次去重/双方初始HP阈值。**触发规则齐齐定**：第8回合=硬条件(双方单独触发)；玩家=连对2题「且」HP≤50%(组合，两软条件须同满足)；敌方=HP≤50%单独(AI 不答题，保留残血召SP反击)。玩家弹「翻2选1」、敌方AI直接召。test-phase-b-sp-triggers 26 断言 + 全 20 套 + build 绿 + preview 入战零报错。**齐齐真机待测**：①连对2题+被压到≤15000才弹 ②撑到第8回合必弹；敌方残血/第8回合会召。前序同日见下）
 > 历史更新时间: 2026-06-25（**干细胞"死了不复活"真·真根因 a3fa492**：React18 自动批处理下 cleanupDeadCards 同步读 dead.length 恒 0 的 eager-bailout 竞态 → 死卡不进弃牌堆+onDeath 全哑火；改「提交后 useEffect 扫 currentHp≤0」根治，preview 实锤(敌方回合杀我方卡也触发)。前条 785db6b 收口 onDeath 是必要但不充分。**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
 > 历史更新时间: 2026-06-22 续⁵（**Phase 2 扩卡第二批 8 张**（OCEAN/MICRO：安康鱼/抹香鲸/小丑鱼/海星/帝企鹅/黏菌/硅藻/水熊虫）+ 16 技能 + 24 题，design→五维对抗验证→综合 workflow 产出；卡 108→116、题 515→539、149/149 卡全有题。另：onTurnStart 死技能 + FIELD_SLOTS 文档两任务已接回 main。⚠️验证揭示 3 个既有引擎 bug 已 spawn。前序同日：能量主线首批 4 张 / 题库封顶 / trivia 升级 / 老题精分类 / onDeath 路由）
@@ -12,6 +13,15 @@
 ---
 
 ## 最近完成
+
+### 2026-06-29 批 0 地基三件套（POWER_CURVE 单一权威 + gacha 文档 + 进化校验）✅
+开 S1 季前还结构债。按 `outputs/card-pool-report.md` §12 决策 1/2/3，齐齐选「地基三件套（纯技术债、无需设计输入）」。三项都先源码核实再动手：
+- **决策1 — POWER_CURVE 收成单一权威 + 接校验**：旧 `deckRules.POWER_CURVE`(cost3=8k/cost5=12k/cost6=14k…) 与卡设计器 SKILL.md(cost3=9k/cost5=16k/cost6=20k…) **两表打架且都没人 import**（引擎从不校验属性预算）。决策定「以 SKILL.md 为准」→ 把 `deckRules.POWER_CURVE` 数值改为 SKILL.md 值（11 档全对齐）+ 加「单一权威/可执行副本」注释；SKILL.md §3 加反向引用注释（双向锁，改一处必同步另一处）。新增 `scripts/test-power-curve.mjs`(18 断言)：① **正则解析 SKILL.md §3、逐档断言代码表==文档**（任一侧漂移即红）② 124 张生物卡 `ATK+HP ≤ POWER_CURVE[cost]`、cost∈0..10、ATK/HP 为 500 倍数（核实**当前 0 超标、0 违规**——SKILL.md 比旧表更宽松，所以可硬失败、无需 grandfather）③ 防退回旧值断言。
+- **决策3 — gacha 文档对齐（仅 nit、不改机制）**：核实引擎 `useGacha.RARITY_WEIGHTS = {R68,SR25,SSR5,SP2}` 已是 5% 分桶+保底（爆率"差4倍"是审计误报）。`deckRules.RARITIES.pullRate` 是**死文档**(只 Card.jsx 读 `.color`/`.name`，没人读 pullRate)：0.70→0.68 对齐引擎 + 注释指明可执行权重在 useGacha、SP 走独立卡池不在此表。
+- **决策2 — 进化 build 校验（止血 + 防再断头）**：⚠️ **修正 HANDOFF 旧说法**——17 张非空 `evolutionTo` 仅 3 目标存在、2 条链接进 EVOLUTION_CHAINS，但**不是"进化成虚空"的活 bug**：进化 UI(`Collection.jsx`) 只读 `getEvolutionTarget()`/`EVOLUTION_CHAINS`，卡上 `evolutionTo` 字符串是**死元数据**、不进进化流程。其余 14 = 决策2"逐季补全"的计划目标(nature5/body3/pathogen3/tech3)。新增 `scripts/test-evolution-integrity.mjs`(56 断言)：① 链 step 卡都真实 + 实现链 source.evolutionTo==下一步卡名 ② 每个非空 evolutionTo 目标 **存在 OR 在 PLANNED_EVOLUTIONS 白名单**(列 14 个)，皆非=报错(抓新增死目标/拼写错) ③ 指向真卡的源卡必须真 getEvolutionTarget 接线(防"看着实现其实没接线") ④ 白名单卫生(planned 名不能已是真卡 + 无僵尸条目)。
+- **rigor**：负向测试实证两 guard 真咬人——把 POWER_CURVE[6] 临时改回 14000 → 测试红(3 doc-vs-code + 5 张卡超标全抓出，exit 1)，还原 → 绿(18/18)。
+- **验证**：全 **25 套**绿(23 原 + 2 新)+ `npm run build` 绿。改的都是数据常量/文档/测试，无组件/引擎逻辑改动(免 HMR 坑)。commit 待填、push。
+- **未做（留作后续，决策2 的 UI 半截）**：卡详情对 14 个 planned evolutionTo 显示"敬请期待 🔜"提示——面向产品、低风险但建议齐齐在场定外观，不属"无设计输入"的本批范围。
 
 ### 2026-06-28 题库系统升级 Phase 1 落地（通用题 + 模式选择 + 当天不重复）✅
 按 `outputs/quiz-system-plan.md` Phase 1 实现（齐齐定的 4 决策）：

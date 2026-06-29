@@ -43,19 +43,22 @@ export const spEarliestSummonTurn = (spCost) =>
 // === 环境事件 ===
 export const EVENT_INTERVAL = 3      // 每 N 回合触发环境事件
 
-// === 费用-属性对应表（Power Curve，用于平衡校验）===
+// === 费用-属性对应表（Power Curve，属性预算上限：ATK+HP ≤ 此值）===
+// ⚠️ 单一权威常量。数值与卡牌设计器 `.claude/skills/bio-heroes-card-designer/SKILL.md` §3
+//    保持一致（设计文档为准、本表为可执行副本）。两者漂移由 scripts/test-power-curve.mjs 抓出。
+// 历史：旧表 cost3=8000/cost5=12000/cost6=14000… 与 SKILL.md 打架且无人 import（决策1 收口）。
 export const POWER_CURVE = {
   0: 2000,
   1: 4000,
   2: 6000,
-  3: 8000,
+  3: 9000,
   4: 12000,
-  5: 12000,
-  6: 14000,
-  7: 16000,
-  8: 18000,
-  9: 20000,
-  10: 22000,
+  5: 16000,
+  6: 20000,
+  7: 25000,
+  8: 30000,
+  9: 35000,
+  10: 40000,
 }
 
 // === 子类型 ===
@@ -117,8 +120,11 @@ export const FACTION_ADVANTAGE = {
 export const FACTION_ADVANTAGE_BONUS = 0.20  // 克制伤害加成 20%
 
 // === 稀有度 ===
+// ⚠️ pullRate 仅为文档展示值；可执行抽卡权重在 useGacha.js 的 RARITY_WEIGHTS（单一权威）。
+//    实际引擎档位：R 68 / SR 25 / SSR 5 / SP 2（齐齐反馈"抽不到 SP"后给 SP 2% 基础概率）。
+//    SP 不在此表（SP 卡走独立 SP 卡池，不是生物卡稀有度）。决策3：仅对齐文档、不改机制。
 export const RARITIES = {
-  R:   { name: 'R',   color: '#8B9DAF', pullRate: 0.70 },
+  R:   { name: 'R',   color: '#8B9DAF', pullRate: 0.68 },
   SR:  { name: 'SR',  color: '#C084FC', pullRate: 0.25 },
   SSR: { name: 'SSR', color: '#FACC15', pullRate: 0.05 },
 }
