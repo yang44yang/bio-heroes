@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-29（**批 0 地基三件套**：①POWER_CURVE 收成单一权威常量（取 SKILL.md 值 cost3=9k/cost6=20k…），新增 `scripts/test-power-curve.mjs` 同时校验「代码表==SKILL.md 文档」+「124 张生物卡全不超预算、全 500 倍数」（核实 0 超标）；旧死表 cost6=14k 等弃用、SKILL.md 加反向引用注释防漂移。②gacha 文档对齐：`deckRules.RARITIES.pullRate` 0.70→0.68 + 注释指明可执行权重在 useGacha.RARITY_WEIGHTS(R68/SR25/SSR5/SP2)，决策3 仅文档不改机制。③进化 build 校验：新增 `scripts/test-evolution-integrity.mjs`——核实「17 声明=3 实现+14 计划」**非活 bug**(UI 只读 getEvolutionTarget/EVOLUTION_CHAINS，evolutionTo 字符串是元数据)；守 14 个 planned 白名单+链一致性+无僵尸目标，防未来手滑断头。负向测试实证 guard 真咬人(注入漂移→红、还回→绿)。全 25 套绿 + build 绿。**未做**：进化"敬请期待"UI 提示(面向产品、留齐齐在场)。）
+> 更新时间: 2026-06-29 续（**简化 16 张 R 卡描述（决策6）**：16 张技能描述>30字的 R 卡（听诊器57字最长）全压到 ≤30 字，**不改机制/数值、仅压文案**。robust 应用：JSON.stringify(runtime旧值) 精确匹配源码字面量(含 \" 转义)、断言各出现 1 次再替换。听诊器(57→30，两分支+主效果两数值全保留、仅 fallback 概括为"回血")、蜜蜂(45→30)等。**坑**：roundworm 简化(去"取"和空格)使 test-onturnend-skills 的死正则 `吸取敌方主人 500 HP` 失配→放宽为 `吸取?敌方主人\s*500\s*HP`(意图不变、仍挡"回复效果减少"旧错词)。新增 `scripts/test-card-text.mjs`(R 卡描述≤30 守卫 + 抽查关键数值未被简掉)。全 26 套绿 + build 绿。改的是 cards.js 描述字符串(更短，无溢出风险)，没动组件/引擎。）
+> 历史更新时间: 2026-06-29（**批 0 地基三件套**：①POWER_CURVE 收成单一权威常量（取 SKILL.md 值 cost3=9k/cost6=20k…），新增 `scripts/test-power-curve.mjs` 同时校验「代码表==SKILL.md 文档」+「124 张生物卡全不超预算、全 500 倍数」（核实 0 超标）；旧死表 cost6=14k 等弃用、SKILL.md 加反向引用注释防漂移。②gacha 文档对齐：`deckRules.RARITIES.pullRate` 0.70→0.68 + 注释指明可执行权重在 useGacha.RARITY_WEIGHTS(R68/SR25/SSR5/SP2)，决策3 仅文档不改机制。③进化 build 校验：新增 `scripts/test-evolution-integrity.mjs`——核实「17 声明=3 实现+14 计划」**非活 bug**(UI 只读 getEvolutionTarget/EVOLUTION_CHAINS，evolutionTo 字符串是元数据)；守 14 个 planned 白名单+链一致性+无僵尸目标，防未来手滑断头。负向测试实证 guard 真咬人(注入漂移→红、还回→绿)。全 25 套绿 + build 绿。**未做**：进化"敬请期待"UI 提示(面向产品、留齐齐在场)。）
 > 历史更新时间: 2026-06-27 续³（**Phase B 触发规则定稿（齐齐第3次调）**：第8回合从"硬触发"降为**"开闸"门槛**——第8回合前完全不判断；第8回合起 `玩家=连对2题 OR 主人HP≤15000`、`敌方=主人HP≤15000`(AI不答题)任一满足即召 SP；满血且没连对2题撑到第8回合也不召。即谓词 `turn≥8 AND 软条件OR`。4 个 tryTriggerSp 调用点统一 reason `'gated'`(每侧本局一次去重)，三事件点(quiz/HP/回合)都查谓词。test 27 断言 + 全20套 + build + preview mount 零报错。**齐齐真机待测**见下。前序"续²"是上一版(第8回合硬+玩家AND组合)，已被本次取代。）
 > 历史更新时间: 2026-06-27 续²（**Phase B —— SP 自动触发**：扩展为"事件卡 + 自动触发"，复用 `getEligibleSpCards→setPendingSpSummon` 管线 + 新加 `tryTriggerSp(side,reason)`/`auto` 规则分支/`spTriggeredRef` 每条件本局一次去重/双方初始HP阈值。**触发规则齐齐定**：第8回合=硬条件(双方单独触发)；玩家=连对2题「且」HP≤50%(组合，两软条件须同满足)；敌方=HP≤50%单独(AI 不答题，保留残血召SP反击)。玩家弹「翻2选1」、敌方AI直接召。test-phase-b-sp-triggers 26 断言 + 全 20 套 + build 绿 + preview 入战零报错。**齐齐真机待测**：①连对2题+被压到≤15000才弹 ②撑到第8回合必弹；敌方残血/第8回合会召。前序同日见下）
 > 历史更新时间: 2026-06-25（**干细胞"死了不复活"真·真根因 a3fa492**：React18 自动批处理下 cleanupDeadCards 同步读 dead.length 恒 0 的 eager-bailout 竞态 → 死卡不进弃牌堆+onDeath 全哑火；改「提交后 useEffect 扫 currentHp≤0」根治，preview 实锤(敌方回合杀我方卡也触发)。前条 785db6b 收口 onDeath 是必要但不充分。**引擎 bug 一批**：变色龙隐身(9999护盾"近似隐身"→真 stealth 状态) + AI 选靶尊重隐身(修单向) + 鲸鲨/骨骼巨人/生物膜 **3 张守护失效**修复(描述写"守护"但 nameEn 漏登记白名单, task_e96cb667 ② ③ + 测试新揪 2 张) + test-guard 永久一致性断言。engine-bug-sweep workflow(6 agent)还揪出**更大 backlog**(反击路由/胸腺搜牌错成回血/蛔虫/狂犬死标记/Gene Correction 重复定义…)待定优先级。**前序 2026-06-23 SP 链路一条龙**(详见最近完成)：①打不出来解封→②事件卡入组→③死规则→④看费用门槛+卡面显示→⑤通关解锁修复(tech失衡根因)→攻略文档 docs/sp-combos.md→扫尾。再前：三连修 a6bf0cb / Phase 2 第二批 8 张）
@@ -13,6 +14,14 @@
 ---
 
 ## 最近完成
+
+### 2026-06-29 简化 16 张 R 卡技能描述（决策6）✅
+批 0 第二件。决策6：R 卡（入门最常见卡）描述应 ≤30 字、7 岁一眼读懂。16 张 >30 字的 R 卡技能描述全压到 ≤30，**只压文案、不改机制/数值/scienceNote**。
+- **方法**（先核实再动）：① 16 张全是单技能卡(#0)；② 核实无任何测试断言这些描述文本(只 test-guard 的 `/^守护/` 通用规则 + test-gene-correction 针对别的卡)；③ 验证多分支卡的真实机制(听诊器 fallback else 分支真实现→不能删)。**应用脚本** robust：`JSON.stringify(runtime旧描述)` 恰好等于源码字面量(源码用 `\"` 转义 ASCII 引号)，断言各出现 1 次再 replace，避免手工转义出错。
+- **逐张**：听诊器 57→30(循环/呼吸卡+1000HP+500ATK 主效果两数值全留，fallback 概括为"无则友方回血") / 血液检测盒 53→29 / 蜜蜂 45→30 / 体温计 43→25 / X光 42→27 / 冬虫夏草 42→27 / 显微镜 40→26(病毒细菌真菌微生物→"微生物"伞称，7岁友好且准确) / 蛔虫 40→25 / 大肠杆菌 37→25 / PCR 36→29 / 酵母 36→19 / 血小板 34→16 / 寄居蟹 34→13 / 创可贴 33→22 / 水母 32→23 / 干细胞 31→26。
+- **坑（防回归测试连带改）**：roundworm 简化(去"取"和空格)使 `test-onturnend-skills` ⑤ 的死正则 `吸取敌方主人 500 HP` 失配 → 放宽为 `吸取?敌方主人\s*500\s*HP`(意图不变：仍挡 2026-06-27 修过的"回复效果减少"旧错词)。
+- **新增** `scripts/test-card-text.mjs`(10 断言)：R 卡描述全 ≤30 字守卫 + 抽查 5 张简化后仍含核心数值(听诊器 1000/500、X光 2000+守护、大肠杆菌 50%+1000、干细胞 R+50%…)防"简化把数值删没"。SR/SSR 不约束(机制更复杂，决策6 只针对 R)。
+- **验证**：全 26 套绿 + build 绿。改的是 cards.js 描述字符串(严格更短、不会溢出已渲染过更长文本的布局)，未动组件/引擎 → 不踩 HMR 坑。齐齐可在图鉴/对战卡面眼验观感。
 
 ### 2026-06-29 批 0 地基三件套（POWER_CURVE 单一权威 + gacha 文档 + 进化校验）✅
 开 S1 季前还结构债。按 `outputs/card-pool-report.md` §12 决策 1/2/3，齐齐选「地基三件套（纯技术债、无需设计输入）」。三项都先源码核实再动手：

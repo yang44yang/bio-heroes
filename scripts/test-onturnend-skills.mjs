@@ -46,8 +46,8 @@ const tcell = cards.indexOf('"T-Cell Training"')
 ok('⑤ 胸腺 T-Cell 描述写"抽…张牌"(不再写"搜索…加入手牌")',
   /抽 1 张牌/.test(cards.slice(tcell, tcell + 200)) && !/搜索一张人体系·血液免疫卡/.test(cards.slice(tcell, tcell + 200)))
 const nut = cards.indexOf('"Nutrient Hijack"')
-ok('⑤ 蛔虫 Nutrient Hijack 描述写"吸取敌方主人…HP"(不再写"回复效果减少")',
-  /吸取敌方主人 500 HP/.test(cards.slice(nut, nut + 200)) && !/回复效果减少/.test(cards.slice(nut, nut + 200)))
+ok('⑤ 蛔虫 Nutrient Hijack 描述写"吸敌方主人…HP"(不再写"回复效果减少"；决策6 简化后去掉"取"和空格)',
+  /吸取?敌方主人\s*500\s*HP/.test(cards.slice(nut, nut + 200)) && !/回复效果减少/.test(cards.slice(nut, nut + 200)))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

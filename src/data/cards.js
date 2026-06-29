@@ -85,7 +85,7 @@ const cards = [
         name: "蜂毒尾刺",
         nameEn: "Venom Sting",
         type: "unique",
-        description: "攻击时，对目标附加\"中毒\"：每回合损失 500 HP，持续1回合。自身受到 500 点伤害",
+        description: "攻击使目标中毒1回合（每回合-500HP），自身-500HP",
         scienceNote: "蜜蜂的蜂刺有倒钩，蜇人后刺和毒囊会留在对方体内持续释放毒素，但蜜蜂自己也会因内脏拉出而死亡"
       }
     ],
@@ -113,7 +113,7 @@ const cards = [
         name: "触手毒刺",
         nameEn: "Tentacle Venom",
         type: "unique",
-        description: "攻击时附加\"中毒\"效果：目标每回合损失 500 HP，持续2回合",
+        description: "攻击使目标中毒：每回合-500HP，持续2回合",
         scienceNote: "箱形水母的触手含有数十亿个刺细胞，接触猎物后会以700纳秒的速度射出毒针，是自然界最快的细胞反应之一"
       }
     ],
@@ -344,7 +344,7 @@ const cards = [
         name: "凝血屏障",
         nameEn: "Clotting Shield",
         type: "unique",
-        description: "出场时，给一张友方卡添加 1500 点护盾（优先消耗护盾再扣 HP）",
+        description: "出场给一张友方卡加1500点护盾",
         scienceNote: "血小板在伤口处聚集形成血栓，配合纤维蛋白构建\"止血网\"，是人体受伤后第一道修复防线"
       }
     ],
@@ -731,7 +731,7 @@ const cards = [
         name: "疯狂分裂",
         nameEn: "Rapid Fission",
         type: "unique",
-        description: "每回合结束时有50%概率召唤一张 1000/500 的\"大肠杆菌·分裂体\"",
+        description: "每回合结束50%概率召唤1张1000/500分裂体",
         scienceNote: "大肠杆菌在适宜条件下每20分钟分裂一次，8小时后可繁殖到1700万个"
       }
     ],
@@ -955,7 +955,7 @@ const cards = [
         name: "紧急包扎",
         nameEn: "Emergency Bandage",
         type: "unique",
-        description: "出场时，为一张友方卡回复 1500 HP 并获得\"守护\"效果1回合",
+        description: "出场为一张友方卡回1500HP并获守护1回合",
         scienceNote: "创可贴通过隔绝外界细菌、保持伤口湿润来加速愈合"
       }
     ],
@@ -983,7 +983,7 @@ const cards = [
         name: "体温监测",
         nameEn: "Temperature Monitor",
         type: "unique",
-        description: "出场时揭示对方 1 张手牌（费用最高）。如果敌方场上卡有增益/免疫/护盾，清除其中一个",
+        description: "出场揭示对方最贵手牌；清除敌方一个增益/免疫/护盾",
         scienceNote: "体温计检测体温异常来发现感染——任何躲在护盾/免疫后的敌人都会被揭穿"
       }
     ],
@@ -1011,7 +1011,7 @@ const cards = [
         name: "诊断分析",
         nameEn: "Diagnostic Analysis",
         type: "unique",
-        description: "出场时为己方循环/呼吸系统卡各回复 1000 HP 并 ATK +500。无对应卡时改为任意友方 +1000 HP",
+        description: "出场：循环/呼吸卡+1000HP+500ATK，无则友方回血",
         scienceNote: "听诊器通过放大心肺肠声音诊断疾病——检测异常才能对症增强"
       }
     ],
@@ -1039,7 +1039,7 @@ const cards = [
         name: "透视扫描",
         nameEn: "Penetrating Scan",
         type: "unique",
-        description: "出场时，揭示对方 2 张手牌，并对所有敌方守护卡造成 2000 伤害（X光看穿防线）",
+        description: "出场揭示对方2张手牌，对所有敌方守护卡造成2000伤害",
         scienceNote: "X射线能穿透软组织但被骨骼阻挡，让医生看穿身体内部——也能看穿守护卡的弱点"
       }
     ],
@@ -1067,7 +1067,7 @@ const cards = [
         name: "微观洞察",
         nameEn: "Micro Insight",
         type: "unique",
-        description: "出场时揭示对方全部手牌。对所有敌方病毒/细菌/真菌/微生物卡造成 1500 伤害",
+        description: "出场揭示对方手牌，对所有敌方微生物卡造成1500伤害",
         scienceNote: "显微镜让人类第一次看到了微生物的世界——发现微生物才能精准打击"
       }
     ],
@@ -1906,7 +1906,7 @@ const cards = [
                 "name": "分化变身",
                 "nameEn": "Differentiation",
                 "type": "unique",
-                "description": "死亡时变为弃牌堆中随机一张人体系R卡复活到场上（HP 50%）",
+                "description": "死亡时变为弃牌堆随机一张人体系R卡复活（HP50%）",
                 "scienceNote": "干细胞能分化成身体需要的任何类型的细胞"
           }
     ],
@@ -2302,7 +2302,7 @@ const cards = [
                 "name": "营养劫持",
                 "nameEn": "Nutrient Hijack",
                 "type": "unique",
-                "description": "每回合吸取敌方主人 500 HP，并为己方主人回复 500 HP（掠夺宿主营养）",
+                "description": "每回合吸敌方主人500HP，并回己方主人500HP",
                 "scienceNote": "蛔虫寄生在小肠内抢夺宿主的营养自己长大，导致宿主营养不良、日渐虚弱"
           }
     ],
@@ -2330,7 +2330,7 @@ const cards = [
                 "name": "心智操控",
                 "nameEn": "Mind Control",
                 "type": "unique",
-                "description": "击杀敌方卡时，25% 概率将其以 ATK 1000 / HP 1000 复活为己方卡",
+                "description": "击杀敌方卡时25%概率将其变为我方1000/1000卡",
                 "scienceNote": "冬虫夏草感染蚂蚁后操控其行为，让蚂蚁爬到高处后死亡释放孢子"
           }
     ],
@@ -2726,7 +2726,7 @@ const cards = [
                 "name": "快速检测",
                 "nameEn": "Rapid Test",
                 "type": "unique",
-                "description": "出场时揭示对方全部手牌。如果敌方有病原系卡，标记其中 ATK 最高的一张：所有攻击该目标 +1000 伤害",
+                "description": "出场揭示对方手牌；标记敌方最强病原卡，攻击它+1000伤害",
                 "scienceNote": "一滴血能检测出感染——标记病原体让全队精准打击"
           }
     ],
@@ -2782,7 +2782,7 @@ const cards = [
                 "name": "核酸扩增",
                 "nameEn": "Nucleic Acid Amplification",
                 "type": "unique",
-                "description": "攻击病原系卡时 ATK +2000，且标记该卡下回合受到伤害 +1000",
+                "description": "攻击病原卡时+2000ATK，并标记它下回合受伤+1000",
                 "scienceNote": "PCR技术能将微量DNA放大数百万倍，让任何病原体都无所遁形"
           }
     ],
@@ -3210,7 +3210,7 @@ const cards = [
     type: "character", faction: "nature", subType: "arthropod", set: "OCEAN",
     cost: 2, rarity: "R", atk: 1500, hp: 4000, factionRequirement: null,
     skills: [
-      { name: "借壳换甲", nameEn: "Shell Swap", type: "unique", description: "出场时，为自己添加 2000 点护盾（借来的硬壳替柔软的肚子挡伤害）", scienceNote: "寄居蟹自己不长硬壳，柔软的肚子很怕被咬。它会找一个空的海螺壳钻进去当'房子'保护自己，身体长大了就换一个更大的壳。这层借来的硬壳像一面盾，替它挡下伤害——所以出场就给自己套一层护盾。" },
+      { name: "借壳换甲", nameEn: "Shell Swap", type: "unique", description: "出场为自己加2000点护盾", scienceNote: "寄居蟹自己不长硬壳，柔软的肚子很怕被咬。它会找一个空的海螺壳钻进去当'房子'保护自己，身体长大了就换一个更大的壳。这层借来的硬壳像一面盾，替它挡下伤害——所以出场就给自己套一层护盾。" },
     ],
     scienceCard: "寄居蟹是个'租房子'高手！它的肚子软软的、没有硬壳保护，所以专门找别人不要的空螺壳钻进去住，把软肚子藏在里面。等身体慢慢长大、旧壳住不下了，它就得搬家——找一个更大的空壳，飞快地从旧壳挪进新壳。有时候好几只寄居蟹还会排成一队'换房子'：大的换走大壳，留下的壳正好给小一号的住。更妙的是，有的寄居蟹会把会蜇人的海葵驮在自己壳上当'保镖'，海葵帮它吓退敌人，它带着海葵到处找吃的——这是互相帮忙的'互利共生'。寄居蟹告诉我们：保护自己不一定靠自己长盔甲，借用、合作也是大自然的好办法。",
     evolutionFrom: null, evolutionTo: null,
@@ -3295,7 +3295,7 @@ const cards = [
     type: "character", faction: "nature", subType: "microbe", set: "MICRO",
     cost: 2, rarity: "R", atk: 1500, hp: 4000, factionRequirement: null,
     skills: [
-      { name: "发酵产能", nameEn: "Fermentation", type: "unique", description: "回合开始时，本回合获得 +1 能量（把糖分解成二氧化碳和酒精，释放能量）", scienceNote: "酵母吃糖，会把糖分解、产生二氧化碳气体和酒精，同时为自己获得能量——这个过程叫'发酵'。面包里的气孔是它放出的二氧化碳撑出来的，酒里的酒精也是它造的。它把糖变成能量，所以表现为每回合提供额外能量。" },
+      { name: "发酵产能", nameEn: "Fermentation", type: "unique", description: "回合开始时，本回合+1能量（发酵产能）", scienceNote: "酵母吃糖，会把糖分解、产生二氧化碳气体和酒精，同时为自己获得能量——这个过程叫'发酵'。面包里的气孔是它放出的二氧化碳撑出来的，酒里的酒精也是它造的。它把糖变成能量，所以表现为每回合提供额外能量。" },
     ],
     scienceCard: "酵母是一种小小的真菌，小到一滴水里能装下好几百万个，可它是人类几千年的好帮手！它最爱吃糖，吃完糖会做两件事：放出二氧化碳气体，还有造出酒精——这个本领叫'发酵'。做面包时，面团里的酵母一边吃糖一边放气，气泡撑得面团鼓鼓的，烤出来才松松软软；酿酒、酿酱油也都靠酵母把糖变成酒精和香味。酵母的繁殖方式也很特别，叫'出芽'：母细胞身上先鼓出一个小芽，小芽慢慢长大，再'啵'地分出去变成一个新酵母，就像吹小泡泡一样。别看它小，科学家还特别喜欢研究它——因为酵母也是由细胞构成、和我们人体细胞有不少相似的地方，是了解生命怎么运转的好'模范生'。",
     evolutionFrom: null, evolutionTo: null,
