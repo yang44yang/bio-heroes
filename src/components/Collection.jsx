@@ -5,6 +5,7 @@ import cards from '../data/cards'
 import eventCards from '../data/eventCards'
 import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES } from '../data/deckRules'
+import { DEX_SETS, setOf } from '../data/dexSets'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
 import { COLLECTION_ACHIEVEMENTS, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS } from '../data/achievements'
 import { loadCampaignProgress } from '../data/campaignData'
@@ -23,6 +24,7 @@ export default function Collection({ onBack, economy }) {
   const { t, lang, cardName, skillName, localName } = useLanguage()
   const [filterFaction, setFilterFaction] = useState('all')
   const [filterType, setFilterType] = useState('all')
+  const [filterSet, setFilterSet] = useState('all')
   const [selectedCard, setSelectedCard] = useState(null)
   const [showEvolutionChain, setShowEvolutionChain] = useState(null) // chain id
   const [evolving, setEvolving] = useState(false) // 进化动画中
@@ -52,6 +54,7 @@ export default function Collection({ onBack, economy }) {
     let pool = allCards
     if (filterFaction !== 'all') pool = pool.filter(c => c.faction === filterFaction)
     if (filterType !== 'all') pool = pool.filter(c => c.type === filterType)
+    if (filterSet !== 'all') pool = pool.filter(c => setOf(c) === filterSet)
     // Sort: owned first, then by cost
     return pool.sort((a, b) => {
       const aOwned = isOwn(a.id) ? 0 : 1
@@ -59,7 +62,7 @@ export default function Collection({ onBack, economy }) {
       if (aOwned !== bOwned) return aOwned - bOwned
       return (a.cost || a.spCost || 0) - (b.cost || b.spCost || 0)
     })
-  }, [filterFaction, filterType, owned])
+  }, [filterFaction, filterType, filterSet, owned])
 
   // Faction stats
   const factionStats = useMemo(() => {
@@ -68,6 +71,16 @@ export default function Collection({ onBack, economy }) {
       const total = allCards.filter(c => c.faction === key).length
       const have = allCards.filter(c => c.faction === key && isOwn(c.id)).length
       stats[key] = { total, have }
+    }
+    return stats
+  }, [owned])
+
+  // 图鉴包（dex set）完成度 — 决策4
+  const setStats = useMemo(() => {
+    const stats = {}
+    for (const s of DEX_SETS) {
+      const inSet = allCards.filter(c => setOf(c) === s.id)
+      stats[s.id] = { total: inSet.length, have: inSet.filter(c => isOwn(c.id)).length }
     }
     return stats
   }, [owned])
@@ -146,6 +159,58 @@ export default function Collection({ onBack, economy }) {
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.8 }}
           />
+        </div>
+      </div>
+
+      {/* 图鉴包进度 — dex 分包追踪 + 预存起点（决策4） */}
+      <div className="mb-4">
+        <div className="text-xs text-gray-300 mb-2">{t('collection.dexPacks')}</div>
+        <div className="flex flex-col gap-2">
+          {DEX_SETS.map(s => {
+            const st = setStats[s.id]
+            if (!st || st.total === 0) return null
+            const ownedPct = (st.have / st.total) * 100
+            const ghostPct = Math.min(100, (s.endowed / st.total) * 100)
+            const done = st.have >= st.total
+            const active = filterSet === s.id
+            const rewardAch = s.rewardAchId ? COLLECTION_ACHIEVEMENTS.find(a => a.id === s.rewardAchId) : null
+            return (
+              <button
+                key={s.id}
+                onClick={() => setFilterSet(active ? 'all' : s.id)}
+                className={`w-full text-left rounded-xl p-2.5 border transition ${active ? 'border-yellow-500/70 bg-gray-800/70' : 'border-gray-700 bg-gray-800/40 hover:border-gray-600'}`}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="text-lg">{s.icon}</span>
+                  <span className="text-xs font-bold" style={{ color: s.color }}>{lang === 'en' ? s.nameEn : s.name}</span>
+                  {s.season && <span className="text-[9px] text-gray-400 px-1 rounded bg-gray-700/60">{s.season}</span>}
+                  <span className="text-[11px] ml-auto font-bold" style={{ color: done ? '#4ADE80' : '#cbd5e1' }}>
+                    {done ? t('collection.packComplete') : `${st.have}/${st.total}`}
+                  </span>
+                </div>
+                <div className="h-2.5 bg-gray-900 rounded-full overflow-hidden relative">
+                  {ghostPct > ownedPct && (
+                    <div className="absolute inset-y-0 left-0 rounded-full opacity-25" style={{ width: `${ghostPct}%`, background: s.color }} />
+                  )}
+                  <motion.div
+                    className="h-full rounded-full relative"
+                    style={{ background: s.color }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${ownedPct}%` }}
+                    transition={{ duration: 0.6 }}
+                  />
+                </div>
+                <div className="flex items-center justify-between mt-1 min-h-[12px]">
+                  <span className="text-[9px] text-gray-500">
+                    {done ? '' : (s.endowed > 0 && st.have < s.endowed ? t('collection.endowedHint') : t('collection.achLockedTip', { n: st.total - st.have }))}
+                  </span>
+                  {rewardAch && !done && (
+                    <span className="text-[9px] text-amber-400/80 truncate ml-2">{t('collection.unlockReward', { r: rewardAch.name })}</span>
+                  )}
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-30（**决策7 legacy 题改写完成**：147 道 legacy 纯记忆 trivia 全改成机制/推理"为什么"题(不改卡绑定)。两轮 workflow(生成 + 内置字符二元组 Jaccard 查重再改循环，判重与 test-quiz-system 完全一致)：v1 改 101 道(露馅 41 道未过)、v2 余 46 道强化"正确答案最短/干扰项写长"约束 2 轮 46/46 全过。147 道 **0 露馅 + 0 撞车**(撞通用/卡题/本轮≥0.5 自动重改)。**全量人工科学 QA 通过**(紧扣卡牌技能、7 岁可懂、无硬错)。清理 28 道残留 legacy 标记→legacy 概念清零。test-quiz-system 加决策7守卫(1479 断言)。卡题记忆题 266→119。全 26 套绿 + build 绿。⚠️坑：workflow `failed` 池只返回 {i,why} 会丢内容(v2 改带 content)；apply 用 (origQ+cardId) 双锚点消歧 origQ 重复。批 0 地基**全部完成**(决策1/2/3/6/7)，剩 dex 追踪器(决策4，面向产品留齐齐)。）
+> 更新时间: 2026-06-30 续（**决策4 dex 收集追踪器框架**：Collection 图鉴顶部加「📚 图鉴包」分包追踪区。①按 set 分组完成度进度条(基础包137/海洋深渊S1·11/微观战场S2·9，各 X/Y)；②预存进度(Endowed Progress Effect)：新季进度条最左画浅色"已开启"起点段、不从0起，但**不白送卡**(have/total 照实、浅色仅装饰；有卡后实色覆盖、文案切"还差N张")；③集齐奖励钩子复用现有 COLLECTION_ACHIEVEMENTS(海洋→顶级猎手、微观→微观探险家科学包)；④点分包筛选卡网格+黄框高亮。新建 `src/data/dexSets.js`(DEX_SETS 元数据) + i18n 6 键 + `test-dex-sets.mjs`(12 断言守"每个 set 都注册/分包合计==总数/rewardAchId 不断头/BASE endowed=0")。**preview 实测**：默认20/157、新季显预存段；注入海洋4+微观3 → 4/11 实色覆盖预存、点海洋"显示11张"、0 console error。全 27 套绿+build 绿。**未做**(留迭代)：食物链节点链可视化(现有成就只 X/Y 不展示结构)、卡背/头像换肤(决策时选不做)。**批0+决策4 框架全完成**，可开 S1 海洋季练流水线。）
+> 历史更新时间: 2026-06-30（**决策7 legacy 题改写完成**：147 道 legacy 纯记忆 trivia 全改成机制/推理"为什么"题(不改卡绑定)。两轮 workflow(生成 + 内置字符二元组 Jaccard 查重再改循环，判重与 test-quiz-system 完全一致)：v1 改 101 道(露馅 41 道未过)、v2 余 46 道强化"正确答案最短/干扰项写长"约束 2 轮 46/46 全过。147 道 **0 露馅 + 0 撞车**(撞通用/卡题/本轮≥0.5 自动重改)。**全量人工科学 QA 通过**(紧扣卡牌技能、7 岁可懂、无硬错)。清理 28 道残留 legacy 标记→legacy 概念清零。test-quiz-system 加决策7守卫(1479 断言)。卡题记忆题 266→119。全 26 套绿 + build 绿。⚠️坑：workflow `failed` 池只返回 {i,why} 会丢内容(v2 改带 content)；apply 用 (origQ+cardId) 双锚点消歧 origQ 重复。批 0 地基**全部完成**(决策1/2/3/6/7)，剩 dex 追踪器(决策4，面向产品留齐齐)。）
 > 历史更新时间: 2026-06-29 续（**简化 16 张 R 卡描述（决策6）**：16 张技能描述>30字的 R 卡（听诊器57字最长）全压到 ≤30 字，**不改机制/数值、仅压文案**。robust 应用：JSON.stringify(runtime旧值) 精确匹配源码字面量(含 \" 转义)、断言各出现 1 次再替换。听诊器(57→30，两分支+主效果两数值全保留、仅 fallback 概括为"回血")、蜜蜂(45→30)等。**坑**：roundworm 简化(去"取"和空格)使 test-onturnend-skills 的死正则 `吸取敌方主人 500 HP` 失配→放宽为 `吸取?敌方主人\s*500\s*HP`(意图不变、仍挡"回复效果减少"旧错词)。新增 `scripts/test-card-text.mjs`(R 卡描述≤30 守卫 + 抽查关键数值未被简掉)。全 26 套绿 + build 绿。改的是 cards.js 描述字符串(更短，无溢出风险)，没动组件/引擎。）
 > 历史更新时间: 2026-06-29（**批 0 地基三件套**：①POWER_CURVE 收成单一权威常量（取 SKILL.md 值 cost3=9k/cost6=20k…），新增 `scripts/test-power-curve.mjs` 同时校验「代码表==SKILL.md 文档」+「124 张生物卡全不超预算、全 500 倍数」（核实 0 超标）；旧死表 cost6=14k 等弃用、SKILL.md 加反向引用注释防漂移。②gacha 文档对齐：`deckRules.RARITIES.pullRate` 0.70→0.68 + 注释指明可执行权重在 useGacha.RARITY_WEIGHTS(R68/SR25/SSR5/SP2)，决策3 仅文档不改机制。③进化 build 校验：新增 `scripts/test-evolution-integrity.mjs`——核实「17 声明=3 实现+14 计划」**非活 bug**(UI 只读 getEvolutionTarget/EVOLUTION_CHAINS，evolutionTo 字符串是元数据)；守 14 个 planned 白名单+链一致性+无僵尸目标，防未来手滑断头。负向测试实证 guard 真咬人(注入漂移→红、还回→绿)。全 25 套绿 + build 绿。**未做**：进化"敬请期待"UI 提示(面向产品、留齐齐在场)。）
 > 历史更新时间: 2026-06-27 续³（**Phase B 触发规则定稿（齐齐第3次调）**：第8回合从"硬触发"降为**"开闸"门槛**——第8回合前完全不判断；第8回合起 `玩家=连对2题 OR 主人HP≤15000`、`敌方=主人HP≤15000`(AI不答题)任一满足即召 SP；满血且没连对2题撑到第8回合也不召。即谓词 `turn≥8 AND 软条件OR`。4 个 tryTriggerSp 调用点统一 reason `'gated'`(每侧本局一次去重)，三事件点(quiz/HP/回合)都查谓词。test 27 断言 + 全20套 + build + preview mount 零报错。**齐齐真机待测**见下。前序"续²"是上一版(第8回合硬+玩家AND组合)，已被本次取代。）
@@ -15,6 +16,17 @@
 ---
 
 ## 最近完成
+
+### 2026-06-30 决策4：dex 收集追踪器框架（分包进度 + 预存进度 + 集齐奖励钩子）✅
+齐齐取舍后选「完整 dex」档。在 Collection 图鉴顶部（总进度条与成就栏之间）加「📚 图鉴包」分包追踪区。
+- **现状利好**：已有 `COLLECTION_ACHIEVEMENTS`（主题成就→徽章+科学故事包，含"顶级猎手"食物链组/"海洋巨兽"组）→ dex 奖励轨已存在，主要补"按 set 分包进度"这块缺失，不用从零。
+- **① 分包进度**：每个图鉴包（`set`：BASE 137 含 event/sp、OCEAN 11、MICRO 9）一行——图标+名+季号+X/Y+进度条。新建 `src/data/dexSets.js` 存 `DEX_SETS` 元数据（id/name/nameEn/icon/color/endowed/season/rewardAchId）+ `setOf(card)`（无 set 归 BASE）。
+- **② 预存进度（Endowed Progress Effect）**：新季（endowed>0）进度条最左画浅色"已开启"起点段（ghostPct=endowed/total），营造"已点亮"、条不从 0 起。**不白送卡**——拥有数 have/total 照实，浅色段仅装饰；have≥endowed 后实色覆盖、文案从"图鉴已开启"切"还差 N 张"。BASE endowed=0（不给基础包假进度）。
+- **③ 集齐奖励钩子**：分包行显示"集齐解锁「顶级猎手/微观探险家」"，复用现有成就科学包（rewardAchId 关联）。
+- **④ 点分包筛选**：点包行 `setFilterSet` → 卡网格只显示该包卡 + 黄框高亮（filtered 加 set 过滤、filterSet state）。
+- **验证（preview 实测）**：默认 20/157、海洋/微观 0+预存段+"图鉴已开启"+奖励钩子；注入海洋4+微观3 → 海洋 4/11 实色覆盖预存段、微观 3/9、文案切"还差N张"；点海洋"显示 11 张"网格 11 卡、行高亮；0 console error。新增 `scripts/test-dex-sets.mjs`（12 断言）。全 27 套绿 + build 绿。i18n 加 6 键（zh/en）。
+- **未做（留迭代，齐齐定外观时再加）**：食物链节点链可视化（生产者→草食→掠食→顶级 的结构展示——现有成就只 X/Y 不展示链结构）；卡背/头像换肤奖励（AskUserQuestion 时选了"不做换肤、复用科学包"）。
+- **批 0 + 决策4 框架全部完成**（决策 1/2/3/4/6/7）：地基 + 扩容季机制 + dex 奖励轨齐备，下一步可开 **S1 海洋深渊**练 7 步季流水线（OCEAN 补 11→~20 + dex 奖励轨承接 + 播种死关键词 + 改写海洋 legacy 题 + 补进化目标）。
 
 ### 2026-06-30 决策7：legacy 题改写 — 147 道纯记忆 trivia → 机制/推理"为什么"题 ✅
 批 0 最后一件大活（决策7）。把题库 147 道 legacy 纯记忆题（背数字/名词）改写成考原理的机制/推理题，**不改卡绑定**（仍挂原卡、保留 cardId/faction/difficulty）。
