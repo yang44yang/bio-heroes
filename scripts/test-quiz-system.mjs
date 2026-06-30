@@ -154,5 +154,18 @@ clearSeen()
   ok('抽干降级：小池连抽 12 次始终返回有效题（不卡住）', alwaysReturned)
 }
 
+// ===== I. 决策7：legacy 题改写守卫 =====
+{
+  const legacyTagged = quizzes.filter(q => (q.tags || []).includes('legacy'))
+  ok(`决策7：legacy 记忆题已全部改写、标记清零（残留 ${legacyTagged.length}，应为 0）`, legacyTagged.length === 0)
+  // 旧 legacy 记忆题改写后必须是机制/推理题，不能再留 type:'memorization'+legacy
+  ok('无 legacy+memorization 残留', quizzes.filter(q => (q.tags || []).includes('legacy') && q.type === 'memorization').length === 0)
+  // 卡题整体以机制/推理为主（改写把大量纯记忆题转成了"为什么"题）
+  const card = quizzes.filter(q => (q.scope || 'card') === 'card')
+  const reasoning = card.filter(q => q.type === 'mechanism' || q.type === 'inference').length
+  const memo = card.filter(q => q.type === 'memorization').length
+  ok(`卡题以机制/推理为主（机制+推理 ${reasoning} > 记忆 ${memo}）`, reasoning > memo)
+}
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)
