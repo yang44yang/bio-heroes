@@ -2,7 +2,7 @@
 // 攻击卡牌：双方互扣 ATK（含克制加成）
 // 直攻主人：ATK 直接扣主人 HP（主人不反击）
 
-import { FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS } from '../data/deckRules'
+import { FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS } from '../data/deckRules.js'
 
 /**
  * 计算觉醒加成后的实际 ATK

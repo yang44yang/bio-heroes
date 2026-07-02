@@ -4,11 +4,12 @@ import {
   SP_QUIZ_STREAK, SP_LEADER_HP_RATIO, SP_TURN_TRIGGER,
 } from '../data/deckRules'
 import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers'
-import { calcCardBattle, calcLeaderDamage } from '../utils/damage'
+import { calcLeaderDamage } from '../utils/damage'
 import { getRandomQuiz, resetQuizHistory } from '../data/quizzes'
 import { getQuizMode } from '../utils/settings'
 import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
+import { resolveCardCombat } from '../engine/combat'
 import { pickRandomEvent } from '../data/events'
 import { getBossMechanic } from '../engine/bossMechanics'
 import { cardHasGuard, fieldHasGuard } from '../utils/guardSkill'
@@ -1792,10 +1793,12 @@ export function useBattle() {
     }
     pushSkillEvents(allPreEvents)
 
-    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus, defImmune, auraApplied } = calcCardBattle(atkCard, defCard, {
-      ...awakenOpts,
-      attackerField: playerFieldRef.current,
-      defenderField: enemyFieldRef.current,
+    const {
+      atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed,
+      defImmune, atkFactionBonus, defFactionBonus, auraApplied,
+    } = resolveCardCombat({
+      attacker: atkCard, defender: defCard, awakenOpts,
+      attackerField: playerFieldRef.current, defenderField: enemyFieldRef.current,
     })
     let defKilled = false, atkKilled = false
 
@@ -1804,22 +1807,9 @@ export function useBattle() {
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
     if (auraApplied) addLog(`🌀 光环效果生效！`)
 
-    // 伤害计算（含护盾吸收）
-    let defActualDmg = atkDmg
-    let defShieldAbsorbed = 0
+    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（见 combat.js 注释）
     const defShield = defCard.statuses?.find(s => s.type === 'shield')
-    if (defShield) {
-      defShieldAbsorbed = Math.min(defShield.amount, atkDmg)
-      defActualDmg = Math.max(0, atkDmg - defShield.amount)
-    }
-
-    let atkActualDmg = defDmg
-    let atkShieldAbsorbed = 0
     const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
-    if (atkShield) {
-      atkShieldAbsorbed = Math.min(atkShield.amount, defDmg)
-      atkActualDmg = Math.max(0, defDmg - atkShield.amount)
-    }
 
     setEnemyField(prev => {
       const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({...s}))] : [] } : null)
@@ -2058,31 +2048,21 @@ export function useBattle() {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }
 
-    const { atkDmg, defDmg, atkFactionBonus, defFactionBonus } = calcCardBattle(atkCard, defCard, {
-      attackerField: enemyFieldRef.current,
-      defenderField: playerFieldRef.current,
+    const {
+      atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed,
+      atkFactionBonus, defFactionBonus,
+    } = resolveCardCombat({
+      attacker: atkCard, defender: defCard,
+      attackerField: enemyFieldRef.current, defenderField: playerFieldRef.current,
     })
     let defKilled = false, atkKilled = false
 
     if (atkFactionBonus) addLog(`🔴 ⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
 
-    // 伤害计算（含护盾吸收）
-    let defActualDmg = atkDmg
-    let defShieldAbsorbed = 0
+    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（见 combat.js 注释）
     const defShield = defCard.statuses?.find(s => s.type === 'shield')
-    if (defShield) {
-      defShieldAbsorbed = Math.min(defShield.amount, atkDmg)
-      defActualDmg = Math.max(0, atkDmg - defShield.amount)
-    }
-
-    let atkActualDmg = defDmg
-    let atkShieldAbsorbed = 0
     const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
-    if (atkShield) {
-      atkShieldAbsorbed = Math.min(atkShield.amount, defDmg)
-      atkActualDmg = Math.max(0, defDmg - atkShield.amount)
-    }
 
     setPlayerField(prev => {
       const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({...s}))] : [] } : null)
