@@ -5,6 +5,181 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## Post-Sprint 33：决策 / Phase 制开发（2026-06）✅
+> 🧬 项目从「Sprint 编号」转为「决策 / Phase」驱动。以下按时间倒序，完整过程见 `SESSION.md`。
+
+**批 0 地基收官（决策 1/2/3/6/7，2026-06-29~30）：**
+- [x] 决策1 POWER_CURVE 收成单一权威常量 + `test-power-curve.mjs` 校验（代码表==SKILL.md + 124 张生物卡全不超预算）
+- [x] 决策3 gacha 爆率文档对齐引擎（deckRules.pullRate 0.70→0.68，可执行权重在 useGacha：R68/SR25/SSR5/SP2）
+- [x] 决策2 进化完整性 build guard（`test-evolution-integrity.mjs`，14 个 planned evolutionTo 白名单）
+- [x] 决策6 16 张 R 卡技能文案压到 ≤30 字（只压文案、不改机制 / 数值）
+- [x] 决策7 147 道 legacy 纯记忆题改写成机制 · 推理题（0 露馅 + 0 撞车 + 全量人工科学 QA，legacy 概念清零）
+- [x] 决策4 dex 图鉴收集追踪器框架（分包进度 + 预存进度 Endowed Progress + 集齐奖励钩子 + 分包筛选）
+
+**题库系统升级 Phase 1（2026-06-28）：**
+- [x] 新建 `quizzesGeneral.js` — 182 道不绑卡「通用题」（C2 人体 / C6 食物链 / C10 生物之最 / C12 健康习惯，各 ~45，三档难度）
+- [x] `getRandomQuiz` 加 mode（只卡题 card / 任意题 any）+ 当天不重复（date-keyed localStorage）
+- [x] 设置屏模式开关 + 家长门（7×8）；通用题↔卡题语义查重守卫（Jaccard<0.5）
+- [x] 总池约 745 题（563 卡题 + 182 通用题）
+
+**SP 链路 Phase A + B（2026-06-22~27）：**
+- [x] Phase A：SP『打不出来』解封（回合门槛量纲修正）+ 事件卡入组 + 穷举平衡 + 门槛改看费用 + 卡面显示可召回合
+- [x] Phase B：SP 自动触发定稿 — 第 8 回合「开闸」门槛 + 玩家连对 2 题 / 主人 HP≤阈值 任一软条件 OR
+
+**Phase 2 扩卡包 OCEAN / MICRO（2026-06-22~27）：**
+- [x] 三批共 24 张新卡（海洋深渊 OCEAN + 微观战场 MICRO）+ 技能引擎接线 + 配套题目，生物卡 108→124
+
+**引擎正确性一批修复（2026-06-25~27）：**
+- [x] onDeath / 死卡入弃牌堆真根因（React18 异步 dead 竞态 → 提交后 useEffect 扫场）
+- [x] 干细胞复活链路收口（同批 AOE 死卡并入弃牌堆）+ 分化 SSR 改造（可靠召大 body SP）
+- [x] 反击路由修复（荆棘反击 / 海葵刺打对攻击者真实 slot）+ onTurnEnd 技能分派补全（蛔虫 / 胸腺 / 造血）
+- [x] 变色龙隐身 + 鲸鲨 / 骨骼巨人 / 生物膜守护失效 + 狂犬 Neural Hijack + 蓝鲸 Sonar 数值修正
+
+---
+
+## Sprint 33：全场景卡片详情（CardDetailModal）✅
+> 🔍 一个统一弹窗管所有场景的卡片详情
+
+- [x] CardDetailModal 加 context / ownership / isNew 支持
+- [x] 战斗场上卡 + 手牌卡加 ⓘ 详情角标
+- [x] GachaScreen 改用 context / ownership / isNew
+- [x] Collection / DeckBuilder 迁移到统一 CardDetailModal（DeckBuilder 显示持有数量）
+
+---
+
+## Sprint 32：ch2 题库扩充 + 题型分级 ✅
+> 📚 题库上一个台阶，题型分档
+
+- [x] ch2 题库审计报告
+- [x] 批量生成记忆 35 / 机制 36 / 推理 40 道（含重写消除「伪推理」+ 长度 / 位置 meta 模式）
+- [x] 给老 180 题补 type / tags 字段
+- [x] 题库校验脚本 + 完整报告（题库扩到 539 题、卡片 100% 覆盖）
+
+---
+
+## Sprint 31c：抽卡爽感升级 Phase B + C ✅
+> 🏆 把抽卡从「事件」升级为「策略 + 学习闭环」
+
+- [x] 抽卡 banner 跟章节进度联动 + 图鉴进度条 + 概率公示
+- [x] 抽完联动 DeckBuilder 高亮新卡 + 图鉴里程碑庆祝弹窗
+- [x] 抽卡中场科学小测验
+- [x] 成就系统：achievements.js + Collection 成就进度栏 + 抽卡后链式弹窗
+
+---
+
+## Sprint 31b：抽卡爽感升级 Phase A ✅
+> 🎆 视觉爽点 + isNew 卡片秀
+
+- [x] GachaAnimation 胶囊 + 翻牌容器；R / SR / SSR / SP 各自节奏与光效
+- [x] SP / SSR 全屏事件（闪光 + 震屏 + 粒子 + banner）+ isNew 卡片秀
+- [x] 网格角标视觉强化 + 5 个新合成音效
+- [x] SR 粒子修复 + AnimatePresence 卡死修复
+
+---
+
+## Sprint 31a：抽卡详情 + 教学气泡修复 ✅
+> 🃏 抽卡结果可点开看详情
+
+- [x] Bug #1：抽卡结果可点击查看完整详情
+- [x] Bug #2：教学气泡 player_field / sp_area 改 bottom-32，避免遮挡 SP · 霸王龙
+
+---
+
+## Sprint 30b：SP 解锁链路 + Conundrum 两难关 ✅
+> ✨ SP 卡解锁链路 + 关卡前两难选择
+
+- [x] SP 卡加 unlockMode 字段 + useGacha 新增 SP 档位（排除 campaign_only）
+- [x] useEconomy 加 unlockedSPs / unlockCampaignSP；Boss 通关解锁 SP + 庆祝弹窗
+- [x] ConundrumModal 组件（关卡前置两难选择）+ BattleScreen 集成 effect 应用
+- [x] ch2 新增 2 关（疫苗两难 + 抗生素滥用）；留尾（enemyExtraTurns + antibiotic_weakened + 星数 UI）
+
+---
+
+## Sprint 30a：抽卡经济重构 ✅
+> 🗃️ collection 数据结构升级 + 碎片经济
+
+- [x] collection 数据迁移 string[] → { id: count } Map
+- [x] pullCards 按持有量上限判断（MAX_COPIES_PER_CARD=3）
+- [x] 碎片换金币（sellFragments + sellAllUnusedFragments）+ Collection 持有量角标 + 碎片商店
+- [x] 关卡编号 bug（改用数组 idx + stageNumber() 解耦）+ 抽卡黑屏 hotfix（pullCards 同步返回）
+
+---
+
+## Sprint 30：卡组槽 3 → 10 + 自定义命名 ✅
+> 🎴 多套卡组管理
+
+- [x] MAX_SLOTS 3→10 + name 字段 + 内联编辑 UI
+
+---
+
+## Sprint 29：战斗日志面板 ✅
+> 📜 透明化战斗过程
+
+- [x] 战斗日志面板 — 逐条记录伤害 / 技能 / 事件，方便排查
+
+---
+
+## Sprint 28：Bugfix — REVEAL_HAND UI + AI 直攻逻辑 ✅
+> 🐛 两个关键 bug
+
+- [x] Bug #1：揭示手牌浮窗停留到点击确认
+- [x] Bug #2：AI 直攻逻辑 + aiPersonality 真正生效
+
+---
+
+## Sprint 27：打磨闭环 ✅
+> ✨ 把「描述了但没生效」的技能接通
+
+- [x] REVEAL_HAND 揭示 UI 真正接通
+- [x] ENERGY_BOOST / DRAW_CARD 实际生效 + swift_boost 状态生效
+- [x] Boss 机制验证 + Vite dep 预构建修复 + i18n 未翻译补齐
+
+---
+
+## Sprint 26：subType 重构 + 机制升级 ✅
+> 🧪 生物学分类 + First-Principle 机制
+
+- [x] subType 重构 — 方案 2 生物学分类落地
+- [x] 大王乌贼机制重做（数值暴力 → First-Principle 锚点）
+- [x] confused 状态升级为真正的心智操控
+- [x] 诊断工具 4 张按现实功能差异化
+
+---
+
+## Sprint 25：扫尾收官 ✅
+> 🎯 技能实装收口 + 卡文本修复
+
+- [x] 4 个剩余技能实装完成
+- [x] 18 张 scienceCard 文本修复
+- [x] 4 张卡机制重做（First-Principle 锚定）
+- [x] CLAUDE.md 教育哲学 section 沉淀
+
+---
+
+## Sprint 24：SP 卡技能全覆盖 ✅
+> ✨ 17 张 SP 卡技能全部实装
+
+- [x] 11 个 SP 卡技能通过模板复用实现
+- [x] 8 个引擎扩展为新 handler 铺路 + 10 个新 SP handler 完成
+
+---
+
+## Sprint 23：技能模板引擎 ✅
+> ⚙️ 技能系统从硬编码升级为模板 + 光环
+
+- [x] 技能模板引擎 — 9 个基础模板覆盖 ~49 个技能
+- [x] 5 个新模板覆盖 17 个技能 + 3 个引擎扩展铺路
+- [x] 光环系统 — 7 个 passiveAura 技能 + 12 个 SPECIAL handler（技能注册 18 → ~130 条）
+
+---
+
+## Sprint 22：CLAUDE.md 重构 ✅
+> 📄 精简项目指令
+
+- [x] CLAUDE.md 重构 830 → 148 行
+
+---
+
 ## Sprint 21：教学重构 + 闯关难度曲线 + 即时提示 ✅
 > 🔧 让 7 岁小朋友能顺畅通关
 
