@@ -18,6 +18,14 @@
 
 ## 最近完成
 
+### 2026-07-02 续 E1/E2 架构重构 + 🧪 测试场 ✅
+承接 B/C/D/F（引擎正确性收尾），转攻结构债 + 补实测工具。每刀 test+build+preview 绿。
+- **E1（`1a95e62`）删死亡结算死桩**：`cleanupDeadCards` 早已是 `()=>{}` 空桩（真逻辑在提交后 useEffect 扫 currentHp≤0），删其 18 处 no-op 调用 + 空桩 + 依赖/export + 6 陈旧注释。脚本删 + 逐行审 diff。行为保真。test-onDeath-routing ⑤ 改成"已彻底移除"。
+- **E2（`23e5084`）抽 canCardAttack 纯谓词**：sleep/召唤疲劳(Swift·Silent Dive·swift_boost 免疫)/已攻击 + hasSwift 原在 attack/aiAttack/canAttack(UI) 三处各写一遍；抽到 `combat.js` `canCardAttack(card,{summonedThisTurn,attackedThisTurn,checkAttacked})→{ok,reason}`。混乱(重定向非阻断)留 hook，gate 先算好保原优先级 sleep>confused>fatigue>attacked。+11 断言。
+- **🧪 测试场（`86ba2bc`）**：回应"没卡/抽不到/想挑卡测机制"的痛点。主菜单家长门(56)后入，全卡池直接把卡摆到双方战场任意格 + 满能量 + 一键开打（预置卡无召唤疲劳可立刻攻击），定点测机制零抽卡运气。引擎 `startBattle` 加 `testPlayerField/testEnemyField/playerStartEnergy`（与 Conundrum preplace 分开、普通对战零影响），新屏 `TestArena.jsx`，App/BattleScreen/TitleScreen 接线，`test-test-arena` 11 断言。preview 端到端实测通过（摆蜜蜂/大肠杆菌→满能量10→立刻攻击→零 error）。
+- **进行中**：测试场"给摆上的卡挂状态（护盾/守护/中毒…）"增强 → 补上无视护盾(刺突)等需状态的定点测法。
+- **关键文件**：新增 `TestArena.jsx`、`scripts/test-test-arena.mjs`；改 `combat.js`(canCardAttack)、`useBattle.js`(删桩+startBattle 测试场)、`BattleScreen.jsx`、`App.jsx`、`TitleScreen.jsx`。
+
 ### 2026-07-02 代码体检 + 战斗引擎绞杀式重构（5 commit：地基 / 剥引擎 / B / C / D）✅
 面向「代码健康度 + 结构债」的体检 + 顺着报告修引擎正确性。**全程行为保真、每刀 test+build+preview 冒烟绿。**
 - **体检（不改代码）**：3 个并行子代理审 引擎正确性/架构技术债/数据一致性 → `outputs/code-health-report-2026-07-02.md`（一句话根因：战斗引擎焊死在 useBattle 里不可单测，所以一个牵连十余卡的伤害 bug 能安然通过 27 个绿测试）+ `ARCHITECTURE.md`（一页式架构地图）。
@@ -749,8 +757,10 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 
 ### 🔴 最优先（2026-07-02 续）：E — 架构重构（报告 P0 技术债，绞杀式分刀）
 承接 B/C/D/F（引擎正确性已收尾），转攻最大结构债：`useBattle.js` 2300+ 行焊在 hook 里不可单测。已起头（`resolveCardCombat` 已剥出）。分刀（安全→高杠杆，每刀 test+build+preview 冒烟）：
-- **E1**（最安全·纯死代码）：删 `cleanupDeadCards` 的 18 个 no-op 调用 + 空桩函数（真逻辑早已在"提交后 useEffect 扫 currentHp≤0"）。先核实确为 no-op。
-- **E2**：抽 `canCardAttack()` 纯谓词（sleep/confused/召唤疲劳/已攻击），玩家=AI 共用、可单测。
+- ✅ **E1（`1a95e62`）已完成**：删 `cleanupDeadCards` 18 no-op 调用 + 空桩 + 依赖/export + 6 陈旧注释。
+- ✅ **E2（`23e5084`）已完成**：抽 `canCardAttack()` 纯谓词，attack/aiAttack/canAttack(UI) 三处共用；混乱留 hook。
+- 🧪 **测试场（`86ba2bc`）已做**（定点实测工具，家长门后）。**⚠️ 待增强：给摆上的卡挂状态（护盾/守护…）→ 补无视护盾等定点测法。**
+- **⏭️ 继续 E 前：先让齐齐拿测试场验收 B/C/D/F 手感**（这波改了几十张卡数值，实测反馈比继续叠重构更有价值），再决定：
 - **E3**：合并 attack/aiAttack 或 playToField/aiPlayToField（side 参数版，消 64 处 side 分支的双份维护、防"玩家能 AI 不能"不对称 bug）。
 - **E4**：从 BattleScreen 抽 `useAITurn()`（200 行 AI 决策 effect 移出 god component）。
 - **E5+**：逐步向 `battleReducer` 收敛，消 state↔ref 双写（34 ref）、死亡结算进 reducer、停止 return 泄漏 15 个原始 ref。
