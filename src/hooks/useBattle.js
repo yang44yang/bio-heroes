@@ -1598,7 +1598,13 @@ export function useBattle() {
         setter(prev => {
           const next = [...prev]
           for (let i = 0; i < Math.min(arr.length, next.length); i++) {
-            if (arr[i]) next[i] = makeFieldCard(arr[i])
+            if (arr[i]) {
+              const fc = makeFieldCard(arr[i]) // 注意 makeFieldCard 会清空 statuses、但保留 skills(守护走 skills)
+              if (Array.isArray(arr[i].statuses) && arr[i].statuses.length) {
+                fc.statuses = arr[i].statuses.map(s => ({ ...s })) // 测试场挂的状态(护盾/标记/中毒…)补回
+              }
+              next[i] = fc
+            }
           }
           return next
         })

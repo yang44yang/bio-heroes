@@ -16,6 +16,8 @@ const ub = read('src/hooks/useBattle.js')
 ok('① startBattle 支持满能量开局 (playerStartEnergy)', /setPlayerEnergy\(spDecks\.playerStartEnergy \|\| 1\)/.test(ub))
 ok('① startBattle 处理 testPlayerField / testEnemyField 按格摆放',
   /testPlayerField.*setPlayerField.*testEnemyField.*setEnemyField/s.test(ub) && /makeFieldCard\(arr\[i\]\)/.test(ub))
+ok('① 测试场挂的 statuses 会补回（makeFieldCard 清空后重挂，供无视护盾/标记等测法）',
+  /fc\.statuses = arr\[i\]\.statuses\.map/.test(ub))
 
 // ② BattleScreen：接 testArenaConfig prop 并传给 startBattle
 const bs = read('src/components/BattleScreen.jsx')
@@ -41,6 +43,8 @@ if (existsSync(join(ROOT, 'src/components/TestArena.jsx'))) {
   ok('⑤ TestArena onStart 产出 playerField/enemyField/startEnergy',
     /onStart\(\{[\s\S]*playerField[\s\S]*enemyField[\s\S]*startEnergy/.test(ta))
   ok('⑤ TestArena 从全角色卡池取卡（type===character）', /cards\.filter\(\(c\) => c\.type === 'character'\)/.test(ta))
+  ok('⑤ TestArena 支持给摆上的卡挂状态(护盾/标记…) + 守护',
+    /STATUS_DEFS/.test(ta) && /toggleStatus/.test(ta) && /toggleGuard/.test(ta) && /type: 'shield'/.test(ta))
 }
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} test-test-arena: 通过 ${pass}/${pass + fail}`)
