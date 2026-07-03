@@ -12,7 +12,7 @@ import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
 import { resolveCardCombat, aggregateCombatMods } from '../engine/combat'
 import { pickRandomEvent } from '../data/events'
 import { getBossMechanic } from '../engine/bossMechanics'
-import { cardHasGuard, fieldHasGuard } from '../utils/guardSkill'
+import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
 import { getStageRule } from '../engine/stageRules'
 
 /**
@@ -1737,7 +1737,7 @@ export function useBattle() {
 
     // === 直攻主人 ===
     if (defSlot === -1) {
-      if (hasGuard(enemyField)) {
+      if (hasGuard(enemyField) && !attackerBypassesGuard(atkCard, null)) {
         addLog('对方有守护卡，必须先攻击守护卡！')
         attackedThisTurn.current.delete(atkCard.uid)
         return null
@@ -1773,7 +1773,7 @@ export function useBattle() {
     const defCard = enemyField[defSlot]
     if (!defCard || defCard.currentHp <= 0) return null
 
-    if (hasGuard(enemyField) && !isGuardCard(defCard)) {
+    if (hasGuard(enemyField) && !isGuardCard(defCard) && !attackerBypassesGuard(atkCard, defCard)) {
       addLog('必须先攻击守护卡！')
       attackedThisTurn.current.delete(atkCard.uid)
       return null

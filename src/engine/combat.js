@@ -21,10 +21,10 @@ import { calcCardBattle } from '../utils/damage.js'
 
 /** 默认（无修饰符）—— 与修饰符出现前的行为完全一致 */
 function normalizeMods(mods) {
+  // 注：ignoreGuard 不在此 —— 守护是攻击结算前的门，由 guardSkill.attackerBypassesGuard 处理，不走 combat mods。
   return {
     damageMultiplier: mods && mods.damageMultiplier != null ? mods.damageMultiplier : 1,
     ignoreShield: Boolean(mods && mods.ignoreShield),
-    ignoreGuard: Boolean(mods && mods.ignoreGuard),
     dodged: Boolean(mods && mods.dodged),
     damageReduction: (mods && mods.damageReduction) || 0,
   }
@@ -36,13 +36,12 @@ function normalizeMods(mods) {
  * @param {Array} events - triggerSkills('onAttack'/'onHit') 收集到的事件
  */
 export function aggregateCombatMods(events = []) {
-  const mods = { damageMultiplier: 1, ignoreShield: false, ignoreGuard: false, dodged: false, damageReduction: 0 }
+  const mods = { damageMultiplier: 1, ignoreShield: false, dodged: false, damageReduction: 0 }
   for (const evt of events) {
     const m = evt && evt.mods
     if (!m) continue
     if (m.damageMultiplier != null) mods.damageMultiplier *= m.damageMultiplier
     if (m.ignoreShield) mods.ignoreShield = true
-    if (m.ignoreGuard) mods.ignoreGuard = true
     if (m.dodged) mods.dodged = true
     if (m.damageReduction) mods.damageReduction += m.damageReduction
   }

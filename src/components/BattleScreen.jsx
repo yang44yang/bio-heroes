@@ -6,7 +6,7 @@ import CardDetailModal from './CardDetailModal'
 import QuizModal from './QuizModal'
 import { useBattle } from '../hooks/useBattle'
 import { useHand } from '../hooks/useHand'
-import { cardHasGuard } from '../utils/guardSkill'
+import { cardHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
 import { FACTIONS, MAX_FIELD_SLOTS, LEADER_HP } from '../data/deckRules'
 import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
@@ -561,10 +561,12 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         const pAlive = pFieldNow.map((c, i) => (c && c.currentHp > 0 && !c.statuses?.some(s => s.type === 'stealth')) ? { ...c, slot: i } : null).filter(Boolean)
         // 走统一 helper, 识别 Guard / Shell Defense / Physical Barrier 三种 nameEn
         const guardCards = pAlive.filter(cardHasGuard)
+        // 无视守护的攻击者（精准切除 / 抗原锁定打标记）不被守护强制（当前敌方卡组无此卡，防御性支持）
+        const bypassGuard = attackerBypassesGuard(atkCard, null) || pAlive.some(c => attackerBypassesGuard(atkCard, c))
 
         let defSlot
 
-        if (guardCards.length > 0) {
+        if (guardCards.length > 0 && !bypassGuard) {
           // T1: 必须打守护
           defSlot = guardCards[0].slot
         } else if (pAlive.length === 0) {
@@ -831,7 +833,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
   // 攻击目标判定
   const hasEnemyGuard = battle.enemyField.some(c => c && c.currentHp > 0 && cardHasGuard(c))
-  const enemyLeaderTargetable = isBattlePhase && selectedAtkSlot !== null && !hasEnemyGuard
+  // 当前选中的攻击卡（用于「无视守护」放行选靶）
+  const selectedAttacker = selectedAtkSlot !== null ? battle.playerField[selectedAtkSlot] : null
+  const enemyLeaderTargetable = isBattlePhase && selectedAtkSlot !== null
+    && (!hasEnemyGuard || attackerBypassesGuard(selectedAttacker, null))
   const enemyAlive = battle.enemyField.filter((c, i) => c && c.currentHp > 0).map((c, i) => {
     const realIdx = battle.enemyField.findIndex((cc, ii) => cc === c && ii >= 0)
     return realIdx
@@ -839,7 +844,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
   // 对面存活卡牌的 slot indexes（用于 Bug 4 高亮）
   const validEnemyTargets = isBattlePhase && selectedAtkSlot !== null
     ? (hasEnemyGuard
-        ? battle.enemyField.map((c, i) => c && c.currentHp > 0 && cardHasGuard(c) ? i : -1).filter(i => i >= 0)
+        // 有守护：守护卡始终可选；无视守护的攻击者还可越过打非守护卡
+        ? battle.enemyField.map((c, i) => {
+            if (!c || c.currentHp <= 0) return -1
+            if (cardHasGuard(c)) return i
+            if (attackerBypassesGuard(selectedAttacker, c) && !c.statuses?.some(s => s.type === 'stealth')) return i
+            return -1
+          }).filter(i => i >= 0)
         : battle.enemyField.map((c, i) => c && c.currentHp > 0 && !c.statuses?.some(s => s.type === 'stealth') ? i : -1).filter(i => i >= 0))
     : []
 

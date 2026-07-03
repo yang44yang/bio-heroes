@@ -8,7 +8,7 @@ import { dirname, join } from 'path'
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 import {
-  GUARD_SKILL_NAMES, isGuardSkill, cardHasGuard, fieldHasGuard,
+  GUARD_SKILL_NAMES, isGuardSkill, cardHasGuard, fieldHasGuard, attackerBypassesGuard,
 } from '../src/utils/guardSkill.js'
 import cards from '../src/data/cards.js'
 import spCards from '../src/data/spCards.js'
@@ -22,6 +22,24 @@ ok('GUARD_SKILL_NAMES 含全部 5 个守护别名（含 Filter-Feed Guard 鲸鲨
 ok('isGuardSkill: Filter-Feed Guard 识别（鲸鲨守护，task_e96cb667 ③ 修复）', isGuardSkill({ nameEn: 'Filter-Feed Guard' }) === true)
 ok('数据一致性: 鲸鲨·深海巨墙 description 写"守护" → cardHasGuard 必须 true',
   cardHasGuard(cards.find(c => c.id === 'whale_shark_wall')) === true)
+
+// ============ 1b. attackerBypassesGuard 无视守护谓词（决策C）============
+const _pe = { skills: [{ nameEn: 'Precision Excision' }] }       // 手术刀·精准切除：无条件
+const _al = { skills: [{ nameEn: 'Antigen Lock-on' }] }          // 抗体·抗原锁定：仅打标记目标
+const _plain = { skills: [{ nameEn: 'Guard' }] }
+const _marked = { statuses: [{ type: 'marked' }] }
+const _unmarked = { statuses: [] }
+ok('C 精准切除：无条件无视守护（打卡）', attackerBypassesGuard(_pe, _unmarked) === true)
+ok('C 精准切除：直攻主人也无视守护（defender=null）', attackerBypassesGuard(_pe, null) === true)
+ok('C 抗原锁定：对被标记目标无视守护', attackerBypassesGuard(_al, _marked) === true)
+ok('C 抗原锁定：未标记目标不无视守护', attackerBypassesGuard(_al, _unmarked) === false)
+ok('C 抗原锁定：直攻主人(无标记)不无视守护', attackerBypassesGuard(_al, null) === false)
+ok('C 普通卡不无视守护', attackerBypassesGuard(_plain, _marked) === false)
+ok('C 无 skills / null 安全返回 false', attackerBypassesGuard({}, _marked) === false && attackerBypassesGuard(null, null) === false)
+// 数据一致性：真实卡 scalpel_blade / antibody_precision_ssr 确实带这两个技能（防未来改名断头）
+ok('C scalpel_blade 真带 Precision Excision', attackerBypassesGuard(cards.find(c => c.id === 'scalpel_blade'), null) === true)
+ok('C antibody_precision_ssr 真带 Antigen Lock-on（对标记）',
+  attackerBypassesGuard(cards.find(c => c.id === 'antibody_precision_ssr'), _marked) === true)
 // 通用一致性：凡技能 description 以"守护"开头（= 本卡拥有守护机制），其 nameEn 必须在白名单。
 // 根治"写了守护但不生效"——海龟/睫毛/鲸鲨/骨骼巨人/生物膜同款。用"开头"精确排除"给友方加守护"(创可贴)、
 // "对敌方守护卡造成伤害"(X光) 这类与守护交互但本卡并不拥有守护的技能。
@@ -98,13 +116,13 @@ const bs = readFileSync(join(ROOT, 'src/components/BattleScreen.jsx'), 'utf8')
 const cardJsx = readFileSync(join(ROOT, 'src/components/Card.jsx'), 'utf8')
 
 ok('useBattle import fieldHasGuard + cardHasGuard',
-  /import\s*\{\s*cardHasGuard\s*,\s*fieldHasGuard\s*\}\s*from\s*['"]\.\.\/utils\/guardSkill/.test(ub))
+  /import\s*\{[^}]*\bcardHasGuard\b[^}]*\bfieldHasGuard\b[^}]*\}\s*from\s*['"]\.\.\/utils\/guardSkill/.test(ub))
 ok('useBattle hasGuard 委托给 fieldHasGuard', /const\s+hasGuard\s*=\s*fieldHasGuard/.test(ub))
 ok('useBattle isGuardCard 委托给 cardHasGuard', /const\s+isGuardCard\s*=\s*cardHasGuard/.test(ub))
 ok('useBattle 已删除内联 nameEn === Guard 硬编码', !/skills\?\.some\(s\s*=>\s*s\.nameEn\s*===\s*['"]Guard['"]\)/.test(ub))
 
 ok('BattleScreen import cardHasGuard',
-  /import\s*\{\s*cardHasGuard\s*\}\s*from\s*['"]\.\.\/utils\/guardSkill/.test(bs))
+  /import\s*\{[^}]*\bcardHasGuard\b[^}]*\}\s*from\s*['"]\.\.\/utils\/guardSkill/.test(bs))
 ok('BattleScreen AI 选目标走 pAlive.filter(cardHasGuard)',
   /pAlive\.filter\(cardHasGuard\)/.test(bs))
 ok('BattleScreen 已删除内联 nameEn === Guard 硬编码',

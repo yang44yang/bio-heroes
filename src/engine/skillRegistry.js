@@ -779,12 +779,12 @@ export const skillRegistry = {
     execute: (ctx) => {
       const target = ctx.defender
       if (!target?.statuses?.some(s => s.type === 'marked')) return null
-      // ATK ×2 打卡生效；ignoreGuard 已聚合但暂未消费（守护判定在 onAttack 触发之前，留待守护那刀）
+      // ATK ×2 打卡由 resolveCardCombat 消费；无视守护由 guardSkill.attackerBypassesGuard 处理（守护是攻击前的门）
       return {
         type: 'RUSH_BOOST',
         source: ctx.attacker?.name || ctx.card?.name,
         message: `🎯 ${ctx.attacker?.name} 抗原锁定！无视守护 + ATK ×2！`,
-        mods: { damageMultiplier: 2, ignoreGuard: true },
+        mods: { damageMultiplier: 2 },
       }
     },
   },
@@ -825,12 +825,11 @@ export const skillRegistry = {
   'Precision Excision': {
     timing: 'onAttack',
     execute: (ctx) => {
-      // ignoreGuard 已聚合但暂未消费（守护判定在 onAttack 触发之前，留待守护那刀）
+      // 无视守护由 guardSkill.attackerBypassesGuard 在守护判定处理（守护是攻击前的门，不走 combat mods）
       return {
         type: 'RUSH_BOOST',
         source: ctx.attacker?.name || ctx.card?.name,
         message: `🔪 ${ctx.attacker?.name} 精准切除！无视守护！`,
-        mods: { ignoreGuard: true },
       }
     },
   },

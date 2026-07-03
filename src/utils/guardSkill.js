@@ -19,3 +19,17 @@ export function cardHasGuard(card) {
 export function fieldHasGuard(field) {
   return Array.isArray(field) && field.some(c => c && c.currentHp > 0 && cardHasGuard(c))
 }
+
+// 无视守护 —— 某些攻击技能可越过守护打后排/主人。
+// 守护是「攻击结算之前」的门，无法用 combat mods（结算阶段）表达，故在这里按技能名+条件判定，
+// 作为守护系统的单一真相源（useBattle 攻击门、BattleScreen 玩家选靶/AI 选靶共用）。
+// defender=null 表示直攻主人。
+// ⚠️ Antigen Lock-on 的「被标记才无视」条件必须与 skillRegistry 里该技能 execute 的判定保持一致，改一处须改另一处。
+export function attackerBypassesGuard(attacker, defender) {
+  if (!attacker || !attacker.skills) return false
+  return attacker.skills.some((s) => {
+    if (s.nameEn === 'Precision Excision') return true // 精准切除：无条件无视守护（含直攻主人）
+    if (s.nameEn === 'Antigen Lock-on') return !!defender?.statuses?.some((st) => st.type === 'marked') // 抗原锁定：仅对被标记目标
+    return false
+  })
+}
