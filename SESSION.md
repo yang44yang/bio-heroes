@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-06-30 续（**决策4 dex 收集追踪器框架**：Collection 图鉴顶部加「📚 图鉴包」分包追踪区。①按 set 分组完成度进度条(基础包137/海洋深渊S1·11/微观战场S2·9，各 X/Y)；②预存进度(Endowed Progress Effect)：新季进度条最左画浅色"已开启"起点段、不从0起，但**不白送卡**(have/total 照实、浅色仅装饰；有卡后实色覆盖、文案切"还差N张")；③集齐奖励钩子复用现有 COLLECTION_ACHIEVEMENTS(海洋→顶级猎手、微观→微观探险家科学包)；④点分包筛选卡网格+黄框高亮。新建 `src/data/dexSets.js`(DEX_SETS 元数据) + i18n 6 键 + `test-dex-sets.mjs`(12 断言守"每个 set 都注册/分包合计==总数/rewardAchId 不断头/BASE endowed=0")。**preview 实测**：默认20/157、新季显预存段；注入海洋4+微观3 → 4/11 实色覆盖预存、点海洋"显示11张"、0 console error。全 27 套绿+build 绿。**未做**(留迭代)：食物链节点链可视化(现有成就只 X/Y 不展示结构)、卡背/头像换肤(决策时选不做)。**批0+决策4 框架全完成**，可开 S1 海洋季练流水线。）
+> 更新时间: 2026-07-02（**代码体检 + 战斗引擎绞杀式重构 5 连**（5 个新 commit `426547b`→`e7b09f3`）：①**体检+地基**：3 子代理审(引擎正确性/架构/数据一致性)→ `outputs/code-health-report-2026-07-02.md` + `ARCHITECTURE.md`；删死依赖 gsap、加 `npm test` 统一入口(`scripts/run-tests.mjs`)+CI。②**剥 resolveCardCombat**(`src/engine/combat.js`)：attack/aiAttack 伤害/护盾/阵营结算抽成 React-free 纯函数、玩家=AI 单一真相源，`test-combat-resolve` 首个真驱动战斗的单测。③**【B】修 P0**：onAttack/onHit 战斗修饰符打卡静默失效根因(旧写 `ctx.<x>` 被 triggerSkills 拷贝丢弃 + 结算不读)→改「返回事件带 `mods`」(生产端9处)+`aggregateCombatMods` 折叠+resolveCardCombat 消费(damageMultiplier/ignoreShield/dodged/damageReduction)，十余张卡招牌打卡首次生效，直攻主人 RUSH_BOOST→flat×2 不动不双算。④**【C】无视守护**：守护是攻击前的门→`guardSkill.attackerBypassesGuard` 纯谓词单一真相源，useBattle 攻击门+BattleScreen 玩家/AI 选靶共用(精准切除无条件/抗原锁定仅标记)。⑤**【D】3 事件流 bug**：MRSA 反弹镜像 onHitCounter 修路由(`_side:'attacker'`+`ctx.attackerField`)、长老记忆 `_reviveToHand`/信息素召集 `_removeFromHand` 补消费端(`useBattle.applyHandEvents`+BattleScreen 注入 per-side addToHand/playCard)。每刀 test+build+preview 冒烟绿，29 套测试。⚠️**改玩法**：B/C/D 让一批卡效果首次正确生效、齐齐手感会变，务必实测。⚠️**坑**：CI 文件因 git 凭据缺 `workflow` scope 推不上、留磁盘待手动补(`gh auth refresh -s workflow`)；弃牌堆有 useBattle(权威)+useHand(死写)两套。**下一步 F**：描述≠实现批(鲸鲨回血/注射劫持·骨髓造血 `i<3`/PCR 标记/物种大爆发抽2/CRISPR 半互换)。）
+> 历史更新时间: 2026-06-30 续（**决策4 dex 收集追踪器框架**：Collection 图鉴顶部加「📚 图鉴包」分包追踪区。①按 set 分组完成度进度条(基础包137/海洋深渊S1·11/微观战场S2·9，各 X/Y)；②预存进度(Endowed Progress Effect)：新季进度条最左画浅色"已开启"起点段、不从0起，但**不白送卡**(have/total 照实、浅色仅装饰；有卡后实色覆盖、文案切"还差N张")；③集齐奖励钩子复用现有 COLLECTION_ACHIEVEMENTS(海洋→顶级猎手、微观→微观探险家科学包)；④点分包筛选卡网格+黄框高亮。新建 `src/data/dexSets.js`(DEX_SETS 元数据) + i18n 6 键 + `test-dex-sets.mjs`(12 断言守"每个 set 都注册/分包合计==总数/rewardAchId 不断头/BASE endowed=0")。**preview 实测**：默认20/157、新季显预存段；注入海洋4+微观3 → 4/11 实色覆盖预存、点海洋"显示11张"、0 console error。全 27 套绿+build 绿。**未做**(留迭代)：食物链节点链可视化(现有成就只 X/Y 不展示结构)、卡背/头像换肤(决策时选不做)。**批0+决策4 框架全完成**，可开 S1 海洋季练流水线。）
 > 历史更新时间: 2026-06-30（**决策7 legacy 题改写完成**：147 道 legacy 纯记忆 trivia 全改成机制/推理"为什么"题(不改卡绑定)。两轮 workflow(生成 + 内置字符二元组 Jaccard 查重再改循环，判重与 test-quiz-system 完全一致)：v1 改 101 道(露馅 41 道未过)、v2 余 46 道强化"正确答案最短/干扰项写长"约束 2 轮 46/46 全过。147 道 **0 露馅 + 0 撞车**(撞通用/卡题/本轮≥0.5 自动重改)。**全量人工科学 QA 通过**(紧扣卡牌技能、7 岁可懂、无硬错)。清理 28 道残留 legacy 标记→legacy 概念清零。test-quiz-system 加决策7守卫(1479 断言)。卡题记忆题 266→119。全 26 套绿 + build 绿。⚠️坑：workflow `failed` 池只返回 {i,why} 会丢内容(v2 改带 content)；apply 用 (origQ+cardId) 双锚点消歧 origQ 重复。批 0 地基**全部完成**(决策1/2/3/6/7)，剩 dex 追踪器(决策4，面向产品留齐齐)。）
 > 历史更新时间: 2026-06-29 续（**简化 16 张 R 卡描述（决策6）**：16 张技能描述>30字的 R 卡（听诊器57字最长）全压到 ≤30 字，**不改机制/数值、仅压文案**。robust 应用：JSON.stringify(runtime旧值) 精确匹配源码字面量(含 \" 转义)、断言各出现 1 次再替换。听诊器(57→30，两分支+主效果两数值全保留、仅 fallback 概括为"回血")、蜜蜂(45→30)等。**坑**：roundworm 简化(去"取"和空格)使 test-onturnend-skills 的死正则 `吸取敌方主人 500 HP` 失配→放宽为 `吸取?敌方主人\s*500\s*HP`(意图不变、仍挡"回复效果减少"旧错词)。新增 `scripts/test-card-text.mjs`(R 卡描述≤30 守卫 + 抽查关键数值未被简掉)。全 26 套绿 + build 绿。改的是 cards.js 描述字符串(更短，无溢出风险)，没动组件/引擎。）
 > 历史更新时间: 2026-06-29（**批 0 地基三件套**：①POWER_CURVE 收成单一权威常量（取 SKILL.md 值 cost3=9k/cost6=20k…），新增 `scripts/test-power-curve.mjs` 同时校验「代码表==SKILL.md 文档」+「124 张生物卡全不超预算、全 500 倍数」（核实 0 超标）；旧死表 cost6=14k 等弃用、SKILL.md 加反向引用注释防漂移。②gacha 文档对齐：`deckRules.RARITIES.pullRate` 0.70→0.68 + 注释指明可执行权重在 useGacha.RARITY_WEIGHTS(R68/SR25/SSR5/SP2)，决策3 仅文档不改机制。③进化 build 校验：新增 `scripts/test-evolution-integrity.mjs`——核实「17 声明=3 实现+14 计划」**非活 bug**(UI 只读 getEvolutionTarget/EVOLUTION_CHAINS，evolutionTo 字符串是元数据)；守 14 个 planned 白名单+链一致性+无僵尸目标，防未来手滑断头。负向测试实证 guard 真咬人(注入漂移→红、还回→绿)。全 25 套绿 + build 绿。**未做**：进化"敬请期待"UI 提示(面向产品、留齐齐在场)。）
@@ -16,6 +17,18 @@
 ---
 
 ## 最近完成
+
+### 2026-07-02 代码体检 + 战斗引擎绞杀式重构（5 commit：地基 / 剥引擎 / B / C / D）✅
+面向「代码健康度 + 结构债」的体检 + 顺着报告修引擎正确性。**全程行为保真、每刀 test+build+preview 冒烟绿。**
+- **体检（不改代码）**：3 个并行子代理审 引擎正确性/架构技术债/数据一致性 → `outputs/code-health-report-2026-07-02.md`（一句话根因：战斗引擎焊死在 useBattle 里不可单测，所以一个牵连十余卡的伤害 bug 能安然通过 27 个绿测试）+ `ARCHITECTURE.md`（一页式架构地图）。
+- **地基（commit `426547b`）**：删死依赖 gsap（src 零引用）；加 `npm test` 统一入口 `scripts/run-tests.mjs`；CI `.github/workflows/ci.yml`（⚠️ 凭据缺 workflow scope 推不上、留磁盘、见已知问题）。
+- **剥引擎（`bf240d3`）**：`src/engine/combat.js` 的 `resolveCardCombat` 纯函数 = attack/aiAttack 卡打卡结算的单一真相源；`scripts/test-combat-resolve.mjs`（45 断言）首个真正驱动战斗结算的单测（非正则匹配源码）。`damage.js` 补 `.js` 扩展名使其可被 Node import。
+- **【B】P0 战斗修饰符（`1aabcf9`）**：根因=技能 mutate `ctx.<x>` 被 `triggerSkills` 的 `{...ctx}` 拷贝丢弃 + 打卡结算不读。改「生产端 return 事件带 `mods`」(9处)→`aggregateCombatMods` 折叠→resolveCardCombat 消费。无视护盾(Spike Protein)/克制×1.5·×2(conditionalAtk ~10卡·Antigen·Hyperspeed·Silent Dive)/闪避(Pseudopod)/减伤(Leaf Fold·Calcified)/免疫(MRSA) 打卡首次生效。Rush 仅打主人、不动。
+- **【C】无视守护（`aa7dd9c`）**：守护是攻击前的门、mods 表达不了 → `guardSkill.attackerBypassesGuard(atk,def)` 纯谓词单一真相源。useBattle 两处攻击门 + BattleScreen 玩家选靶(`validEnemyTargets`/`enemyLeaderTargetable`)+AI 选靶共用。精准切除(`scalpel_blade`，齐齐卡组有)无条件、抗原锁定仅对标记目标。`ignoreGuard` 从 mods 清掉。
+- **【D】3 事件流 bug（`e7b09f3`）**：MRSA 反弹路由(`_side:'attacker'`+`ctx.attackerField`，镜像 onHitCounter)；`useBattle.applyHandEvents` 消费 长老记忆 `_reviveToHand`(addToHand+弃牌移除)/信息素召集 `_removeFromHand`(playCard 去重)；BattleScreen `setHandRefs` 注入 per-side addToHand/playCard。
+- **关键文件变更**：新增 `src/engine/combat.js`、`scripts/{run-tests,test-combat-resolve,test-hand-events}.mjs`、`ARCHITECTURE.md`、`outputs/code-health-report-2026-07-02.md`、`.github/workflows/ci.yml`(未推)；改 `src/hooks/useBattle.js`、`src/components/BattleScreen.jsx`、`src/engine/{skillRegistry,skillTemplates}.js`、`src/utils/{damage,guardSkill}.js`、`scripts/test-{guard,counter-routing}.mjs`、`package.json`。
+- **⚠️ 改玩法 → 齐齐实测点**：无视护盾/守护穿透/克制加倍伤害/MRSA 反弹方向/长老记忆取回/信息素召集不再复制。若某卡打卡爆炸太狠 = 新生效信号，据此调数值。
+- **未做（下一步 F，见「下次启动时优先」）**：描述≠实现批。
 
 ### 2026-06-30 决策4：dex 收集追踪器框架（分包进度 + 预存进度 + 集齐奖励钩子）✅
 齐齐取舍后选「完整 dex」档。在 Collection 图鉴顶部（总进度条与成就栏之间）加「📚 图鉴包」分包追踪区。
@@ -734,7 +747,16 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 
 ## 下次启动时优先
 
-### 🔴 最优先：SP Phase B — 实现设计文档的三条触发（齐齐定「先A后B」，A 已于 2026-06-23 解封）
+### 🔴 最优先（2026-07-02）：F — "描述≠实现" 批（收尾引擎正确性）
+承接 2026-07-02 的 B/C/D，引擎正确性只剩这批"卡面承诺了但实现没做/半做"，与 B/C/D 同属"让卡面名副其实"。详见 `outputs/code-health-report-2026-07-02.md` §三：
+- **鲸鲨·滤食守护**：每回合 1500 回血从没实现（`skillRegistry.js` `'Filter-Feed Guard': { timing:'passive' }` 无 execute、注释自承 TODO；只进了 GUARD 白名单）→ 仿 `Biofilm Shield` 拆一条 `onTurnEnd` 的 `passiveHeal(self,1500)`。
+- **注射劫持 / 骨髓造血**：`skillRegistry.js` 两处 `for (i<3)` 硬编码，战场 5 格（`MAX_FIELD_SLOTS`）→ 0-2 满、3-4 空时静默不召唤。改 `i<friendlyField.length`（或复用 `findEmptySlot`）。
+- **PCR·核酸扩增**：卡面"攻击病原+2000 并标记下回合+1000"，只用 conditionalAtk 实现了加伤、标记那半没做 → 删描述或补 `APPLY_MARK`。
+- **物种大爆发（事件卡）**：卡面"翻3张、自然入手、其余回底"被简化成 `drawCards(2)`（`useBattle.js:~1028` 注释自承 simplified）→ 实现真过滤 或 改文案。
+- **CRISPR·基因编辑（`Gene Edit`/`Gene Rewrite`）**：ATK↔HP 互换只做一半、HP 只降不升（用 AOE_DAMAGE 近似、注释标"简化"）→ 用能设绝对 HP 的事件，或改文案成"降 ATK 至当前 HP"。
+- **打法**：延续绞杀式——能在 `resolveCardCombat`/纯模板层做的先加单测再改；碰 hook 的（鲸鲨 onTurnEnd/召唤 slot）走 preview 冒烟。
+
+### ✅（已完成，保留存档）SP Phase B — 实现设计文档的三条触发（齐齐定「先A后B」，A 已于 2026-06-23 解封）
 **背景**：`.claude/rules/battle-system.md` 写 SP 触发 =「连续答对2题 / 主人HP≤50% / 第8回合」三选一，触发后「从3张SP随机翻2选1」。**但代码完全没这套**——现状 SP 只能靠打出带 `spSummonRule` 的事件卡触发（Phase A 已把这条路从「永远出不来」解封）。
 - **⚠️ 动手前先问齐齐的子决策**：三条触发是 **替换** 事件卡触发，还是 **并存**（事件卡 + 三条件都能触发）？这决定改法与工作量。
 - **要做**：① quiz 连续答对计数（连2触发）② 主人 HP≤50% 检测 ③ 第8回合检测 ④ 触发后「翻2选1」UI（`pendingSpSummon` 状态 + 现有 SP 召唤弹窗可复用）⑤ 决定与现有事件卡触发如何共存（现有门槛已是"看费用" `spEarliestSummonTurn(spCost)=max(3,spCost−3)`，三条触发是否也走同一门槛/或各自独立，需定）。
