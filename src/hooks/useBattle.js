@@ -9,7 +9,7 @@ import { getRandomQuiz, resetQuizHistory } from '../data/quizzes'
 import { getQuizMode } from '../utils/settings'
 import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
-import { resolveCardCombat } from '../engine/combat'
+import { resolveCardCombat, aggregateCombatMods } from '../engine/combat'
 import { pickRandomEvent } from '../data/events'
 import { getBossMechanic } from '../engine/bossMechanics'
 import { cardHasGuard, fieldHasGuard } from '../utils/guardSkill'
@@ -1793,11 +1793,13 @@ export function useBattle() {
     }
     pushSkillEvents(allPreEvents)
 
+    // 技能战斗修饰符（克制加倍/无视护盾/闪避/减伤）从 onAttack/onHit 事件聚合，交结算消费
+    const mods = aggregateCombatMods(allPreEvents)
     const {
       atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed,
       defImmune, atkFactionBonus, defFactionBonus, auraApplied,
     } = resolveCardCombat({
-      attacker: atkCard, defender: defCard, awakenOpts,
+      attacker: atkCard, defender: defCard, awakenOpts, mods,
       attackerField: playerFieldRef.current, defenderField: enemyFieldRef.current,
     })
     let defKilled = false, atkKilled = false
@@ -1807,8 +1809,8 @@ export function useBattle() {
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
     if (auraApplied) addLog(`🌀 光环效果生效！`)
 
-    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（见 combat.js 注释）
-    const defShield = defCard.statuses?.find(s => s.type === 'shield')
+    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（无视护盾时跳过，见 combat.js 注释）
+    const defShield = mods.ignoreShield ? null : defCard.statuses?.find(s => s.type === 'shield')
     const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
 
     setEnemyField(prev => {
@@ -2048,11 +2050,12 @@ export function useBattle() {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }
 
+    const mods = aggregateCombatMods(allPreEvents)
     const {
       atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed,
       atkFactionBonus, defFactionBonus,
     } = resolveCardCombat({
-      attacker: atkCard, defender: defCard,
+      attacker: atkCard, defender: defCard, mods,
       attackerField: enemyFieldRef.current, defenderField: playerFieldRef.current,
     })
     let defKilled = false, atkKilled = false
@@ -2060,8 +2063,8 @@ export function useBattle() {
     if (atkFactionBonus) addLog(`🔴 ⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
 
-    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（见 combat.js 注释）
-    const defShield = defCard.statuses?.find(s => s.type === 'shield')
+    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（无视护盾时跳过，见 combat.js 注释）
+    const defShield = mods.ignoreShield ? null : defCard.statuses?.find(s => s.type === 'shield')
     const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
 
     setPlayerField(prev => {

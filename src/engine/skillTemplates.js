@@ -259,17 +259,14 @@ export function conditionalAtk(ctx, params) {
 
   if (!triggered) return null
 
-  // 通过修改 ctx.damageMultiplier 或返回 BUFF 实现加伤
-  // 使用 RUSH_BOOST 风格：直接改 ctx 上的 damageMultiplier
+  // 加伤通过返回事件的 mods.damageMultiplier 表达（打卡由 resolveCardCombat 消费；
+  // 直攻主人仍走 RUSH_BOOST→flat×2 那条既有路径）。旧写法直接改 ctx 会被 triggerSkills 的拷贝丢弃。
   if (params.is_multiplier) {
-    ctx.damageMultiplier = (ctx.damageMultiplier || 1) * params.amount
-    return { type: 'RUSH_BOOST', source: attacker.name, message: msg }
+    return { type: 'RUSH_BOOST', source: attacker.name, message: msg, mods: { damageMultiplier: params.amount } }
   } else {
-    // 固定加伤：临时加 ATK（攻击前加，攻击后会用原始值计算……）
-    // 用 RUSH_BOOST 风格 + 修改 damageMultiplier 来近似
+    // 固定加伤：用 (atk+bonus)/atk 的比例近似成倍率
     const ratio = (attacker.atk + bonusDmg) / attacker.atk
-    ctx.damageMultiplier = (ctx.damageMultiplier || 1) * ratio
-    return { type: 'RUSH_BOOST', source: attacker.name, message: msg }
+    return { type: 'RUSH_BOOST', source: attacker.name, message: msg, mods: { damageMultiplier: ratio } }
   }
 }
 
@@ -670,15 +667,15 @@ export function onHitCounter(ctx, params) {
 
   switch (params.effect) {
     case 'reduce_damage': {
-      // 减伤：修改 ctx 上的 damageReduction
+      // 减伤：通过返回事件的 mods.damageReduction 表达（resolveCardCombat 消费）
       const reduction = params.is_ratio
         ? Math.floor((attacker?.atk || 0) * params.amount)
         : params.amount
-      ctx.damageReduction = (ctx.damageReduction || 0) + reduction
       return {
         type: 'RUSH_BOOST',
         source: defender.name,
         message: `🛡️ ${defender.name} 减少了 ${reduction} 伤害！`,
+        mods: { damageReduction: reduction },
       }
     }
     case 'counter_damage': {
@@ -703,11 +700,11 @@ export function onHitCounter(ctx, params) {
     }
     case 'dodge': {
       if (Math.random() < (params.chance || 0.3)) {
-        ctx.dodged = true
         return {
           type: 'RUSH_BOOST',
           source: defender.name,
           message: `💨 ${defender.name} 闪避了攻击！`,
+          mods: { dodged: true },
         }
       }
       return null

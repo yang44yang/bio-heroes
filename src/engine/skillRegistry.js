@@ -622,8 +622,7 @@ export const skillRegistry = {
       // 追踪首次攻击：检查 attacker.hasDashed
       if (!attacker._dashed) {
         attacker._dashed = true
-        ctx.damageMultiplier = (ctx.damageMultiplier || 1) * 1.5
-        return { type: 'RUSH_BOOST', source: attacker.name, message: `⚡ ${attacker.name} 极速冲刺！首次攻击 ×1.5！` }
+        return { type: 'RUSH_BOOST', source: attacker.name, message: `⚡ ${attacker.name} 极速冲刺！首次攻击 ×1.5！`, mods: { damageMultiplier: 1.5 } }
       }
       return null
     },
@@ -740,11 +739,11 @@ export const skillRegistry = {
     timing: 'onAttack',
     execute: (ctx) => {
       if (ctx.defender?.faction !== 'body') return null
-      ctx.ignoreShield = true
       return {
         type: 'RUSH_BOOST',
         source: ctx.attacker?.name || ctx.card?.name,
         message: `🦠 ${ctx.attacker?.name} 刺突蛋白！无视 ${ctx.defender.name} 的护盾！`,
+        mods: { ignoreShield: true },
       }
     },
   },
@@ -756,13 +755,15 @@ export const skillRegistry = {
       if (ctx.attacker?.faction !== 'tech') return null
       const defender = ctx.defender || ctx.card
       if (!defender) return null
-      ctx.damageReduction = (ctx.damageReduction || 0) + (ctx.attacker.atk || 0)  // 完全免疫
+      const immunity = ctx.attacker.atk || 0  // 完全免疫：减伤 = 攻击方全部 ATK（resolveCardCombat 消费 mods.damageReduction）
       const reflect = Math.floor((ctx.attacker.atk || 0) * 0.5)
       const atkSlot = (ctx.enemyField || []).findIndex(c => c && c.uid === ctx.attacker.uid)
       return [{
         type: 'RUSH_BOOST', source: defender.name,
         message: `💊 ${defender.name} 免疫了 ${ctx.attacker.name} 的科技系攻击！`,
+        mods: { damageReduction: immunity },
       }, {
+        // ⚠️ 反弹的 _side 路由是独立的 P1 bug（'attacker_side' 未被 applySkillEvents 识别 → 落错方），留待反击修复那刀
         type: 'AOE_DAMAGE', source: defender.name,
         targetSlot: atkSlot >= 0 ? atkSlot : 0,
         targetName: ctx.attacker.name, targetUid: ctx.attacker.uid, damage: reflect,
@@ -778,12 +779,12 @@ export const skillRegistry = {
     execute: (ctx) => {
       const target = ctx.defender
       if (!target?.statuses?.some(s => s.type === 'marked')) return null
-      ctx.damageMultiplier = (ctx.damageMultiplier || 1) * 2
-      ctx.ignoreGuard = true
+      // ATK ×2 打卡生效；ignoreGuard 已聚合但暂未消费（守护判定在 onAttack 触发之前，留待守护那刀）
       return {
         type: 'RUSH_BOOST',
         source: ctx.attacker?.name || ctx.card?.name,
         message: `🎯 ${ctx.attacker?.name} 抗原锁定！无视守护 + ATK ×2！`,
+        mods: { damageMultiplier: 2, ignoreGuard: true },
       }
     },
   },
@@ -795,10 +796,10 @@ export const skillRegistry = {
       const attacker = ctx.attacker || ctx.card
       if (!attacker || attacker._silentDived) return null
       attacker._silentDived = true
-      ctx.damageMultiplier = (ctx.damageMultiplier || 1) * 1.5
       return {
         type: 'RUSH_BOOST', source: attacker.name,
         message: `🔇 ${attacker.name} 静默俯冲！首次攻击 ×1.5！`,
+        mods: { damageMultiplier: 1.5 },
       }
     },
   },
@@ -824,11 +825,12 @@ export const skillRegistry = {
   'Precision Excision': {
     timing: 'onAttack',
     execute: (ctx) => {
-      ctx.ignoreGuard = true
+      // ignoreGuard 已聚合但暂未消费（守护判定在 onAttack 触发之前，留待守护那刀）
       return {
         type: 'RUSH_BOOST',
         source: ctx.attacker?.name || ctx.card?.name,
         message: `🔪 ${ctx.attacker?.name} 精准切除！无视守护！`,
+        mods: { ignoreGuard: true },
       }
     },
   },

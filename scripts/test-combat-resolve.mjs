@@ -1,6 +1,7 @@
 // test-combat-resolve.mjs — 首个「真正驱动战斗结算」的单测（import 纯引擎，非正则匹配源码）。
 // 覆盖 src/engine/combat.js 的 resolveCardCombat：互扣 / 护盾 / 免疫 / 阵营克制 / 觉醒。
-import { resolveCardCombat } from '../src/engine/combat.js'
+import { resolveCardCombat, aggregateCombatMods } from '../src/engine/combat.js'
+import { onHitCounter } from '../src/engine/skillTemplates.js'
 import { FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS } from '../src/data/deckRules.js'
 
 let pass = 0
@@ -93,6 +94,90 @@ const neutralA = FACTION_ADVANTAGE[defFac]?.strong === atkFac ? null : defFac
   eq(base.atkDmg, 2500, '⑥ 未觉醒 atkDmg 2500')
   eq(awk.atkDmg, 5000, '⑥ 觉醒 atkDmg ×2 = 5000')
   eq(awk.defDmg, 1000, '⑥ 觉醒不影响反击伤害')
+}
+
+const nf = neutralA || atkFac // 中立阵营（无克制），用于隔离修饰符测试
+
+// ---- 7. aggregateCombatMods: 折叠事件里的 mods ----
+{
+  const agg = aggregateCombatMods([
+    { type: 'RUSH_BOOST', mods: { damageMultiplier: 2 } },
+    { type: 'RUSH_BOOST', mods: { damageMultiplier: 1.5 } },
+    { type: 'RUSH_BOOST', mods: { ignoreShield: true } },
+    { type: 'AOE_DAMAGE', damage: 100 }, // 无 mods → 忽略
+    { type: 'RUSH_BOOST', mods: { damageReduction: 500 } },
+    { type: 'RUSH_BOOST', mods: { damageReduction: 300 } },
+    { type: 'RUSH_BOOST', mods: { dodged: true } },
+  ])
+  eq(agg.damageMultiplier, 3, '⑦ 倍率相乘 2×1.5=3')
+  eq(agg.ignoreShield, true, '⑦ ignoreShield 取或')
+  eq(agg.damageReduction, 800, '⑦ 减伤相加 500+300')
+  eq(agg.dodged, true, '⑦ dodged 取或')
+  const empty = aggregateCombatMods([])
+  eq(empty.damageMultiplier, 1, '⑦ 空事件→倍率默认 1')
+  eq(empty.damageReduction, 0, '⑦ 空事件→减伤默认 0')
+}
+
+// ---- 8. mods 消费: 克制加倍（P0 核心）----
+{
+  const base = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf }) })
+  const x2 = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf }), mods: { damageMultiplier: 2 } })
+  eq(base.atkDmg, 3000, '⑧ 无 mods 基线 3000')
+  eq(x2.atkDmg, 6000, '⑧ ×2 倍率 → 6000（打卡终于生效）')
+}
+
+// ---- 9. mods 消费: 无视护盾（P0 核心：Spike Protein）----
+{
+  const normal = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf, statuses: [{ type: 'shield', amount: 2000 }] }) })
+  const pierce = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf, statuses: [{ type: 'shield', amount: 2000 }] }), mods: { ignoreShield: true } })
+  eq(normal.defActualDmg, 1000, '⑨ 普通：3000-2000护盾=1000')
+  eq(normal.defShieldAbsorbed, 2000, '⑨ 普通吸收 2000')
+  eq(pierce.defActualDmg, 3000, '⑨ 无视护盾：全额 3000 穿透')
+  eq(pierce.defShieldAbsorbed, 0, '⑨ 无视护盾：吸收 0')
+}
+
+// ---- 10. mods 消费: 闪避 → 0 伤害（Pseudopod Morph）----
+{
+  const r = resolveCardCombat({ attacker: card({ atk: 5000, faction: nf }), defender: card({ atk: 1000, faction: nf }), mods: { dodged: true } })
+  eq(r.atkDmg, 0, '⑩ 闪避 → 攻击伤害 0')
+  eq(r.defActualDmg, 0, '⑩ 闪避 → 实际扣血 0')
+  eq(r.defDmg, 1000, '⑩ 闪避不影响防守方反击')
+}
+
+// ---- 11. mods 消费: 减伤 & 完全免疫（Leaf Fold / MRSA 式）----
+{
+  const partial = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf }), mods: { damageReduction: 1200 } })
+  eq(partial.atkDmg, 1800, '⑪ 减伤 3000-1200=1800')
+  const immune = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf }), mods: { damageReduction: 3000 } })
+  eq(immune.atkDmg, 0, '⑪ 减伤≥伤害 → 0（MRSA 完全免疫）')
+}
+
+// ---- 12. 倍率 + 护盾 顺序（先加倍再吸收）----
+{
+  const r = resolveCardCombat({ attacker: card({ atk: 2000, faction: nf }), defender: card({ atk: 1000, faction: nf, statuses: [{ type: 'shield', amount: 1000 }] }), mods: { damageMultiplier: 2 } })
+  eq(r.atkDmg, 4000, '⑫ 先 ×2 → 4000')
+  eq(r.defActualDmg, 3000, '⑫ 再扣 1000 护盾 → 3000')
+}
+
+// ---- 13. 无 mods 时行为与切片1完全一致（防回归）----
+{
+  const withUndef = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 2000, faction: nf }) })
+  const withEmpty = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 2000, faction: nf }), mods: aggregateCombatMods([]) })
+  eq(withUndef.atkDmg, 3000, '⑬ mods 缺省 atkDmg 不变')
+  eq(withEmpty.atkDmg, 3000, '⑬ 空 mods atkDmg 不变')
+  eq(withUndef.defActualDmg, 3000, '⑬ mods 缺省 defActualDmg 不变')
+}
+
+// ---- 14. 闭环：真实生产端（onHitCounter 模板）确实吐出 mods ----
+{
+  const red = onHitCounter({ defender: card({ atk: 1000 }), attacker: card({ atk: 2000 }) }, { effect: 'reduce_damage', amount: 800 })
+  eq(red?.mods?.damageReduction, 800, '⑭ reduce_damage 生产端吐 mods.damageReduction=800')
+  const dod = onHitCounter({ defender: card({ atk: 1000 }), attacker: card({ atk: 2000 }) }, { effect: 'dodge', chance: 1 })
+  eq(dod?.mods?.dodged, true, '⑭ dodge(chance=1) 生产端吐 mods.dodged=true')
+  // 端到端：把生产端事件喂给 aggregate，再喂给 resolve → 减伤真正生效
+  const mods = aggregateCombatMods([red])
+  const r = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf }), mods })
+  eq(r.atkDmg, 2200, '⑭ 生产端→聚合→结算 全链路：3000-800=2200')
 }
 
 // ---- 汇总 ----
