@@ -747,8 +747,16 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 
 ## 下次启动时优先
 
-### 🔴 最优先（2026-07-02）：F — "描述≠实现" 批（收尾引擎正确性）
-承接 2026-07-02 的 B/C/D，引擎正确性只剩这批"卡面承诺了但实现没做/半做"，与 B/C/D 同属"让卡面名副其实"。详见 `outputs/code-health-report-2026-07-02.md` §三：
+### 🔴 最优先（2026-07-02 续）：E — 架构重构（报告 P0 技术债，绞杀式分刀）
+承接 B/C/D/F（引擎正确性已收尾），转攻最大结构债：`useBattle.js` 2300+ 行焊在 hook 里不可单测。已起头（`resolveCardCombat` 已剥出）。分刀（安全→高杠杆，每刀 test+build+preview 冒烟）：
+- **E1**（最安全·纯死代码）：删 `cleanupDeadCards` 的 18 个 no-op 调用 + 空桩函数（真逻辑早已在"提交后 useEffect 扫 currentHp≤0"）。先核实确为 no-op。
+- **E2**：抽 `canCardAttack()` 纯谓词（sleep/confused/召唤疲劳/已攻击），玩家=AI 共用、可单测。
+- **E3**：合并 attack/aiAttack 或 playToField/aiPlayToField（side 参数版，消 64 处 side 分支的双份维护、防"玩家能 AI 不能"不对称 bug）。
+- **E4**：从 BattleScreen 抽 `useAITurn()`（200 行 AI 决策 effect 移出 god component）。
+- **E5+**：逐步向 `battleReducer` 收敛，消 state↔ref 双写（34 ref）、死亡结算进 reducer、停止 return 泄漏 15 个原始 ref。
+
+### ✅（已完成 `fbff1de`）F — "描述≠实现" 批（引擎正确性收尾）
+5 项：鲸鲨回血补实现 / 注射劫持·骨髓造血召唤扫真5格(深挖出"过滤数组当槽位"的更深坑，补 friendlyFieldRaw) / PCR·CRISPR·物种大爆发 文案对齐。test-decision-f 13 断言。原 F 明细（供参考）：`outputs/code-health-report-2026-07-02.md` §三：
 - **鲸鲨·滤食守护**：每回合 1500 回血从没实现（`skillRegistry.js` `'Filter-Feed Guard': { timing:'passive' }` 无 execute、注释自承 TODO；只进了 GUARD 白名单）→ 仿 `Biofilm Shield` 拆一条 `onTurnEnd` 的 `passiveHeal(self,1500)`。
 - **注射劫持 / 骨髓造血**：`skillRegistry.js` 两处 `for (i<3)` 硬编码，战场 5 格（`MAX_FIELD_SLOTS`）→ 0-2 满、3-4 空时静默不召唤。改 `i<friendlyField.length`（或复用 `findEmptySlot`）。
 - **PCR·核酸扩增**：卡面"攻击病原+2000 并标记下回合+1000"，只用 conditionalAtk 实现了加伤、标记那半没做 → 删描述或补 `APPLY_MARK`。
