@@ -62,5 +62,11 @@ ok('④ Antibiotic Resistance 反弹用 ctx.attackerField 定位攻击者（不�
 ok('④ Antibiotic Resistance 反弹发 _side: "attacker"（不再 attacker_side 落错方）',
   /_side:\s*'attacker',/.test(ab) && !/attacker_side/.test(ab))
 
+// ⑤ 决策E3：attack/aiAttack 的「结算落地」共享 applyCombatOutcome（不再各写一遍双 setState 块）
+ok('⑤ applyCombatOutcome 已定义', /function applyCombatOutcome\(/.test(ub))
+ok('⑤ attack/aiAttack 两处都调 applyCombatOutcome（去重）', (ub.match(/applyCombatOutcome\(\{/g) || []).length >= 2)
+ok('⑤ 结算里的护盾 setState 块已收敛（源码不再有 3+ 处 applyShieldAbsorb(next[…]）',
+  (ub.match(/applyShieldAbsorb\(next\[/g) || []).length <= 2)
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

@@ -1714,6 +1714,38 @@ export function useBattle() {
   //  玩家攻击
   //  defSlot: 0-4 打卡，-1 直攻主人
   // ----------------------------------------------------------------
+  // 决策E3：把「卡打卡结算结果落到双方场（扣血+护盾状态扣减）+ 护盾/战斗日志」抽成共享。
+  // attack/aiAttack 这段原本逐字节重复，只差 def/atk 用哪个 setter、日志前缀（AI 加 🔴）。
+  // 击杀判定仍在 setState 闭包内读 prev（时序语义不变），通过返回值传回。整段行为与原内联等价。
+  function applyCombatOutcome({ defSetter, atkSetter, defSlot, atkSlot, defCard, atkCard, mods, outcome, prefix }) {
+    const { atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed } = outcome
+    const defShield = mods.ignoreShield ? null : defCard.statuses?.find(s => s.type === 'shield')
+    const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
+    let defKilled = false, atkKilled = false
+    defSetter(prev => {
+      const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({ ...s }))] : [] } : null)
+      if (defShield) applyShieldAbsorb(next[defSlot], atkDmg)
+      next[defSlot].currentHp = Math.max(0, next[defSlot].currentHp - defActualDmg)
+      if (next[defSlot].currentHp <= 0) defKilled = true
+      return next
+    })
+    atkSetter(prev => {
+      const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({ ...s }))] : [] } : null)
+      if (atkShield) applyShieldAbsorb(next[atkSlot], defDmg)
+      next[atkSlot].currentHp = Math.max(0, next[atkSlot].currentHp - atkActualDmg)
+      if (next[atkSlot].currentHp <= 0) atkKilled = true
+      return next
+    })
+    if (defShieldAbsorbed > 0) addLog(`🛡️ ${defCard.name} 护盾吸收 ${defShieldAbsorbed} 伤害！`)
+    if (atkShieldAbsorbed > 0) addLog(`🛡️ ${atkCard.name} 护盾吸收 ${atkShieldAbsorbed} 伤害！`)
+    addLog(
+      `${prefix}${atkCard.name} ⚔️ ${defCard.name}：造成 ${atkDmg}，受反击 ${defDmg}` +
+      (defKilled ? ` → ${defCard.name} 被击败！` : '') +
+      (atkKilled ? ` → ${atkCard.name} 也倒下了！` : '')
+    )
+    return { defKilled, atkKilled }
+  }
+
   const attack = useCallback((atkSlot, defSlot, awakenOpts = {}) => {
     if (phase !== 'battle') return null
     const atkCard = playerField[atkSlot]
@@ -1813,40 +1845,16 @@ export function useBattle() {
       attacker: atkCard, defender: defCard, awakenOpts, mods,
       attackerField: playerFieldRef.current, defenderField: enemyFieldRef.current,
     })
-    let defKilled = false, atkKilled = false
-
     if (defImmune) addLog(`🛡️ ${defCard.name} 免疫了攻击！`)
     if (atkFactionBonus) addLog(`⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
     if (auraApplied) addLog(`🌀 光环效果生效！`)
 
-    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（无视护盾时跳过，见 combat.js 注释）
-    const defShield = mods.ignoreShield ? null : defCard.statuses?.find(s => s.type === 'shield')
-    const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
-
-    setEnemyField(prev => {
-      const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({...s}))] : [] } : null)
-      if (defShield) applyShieldAbsorb(next[defSlot], atkDmg)
-      next[defSlot].currentHp = Math.max(0, next[defSlot].currentHp - defActualDmg)
-      if (next[defSlot].currentHp <= 0) defKilled = true
-      return next
+    // 结算落地（双方场扣血 + 护盾 + 战斗日志）走共享 applyCombatOutcome（决策E3）。玩家：def=敌方场、atk=我方场、无前缀。
+    const { defKilled, atkKilled } = applyCombatOutcome({
+      defSetter: setEnemyField, atkSetter: setPlayerField, defSlot, atkSlot, defCard, atkCard, mods,
+      outcome: { atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed }, prefix: '',
     })
-    setPlayerField(prev => {
-      const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({...s}))] : [] } : null)
-      if (atkShield) applyShieldAbsorb(next[atkSlot], defDmg)
-      next[atkSlot].currentHp = Math.max(0, next[atkSlot].currentHp - atkActualDmg)
-      if (next[atkSlot].currentHp <= 0) atkKilled = true
-      return next
-    })
-
-    if (defShieldAbsorbed > 0) addLog(`🛡️ ${defCard.name} 护盾吸收 ${defShieldAbsorbed} 伤害！`)
-    if (atkShieldAbsorbed > 0) addLog(`🛡️ ${atkCard.name} 护盾吸收 ${atkShieldAbsorbed} 伤害！`)
-
-    addLog(
-      `${atkCard.name} ⚔️ ${defCard.name}：造成 ${atkDmg}，受反击 ${defDmg}` +
-      (defKilled ? ` → ${defCard.name} 被击败！` : '') +
-      (atkKilled ? ` → ${atkCard.name} 也倒下了！` : '')
-    )
 
     // 技能后处理（Overpower / Piercing / onDeath）
     const postEvents = handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, 'player')
@@ -2058,38 +2066,14 @@ export function useBattle() {
       attacker: atkCard, defender: defCard, mods,
       attackerField: enemyFieldRef.current, defenderField: playerFieldRef.current,
     })
-    let defKilled = false, atkKilled = false
-
     if (atkFactionBonus) addLog(`🔴 ⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
 
-    // 护盾状态扣减仍在 setState 闭包里对最新 state 执行（无视护盾时跳过，见 combat.js 注释）
-    const defShield = mods.ignoreShield ? null : defCard.statuses?.find(s => s.type === 'shield')
-    const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
-
-    setPlayerField(prev => {
-      const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({...s}))] : [] } : null)
-      if (defShield) applyShieldAbsorb(next[defSlot], atkDmg)
-      next[defSlot].currentHp = Math.max(0, next[defSlot].currentHp - defActualDmg)
-      if (next[defSlot].currentHp <= 0) defKilled = true
-      return next
+    // 结算落地走共享 applyCombatOutcome（决策E3）。敌方：def=我方场、atk=敌方场、日志前缀 🔴。
+    const { defKilled, atkKilled } = applyCombatOutcome({
+      defSetter: setPlayerField, atkSetter: setEnemyField, defSlot, atkSlot, defCard, atkCard, mods,
+      outcome: { atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed }, prefix: '🔴 ',
     })
-    setEnemyField(prev => {
-      const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({...s}))] : [] } : null)
-      if (atkShield) applyShieldAbsorb(next[atkSlot], defDmg)
-      next[atkSlot].currentHp = Math.max(0, next[atkSlot].currentHp - atkActualDmg)
-      if (next[atkSlot].currentHp <= 0) atkKilled = true
-      return next
-    })
-
-    if (defShieldAbsorbed > 0) addLog(`🛡️ ${defCard.name} 护盾吸收 ${defShieldAbsorbed} 伤害！`)
-    if (atkShieldAbsorbed > 0) addLog(`🛡️ ${atkCard.name} 护盾吸收 ${atkShieldAbsorbed} 伤害！`)
-
-    addLog(
-      `🔴 ${atkCard.name} ⚔️ ${defCard.name}：造成 ${atkDmg}，受反击 ${defDmg}` +
-      (defKilled ? ` → ${defCard.name} 被击败！` : '') +
-      (atkKilled ? ` → ${atkCard.name} 也倒下了！` : '')
-    )
 
     // 技能后处理
     handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, 'enemy')
