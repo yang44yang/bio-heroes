@@ -202,10 +202,10 @@ export function useBattle() {
   //  被击败卡牌清理（将 HP<=0 的卡位清空）
   //  返回被清理的卡牌数组（供弃牌堆使用）
   // ----------------------------------------------------------------
-  // 统一 onDeath 触发：所有死亡都经 cleanupDeadCards → 这里对每张死卡触发其 onDeath 技能。
+  // 统一 onDeath 触发：所有死亡都由下面的「提交后死亡 effect」扫场捕获 → 对每张死卡触发其 onDeath 技能。
   // （之前 onDeath 只在 handlePostAttackSkills 的"防守方被直接攻击打死"分支触发，反击/AOE/中毒/环境
   //  死亡全不触发 → 干细胞分化/海星复活/大肠杆菌分裂等失效。齐齐实测"干细胞死了不复活"即此。）
-  // 用 ref 持最新闭包，绕开 cleanupDeadCards 是 useCallback([]) 的 stale-closure 陷阱；
+  // 用 ref 持最新闭包（fireOnDeathRef），避免 effect 里读到 stale-closure；
   // triggerSkills 是稳定 import，applySkillEvents/setters 经 ref 每渲染刷新。
   const fireOnDeathRef = useRef(null)
   fireOnDeathRef.current = (deadCards, deadSide) => {
@@ -229,9 +229,9 @@ export function useBattle() {
     }
   }
 
-  // ── 死亡清理：统一在「每次提交后」扫场（useEffect），不再各死亡路径里同步 cleanupDeadCards。
+  // ── 死亡清理：统一在「每次提交后」扫场（useEffect），不再各死亡路径里同步清理（决策E1：已删除旧的 no-op 清理桩及 18 处调用）。
   // 为什么必须改成 effect（2026-06-25 preview 实测确认的真根因）：
-  //   React18 自动批处理下，旧 cleanupDeadCards 里 setter(updater) 的 updater 被延迟到 render 才执行，
+  //   React18 自动批处理下，旧的「各路径同步清理」里 setter(updater) 的 updater 被延迟到 render 才执行，
   //   而紧接着同步读 dead.length → 恒为 0（eager-bailout 竞态：该 field 已有 pending 伤害更新时延迟、
   //   无 pending 时又 eager → 时灵时不灵）。结果：死卡不进弃牌堆 + onDeath 不触发
   //   ——齐齐反复实测"干细胞死了不复活"的真根因（实测日志 [CLEANUP] dead.length(sync) 恒 0，但卡确实死了）。
@@ -266,9 +266,6 @@ export function useBattle() {
     }
   }, [playerField, enemyField])
 
-  // 死亡清理已统一到上面的提交后 effect。cleanupDeadCards 保留为 no-op，仅兼容历史 18 处调用点
-  // （死卡会在下一次提交被 effect 扫掉，无需各处再同步清理；逐处删除反而引入风险）。
-  const cleanupDeadCards = useCallback(() => {}, [])
 
   // ----------------------------------------------------------------
   //  Boss HP 阈值检查（攻击后调用）
@@ -614,7 +611,7 @@ export function useBattle() {
         friendlyFieldRaw: killFriendlyField, // 决策F：真 5 格数组（含 null 空位），供召唤类找空位
       })
 
-      // onDeath 已统一收口到 cleanupDeadCards（覆盖反击/AOE/中毒/环境等所有死亡）→ 此处不再触发，避免双触发。
+      // onDeath 已统一收口到「提交后死亡 effect」（覆盖反击/AOE/中毒/环境等所有死亡）→ 此处不再触发，避免双触发。
       allEvents.push(...killEvents)
 
       // 处理溢出伤害到主人（Overpower / Piercing，均来自 onKill）
@@ -648,7 +645,7 @@ export function useBattle() {
     applySkillEvents(allEvents, friendlySetter, enemySetter, side)
 
 
-    // 记录技能事件（onKill；onDeath 已收口到 cleanupDeadCards 内自行记录）
+    // 记录技能事件（onKill；onDeath 已收口到「提交后死亡 effect」内自行记录）
     for (const evt of allEvents) {
       if (evt.message && evt.type !== 'OVERFLOW_DAMAGE' && evt.type !== 'PIERCING_DAMAGE') {
         addLog(evt.message)
@@ -730,7 +727,6 @@ export function useBattle() {
       return next
     })
     // 中毒/状态 tick 可能致死 → 清理死卡并触发其 onDeath（干细胞分化/复活/分裂/孢子散播等）。
-    cleanupDeadCards(side)
 
     return allEvents
   }
@@ -867,8 +863,6 @@ export function useBattle() {
       addLog(`   影响：${result.affected.join(', ')}`)
     }
     // 环境事件可能扣血致死（森林大火/基因突变等）→ 清理死卡并触发其 onDeath。
-    cleanupDeadCards('player')
-    cleanupDeadCards('enemy')
   }
 
   // Tick virus outbreak damage each turn
@@ -1369,10 +1363,9 @@ export function useBattle() {
     }
 
     // Cleanup dead cards from onPlay effects
-    cleanupDeadCards(side === 'player' ? 'enemy' : 'player')
 
     return { slot: emptySlot, card: fieldCard }
-  }, [addLog, pushSkillEvents, cleanupDeadCards])
+  }, [addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
   //  玩家出事件卡
@@ -1387,8 +1380,6 @@ export function useBattle() {
     // 2. Execute effect
     executeEventEffect(card, 'player', opts)
     // 事件卡 AOE（全球大流行/感染爆发等）可能击杀卡 → 清理 + 触发其 onDeath。
-    cleanupDeadCards('player')
-    cleanupDeadCards('enemy')
 
     // 3. Card goes to discard pile
     setPlayerDiscard(prev => [...prev, card])
@@ -1425,8 +1416,6 @@ export function useBattle() {
     // 2. Execute effect
     executeEventEffect(card, 'enemy', opts)
     // 事件卡 AOE（全球大流行/感染爆发等）可能击杀卡 → 清理 + 触发其 onDeath。
-    cleanupDeadCards('player')
-    cleanupDeadCards('enemy')
 
     // 3. Card goes to discard pile
     setEnemyDiscard(prev => [...prev, card])
@@ -1676,8 +1665,6 @@ export function useBattle() {
     }
     pushSkillEvents(playEvents)
     // onPlay AOE（声纳震荡/古老瘟疫等）可能击杀敌方卡 → 清理 + 触发其 onDeath。
-    cleanupDeadCards('enemy')
-    cleanupDeadCards('player')
 
     return { ok: true, replaced, skillEvents: playEvents }
   }, [phase, playerEnergy, addLog, pushSkillEvents])
@@ -1737,7 +1724,6 @@ export function useBattle() {
           if (next[pick.i]) next[pick.i].currentHp = Math.max(0, next[pick.i].currentHp - dmg)
           return next
         })
-        cleanupDeadCards('player') // 混乱友伤可能致死 → 清理 + 触发 onDeath
         attackedThisTurn.current.add(atkCard.uid)
         return { confusedHit: true }
       }
@@ -1867,14 +1853,12 @@ export function useBattle() {
     if (defKilled) battleStatsRef.current.kills++
 
     // 清理死亡卡牌
-    if (defKilled) cleanupDeadCards('enemy')
-    if (atkKilled) cleanupDeadCards('player')
 
     return {
       atkDmg, defDmg, defKilled, atkKilled, leaderHit: false, gameWon: false,
       atkFactionBonus, defFactionBonus, skillEvents: postEvents,
     }
-  }, [phase, playerField, enemyField, addLog, pushSkillEvents, cleanupDeadCards])
+  }, [phase, playerField, enemyField, addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
   //  结束战斗阶段 → 敌方回合
@@ -1968,8 +1952,6 @@ export function useBattle() {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }
     // onPlay AOE 可能击杀玩家卡 → 清理 + 触发其 onDeath。
-    cleanupDeadCards('player')
-    cleanupDeadCards('enemy')
 
     // 关卡特殊规则：敌方出牌后触发（丛林迷雾隐身等）
     if (stageRuleRef.current?.onEnemyCardPlayed) {
@@ -2018,7 +2000,6 @@ export function useBattle() {
           if (next[pick.i]) next[pick.i].currentHp = Math.max(0, next[pick.i].currentHp - dmg)
           return next
         })
-        cleanupDeadCards('enemy') // 混乱友伤可能致死 → 清理 + 触发 onDeath
         return { skipped: false, confusedHit: true }
       }
     }
@@ -2117,14 +2098,12 @@ export function useBattle() {
     handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, 'enemy')
 
     // 清理死亡卡牌
-    if (defKilled) cleanupDeadCards('player')
-    if (atkKilled) cleanupDeadCards('enemy')
 
     return {
       atkDmg, defDmg, defKilled, atkKilled, leaderHit: false, gameOver: false,
       atkFactionBonus, defFactionBonus,
     }
-  }, [addLog, cleanupDeadCards])
+  }, [addLog])
 
   // ----------------------------------------------------------------
   //  开始玩家新回合
@@ -2333,7 +2312,7 @@ export function useBattle() {
     tryQuiz, answerQuiz,
     setAnimating, restorePhase,
     setPlayerField, setEnemyField, addLog,
-    pushSkillEvents, clearSkillEvents, cleanupDeadCards,
+    pushSkillEvents, clearSkillEvents,
     setHandRefs,  // Sprint 27: BattleScreen 注入手牌引用
     // Refs
     playerFieldRef, enemyFieldRef, playerLeaderHpRef, enemyLeaderHpRef,

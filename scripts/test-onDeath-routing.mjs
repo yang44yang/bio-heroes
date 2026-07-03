@@ -64,9 +64,11 @@ ok('④ handlePostAttackSkills 不再含 triggerSkills(onDeath)（防双触发�
 ok('④ handlePostAttackSkills 仍触发 onKill（攻击方击杀技能不受影响）', /triggerSkills\(\s*'onKill'/.test(hp))
 ok('④ handlePostAttackSkills 不再残留 deathEvents 变量', !/deathEvents/.test(hp))
 
-// ⑤ cleanupDeadCards 现为 no-op；effect 对双方场扫场，天然覆盖全部死法（不再依赖各路径手动 cleanup）
-ok('⑤ cleanupDeadCards 已降为 no-op (useCallback(() => {}, []))',
-  /const cleanupDeadCards\s*=\s*useCallback\(\s*\(\)\s*=>\s*\{\s*\}\s*,\s*\[\]\s*\)/.test(ub))
+// ⑤ 决策E1：cleanupDeadCards 空桩及其 18 处调用已彻底删除；死亡清理只靠提交后 effect 扫场，天然覆盖全部死法
+ok('⑤ cleanupDeadCards 已彻底移除（决策E1，不再有空桩/调用/export）',
+  !/cleanupDeadCards/.test(ub))
+ok('⑤ 死亡清理由 [playerField, enemyField] 依赖的提交后 useEffect 扫 currentHp<=0 承担',
+  /useEffect\(\(\)\s*=>\s*\{[\s\S]*?currentHp\s*<=\s*0[\s\S]*?\},\s*\[playerField,\s*enemyField\]\)/.test(ub))
 ok("⑤ effect 对 player + enemy 双方都扫（覆盖己方/敌方、攻击/反击/AOE/中毒/环境/敌方回合全部死亡）",
   /for\s*\(const side of \[\s*'player',\s*'enemy'\s*\]\)/.test(ub))
 
