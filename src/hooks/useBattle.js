@@ -75,6 +75,23 @@ export function useBattle() {
     handsRef.current = { ...handsRef.current, ...refs }
   }, [])
 
+  // 消费「手牌相关」的技能事件（决策D）—— applySkillEvents 只拿场地 setter、碰不到手牌，故单列。
+  //   _removeFromHand: 信息素召集把手牌卡召上场后，从手牌移除原卡（防一卡变两卡）
+  //   _reviveToHand:   长老记忆从弃牌堆取回卡到手牌，并从权威弃牌堆（useBattle 的 discard）按引用移除
+  const applyHandEvents = useCallback((events, side) => {
+    if (!Array.isArray(events)) return
+    const addToHand = side === 'player' ? handsRef.current.playerAddToHand : handsRef.current.enemyAddToHand
+    const playCard = side === 'player' ? handsRef.current.playerPlayCard : handsRef.current.enemyPlayCard
+    const setDiscard = side === 'player' ? setPlayerDiscard : setEnemyDiscard
+    for (const evt of events) {
+      if (evt._removeFromHand && playCard) playCard(evt._removeFromHand)
+      if (evt._reviveToHand && addToHand) {
+        addToHand([evt._reviveToHand])
+        setDiscard((prev) => prev.filter((c) => c !== evt._reviveToHand))
+      }
+    }
+  }, [])
+
   // === SP 卡组 ===
   const [playerSpDeck, setPlayerSpDeck] = useState([])
   const [enemySpDeck, setEnemySpDeck] = useState([])
@@ -1650,6 +1667,7 @@ export function useBattle() {
       turn,
     })
     applySkillEvents(playEvents, setPlayerField, setEnemyField, 'player')
+    applyHandEvents(playEvents, 'player')
     for (const evt of playEvents) {
       if (evt.message) addLog(evt.message)
     }
@@ -1942,6 +1960,7 @@ export function useBattle() {
       turn,
     })
     applySkillEvents(playEvents, setEnemyField, setPlayerField, 'enemy')
+    applyHandEvents(playEvents, 'enemy')
     for (const evt of playEvents) {
       if (evt.message) addLog(`🔴 ${evt.message}`)
     }

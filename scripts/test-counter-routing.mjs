@@ -53,5 +53,14 @@ ok('③ 玩家攻击侧传 playerFieldRef、敌方攻击侧传 enemyFieldRef',
   hitCalls.some(c => /attackerField:\s*playerFieldRef\.current/.test(c)) &&
   hitCalls.some(c => /attackerField:\s*enemyFieldRef\.current/.test(c)))
 
+// ④ MRSA·耐药壁垒 反弹路由修复（决策D）—— 与 onHitCounter 同款 _side:'attacker' + ctx.attackerField
+const reg = readFileSync(join(ROOT, 'src/engine/skillRegistry.js'), 'utf8')
+const abStart = reg.indexOf("'Antibiotic Resistance'")
+const ab = abStart >= 0 ? reg.slice(abStart, abStart + 1300) : ''
+ok('④ Antibiotic Resistance 反弹用 ctx.attackerField 定位攻击者（不再 ctx.enemyField 恒 -1→0）',
+  /atkSlot\s*=\s*\(ctx\.attackerField\s*\|\|\s*\[\]\)\.findIndex/.test(ab))
+ok('④ Antibiotic Resistance 反弹发 _side: "attacker"（不再 attacker_side 落错方）',
+  /_side:\s*'attacker',/.test(ab) && !/attacker_side/.test(ab))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

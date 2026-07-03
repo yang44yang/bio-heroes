@@ -757,17 +757,17 @@ export const skillRegistry = {
       if (!defender) return null
       const immunity = ctx.attacker.atk || 0  // 完全免疫：减伤 = 攻击方全部 ATK（resolveCardCombat 消费 mods.damageReduction）
       const reflect = Math.floor((ctx.attacker.atk || 0) * 0.5)
-      const atkSlot = (ctx.enemyField || []).findIndex(c => c && c.uid === ctx.attacker.uid)
+      // 反弹打「攻击者」：用 ctx.attackerField 定位攻击者 slot + _side:'attacker'（镜像 onHitCounter 的路由修复，决策D）
+      const atkSlot = (ctx.attackerField || []).findIndex(c => c && c.uid === ctx.attacker.uid)
       return [{
         type: 'RUSH_BOOST', source: defender.name,
         message: `💊 ${defender.name} 免疫了 ${ctx.attacker.name} 的科技系攻击！`,
         mods: { damageReduction: immunity },
       }, {
-        // ⚠️ 反弹的 _side 路由是独立的 P1 bug（'attacker_side' 未被 applySkillEvents 识别 → 落错方），留待反击修复那刀
         type: 'AOE_DAMAGE', source: defender.name,
         targetSlot: atkSlot >= 0 ? atkSlot : 0,
         targetName: ctx.attacker.name, targetUid: ctx.attacker.uid, damage: reflect,
-        _side: 'attacker_side',
+        _side: 'attacker',
         message: `🔄 反弹 ${reflect} 伤害！`,
       }]
     },

@@ -45,6 +45,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         enemyHand: enemyHand.hand,
         drawCards: playerHand.draw,
         aiDrawCards: enemyHand.draw,
+        // 决策D：手牌变更函数，供 onPlay 技能的 _removeFromHand / _reviveToHand 消费
+        playerAddToHand: playerHand.addToHand,
+        enemyAddToHand: enemyHand.addToHand,
+        playerPlayCard: playerHand.playCard,
+        enemyPlayCard: enemyHand.playCard,
       })
     }
   }, [playerHand.hand, enemyHand.hand, playerHand.draw, enemyHand.draw, battle.setHandRefs])
