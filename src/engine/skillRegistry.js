@@ -33,7 +33,8 @@ export const skillRegistry = {
   // Guard 别名
   'Physical Barrier': { timing: 'passive' },  // 睫毛·物理屏障
   'Shell Defense': { timing: 'passive' },      // 海龟·龟壳防御
-  'Filter-Feed Guard': { timing: 'passive' },  // 鲸鲨·滤食守护（passive guard + self-heal → Phase 2 passiveAura）
+  // 鲸鲨·滤食守护：守护(由 GUARD_SKILL_NAMES 白名单识别) + 每回合自愈 1500（决策F 补实现，仿 Biofilm Shield 的 guard+onTurnEnd 双效）
+  'Filter-Feed Guard': { timing: 'onTurnEnd', execute: (ctx) => T.passiveAura(ctx, { effect: 'heal', scope: 'self', amount: 1500 }) },
 
   // ===========================================
   // 通用技能（完整实现保留）
@@ -194,9 +195,11 @@ export const skillRegistry = {
   'Injection Hijack': {
     timing: 'onKill',
     execute: (ctx) => {
-      const friendlyField = ctx.friendlyField || []
+      // 决策F：用 raw 5 格数组找空位（onKill 已传 raw field；onTurnEnd 新补 friendlyFieldRaw）。
+      // 旧 bug：过滤数组(onTurnEnd)+硬编码 i<3 → 拿"过滤后索引"当槽位、有空隙时召到占用槽覆盖友军 / 3+ 卡时不召唤。
+      const friendlyField = ctx.friendlyFieldRaw || ctx.friendlyField || []
       const emptySlots = []
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < friendlyField.length; i++) {  // 扫全部 5 槽找空位
         if (!friendlyField[i] || friendlyField[i].currentHp <= 0) emptySlots.push(i)
       }
       if (emptySlots.length === 0) return null
@@ -220,9 +223,11 @@ export const skillRegistry = {
   'Marrow Hematopoiesis': {
     timing: 'onTurnEnd',
     execute: (ctx) => {
-      const friendlyField = ctx.friendlyField || []
+      // 决策F：用 raw 5 格数组找空位（onKill 已传 raw field；onTurnEnd 新补 friendlyFieldRaw）。
+      // 旧 bug：过滤数组(onTurnEnd)+硬编码 i<3 → 拿"过滤后索引"当槽位、有空隙时召到占用槽覆盖友军 / 3+ 卡时不召唤。
+      const friendlyField = ctx.friendlyFieldRaw || ctx.friendlyField || []
       const emptySlots = []
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < friendlyField.length; i++) {  // 扫全部 5 槽找空位
         if (!friendlyField[i] || friendlyField[i].currentHp <= 0) emptySlots.push(i)
       }
       if (emptySlots.length === 0) return null

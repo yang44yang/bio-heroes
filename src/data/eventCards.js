@@ -103,7 +103,7 @@ const eventCards = [
     hp: null,
     factionRequirement: null,
     effectType: "draw",
-    effectDescription: "从牌库顶翻3张卡，所有自然系卡加入手牌，其余放回牌库底",
+    effectDescription: "从牌库抽 3 张牌",
     effectValue: 3,
     effectTarget: "draw_filter_nature",
     spSummonRule: {

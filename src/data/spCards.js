@@ -322,7 +322,7 @@ const spCards = [
         nameEn: "Gene Rewrite",
         type: "unique",
         timing: "onPlay",
-        description: "登场时选择对方一张卡，将其ATK和HP互换",
+        description: "登场时将对方一张卡的 ATK 变为它当前的 HP 值（高攻卡瞬间变弱）",
         scienceNote: "CRISPR能精准切割DNA并替换基因片段，从根本上改变生物特性"
       },
       {

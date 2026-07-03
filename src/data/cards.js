@@ -2782,7 +2782,7 @@ const cards = [
                 "name": "核酸扩增",
                 "nameEn": "Nucleic Acid Amplification",
                 "type": "unique",
-                "description": "攻击病原卡时+2000ATK，并标记它下回合受伤+1000",
+                "description": "攻击病原卡时 +2000 ATK",
                 "scienceNote": "PCR技术能将微量DNA放大数百万倍，让任何病原体都无所遁形"
           }
     ],
@@ -3006,7 +3006,7 @@ const cards = [
                 "name": "基因编辑",
                 "nameEn": "Gene Edit",
                 "type": "unique",
-                "description": "选择一个敌方卡，将其 ATK 和 HP 互换",
+                "description": "将一个敌方卡的 ATK 变为它当前的 HP 值（高攻卡瞬间变弱）",
                 "scienceNote": "CRISPR能精确剪切和编辑任何生物的DNA，像Word编辑文档一样修改基因"
           }
     ],

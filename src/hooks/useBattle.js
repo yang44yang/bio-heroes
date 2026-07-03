@@ -611,6 +611,7 @@ export function useBattle() {
         defender: defCard,
         overflow,
         friendlyField: killFriendlyField,
+        friendlyFieldRaw: killFriendlyField, // 决策F：真 5 格数组（含 null 空位），供召唤类找空位
       })
 
       // onDeath 已统一收口到 cleanupDeadCards（覆盖反击/AOE/中毒/环境等所有死亡）→ 此处不再触发，避免双触发。
@@ -671,6 +672,7 @@ export function useBattle() {
     // onTurnEnd 技能（自愈等）。传 turn → 让 interval 类技能(如胸腺 T-Cell Training 每2回合抽牌)能判回合。
     const turnEndEvents = triggerSkills('onTurnEnd', {
       friendlyField: field.filter(c => c && c.currentHp > 0),
+      friendlyFieldRaw: field, // 决策F：真 5 格数组（含 null 空位），供骨髓造血等召唤类找空位
       turn: turnRef.current,
     })
 
@@ -1044,8 +1046,9 @@ export function useBattle() {
           const drawn = drawCards(card.effectValue)
           addLog(`📖 ${card.name}：抽了 ${drawn.length} 张牌！`)
         } else if (card.effectTarget === 'draw_filter_nature' && drawCards) {
-          // Draw 3, keep nature, put rest back (simplified: just draw 2)
-          const drawn = drawCards(2)
+          // 决策F：抽 card.effectValue(=3) 张（旧写死 draw 2 且注释自承 simplified）。
+          // 真·"翻3自然入手其余回底"需给 useHand 加 peek/filter API，留作后续增强；先做够费的抽3 + 文案对齐。
+          const drawn = drawCards(card.effectValue || 3)
           addLog(`📖 ${card.name}：抽了 ${drawn.length} 张牌！`)
         }
         return { success: true }
