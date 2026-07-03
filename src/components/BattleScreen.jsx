@@ -25,7 +25,7 @@ import { useLanguage } from '../i18n/LanguageContext'
  *   敌方主人HP → 敌方战场(5位) → VS → 玩家战场(5位) → 玩家主人HP
  *   → 手牌区 → 操作按钮 → 日志
  */
-export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, onExit }) {
+export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit }) {
   const { t, lang, cardName, localName } = useLanguage()
   const battle = useBattle()
   const playerHand = useHand(playerDeckCards)
@@ -244,6 +244,11 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
       bossPreplaced: bossPreplacedCard,
       preplaceEnemyCards,
       globalEffects,
+      // 🧪 测试场：直接摆盘到双方战场 + 满能量开局（testArenaConfig 缺省时全 undefined → 普通对战零影响）
+      testPlayerField: testArenaConfig?.playerField,
+      testEnemyField: testArenaConfig?.enemyField,
+      playerStartEnergy: testArenaConfig?.startEnergy,
+      enemyStartEnergy: testArenaConfig?.startEnergy,
     })
     // Conundrum 起手手牌奖励：在 initHand 之后追加
     if (eff.playerStartingBonus?.card) {

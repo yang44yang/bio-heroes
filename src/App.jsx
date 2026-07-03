@@ -35,6 +35,7 @@ const Collection = lazy(() => import('./components/Collection'))
 const TutorialScreen = lazy(() => import('./components/TutorialScreen'))
 const CampaignScreen = lazy(() => import('./components/CampaignScreen'))
 const DailyChallenge = lazy(() => import('./components/DailyChallenge'))
+const TestArena = lazy(() => import('./components/TestArena'))
 
 // 加载占位
 function LoadingFallback() {
@@ -75,6 +76,7 @@ export default function App() {
     return 'title'
   })
   const [selectedDeck, setSelectedDeck] = useState(null)
+  const [testArenaConfig, setTestArenaConfig] = useState(null) // 🧪 测试场：直接摆盘配置
   const [highlightCardIds, setHighlightCardIds] = useState([])
   const [tutorialStartLevel, setTutorialStartLevel] = useState(null) // 从闯关跳转时指定教学关卡
   const [pendingSpUnlock, setPendingSpUnlock] = useState(null) // Boss 通关后弹解锁庆祝
@@ -84,6 +86,8 @@ export default function App() {
   const dailyRef = useRef(daily)
   dailyRef.current = daily // 始终指向最新，供 handleExitBattle 读取而不进 deps
   const [dailyResult, setDailyResult] = useState(null) // 每日挑战刚完成的奖励结果（供 DailyChallenge 弹窗）
+  const testArenaConfigRef = useRef(null)
+  testArenaConfigRef.current = testArenaConfig // 供 handleExitBattle 判断是否测试场对战（不进 deps）
 
   // === 闯关战役状态 ===
   const campaignStageRef = useRef(null) // 当前战斗的关卡配置
@@ -127,6 +131,14 @@ export default function App() {
   }, [])
 
   const handleExitBattle = useCallback((battleResult) => {
+    // 🧪 测试场对战：不计战绩/成就，直接清配置回主菜单
+    if (testArenaConfigRef.current) {
+      setTestArenaConfig(null)
+      campaignStageRef.current = null
+      setSelectedDeck(null)
+      setScreen('title')
+      return
+    }
     // —— 共享：累计战斗/答题统计 + 检测战斗/答题成就（campaign 分支会提前 return，故必须前置）——
     if (battleResult) {
       const stats = economy.recordBattleResult(battleResult) // stateRef 同步新快照
@@ -328,6 +340,7 @@ export default function App() {
           onOpenTutorial={() => setScreen('tutorial')}
           onOpenCampaign={() => setScreen('campaign')}
           onOpenDailyChallenge={() => setScreen('daily')}
+          onOpenTestArena={() => setScreen('testArena')}
           daily={daily}
           economy={economy}
         />
@@ -340,7 +353,18 @@ export default function App() {
             playerSpDeckCards={selectedDeck?.spCards}
             enemySpDeckCards={campaignEnemy?.spDeck}
             campaignConfig={campaignEnemy}
+            testArenaConfig={testArenaConfig}
             onExit={handleExitBattle}
+          />
+        )}
+        {screen === 'testArena' && (
+          <TestArena
+            onBack={() => setScreen('title')}
+            onStart={(config) => {
+              setTestArenaConfig(config)
+              setSelectedDeck({ mainCards: config.playerField.filter(Boolean) })
+              setScreen('battle')
+            }}
           />
         )}
         {screen === 'gacha' && (

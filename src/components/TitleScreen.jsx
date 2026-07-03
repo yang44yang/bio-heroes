@@ -4,7 +4,7 @@ import { exportSave, importSave, resetSave } from '../utils/saveManager'
 import { getQuizMode, setQuizMode } from '../utils/settings'
 import { useLanguage } from '../i18n/LanguageContext'
 
-export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, daily, economy }) {
+export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, onOpenTestArena, daily, economy }) {
   const { t, lang, toggleLang } = useLanguage()
   const [showSettings, setShowSettings] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
@@ -23,6 +23,14 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
     setQuizMode(mode)
     setQuizModeState(mode)
     setImportMsg(null)
+  }
+
+  // 🧪 测试场：家长门（防孩子误入 dev 工具），复用同款算术门
+  const handleOpenTestArena = () => {
+    const ans = window.prompt(t('settings.parentGate'))
+    if (ans === null) return
+    if (ans.trim() !== '56') { setImportMsg({ success: false, message: t('settings.parentGateFail') }); return }
+    onOpenTestArena?.()
   }
 
   const handleImport = async (e) => {
@@ -161,6 +169,18 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           onClick={onOpenCollection}
         >
           {t('menu.collection')}
+        </motion.button>
+
+        <motion.button
+          className="w-full py-2 bg-emerald-800 hover:bg-emerald-700 rounded-2xl text-emerald-100 text-sm font-bold shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.58 }}
+          onClick={handleOpenTestArena}
+        >
+          🧪 测试场（家长）
         </motion.button>
 
         <motion.button

@@ -1512,8 +1512,8 @@ export function useBattle() {
   // ----------------------------------------------------------------
   const startBattle = useCallback((spDecks = {}) => {
     setTurn(1)
-    setPlayerEnergy(1)
-    setEnemyEnergy(1)
+    setPlayerEnergy(spDecks.playerStartEnergy || 1)   // 测试场可满能量开局
+    setEnemyEnergy(spDecks.enemyStartEnergy || 1)
     setPlayerLeaderHp(spDecks.playerLeaderHP || LEADER_HP)
     setEnemyLeaderHp(spDecks.enemyLeaderHP || LEADER_HP)
     // Phase B：记录初始主人 HP（50% 触发阈值用）+ 清空三条件触发记录
@@ -1589,6 +1589,20 @@ export function useBattle() {
       })
       addLog(`🦠 等待期间，${cards.length} 个敌方单位已经入侵了战场！`)
       // 不加入 summonedThisTurn → 它们可以立刻攻击
+    }
+    // 测试场：直接把卡摆到双方指定格（sparse 5-array 按 index 放；不加召唤疲劳 → 可立刻攻击）。
+    // 与 Conundrum 的 preplaceEnemyCards 分开，避免影响其打包/boss 偏移逻辑。
+    for (const [key, setter] of [['testPlayerField', setPlayerField], ['testEnemyField', setEnemyField]]) {
+      const arr = spDecks[key]
+      if (Array.isArray(arr) && arr.some(Boolean)) {
+        setter(prev => {
+          const next = [...prev]
+          for (let i = 0; i < Math.min(arr.length, next.length); i++) {
+            if (arr[i]) next[i] = makeFieldCard(arr[i])
+          }
+          return next
+        })
+      }
     }
     setPhase('mulligan')
   }, [])
