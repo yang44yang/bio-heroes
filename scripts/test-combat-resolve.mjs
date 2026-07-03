@@ -1,6 +1,6 @@
 // test-combat-resolve.mjs — 首个「真正驱动战斗结算」的单测（import 纯引擎，非正则匹配源码）。
 // 覆盖 src/engine/combat.js 的 resolveCardCombat：互扣 / 护盾 / 免疫 / 阵营克制 / 觉醒。
-import { resolveCardCombat, aggregateCombatMods } from '../src/engine/combat.js'
+import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../src/engine/combat.js'
 import { onHitCounter } from '../src/engine/skillTemplates.js'
 import { FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS } from '../src/data/deckRules.js'
 
@@ -178,6 +178,23 @@ const nf = neutralA || atkFac // 中立阵营（无克制），用于隔离修�
   const mods = aggregateCombatMods([red])
   const r = resolveCardCombat({ attacker: card({ atk: 3000, faction: nf }), defender: card({ atk: 1000, faction: nf }), mods })
   eq(r.atkDmg, 2200, '⑭ 生产端→聚合→结算 全链路：3000-800=2200')
+}
+
+// ---- 15. canCardAttack 能否攻击纯谓词（决策E2）----
+{
+  const c = (o) => ({ uid: 'u1', skills: [], statuses: [], ...o })
+  const S = (uids) => new Set(uids)
+  eq(canCardAttack(c(), { summonedThisTurn: S([]), attackedThisTurn: S([]) }).ok, true, '⑮ 干净卡可攻击')
+  const sleep = canCardAttack(c({ statuses: [{ type: 'sleep' }] }), { summonedThisTurn: S([]), attackedThisTurn: S([]) })
+  eq(sleep.ok, false, '⑮ 沉睡不可攻击'); eq(sleep.reason, 'sleep', '⑮ reason=sleep')
+  eq(canCardAttack(c(), { summonedThisTurn: S(['u1']), attackedThisTurn: S([]) }).reason, 'fatigue', '⑮ 召唤疲劳 reason=fatigue')
+  eq(canCardAttack(c({ skills: [{ nameEn: 'Swift Attack' }] }), { summonedThisTurn: S(['u1']) }).ok, true, '⑮ Swift Attack 免召唤疲劳')
+  eq(canCardAttack(c({ skills: [{ nameEn: 'Silent Dive' }] }), { summonedThisTurn: S(['u1']) }).ok, true, '⑮ Silent Dive 免召唤疲劳')
+  eq(canCardAttack(c({ statuses: [{ type: 'swift_boost' }] }), { summonedThisTurn: S(['u1']) }).ok, true, '⑮ swift_boost 免召唤疲劳')
+  eq(canCardAttack(c(), { summonedThisTurn: S([]), attackedThisTurn: S(['u1']), checkAttacked: true }).reason, 'attacked', '⑮ 已攻击 reason=attacked')
+  eq(canCardAttack(c(), { summonedThisTurn: S([]), attackedThisTurn: S(['u1']), checkAttacked: false }).ok, true, '⑮ AI(checkAttacked:false) 不查已攻击')
+  eq(canCardAttack(c({ statuses: [{ type: 'sleep' }] }), { summonedThisTurn: S(['u1']), attackedThisTurn: S(['u1']) }).reason, 'sleep', '⑮ 优先级 sleep 最高')
+  eq(canCardAttack(c(), { summonedThisTurn: S(['u1']), attackedThisTurn: S(['u1']) }).reason, 'fatigue', '⑮ 优先级 fatigue > attacked')
 }
 
 // ---- 汇总 ----

@@ -9,7 +9,7 @@ import { getRandomQuiz, resetQuizHistory } from '../data/quizzes'
 import { getQuizMode } from '../utils/settings'
 import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
-import { resolveCardCombat, aggregateCombatMods } from '../engine/combat'
+import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine/combat'
 import { pickRandomEvent } from '../data/events'
 import { getBossMechanic } from '../engine/bossMechanics'
 import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
@@ -1686,14 +1686,8 @@ export function useBattle() {
     if (phase !== 'battle') return false
     const card = playerField[slotIdx]
     if (!card || card.currentHp <= 0) return false
-    if (attackedThisTurn.current.has(card.uid)) return false
-    // Sprint 27: swift_boost status 也算迅击
-    const hasSwift = card.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
-      || card.statuses?.some(s => s.type === 'swift_boost')
-    if (summonedThisTurn.current.has(card.uid) && !hasSwift) return false
-    // 沉睡状态无法攻击
-    if (card.statuses?.some(s => s.type === 'sleep')) return false
-    return true
+    // sleep/fatigue/attacked 走 canCardAttack 纯谓词（决策E2，与 attack/aiAttack 同一真相源）
+    return canCardAttack(card, { summonedThisTurn: summonedThisTurn.current, attackedThisTurn: attackedThisTurn.current, checkAttacked: true }).ok
   }, [phase, playerField])
 
   // ----------------------------------------------------------------
@@ -1705,11 +1699,10 @@ export function useBattle() {
     const atkCard = playerField[atkSlot]
     if (!atkCard || atkCard.currentHp <= 0) return null
 
-    // 沉睡状态无法攻击
-    if (atkCard.statuses?.some(s => s.type === 'sleep')) {
-      addLog(`${atkCard.name} 正在沉睡中，无法攻击`)
-      return null
-    }
+    // 能否攻击判定（sleep/fatigue/attacked 抽到 canCardAttack 纯谓词，决策E2）。
+    // 混乱是"重定向而非阻断"、优先级在 sleep 之后 fatigue 之前 → 留在下面（gate 先算好，纯函数无副作用）。
+    const gate = canCardAttack(atkCard, { summonedThisTurn: summonedThisTurn.current, attackedThisTurn: attackedThisTurn.current, checkAttacked: true })
+    if (gate.reason === 'sleep') { addLog(`${atkCard.name} 正在沉睡中，无法攻击`); return null }
     // Sprint 26: 混乱状态 — 玩家的卡被操控，自动攻击随机友方
     if (atkCard.statuses?.some(s => s.type === 'confused')) {
       const friendlyTargets = playerField
@@ -1728,17 +1721,8 @@ export function useBattle() {
         return { confusedHit: true }
       }
     }
-    // 召唤疲劳（Sprint 27: swift_boost / Silent Dive 也跳过疲劳）
-    const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
-      || atkCard.statuses?.some(s => s.type === 'swift_boost')
-    if (summonedThisTurn.current.has(atkCard.uid) && !hasSwift) {
-      addLog(`${atkCard.name} 刚上场，不能攻击（召唤疲劳）`)
-      return null
-    }
-    if (attackedThisTurn.current.has(atkCard.uid)) {
-      addLog(`${atkCard.name} 本回合已攻击过`)
-      return null
-    }
+    if (gate.reason === 'fatigue') { addLog(`${atkCard.name} 刚上场，不能攻击（召唤疲劳）`); return null }
+    if (gate.reason === 'attacked') { addLog(`${atkCard.name} 本回合已攻击过`); return null }
 
     attackedThisTurn.current.add(atkCard.uid)
 
@@ -1980,11 +1964,10 @@ export function useBattle() {
     const atkCard = eField[atkSlot]
     if (!atkCard || atkCard.currentHp <= 0) return null
 
-    // 沉睡状态检查
-    if (atkCard.statuses?.some(s => s.type === 'sleep')) {
-      addLog(`🔴 ${atkCard.name} 正在沉睡中，无法攻击`)
-      return { skipped: true }
-    }
+    // 能否攻击判定（canCardAttack 纯谓词，决策E2；AI 每卡一次由外层 BattleScreen 保证 → checkAttacked:false）。
+    // 混乱是重定向、优先级在 sleep 之后 → 留在下面。
+    const gate = canCardAttack(atkCard, { summonedThisTurn: summonedThisTurn.current, checkAttacked: false })
+    if (gate.reason === 'sleep') { addLog(`🔴 ${atkCard.name} 正在沉睡中，无法攻击`); return { skipped: true } }
     // Sprint 26: 混乱状态 — 攻击目标改为随机友方（攻击自己人）
     if (atkCard.statuses?.some(s => s.type === 'confused')) {
       const friendlyTargets = eField
@@ -2003,13 +1986,7 @@ export function useBattle() {
         return { skipped: false, confusedHit: true }
       }
     }
-    // 召唤疲劳检查（Sprint 27: swift_boost / Silent Dive 也跳过疲劳）
-    const hasSwift = atkCard.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
-      || atkCard.statuses?.some(s => s.type === 'swift_boost')
-    if (summonedThisTurn.current.has(atkCard.uid) && !hasSwift) {
-      addLog(`🔴 ${atkCard.name} 召唤疲劳，无法攻击`)
-      return { skipped: true }
-    }
+    if (gate.reason === 'fatigue') { addLog(`🔴 ${atkCard.name} 召唤疲劳，无法攻击`); return { skipped: true } }
 
     // 直攻主人
     if (defSlot === -1) {

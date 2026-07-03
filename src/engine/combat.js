@@ -102,3 +102,26 @@ export function resolveCardCombat({ attacker, defender, awakenOpts = {}, attacke
     appliedMods: m,
   }
 }
+
+/**
+ * 判定一张卡能否发起攻击（纯函数，决策E2）。
+ * 检查：sleep(沉睡) / fatigue(召唤疲劳，Swift Attack·Silent Dive·swift_boost 免疫) / attacked(本回合已攻击)。
+ * ⚠️「混乱(confused)」不在此 —— 它是"攻击重定向到随机友方"、属副作用重定向而非阻断，由调用方(useBattle)处理。
+ * 优先级 sleep > fatigue > attacked（reason 返回最高优先的那个）。attack/aiAttack/canAttack(UI) 三处共用。
+ *
+ * @param {Object} card
+ * @param {Object} opts
+ * @param {Set}    [opts.summonedThisTurn]  本回合召唤的 uid 集合
+ * @param {Set}    [opts.attackedThisTurn]  本回合已攻击的 uid 集合
+ * @param {boolean}[opts.checkAttacked=true] 是否查"本回合已攻击"（AI 由外层保证每卡一次 → 传 false）
+ * @returns {{ ok:boolean, reason:'sleep'|'fatigue'|'attacked'|null }}
+ */
+export function canCardAttack(card, { summonedThisTurn, attackedThisTurn, checkAttacked = true } = {}) {
+  if (card?.statuses?.some((s) => s.type === 'sleep')) return { ok: false, reason: 'sleep' }
+  const hasSwift =
+    card?.skills?.some((s) => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive') ||
+    card?.statuses?.some((s) => s.type === 'swift_boost')
+  if (summonedThisTurn?.has(card.uid) && !hasSwift) return { ok: false, reason: 'fatigue' }
+  if (checkAttacked && attackedThisTurn?.has(card.uid)) return { ok: false, reason: 'attacked' }
+  return { ok: true, reason: null }
+}
