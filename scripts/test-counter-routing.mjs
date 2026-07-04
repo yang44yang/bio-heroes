@@ -68,9 +68,18 @@ ok('⑤ attack/aiAttack 两处都调 applyCombatOutcome（去重）', (ub.match(
 ok('⑤ 结算里的护盾 setState 块已收敛（源码不再有 3+ 处 applyShieldAbsorb(next[…]）',
   (ub.match(/applyShieldAbsorb\(next\[/g) || []).length <= 2)
 
-// ⑥ 决策E5a：14 处 state-mirror 双写收进 useLatestRef，不再有裸 `xRef.current = x` 顶层镜像写
+// ⑥ 决策E5a：state-mirror 双写收进 useLatestRef，不再有裸 `xRef.current = x` 顶层镜像写
+// ⚠️ E5c 起逐组把 state 迁进 battleReducer，对应的 useLatestRef 会**逐步退役**
+//    （E5c-0 已退役 playerPowerBankRef/enemyPowerBankRef，新增 battleStateRef）。
+//    故下界随迁移下调；核心不变式仍是「没有裸镜像双写」。
 ok('⑥ useBattle 不再有裸镜像双写（顶层 xRef.current = x）', !/^ {2}\w+Ref\.current = \w+$/m.test(ub))
-ok('⑥ state-mirror 改用 useLatestRef（≥14 处）', (ub.match(/= useLatestRef\(/g) || []).length >= 14)
+ok('⑥ state-mirror 仍走 useLatestRef helper（≥10 处，E5c 迁移中逐步退役）', (ub.match(/= useLatestRef\(/g) || []).length >= 10)
+
+// ⑦ 决策E5c-0：Power Bank 迁进 battleReducer（reducer 拿最新 state + 原子改）
+ok('⑦ 引入 useReducer(battleReducer)', /useReducer\(battleReducer/.test(ub))
+ok('⑦ Power Bank 写全走 dispatch（POWERBANK_*），不再 setPlayer/EnemyPowerBank',
+  /dispatch\(\{\s*type:\s*'POWERBANK_/.test(ub) && !/set(Player|Enemy)PowerBank/.test(ub))
+ok('⑦ battleStateRef 供异步读最新（AI 回合 / latest 快照）', /battleStateRef\s*=\s*useLatestRef\(battleState\)/.test(ub))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

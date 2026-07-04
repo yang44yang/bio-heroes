@@ -1,5 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef, useEffect, useReducer } from 'react'
 import { useLatestRef } from './useLatestRef'
+import { battleReducer, initialBattleState } from '../engine/battleReducer'
 import {
   ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
   SP_QUIZ_STREAK, SP_LEADER_HP_RATIO, SP_TURN_TRIGGER,
@@ -53,11 +54,15 @@ export function useBattle() {
   // === 技能事件队列（供 BattleScreen 消费：伤害浮字、动画）===
   const [skillEvents, setSkillEvents] = useState([])
 
-  // === Power Bank 能量储蓄罐 ===
-  const [playerPowerBank, setPlayerPowerBank] = useState({ stored: 0, intact: true })
-  const [enemyPowerBank, setEnemyPowerBank] = useState({ stored: 0, intact: true })
-  const playerPowerBankRef = useLatestRef(playerPowerBank)
-  const enemyPowerBankRef = useLatestRef(enemyPowerBank)
+  // === 棋盘状态机（E5c）：逐组把 useState 收进 reducer ===
+  // E5c-0：先迁 Power Bank。battleStateRef 供异步 AI 回合 / latest 快照读最新值
+  // （渲染时 battleState 闭包是快照，await 之后是旧的 → 必须走 ref）。
+  const [battleState, dispatch] = useReducer(battleReducer, initialBattleState)
+  const battleStateRef = useLatestRef(battleState)
+
+  // === Power Bank 能量储蓄罐（派生自 reducer，供 return 导出 / UI 读取）===
+  const playerPowerBank = battleState.player.powerBank
+  const enemyPowerBank = battleState.enemy.powerBank
 
   // === 弃牌堆（用于阵营标记计算）===
   const [playerDiscard, setPlayerDiscard] = useState([])
@@ -289,7 +294,6 @@ export function useBattle() {
     // 技能拥有者视角的 leader / powerBank setter
     const selfLeaderSetter = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
     const enemyLeaderSetter = side === 'player' ? setEnemyLeaderHp : setPlayerLeaderHp
-    const selfPowerBankSetter = side === 'player' ? setPlayerPowerBank : setEnemyPowerBank
     const selfDiscardRef = side === 'player' ? playerDiscardRef : enemyDiscardRef
     for (const evt of events) {
       switch (evt.type) {
@@ -463,7 +467,7 @@ export function useBattle() {
         }
         // === Sprint 24 新增 ===
         case 'REPAIR_POWER_BANK': {
-          selfPowerBankSetter(pb => ({ ...pb, intact: true }))
+          dispatch({ type: 'POWERBANK_RESTORE', side })
           if (evt.message) addLog(evt.message)
           break
         }
@@ -774,16 +778,14 @@ export function useBattle() {
   // ----------------------------------------------------------------
   function processEndPhase(side) {
     const energyRef = side === 'player' ? playerEnergyRef : enemyEnergyRef
-    const pbRef = side === 'player' ? playerPowerBankRef : enemyPowerBankRef
-    const setPB = side === 'player' ? setPlayerPowerBank : setEnemyPowerBank
     const setEnergy = side === 'player' ? setPlayerEnergy : setEnemyEnergy
 
     const energy = energyRef.current
-    const pb = pbRef.current
+    const pb = battleStateRef.current[side].powerBank
 
     if (pb.intact && energy > 0) {
       const newStored = pb.stored + energy
-      setPB(prev => ({ ...prev, stored: prev.stored + energy }))
+      dispatch({ type: 'POWERBANK_ADD', side, amount: energy })
       if (side === 'player' && newStored > battleStatsRef.current.powerBankMax) {
         battleStatsRef.current.powerBankMax = newStored
       }
@@ -796,16 +798,14 @@ export function useBattle() {
   //  Power Bank：打破释放能量
   // ----------------------------------------------------------------
   const breakPowerBank = useCallback((side) => {
-    const pbRef = side === 'player' ? playerPowerBankRef : enemyPowerBankRef
-    const pb = pbRef.current
+    const pb = battleStateRef.current[side].powerBank
     if (!pb.intact || pb.stored <= 0) return 0
 
     const released = pb.stored
     const setEnergy = side === 'player' ? setPlayerEnergy : setEnemyEnergy
-    const setPB = side === 'player' ? setPlayerPowerBank : setEnemyPowerBank
 
     setEnergy(prev => prev + released)
-    setPB({ stored: 0, intact: false })
+    dispatch({ type: 'POWERBANK_SET', side, powerBank: { stored: 0, intact: false } })
     addLog(`💥 Power Bank 打破！释放 ${released} 点能量！`)
 
     return released
@@ -900,7 +900,6 @@ export function useBattle() {
     const setLeaderHp = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
     const friendlyFieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
     const enemyFieldRef_ = side === 'player' ? enemyFieldRef : playerFieldRef
-    const setPB = side === 'player' ? setPlayerPowerBank : setEnemyPowerBank
     const discardRef = side === 'player' ? playerDiscardRef : enemyDiscardRef
     const setDiscardPile = side === 'player' ? setPlayerDiscard : setEnemyDiscard
 
@@ -1120,7 +1119,7 @@ export function useBattle() {
             })
             return { ...c, atk: c.atk + card.effectValue, statuses }
           }))
-          setPB(prev => ({ ...prev, stored: prev.stored + 5 }))
+          dispatch({ type: 'POWERBANK_ADD', side, amount: 5 })
           addLog(`✨ ${card.name}：全队 ATK +${card.effectValue}（持续${turns}回合），Power Bank +5！`)
         }
         return { success: true }
@@ -1245,16 +1244,14 @@ export function useBattle() {
     // Special SP skills that need manual handling
     // SP2 World Tree: Power Bank repair
     if (spCard.id === 'sp_world_tree') {
-      const pbRef = side === 'player' ? playerPowerBankRef : enemyPowerBankRef
-      const setPB = side === 'player' ? setPlayerPowerBank : setEnemyPowerBank
       // Heal all friendly 3000 HP
       friendlySetter(prev => prev.map(c => {
         if (!c || c.currentHp <= 0) return c
         return { ...c, currentHp: Math.min(c.maxHp, c.currentHp + 3000) }
       }))
       // Repair Power Bank
-      if (!pbRef.current.intact) {
-        setPB({ stored: 0, intact: true })
+      if (!battleStateRef.current[side].powerBank.intact) {
+        dispatch({ type: 'POWERBANK_SET', side, powerBank: { stored: 0, intact: true } })
         addLog(`🌳 世界树修复了 Power Bank！`)
       }
       addLog(`🌳 世界树：所有友方卡回复 3000 HP！`)
@@ -1512,8 +1509,8 @@ export function useBattle() {
     setBattleLog(['⚔️ 战斗开始！'])
     setWinner(null)
     setSkillEvents([])
-    setPlayerPowerBank({ stored: 0, intact: true })
-    setEnemyPowerBank({ stored: 0, intact: true })
+    dispatch({ type: 'POWERBANK_SET', side: 'player', powerBank: { stored: 0, intact: true } })
+    dispatch({ type: 'POWERBANK_SET', side: 'enemy', powerBank: { stored: 0, intact: true } })
     setPlayerDiscard([])
     setEnemyDiscard([])
     // SP decks (give each card a uid)
@@ -2262,7 +2259,7 @@ export function useBattle() {
     get enemyField() { return enemyFieldRef.current },
     get playerLeaderHp() { return playerLeaderHpRef.current },
     get enemyLeaderHp() { return enemyLeaderHpRef.current },
-    get enemyPowerBank() { return enemyPowerBankRef.current },
+    get enemyPowerBank() { return battleStateRef.current.enemy.powerBank },
     get enemySpDeck() { return enemySpDeckRef.current },
     get enemyDiscard() { return enemyDiscardRef.current },
     get battleStats() { return battleStatsRef.current },
