@@ -17,9 +17,9 @@ ok('bug1: 护盾数值不再用 top-0 left-0(老的左上角重叠位)', !/top-0
 const ub = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
 const spFn = ub.slice(ub.indexOf('function getEligibleSpCards'), ub.indexOf('function getEligibleSpCards') + 2800)
 ok('bug2: getEligibleSpCards 召唤门槛改"看费用"(turn ≥ spEarliestSummonTurn(spCost)，已含 turn≥3 地板挡第1-2回合)',
-  /turnRef\.current\s*>=\s*spEarliestSummonTurn\(sp\.spCost\)/.test(spFn))
+  /battleStateRef\.current\.turn\s*>=\s*spEarliestSummonTurn\(sp\.spCost\)/.test(spFn))
 ok('bug2: 不再用 spCost<=turn 量纲错配门槛(那会把所有 SP 推到第 5-10 回合，SP 永远出不来)',
-  !/sp\.spCost\s*<=\s*turnRef\.current/.test(spFn))
+  !/sp\.spCost\s*<=\s*battleStateRef\.current\.turn/.test(spFn))
 ok('bug2: 仍先收集 candidates 再统一返回(switch 内不直接 return spDeck.filter)',
   /let candidates = \[\]/.test(spFn))
 

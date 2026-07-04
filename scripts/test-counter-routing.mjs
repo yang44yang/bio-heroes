@@ -101,5 +101,13 @@ ok('⑦ 主人 HP 状态镜像 ref 已退役（仅剩 Init 阈值 ref）',
 ok('⑦ 胜负判定仍在调用端（reducer 纯，不碰 winner/phase）',
   /battleReducer/.test(ub) && !/setWinner|setPhase/.test(readFileSync(join(ROOT, 'src/engine/battleReducer.js'), 'utf8')))
 
+// ⑦ 决策E5c-4：turn/phase/winner 迁进 battleReducer
+ok('⑦ turn/phase/winner 写走 dispatch（TURN_SET/PHASE_SET/WINNER_SET/GAME_OVER）',
+  /dispatch\(\{\s*type:\s*'(TURN_SET|PHASE_SET|WINNER_SET|GAME_OVER)'/.test(ub) &&
+  !/\bsetTurn\b|\bsetPhase\b|\bsetWinner\b/.test(ub))
+ok('⑦ 胜负走原子 GAME_OVER（winner+phase 一步）', /dispatch\(\{\s*type:\s*'GAME_OVER',\s*winner:/.test(ub))
+ok('⑦ turnRef 退役（读走 battleStateRef.current.turn）',
+  !/turnRef/.test(ub) && /battleStateRef\.current\.turn/.test(ub))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

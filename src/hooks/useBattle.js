@@ -24,10 +24,8 @@ import { getStageRule } from '../engine/stageRules'
  *   mulligan → main（出牌）→ battle（攻击）→ enemyTurn（AI）→ main …
  */
 export function useBattle() {
-  // === 回合 & 阶段 ===
-  const [turn, setTurn] = useState(1)
-  const [phase, setPhase] = useState('init')
-  // init | mulligan | main | battle | animating | enemyTurn | over
+  // === 回合 & 阶段 === turn/phase/winner 于 E5c-4 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
+  // phase: init | mulligan | main | battle | animating | enemyTurn | over
   // ⚡ 能量 playerEnergy/enemyEnergy 于 E5c-2 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
 
   // === 主人 HP === playerLeaderHp/enemyLeaderHp 于 E5c-3 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
@@ -46,7 +44,7 @@ export function useBattle() {
   // === 日志 & 问答 & 胜负 ===
   const [battleLog, setBattleLog] = useState([])
   const [currentQuiz, setCurrentQuiz] = useState(null)
-  const [winner, setWinner] = useState(null)
+  // winner 于 E5c-4 迁进 battleReducer（派生自 reducer，见下方 battleState 后）
 
   // === 技能事件队列（供 BattleScreen 消费：伤害浮字、动画）===
   const [skillEvents, setSkillEvents] = useState([])
@@ -56,6 +54,11 @@ export function useBattle() {
   // （渲染时 battleState 闭包是快照，await 之后是旧的 → 必须走 ref）。
   const [battleState, dispatch] = useReducer(battleReducer, initialBattleState)
   const battleStateRef = useLatestRef(battleState)
+
+  // === 回合机 turn/phase/winner（E5c-4 迁进 battleReducer，派生自 reducer）===
+  const turn = battleState.turn
+  const phase = battleState.phase
+  const winner = battleState.winner
 
   // === Power Bank 能量储蓄罐（派生自 reducer，供 return 导出 / UI 读取）===
   const playerPowerBank = battleState.player.powerBank
@@ -173,7 +176,6 @@ export function useBattle() {
   // === Refs（解决闭包问题）===
   const playerFieldRef = useLatestRef(playerField)
   const enemyFieldRef = useLatestRef(enemyField)
-  const turnRef = useLatestRef(turn)
 
   // ----------------------------------------------------------------
   //  辅助
@@ -614,7 +616,7 @@ export function useBattle() {
           dispatch({ type: 'LEADER_DAMAGE', side: oppSide, amount: evt.damage })
           leaderRunning = Math.max(0, leaderRunning - evt.damage)
           if (leaderRunning <= 0) {
-            setWinner(side); setPhase('over')
+            dispatch({ type: 'GAME_OVER', winner: side })
           } else if (side === 'player') {
             checkBossHPThreshold()
           }
@@ -653,7 +655,7 @@ export function useBattle() {
     const turnEndEvents = triggerSkills('onTurnEnd', {
       friendlyField: field.filter(c => c && c.currentHp > 0),
       friendlyFieldRaw: field, // 决策F：真 5 格数组（含 null 空位），供骨髓造血等召唤类找空位
-      turn: turnRef.current,
+      turn: battleStateRef.current.turn,
     })
 
     // 处理回合结束技能事件
@@ -741,7 +743,7 @@ export function useBattle() {
       playerHand: side === 'player' ? handsRef.current.playerHand : handsRef.current.enemyHand,
       enemyHand: side === 'player' ? handsRef.current.enemyHand : handsRef.current.playerHand,
       discardPile: battleStateRef.current[side].discard,
-      turn: turnRef.current,
+      turn: battleStateRef.current.turn,
     })
     if (events.length === 0) return events
 
@@ -847,12 +849,12 @@ export function useBattle() {
     if (vo.turnsLeft <= 0) return
     if (vo.playerAffected) {
       dispatch({ type: 'LEADER_DAMAGE', side: 'player', amount: 500 })
-      if (Math.max(0, battleStateRef.current.player.leaderHp - 500) <= 0) { setWinner('enemy'); setPhase('over') }
+      if (Math.max(0, battleStateRef.current.player.leaderHp - 500) <= 0) { dispatch({ type: 'GAME_OVER', winner: 'enemy' }) }
       addLog('🦠 病毒爆发：我方主人 -500 HP（无人体系保护）')
     }
     if (vo.enemyAffected) {
       dispatch({ type: 'LEADER_DAMAGE', side: 'enemy', amount: 500 })
-      if (Math.max(0, battleStateRef.current.enemy.leaderHp - 500) <= 0) { setWinner('player'); setPhase('over') }
+      if (Math.max(0, battleStateRef.current.enemy.leaderHp - 500) <= 0) { dispatch({ type: 'GAME_OVER', winner: 'player' }) }
       addLog('🦠 病毒爆发：敌方主人 -500 HP（无人体系保护）')
     }
     virusOutbreakRef.current = { ...vo, turnsLeft: vo.turnsLeft - 1 }
@@ -1149,7 +1151,7 @@ export function useBattle() {
     // 召唤回合门槛（看费用）：turn ≥ max(3, spCost−3)，见 deckRules.spEarliestSummonTurn。
     // 小 SP 第 3 回合可召；大 SP 自然推迟（7→T4 / 8→T5 / 9→T6 / 10→T7）——
     // 既挡第 1-2 回合，又拦"无视费事件秒召高费巨兽"。与 SP 卡面显示同一公式。
-    return candidates.filter(sp => turnRef.current >= spEarliestSummonTurn(sp.spCost))
+    return candidates.filter(sp => battleStateRef.current.turn >= spEarliestSummonTurn(sp.spCost))
   }
 
   // ----------------------------------------------------------------
@@ -1285,7 +1287,7 @@ export function useBattle() {
     if (spCard.id === 'sp_ancient_virus') {
       const oppSide = side === 'player' ? 'enemy' : 'player'
       dispatch({ type: 'LEADER_DAMAGE', side: oppSide, amount: 5000 })
-      if (Math.max(0, battleStateRef.current[oppSide].leaderHp - 5000) <= 0) { setWinner(side); setPhase('over') }
+      if (Math.max(0, battleStateRef.current[oppSide].leaderHp - 5000) <= 0) { dispatch({ type: 'GAME_OVER', winner: side }) }
       addLog(`🧊 远古病毒：冰封释放！对敌方主人造成 5000 伤害！`)
     }
 
@@ -1463,7 +1465,7 @@ export function useBattle() {
   //  开始战斗
   // ----------------------------------------------------------------
   const startBattle = useCallback((spDecks = {}) => {
-    setTurn(1)
+    dispatch({ type: 'TURN_SET', value: 1 })
     dispatch({ type: 'ENERGY_SET', side: 'player', value: spDecks.playerStartEnergy || 1 })   // 测试场可满能量开局
     dispatch({ type: 'ENERGY_SET', side: 'enemy', value: spDecks.enemyStartEnergy || 1 })
     dispatch({ type: 'LEADER_SET', side: 'player', value: spDecks.playerLeaderHP || LEADER_HP })
@@ -1475,7 +1477,7 @@ export function useBattle() {
     setPlayerField(emptyField())
     setEnemyField(emptyField())
     setBattleLog(['⚔️ 战斗开始！'])
-    setWinner(null)
+    dispatch({ type: 'WINNER_SET', winner: null })
     setSkillEvents([])
     dispatch({ type: 'POWERBANK_SET', side: 'player', powerBank: { stored: 0, intact: true } })
     dispatch({ type: 'POWERBANK_SET', side: 'enemy', powerBank: { stored: 0, intact: true } })
@@ -1562,7 +1564,7 @@ export function useBattle() {
         })
       }
     }
-    setPhase('mulligan')
+    dispatch({ type: 'PHASE_SET', phase: 'mulligan' })
   }, [])
 
   // ----------------------------------------------------------------
@@ -1571,7 +1573,7 @@ export function useBattle() {
   const endMulligan = useCallback(() => {
     if (phase !== 'mulligan') return
     addLog('🔵 你的回合 1（能量 1）')
-    setPhase('main')
+    dispatch({ type: 'PHASE_SET', phase: 'main' })
   }, [phase, addLog])
 
   // ----------------------------------------------------------------
@@ -1647,7 +1649,7 @@ export function useBattle() {
   const endMainPhase = useCallback(() => {
     if (phase !== 'main') return
     attackedThisTurn.current.clear()
-    setPhase('battle')
+    dispatch({ type: 'PHASE_SET', phase: 'battle' })
     addLog('--- ⚔️ 战斗阶段 ---')
   }, [phase, addLog])
 
@@ -1754,7 +1756,7 @@ export function useBattle() {
       const dmg = calcLeaderDamage(atkCard, dmgOpts)
       dispatch({ type: 'LEADER_DAMAGE', side: 'enemy', amount: dmg })
       const gameWon = Math.max(0, battleStateRef.current.enemy.leaderHp - dmg) <= 0
-      if (gameWon) { setWinner('player'); setPhase('over') }
+      if (gameWon) { dispatch({ type: 'GAME_OVER', winner: 'player' }) }
       addLog(`${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
       battleStatsRef.current.totalDamage += dmg
       if (!gameWon) checkBossHPThreshold()
@@ -1846,14 +1848,14 @@ export function useBattle() {
       }
     }
 
-    setPhase('enemyTurn')
+    dispatch({ type: 'PHASE_SET', phase: 'enemyTurn' })
   }, [phase, addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
   //  敌方回合开始：刷新能量
   // ----------------------------------------------------------------
   const beginEnemyTurn = useCallback(() => {
-    const t = turnRef.current
+    const t = battleStateRef.current.turn
     let gain = Math.min(Math.ceil(t / 2) + 1, ENERGY_CAP)
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
     dispatch({ type: 'ENERGY_SET', side: 'enemy', value: gain })
@@ -1982,7 +1984,7 @@ export function useBattle() {
       const dmg = calcLeaderDamage(atkCard, dmgOpts)
       dispatch({ type: 'LEADER_DAMAGE', side: 'player', amount: dmg })
       const gameOver = Math.max(0, battleStateRef.current.player.leaderHp - dmg) <= 0
-      if (gameOver) { setWinner('enemy'); setPhase('over') }
+      if (gameOver) { dispatch({ type: 'GAME_OVER', winner: 'enemy' }) }
       addLog(`🔴 ${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
       return { atkDmg: dmg, defDmg: 0, defKilled: false, atkKilled: false, leaderHit: true, gameOver }
     }
@@ -2041,10 +2043,10 @@ export function useBattle() {
     // 敌方剩余能量流入 Power Bank
     processEndPhase('enemy')
 
-    const newTurn = turnRef.current + 1
+    const newTurn = battleStateRef.current.turn + 1
     const gain = Math.min(Math.ceil(newTurn / 2) + 1, ENERGY_CAP)
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
-    setTurn(newTurn)
+    dispatch({ type: 'TURN_SET', value: newTurn })
     dispatch({ type: 'ENERGY_SET', side: 'player', value: gain })
     addLog(`\n🔵 你的回合 ${newTurn}（能量 ${gain}）`)
     summonedThisTurn.current.clear()
@@ -2123,14 +2125,14 @@ export function useBattle() {
       return { ...prev, turnsLeft: left }
     })
 
-    setPhase('main')
+    dispatch({ type: 'PHASE_SET', phase: 'main' })
   }
 
   // ----------------------------------------------------------------
   //  问答觉醒
   // ----------------------------------------------------------------
   const tryQuiz = useCallback(() => {
-    const currentTurn = turnRef.current
+    const currentTurn = battleStateRef.current.turn
 
     // 首次攻击必触发
     if (!firstAttackDone.current) {
@@ -2168,7 +2170,7 @@ export function useBattle() {
 
       // Phase B：第8回合起"开闸"，连对 ≥ SP_QUIZ_STREAK 题（软条件之一）即召玩家 SP
       // （软条件 OR：连对2题 或 主人HP≤50% 任一即可；HP 那半在 HP useEffect / 回合点）
-      if (turnRef.current >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK) {
+      if (battleStateRef.current.turn >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK) {
         tryTriggerSp('player', 'gated')
       }
 
@@ -2195,7 +2197,7 @@ export function useBattle() {
   // ----------------------------------------------------------------
   useEffect(() => {
     if (phase === 'init' || phase === 'mulligan' || phase === 'over') return
-    if (turnRef.current < SP_TURN_TRIGGER) return // 第8回合起才判断
+    if (battleStateRef.current.turn < SP_TURN_TRIGGER) return // 第8回合起才判断
     if (playerLeaderHp > 0 && playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
       tryTriggerSp('player', 'gated')
     }
@@ -2207,8 +2209,8 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  动画控制
   // ----------------------------------------------------------------
-  const setAnimating = useCallback(() => setPhase('animating'), [])
-  const restorePhase = useCallback((p) => setPhase(p), [])
+  const setAnimating = useCallback(() => dispatch({ type: 'PHASE_SET', phase: 'animating' }), [])
+  const restorePhase = useCallback((p) => dispatch({ type: 'PHASE_SET', phase: p }), [])
 
   // ----------------------------------------------------------------
   //  只读最新值快照（E5b）

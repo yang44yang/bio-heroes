@@ -19,8 +19,8 @@ const reg = readFileSync(join(ROOT, 'src/engine/skillRegistry.js'), 'utf8')
 const cards = readFileSync(join(ROOT, 'src/data/cards.js'), 'utf8')
 
 // ① onTurnEnd 触发传 turn（interval 类技能如胸腺每2回合抽牌靠它判回合）
-ok('① onTurnEnd triggerSkills 传 turn: turnRef.current',
-  /triggerSkills\(\s*'onTurnEnd'[\s\S]{0,160}turn:\s*turnRef\.current/.test(ub))
+ok('① onTurnEnd triggerSkills 传 turn: battleStateRef.current.turn（E5c-4）',
+  /triggerSkills\(\s*'onTurnEnd'[\s\S]{0,160}turn:\s*battleStateRef\.current\.turn/.test(ub))
 
 // ② processEndOfTurnEffects 派生 oppSide（E5c-3：leader 写走 dispatch delta，不再 setter 变量）
 const peStart = ub.indexOf('function processEndOfTurnEffects')

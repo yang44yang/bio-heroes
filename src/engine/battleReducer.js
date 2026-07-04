@@ -17,6 +17,10 @@
 const LEADER_HP_INIT = 30000
 
 export const initialBattleState = {
+  // 顶层「回合机」状态（E5c-4）
+  turn: 1,
+  phase: 'init',   // init|mulligan|main|battle|animating|enemyTurn|over
+  winner: null,    // null|'player'|'enemy'
   player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT },
   enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT },
 }
@@ -97,6 +101,17 @@ export function battleReducer(state, action) {
       const { side, value } = action
       return { ...state, [side]: { ...state[side], leaderHp: value } }
     }
+
+    // --- 回合机 turn / phase / winner（E5c-4）---
+    case 'TURN_SET':
+      return { ...state, turn: action.value }
+    case 'PHASE_SET':
+      return { ...state, phase: action.phase }
+    case 'WINNER_SET':
+      return { ...state, winner: action.winner }
+    case 'GAME_OVER':
+      // 胜负 = winner + phase:'over' 原子设（取代散落的两步式胜负写）
+      return { ...state, winner: action.winner, phase: 'over' }
 
     default:
       return state

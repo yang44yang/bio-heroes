@@ -40,10 +40,10 @@ ok('玩家走弹窗 setPendingSpSummon、敌方走 summonSpCard',
 
 // ===== C. 触发接线（第8回合=门槛 AND 软条件 OR；reason 统一 'gated'）=====
 ok('答题点：turn≥SP_TURN_TRIGGER 且 连对≥SP_QUIZ_STREAK → player/gated',
-  has('turnRef.current >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK') &&
+  has('battleStateRef.current.turn >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK') &&
   has("tryTriggerSp('player', 'gated')"))
-ok('HP useEffect：第8回合前提前返回（turnRef.current < SP_TURN_TRIGGER）',
-  has('turnRef.current < SP_TURN_TRIGGER'))
+ok('HP useEffect：第8回合前提前返回（battleStateRef.current.turn < SP_TURN_TRIGGER）',
+  has('battleStateRef.current.turn < SP_TURN_TRIGGER'))
 ok('HP useEffect：玩家/敌方 HP≤阈值 → gated',
   has('playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
   has('enemyLeaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
