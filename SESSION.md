@@ -18,6 +18,14 @@
 
 ## 最近完成
 
+### 2026-07-02 续² E3/E4/E5a 架构重构 + 测试场挂状态 ✅
+接 E1/E2 继续绞杀式拆 useBattle/BattleScreen（每刀 test+build+preview 绿）：
+- **E3（`39e3716`）**：先出 attack/aiAttack 差异对照 → 判定**全量合并不值得**（15 处语义差异：玩家追踪 attackedThisTurn/统计/Boss/守护/pushEvents/awakenOpts、AI 都没有；返回键 gameWon vs gameOver 是 BattleScreen 契约；玩家读 render state、AI 读 ref）。只抽逐字节重复的「结算落地」→ `applyCombatOutcome({defSetter,atkSetter,…})`。
+- **E4（`36434ed`）**：AI 完整回合(~250 行巨型 useEffect)搬进 `src/hooks/useAITurn.js`。BattleScreen **1861→1608 行(−253)**。纯搬运、deps 仍 `[battle.phase]`；纯 import 进新文件、其余作入参。test-guard/test-stealth 的 AI 选靶 grep 改读 useAITurn。
+- **E5a（`e96ec1c`）**：14 处 state-mirror 双写（`xRef.current=x`）→ `useLatestRef` helper（消"漏同步就竞态"脆弱性）。⚠️ 脚本误把 `pendingSpSummonRef` 转成 `useLatestRef(null)`（原 `useRef(null)` 但镜像到 `pendingSpSummon`，init≠同步值）→ **test-phase-b 抓到才修对**。
+- **测试场挂状态（`9913a0a`）**：点已放的卡挂 护盾/标记/中毒/沉睡/隐身/守护；引擎 `startBattle` 摆卡后补回 statuses（makeFieldCard 会清空）。补上无视护盾(需带盾敌方卡)等定点测法。preview 实测：给敌方卡挂护盾→开打→护盾流到战场。
+- 全 31/31 绿 + build 绿。下一步 **E5b/E5c**（见「下次启动时优先」置顶）。
+
 ### 2026-07-02 续 E1/E2 架构重构 + 🧪 测试场 ✅
 承接 B/C/D/F（引擎正确性收尾），转攻结构债 + 补实测工具。每刀 test+build+preview 绿。
 - **E1（`1a95e62`）删死亡结算死桩**：`cleanupDeadCards` 早已是 `()=>{}` 空桩（真逻辑在提交后 useEffect 扫 currentHp≤0），删其 18 处 no-op 调用 + 空桩 + 依赖/export + 6 陈旧注释。脚本删 + 逐行审 diff。行为保真。test-onDeath-routing ⑤ 改成"已彻底移除"。
@@ -755,15 +763,16 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 
 ## 下次启动时优先
 
-### 🔴 最优先（2026-07-02 续）：E — 架构重构（报告 P0 技术债，绞杀式分刀）
-承接 B/C/D/F（引擎正确性已收尾），转攻最大结构债：`useBattle.js` 2300+ 行焊在 hook 里不可单测。已起头（`resolveCardCombat` 已剥出）。分刀（安全→高杠杆，每刀 test+build+preview 冒烟）：
-- ✅ **E1（`1a95e62`）已完成**：删 `cleanupDeadCards` 18 no-op 调用 + 空桩 + 依赖/export + 6 陈旧注释。
-- ✅ **E2（`23e5084`）已完成**：抽 `canCardAttack()` 纯谓词，attack/aiAttack/canAttack(UI) 三处共用；混乱留 hook。
-- 🧪 **测试场（`86ba2bc`）已做**（定点实测工具，家长门后）。**⚠️ 待增强：给摆上的卡挂状态（护盾/守护…）→ 补无视护盾等定点测法。**
-- **⏭️ 继续 E 前：先让齐齐拿测试场验收 B/C/D/F 手感**（这波改了几十张卡数值，实测反馈比继续叠重构更有价值），再决定：
-- **E3**：合并 attack/aiAttack 或 playToField/aiPlayToField（side 参数版，消 64 处 side 分支的双份维护、防"玩家能 AI 不能"不对称 bug）。
-- **E4**：从 BattleScreen 抽 `useAITurn()`（200 行 AI 决策 effect 移出 god component）。
-- **E5+**：逐步向 `battleReducer` 收敛，消 state↔ref 双写（34 ref）、死亡结算进 reducer、停止 return 泄漏 15 个原始 ref。
+### 🔴 最优先（交接给下个窗口，2026-07-02 续³）：E5b / E5c — reducer 收敛（继续绞杀式）
+架构重构 E 已推进大半，剩 E5 后半（把状态模型往 reducer 收）。**注意 context 换窗口了，先读本段。**
+**本会话已完成（都已 push 到 main）**：
+- ✅ E1 `1a95e62` 删 cleanupDeadCards 死桩(18 no-op 调用) · ✅ E2 `23e5084` 抽 `canCardAttack` 纯谓词 · ✅ E3 `39e3716` 抽 `applyCombatOutcome`（**差异对照后判定 attack/aiAttack 全量合并不值得**——15 处语义差异会变条件汤，只抽了逐字节重复的结算落地块）· ✅ E4 `36434ed` 抽 `useAITurn`（BattleScreen 1861→1608 行）· ✅ E5a `e96ec1c` 14 处 state-mirror 双写 → `useLatestRef` helper。
+- ✅ 🧪 测试场 `86ba2bc` + 挂状态增强 `9913a0a`（护盾/标记/中毒/守护/沉睡/隐身，补无视护盾等"需状态"的定点测法）。
+**⚠️ 仍未真机实测**：B/C/D/F 改了几十张卡数值 + E1-E5a 动了热路径，齐齐还没玩过。**用户已知并接受"平衡问题只是数值、以后好改"的风险，明确选择先推进 E5**（不等实测）。所以下个窗口直接继续 E5，别再劝实测。
+**下一步分刀（安全→高杠杆，每刀 test+build+preview 冒烟——preview 用测试场跑 attack+AI回合+死亡）**：
+- **E5b（中风险）**：停止 `useBattle` return 里泄漏 15 个原始 `*Ref`（`playerFieldRef`/`enemyFieldRef`…）给 BattleScreen。**动手前先 grep 所有 `battle.xxxRef` 读取点**（BattleScreen + useAITurn 直接读这些 ref 拿最新值），改成导出只读快照/getter，别破坏"读最新值"语义。
+- **E5c（大改·多会话，最高杠杆）**：把"棋盘状态"（turn/phase/field/leaderHp/energy/powerBank/discard）迁进 `battleReducer(state, action)`，callbacks 改 `dispatch`、reducer 天然拿最新 state（**消掉 latest-ref 的根本需求** → E5a 的 useLatestRef 到时可大量退役）。要改几十个 setState 调用点(attack/aiAttack/applySkillEvents/死亡 effect/startBattle…)，风险最高。**动手前必须先出 reducer 的 state shape + action 清单 + 分步迁移计划，一次只迁一组状态、迁一组测一组，别一把梭。**
+- ⚠️ **坑**：E5a 那次脚本转换把 `pendingSpSummonRef`（原 `useRef(null)` 但镜像到 `pendingSpSummon`，init≠同步值）误留成 `useLatestRef(null)`，被 test-phase-b 抓到才修对 → 类似"init 值 ≠ 每渲染同步值"的 ref 迁移都要手工核对，别信脚本一把过。
 
 ### ✅（已完成 `fbff1de`）F — "描述≠实现" 批（引擎正确性收尾）
 5 项：鲸鲨回血补实现 / 注射劫持·骨髓造血召唤扫真5格(深挖出"过滤数组当槽位"的更深坑，补 friendlyFieldRaw) / PCR·CRISPR·物种大爆发 文案对齐。test-decision-f 13 断言。原 F 明细（供参考）：`outputs/code-health-report-2026-07-02.md` §三：
