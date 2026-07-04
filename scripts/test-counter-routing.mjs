@@ -81,5 +81,11 @@ ok('⑦ Power Bank 写全走 dispatch（POWERBANK_*），不再 setPlayer/EnemyP
   /dispatch\(\{\s*type:\s*'POWERBANK_/.test(ub) && !/set(Player|Enemy)PowerBank/.test(ub))
 ok('⑦ battleStateRef 供异步读最新（AI 回合 / latest 快照）', /battleStateRef\s*=\s*useLatestRef\(battleState\)/.test(ub))
 
+// ⑦ 决策E5c-1：弃牌堆迁进 battleReducer
+ok('⑦ 弃牌堆写全走 dispatch（DISCARD_*），不再 setPlayer/EnemyDiscard',
+  /dispatch\(\{\s*type:\s*'DISCARD_/.test(ub) && !/set(Player|Enemy)Discard/.test(ub))
+ok('⑦ 弃牌堆读全走 battleStateRef，不再 player/enemyDiscardRef',
+  !/(player|enemy)DiscardRef/.test(ub))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

@@ -14,8 +14,8 @@
 // ----------------------------------------------------------------
 
 export const initialBattleState = {
-  player: { powerBank: { stored: 0, intact: true } },
-  enemy: { powerBank: { stored: 0, intact: true } },
+  player: { powerBank: { stored: 0, intact: true }, discard: [] },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [] },
 }
 
 export function battleReducer(state, action) {
@@ -35,6 +35,27 @@ export function battleReducer(state, action) {
       const pb = state[side].powerBank
       return { ...state, [side]: { ...state[side], powerBank: { ...pb, intact: true } } }
     }
+
+    // --- 弃牌堆 discard（E5c-1）---
+    case 'DISCARD_ADD': {
+      // 追加卡（等价旧 setDiscard(prev => [...prev, ...cards])）
+      const { side, cards } = action
+      return { ...state, [side]: { ...state[side], discard: [...state[side].discard, ...cards] } }
+    }
+    case 'DISCARD_SET': {
+      // 整堆替换（阵营标记消耗后的 updatedPile / 重置为 []）
+      const { side, pile } = action
+      return { ...state, [side]: { ...state[side], discard: pile } }
+    }
+    case 'DISCARD_REMOVE_UID': {
+      // 按 uid 移除首个匹配（discard_to_hand / revive_from_discard / 长老记忆取回）
+      const { side, uid } = action
+      const pile = state[side].discard
+      const idx = pile.findIndex(c => c.uid === uid)
+      if (idx === -1) return state
+      return { ...state, [side]: { ...state[side], discard: [...pile.slice(0, idx), ...pile.slice(idx + 1)] } }
+    }
+
     default:
       return state
   }

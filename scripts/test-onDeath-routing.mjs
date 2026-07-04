@@ -24,10 +24,11 @@ ok('① fireOnDeathRef 用 triggerSkills(onDeath) 且传 friendlyField + discard
   /triggerSkills\(\s*'onDeath'[\s\S]{0,200}friendlyField[\s\S]{0,80}discardPile/.test(fod))
 
 // ①b 同批死卡并入 discardPile —— 修齐齐实测：霸王龙 AOE 同时打死 干细胞 + 红细胞(body R) 时，
-//     红细胞还没进弃牌堆(setDiscardPile 在 fireOnDeath 之后)，干细胞 revive 误判"没有合适模板"。
+//     红细胞还没进弃牌堆(DISCARD_ADD dispatch 在 fireOnDeath 之后)，干细胞 revive 误判"没有合适模板"。
 //     把 deadCards 里"非自身"的同批死卡并入模板池即修正。删掉这层 = 同回合 AOE 一起死时复活失效。
+//     E5c-1：弃牌堆迁进 battleReducer，读源从 dRef.current → battleStateRef.current[deadSide].discard。
 ok('①b fireOnDeath 把同批死卡(deadCards 去自身)并入 discardPile',
-  /\[\s*\.\.\.\(dRef\.current[\s\S]{0,60}\.\.\.deadCards\.filter\(\s*c\s*=>\s*c\.uid\s*!==\s*dc\.uid\s*\)/.test(fod))
+  /\[\s*\.\.\.\(battleStateRef\.current\[deadSide\]\.discard[\s\S]{0,60}\.\.\.deadCards\.filter\(\s*c\s*=>\s*c\.uid\s*!==\s*dc\.uid\s*\)/.test(fod))
 ok('①b triggerSkills 用并入后的 batchDiscard(而非裸 dRef.current)',
   /triggerSkills\(\s*'onDeath'[\s\S]{0,160}discardPile:\s*batchDiscard/.test(fod))
 
@@ -43,7 +44,8 @@ ok('② effect 扫 currentHp<=0 且跳过已处理(processedDeathsRef.has)',
   /currentHp\s*<=\s*0\s*&&\s*!processedDeathsRef\.current\.has/.test(sweep))
 ok('② effect 调 fireOnDeathRef.current(fresh, side)（触发死卡 onDeath）',
   /fireOnDeathRef\.current\?\.\(\s*fresh\s*,\s*side\s*\)/.test(sweep))
-ok('② effect 把死卡进弃牌堆', /setDiscardPile\(\s*prev\s*=>\s*\[\s*\.\.\.prev,\s*\.\.\.fresh\s*\]/.test(sweep))
+ok('② effect 把死卡进弃牌堆（E5c-1：dispatch DISCARD_ADD cards: fresh）',
+  /dispatch\(\{\s*type:\s*'DISCARD_ADD',\s*side,\s*cards:\s*fresh\s*\}\)/.test(sweep))
 ok('② effect 仅按 deadUids 移除（不误删 onDeath 复活进来的新卡）',
   /deadUids\s*=\s*new Set\(fresh\.map[\s\S]{0,160}deadUids\.has\(c\.uid\)\)\s*\?\s*null/.test(sweep))
 ok('② effect 内保留关卡规则 onEnemyCardDeath（孢子蔓延等）', /stageRuleRef\.current\?\.onEnemyCardDeath/.test(sweep))

@@ -64,11 +64,9 @@ export function useBattle() {
   const playerPowerBank = battleState.player.powerBank
   const enemyPowerBank = battleState.enemy.powerBank
 
-  // === 弃牌堆（用于阵营标记计算）===
-  const [playerDiscard, setPlayerDiscard] = useState([])
-  const [enemyDiscard, setEnemyDiscard] = useState([])
-  const playerDiscardRef = useLatestRef(playerDiscard)
-  const enemyDiscardRef = useLatestRef(enemyDiscard)
+  // === 弃牌堆（用于阵营标记计算）— E5c-1 迁进 battleReducer，派生自 reducer ===
+  const playerDiscard = battleState.player.discard
+  const enemyDiscard = battleState.enemy.discard
 
   // Sprint 27: 手牌引用（由 BattleScreen 通过 setHandRefs 注入）
   // 用于 REVEAL_HAND 以及需要读取手牌的技能
@@ -84,12 +82,11 @@ export function useBattle() {
     if (!Array.isArray(events)) return
     const addToHand = side === 'player' ? handsRef.current.playerAddToHand : handsRef.current.enemyAddToHand
     const playCard = side === 'player' ? handsRef.current.playerPlayCard : handsRef.current.enemyPlayCard
-    const setDiscard = side === 'player' ? setPlayerDiscard : setEnemyDiscard
     for (const evt of events) {
       if (evt._removeFromHand && playCard) playCard(evt._removeFromHand)
       if (evt._reviveToHand && addToHand) {
         addToHand([evt._reviveToHand])
-        setDiscard((prev) => prev.filter((c) => c !== evt._reviveToHand))
+        dispatch({ type: 'DISCARD_REMOVE_UID', side, uid: evt._reviveToHand.uid })
       }
     }
   }, [])
@@ -203,16 +200,15 @@ export function useBattle() {
   fireOnDeathRef.current = (deadCards, deadSide) => {
     if (!deadCards || deadCards.length === 0) return
     const fRef = deadSide === 'player' ? playerFieldRef : enemyFieldRef
-    const dRef = deadSide === 'player' ? playerDiscardRef : enemyDiscardRef
     const fSet = deadSide === 'player' ? setPlayerField : setEnemyField
     const eSet = deadSide === 'player' ? setEnemyField : setPlayerField
     for (const dc of deadCards) {
       // friendlyField 用 fRef.current（死卡 currentHp≤0 仍在 → findEmptySlot 视为空位，复活落到本方）。
-      // discardPile：dRef.current（已提交的弃牌堆）+ 同一批一起死的其他卡。
+      // discardPile：battleStateRef 的已提交弃牌堆 + 同一批一起死的其他卡。
       //   ★ 修齐齐实测：霸王龙 AOE 同时打死 干细胞 + 红细胞(body R) 时，红细胞还没进弃牌堆
-      //   （setDiscardPile 在本 effect 的 fireOnDeath 之后才调），干细胞 revive 读 dRef.current 看不到它 →
+      //   （DISCARD_ADD dispatch 在本 effect 的 fireOnDeath 之后才调），干细胞 revive 读弃牌堆看不到它 →
       //   误判"弃牌堆里没有合适的细胞模板"。把同批死卡并入模板池即修正（revive_as 仍按 id 过滤自身）。
-      const batchDiscard = [...(dRef.current || []), ...deadCards.filter(c => c.uid !== dc.uid)]
+      const batchDiscard = [...(battleStateRef.current[deadSide].discard || []), ...deadCards.filter(c => c.uid !== dc.uid)]
       const events = triggerSkills('onDeath', { card: dc, friendlyField: fRef.current, discardPile: batchDiscard })
       if (events && events.length) {
         applySkillEvents(events, fSet, eSet, deadSide)
@@ -240,8 +236,7 @@ export function useBattle() {
       // 1) 先触发 onDeath（此刻死卡仍在 fRef.current，findEmptySlot 视其位为空 → 复活/分裂能落位）
       fireOnDeathRef.current?.(fresh, side)
       // 2) 进弃牌堆（阵营标记 / SP discard_check / 进化复用）
-      const setDiscardPile = side === 'player' ? setPlayerDiscard : setEnemyDiscard
-      setDiscardPile(prev => [...prev, ...fresh])
+      dispatch({ type: 'DISCARD_ADD', side, cards: fresh })
       // 3) 从战场移除（仅移除这批确切 uid，避免误删 onDeath 复活进来的新卡）
       const deadUids = new Set(fresh.map(c => c.uid))
       const setter = side === 'player' ? setPlayerField : setEnemyField
@@ -294,7 +289,6 @@ export function useBattle() {
     // 技能拥有者视角的 leader / powerBank setter
     const selfLeaderSetter = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
     const enemyLeaderSetter = side === 'player' ? setEnemyLeaderHp : setPlayerLeaderHp
-    const selfDiscardRef = side === 'player' ? playerDiscardRef : enemyDiscardRef
     for (const evt of events) {
       switch (evt.type) {
         case 'NARRATIVE_LOG': {
@@ -526,7 +520,7 @@ export function useBattle() {
           // 从弃牌堆复活所有角色卡到空位（最多到 5 位）
           // evt.faction_filter (可选)：仅复活该阵营卡。不传则复活全部（向后兼容 sp_quantum_healer）
           const hpPercent = evt.hp_percent || 0.5
-          const discard = selfDiscardRef.current || []
+          const discard = battleStateRef.current[side].discard || []
           let chars = discard.filter(c => c && (c.type === 'character' || !c.type))
           if (evt.faction_filter) chars = chars.filter(c => c.faction === evt.faction_filter)
           if (chars.length === 0) {
@@ -748,7 +742,7 @@ export function useBattle() {
       enemyField: oppFieldRef.current.filter(c => c && c.currentHp > 0),
       playerHand: side === 'player' ? handsRef.current.playerHand : handsRef.current.enemyHand,
       enemyHand: side === 'player' ? handsRef.current.enemyHand : handsRef.current.playerHand,
-      discardPile: side === 'player' ? playerDiscardRef.current : enemyDiscardRef.current,
+      discardPile: battleStateRef.current[side].discard,
       turn: turnRef.current,
     })
     if (events.length === 0) return events
@@ -900,8 +894,6 @@ export function useBattle() {
     const setLeaderHp = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
     const friendlyFieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
     const enemyFieldRef_ = side === 'player' ? enemyFieldRef : playerFieldRef
-    const discardRef = side === 'player' ? playerDiscardRef : enemyDiscardRef
-    const setDiscardPile = side === 'player' ? setPlayerDiscard : setEnemyDiscard
 
     switch (card.effectType) {
       case 'energy': {
@@ -1038,15 +1030,11 @@ export function useBattle() {
         if (target.startsWith('discard_to_hand')) {
           // Retrieve card from discard pile
           const faction = target.includes('nature') ? 'nature' : target.includes('body') ? 'body' : null
-          const pile = discardRef.current
+          const pile = battleStateRef.current[side].discard
           const candidates = pile.filter(c => c.type === 'character' && (!faction || c.faction === faction))
           if (candidates.length > 0 && addToHand) {
             const chosen = candidates[candidates.length - 1] // most recent
-            setDiscardPile(prev => {
-              const idx = prev.findIndex(c => c.uid === chosen.uid)
-              if (idx === -1) return prev
-              return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
-            })
+            dispatch({ type: 'DISCARD_REMOVE_UID', side, uid: chosen.uid })
             addToHand(chosen)
             addLog(`♻️ ${card.name}：${chosen.name} 从弃牌堆回到手牌！`)
           } else {
@@ -1054,7 +1042,7 @@ export function useBattle() {
           }
         } else if (target === 'revive_body_from_discard') {
           // Revive a body card from discard to field at 50% HP
-          const pile = discardRef.current
+          const pile = battleStateRef.current[side].discard
           const candidates = pile.filter(c => c.type === 'character' && c.faction === 'body')
           const field = friendlyFieldRef.current
           const emptySlot = field.findIndex(c => !c || c.currentHp <= 0)
@@ -1068,11 +1056,7 @@ export function useBattle() {
               return next
             })
             summonedThisTurn.current.add(revived.uid)
-            setDiscardPile(prev => {
-              const idx = prev.findIndex(c => c.uid === chosen.uid)
-              if (idx === -1) return prev
-              return [...prev.slice(0, idx), ...prev.slice(idx + 1)]
-            })
+            dispatch({ type: 'DISCARD_REMOVE_UID', side, uid: chosen.uid })
             addLog(`💫 ${card.name}：${chosen.name} 从弃牌堆复活到战场！(50% HP)`)
           } else {
             addLog(`✨ ${card.name}：无法复活（没有候选或战场已满）`)
@@ -1136,7 +1120,7 @@ export function useBattle() {
   // ----------------------------------------------------------------
   function getEligibleSpCards(summonRule, side, remainingEnergy = 0) {
     const spDeck = side === 'player' ? playerSpDeckRef.current : enemySpDeckRef.current
-    const discardPile = side === 'player' ? playerDiscardRef.current : enemyDiscardRef.current
+    const discardPile = battleStateRef.current[side].discard
     const field = side === 'player' ? playerFieldRef.current : enemyFieldRef.current
 
     // 场上必须有空位
@@ -1232,7 +1216,7 @@ export function useBattle() {
       enemyField: enemyFieldCards,
       playerHand: side === 'player' ? handsRef.current.playerHand : handsRef.current.enemyHand,
       enemyHand: side === 'player' ? handsRef.current.enemyHand : handsRef.current.playerHand,
-      discardPile: side === 'player' ? playerDiscardRef.current : enemyDiscardRef.current,
+      discardPile: battleStateRef.current[side].discard,
       turn,
     })
     applySkillEvents(playEvents, friendlySetter, enemySetter, side)
@@ -1366,7 +1350,7 @@ export function useBattle() {
     // 事件卡 AOE（全球大流行/感染爆发等）可能击杀卡 → 清理 + 触发其 onDeath。
 
     // 3. Card goes to discard pile
-    setPlayerDiscard(prev => [...prev, card])
+    dispatch({ type: 'DISCARD_ADD', side: 'player', cards: [card] })
     addLog(`📜 事件卡 ${card.name} 进入弃牌堆`)
 
     // 4. Check SP summon
@@ -1402,7 +1386,7 @@ export function useBattle() {
     // 事件卡 AOE（全球大流行/感染爆发等）可能击杀卡 → 清理 + 触发其 onDeath。
 
     // 3. Card goes to discard pile
-    setEnemyDiscard(prev => [...prev, card])
+    dispatch({ type: 'DISCARD_ADD', side: 'enemy', cards: [card] })
     addLog(`🔴 📜 事件卡 ${card.name} 进入弃牌堆`)
 
     // 4. Check SP summon
@@ -1511,8 +1495,8 @@ export function useBattle() {
     setSkillEvents([])
     dispatch({ type: 'POWERBANK_SET', side: 'player', powerBank: { stored: 0, intact: true } })
     dispatch({ type: 'POWERBANK_SET', side: 'enemy', powerBank: { stored: 0, intact: true } })
-    setPlayerDiscard([])
-    setEnemyDiscard([])
+    dispatch({ type: 'DISCARD_SET', side: 'player', pile: [] })
+    dispatch({ type: 'DISCARD_SET', side: 'enemy', pile: [] })
     // SP decks (give each card a uid)
     const pSp = (spDecks.player || []).map((c, i) => ({ ...c, uid: `sp_p_${c.id}_${i}` }))
     const eSp = (spDecks.enemy || []).map((c, i) => ({ ...c, uid: `sp_e_${c.id}_${i}` }))
@@ -1616,7 +1600,7 @@ export function useBattle() {
 
     // Check faction requirement (SSR/high-cost cards need markers)
     if (card.factionRequirement) {
-      if (!canPlayWithMarkers(card, playerDiscardRef.current)) {
+      if (!canPlayWithMarkers(card, battleStateRef.current.player.discard)) {
         return { ok: false, msg: `需要弃牌堆中有 ${card.factionRequirement.count} 个${FACTIONS[card.factionRequirement.faction]?.name}标记` }
       }
     }
@@ -1636,11 +1620,11 @@ export function useBattle() {
     // Consume faction markers if needed
     if (card.factionRequirement?.type === 'consume') {
       const { updatedPile } = consumeFactionMarkers(
-        playerDiscardRef.current,
+        battleStateRef.current.player.discard,
         card.factionRequirement.faction,
         card.factionRequirement.count
       )
-      setPlayerDiscard(updatedPile)
+      dispatch({ type: 'DISCARD_SET', side: 'player', pile: updatedPile })
     }
 
     summonedThisTurn.current.add(card.uid)
@@ -1648,7 +1632,7 @@ export function useBattle() {
 
     if (replaced) addLog(`${replaced.name} 被替换下场`)
     if (replaced) {
-      setPlayerDiscard(prev => [...prev, replaced])
+      dispatch({ type: 'DISCARD_ADD', side: 'player', cards: [replaced] })
     }
     addLog(`出牌：${card.name}（费用 ${card.cost}）→ 位置 ${slotIdx + 1}`)
 
@@ -1659,7 +1643,7 @@ export function useBattle() {
       enemyField: enemyFieldRef.current.filter(Boolean),
       playerHand: handsRef.current.playerHand,
       enemyHand: handsRef.current.enemyHand,
-      discardPile: playerDiscardRef.current,
+      discardPile: battleStateRef.current.player.discard,
       turn,
     })
     applySkillEvents(playEvents, setPlayerField, setEnemyField, 'player')
@@ -1922,11 +1906,11 @@ export function useBattle() {
     // Consume faction markers if needed
     if (card.factionRequirement?.type === 'consume') {
       const { updatedPile } = consumeFactionMarkers(
-        enemyDiscardRef.current,
+        battleStateRef.current.enemy.discard,
         card.factionRequirement.faction,
         card.factionRequirement.count
       )
-      setEnemyDiscard(updatedPile)
+      dispatch({ type: 'DISCARD_SET', side: 'enemy', pile: updatedPile })
     }
 
     summonedThisTurn.current.add(card.uid)
@@ -1939,7 +1923,7 @@ export function useBattle() {
       enemyField: playerFieldRef.current.filter(Boolean),
       playerHand: handsRef.current.enemyHand,
       enemyHand: handsRef.current.playerHand,
-      discardPile: enemyDiscardRef.current,
+      discardPile: battleStateRef.current.enemy.discard,
       turn,
     })
     applySkillEvents(playEvents, setEnemyField, setPlayerField, 'enemy')
@@ -2261,7 +2245,7 @@ export function useBattle() {
     get enemyLeaderHp() { return enemyLeaderHpRef.current },
     get enemyPowerBank() { return battleStateRef.current.enemy.powerBank },
     get enemySpDeck() { return enemySpDeckRef.current },
-    get enemyDiscard() { return enemyDiscardRef.current },
+    get enemyDiscard() { return battleStateRef.current.enemy.discard },
     get battleStats() { return battleStatsRef.current },
   }
 

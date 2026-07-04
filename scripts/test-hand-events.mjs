@@ -40,7 +40,9 @@ const ub = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
 ok('③ applyHandEvents 已定义', /const\s+applyHandEvents\s*=\s*useCallback/.test(ub))
 ok('③ 消费 _removeFromHand → playCard 移除原卡', /playCard\(evt\._removeFromHand\)/.test(ub))
 ok('③ 消费 _reviveToHand → addToHand 取回', /addToHand\(\[evt\._reviveToHand\]\)/.test(ub))
-ok('③ 取回后从权威弃牌堆按引用移除', /setDiscard\(\(?prev\)?\s*=>\s*prev\.filter\(\(?c\)?\s*=>\s*c\s*!==\s*evt\._reviveToHand\)\)/.test(ub))
+// E5c-1：弃牌堆迁进 battleReducer，按引用移除 → 按 uid dispatch DISCARD_REMOVE_UID（语义等价：唯一 uid）
+ok('③ 取回后从权威弃牌堆移除（dispatch DISCARD_REMOVE_UID by uid）',
+  /dispatch\(\{\s*type:\s*'DISCARD_REMOVE_UID',\s*side,\s*uid:\s*evt\._reviveToHand\.uid\s*\}\)/.test(ub))
 ok('③ playToField 调 applyHandEvents(player)', /applyHandEvents\(playEvents,\s*'player'\)/.test(ub))
 ok('③ aiPlayToField 调 applyHandEvents(enemy)', /applyHandEvents\(playEvents,\s*'enemy'\)/.test(ub))
 
