@@ -2251,6 +2251,23 @@ export function useBattle() {
   const setAnimating = useCallback(() => setPhase('animating'), [])
   const restorePhase = useCallback((p) => setPhase(p), [])
 
+  // ----------------------------------------------------------------
+  //  只读最新值快照（E5b）
+  //  取代直接把原始 *Ref 泄漏给 BattleScreen / useAITurn。
+  //  getter 在读取瞬间取 .current → 保留「读最新值」语义，
+  //  但外部拿不到 ref 本体、无法写 .current（只读）。
+  // ----------------------------------------------------------------
+  const latest = {
+    get playerField() { return playerFieldRef.current },
+    get enemyField() { return enemyFieldRef.current },
+    get playerLeaderHp() { return playerLeaderHpRef.current },
+    get enemyLeaderHp() { return enemyLeaderHpRef.current },
+    get enemyPowerBank() { return enemyPowerBankRef.current },
+    get enemySpDeck() { return enemySpDeckRef.current },
+    get enemyDiscard() { return enemyDiscardRef.current },
+    get battleStats() { return battleStatsRef.current },
+  }
+
   return {
     turn, phase, winner,
     playerEnergy, enemyEnergy,
@@ -2259,7 +2276,7 @@ export function useBattle() {
     battleLog, currentQuiz,
     skillEvents,
     playerPowerBank, enemyPowerBank,
-    playerDiscard, enemyDiscard, playerDiscardRef, enemyDiscardRef,
+    playerDiscard, enemyDiscard,
     quizStreak, scientistMode,
     // SP system
     playerSpDeck, enemySpDeck, pendingSpSummon,
@@ -2267,7 +2284,6 @@ export function useBattle() {
     activeEnvEvent, pendingEnvEvent,
     // Boss mechanics
     bossMechanicEvents, setBossMechanicEvents,
-    campaignConfigRef, bossStateRef,
 
     startBattle, endMulligan, startPlayerTurn,
     playToField, endMainPhase,
@@ -2282,10 +2298,7 @@ export function useBattle() {
     setPlayerField, setEnemyField, addLog,
     pushSkillEvents, clearSkillEvents,
     setHandRefs,  // Sprint 27: BattleScreen 注入手牌引用
-    // Refs
-    playerFieldRef, enemyFieldRef, playerLeaderHpRef, enemyLeaderHpRef,
-    playerPowerBankRef, enemyPowerBankRef, playerSpDeckRef, enemySpDeckRef,
-    playerEnergyRef, enemyEnergyRef,
-    battleStatsRef,
+    // 只读最新值快照（E5b）—— 取代泄漏原始 *Ref
+    latest,
   }
 }

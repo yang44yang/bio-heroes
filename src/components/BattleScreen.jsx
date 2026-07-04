@@ -130,8 +130,8 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
    * 根据事件类型找到目标卡槽并显示对应颜色浮字
    */
   const showSkillFloats = useCallback((events, side) => {
-    const pField = battle.playerFieldRef.current
-    const eField = battle.enemyFieldRef.current
+    const pField = battle.latest.playerField
+    const eField = battle.latest.enemyField
     const findSlot = (field, uid) => field.findIndex(c => c && c.uid === uid)
 
     for (const evt of events) {
@@ -390,7 +390,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         // Sprint 30b: 不要覆盖已存在的 field card（preplaceEnemyCards 占了 0/1 slot）
         toPlace.forEach((c, i) => {
           // 找首个空 slot
-          const enemyField = battle.enemyFieldRef?.current || []
+          const enemyField = battle.latest.enemyField || []
           let slotIdx = i
           while (slotIdx < enemyField.length && enemyField[slotIdx]) slotIdx++
           if (slotIdx < (enemyField.length || 5)) {
@@ -1403,7 +1403,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
 
       {/* 胜负结果 */}
       {battle.winner && (() => {
-        const stats = battle.battleStatsRef.current
+        const stats = battle.latest.battleStats
         const won = battle.winner === 'player'
         const reward = { coins: won ? 100 + stats.quizCorrect * 10 : 40 + stats.quizCorrect * 5 }
         return createPortal(

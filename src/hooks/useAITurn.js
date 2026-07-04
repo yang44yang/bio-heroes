@@ -43,11 +43,11 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
       await delay(100)
 
       // --- AI Power Bank 打破决策 ---
-      const aiPB = battle.enemyPowerBankRef.current
+      const aiPB = battle.latest.enemyPowerBank
       if (aiPB.intact && aiPB.stored > 0) {
         const aiHand = enemyHand.hand
         const highCostCards = aiHand.filter(c => c.cost >= 4)
-        const aiLeaderHP = battle.enemyLeaderHpRef.current
+        const aiLeaderHP = battle.latest.enemyLeaderHp
         const totalWithBank = remainEnergy + aiPB.stored
 
         let shouldBreak = false
@@ -73,9 +73,9 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
 
       // --- AI 攒能量策略 ---
       let aiShouldSave = false
-      const aiPBNow = battle.enemyPowerBankRef.current
+      const aiPBNow = battle.latest.enemyPowerBank
       if (aiPBNow.intact) {
-        const aiFieldNow = battle.enemyFieldRef.current
+        const aiFieldNow = battle.latest.enemyField
         const aliveOnField = aiFieldNow.filter(c => c && c.currentHp > 0).length
         if (aliveOnField >= 2 && aiPBNow.stored < 20 && Math.random() < 0.40) {
           aiShouldSave = true
@@ -91,12 +91,12 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         const eventCards = aiHand.filter(c => c.type === 'event' && c.cost <= remainEnergy)
         if (eventCards.length > 0 && attempt < 2) {
           // Pick best event card based on situation
-          const aiField = battle.enemyFieldRef.current
+          const aiField = battle.latest.enemyField
           const aliveCount = aiField.filter(c => c && c.currentHp > 0).length
           let chosenEvent = null
 
           // Prefer SP-summoning events if SP deck has cards
-          const spEvents = eventCards.filter(c => c.spSummonRule && battle.enemySpDeckRef.current.length > 0)
+          const spEvents = eventCards.filter(c => c.spSummonRule && battle.latest.enemySpDeck.length > 0)
           if (spEvents.length > 0 && aliveCount >= 1) {
             chosenEvent = spEvents[0]
           } else if (aliveCount >= 1) {
@@ -122,12 +122,12 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         }
 
         // Character cards
-        const aiField = battle.enemyFieldRef.current
+        const aiField = battle.latest.enemyField
         const emptySlots = aiField.map((c, i) => (!c || c.currentHp <= 0) ? i : -1).filter(i => i >= 0)
         if (emptySlots.length === 0) break
 
         const playable = aiHand
-          .filter(c => c.type !== 'event' && c.cost <= remainEnergy && canPlayWithMarkers(c, battle.enemyDiscardRef.current))
+          .filter(c => c.type !== 'event' && c.cost <= remainEnergy && canPlayWithMarkers(c, battle.latest.enemyDiscard))
           .sort((a, b) => (b.atk + b.hp) - (a.atk + a.hp))
 
         if (playable.length === 0) break
@@ -170,8 +170,8 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
 
       for (let atkSlot = 0; atkSlot < MAX_FIELD_SLOTS; atkSlot++) {
         // 每次循环都读 ref 拿最新状态
-        const eFieldNow = battle.enemyFieldRef.current
-        const pFieldNow = battle.playerFieldRef.current
+        const eFieldNow = battle.latest.enemyField
+        const pFieldNow = battle.latest.playerField
         const atkCard = eFieldNow[atkSlot]
         if (!atkCard || atkCard.currentHp <= 0) continue
 
@@ -192,7 +192,7 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
           defSlot = -1
         } else {
           // Sprint 28: T3 — 基于 aiPersonality 决定是否直攻主人
-          const leaderHp = battle.playerLeaderHpRef?.current ?? battle.playerLeaderHp ?? LEADER_HP
+          const leaderHp = battle.latest.playerLeaderHp ?? battle.playerLeaderHp ?? LEADER_HP
           const leaderHpPercent = leaderHp / LEADER_HP
           let faceChance = 0
 
