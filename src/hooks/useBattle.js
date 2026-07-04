@@ -30,9 +30,7 @@ export function useBattle() {
   // init | mulligan | main | battle | animating | enemyTurn | over
   // ⚡ 能量 playerEnergy/enemyEnergy 于 E5c-2 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
 
-  // === 主人 HP ===
-  const [playerLeaderHp, setPlayerLeaderHp] = useState(LEADER_HP)
-  const [enemyLeaderHp, setEnemyLeaderHp] = useState(LEADER_HP)
+  // === 主人 HP === playerLeaderHp/enemyLeaderHp 于 E5c-3 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
 
   // === 战场（每方 MAX_FIELD_SLOTS 位，null = 空）===
   const emptyField = () => Array(MAX_FIELD_SLOTS).fill(null)
@@ -70,6 +68,17 @@ export function useBattle() {
   // === 弃牌堆（用于阵营标记计算）— E5c-1 迁进 battleReducer，派生自 reducer ===
   const playerDiscard = battleState.player.discard
   const enemyDiscard = battleState.enemy.discard
+
+  // === 主人 HP（E5c-3 迁进 battleReducer，派生自 reducer）===
+  const playerLeaderHp = battleState.player.leaderHp
+  const enemyLeaderHp = battleState.enemy.leaderHp
+  // 兼容垫片：boss/关卡机制（engine/bossMechanics·stageRules）拿的是 setter 且用
+  // 纯 updater（min(max,+2000) / max(0,-dmg)）→ 垫片跑 updater 后 dispatch LEADER_SET。
+  // 仅用于这类「单次、纯 updater」外部回调；内部有胜负副作用或需累加的点直接 dispatch delta。
+  const setPlayerLeaderHp = useCallback(
+    (u) => dispatch({ type: 'LEADER_SET', side: 'player', value: typeof u === 'function' ? u(battleStateRef.current.player.leaderHp) : u }), [])
+  const setEnemyLeaderHp = useCallback(
+    (u) => dispatch({ type: 'LEADER_SET', side: 'enemy', value: typeof u === 'function' ? u(battleStateRef.current.enemy.leaderHp) : u }), [])
 
   // Sprint 27: 手牌引用（由 BattleScreen 通过 setHandRefs 注入）
   // 用于 REVEAL_HAND 以及需要读取手牌的技能
@@ -164,8 +173,6 @@ export function useBattle() {
   // === Refs（解决闭包问题）===
   const playerFieldRef = useLatestRef(playerField)
   const enemyFieldRef = useLatestRef(enemyField)
-  const playerLeaderHpRef = useLatestRef(playerLeaderHp)
-  const enemyLeaderHpRef = useLatestRef(enemyLeaderHp)
   const turnRef = useLatestRef(turn)
 
   // ----------------------------------------------------------------
@@ -263,7 +270,7 @@ export function useBattle() {
     if (!boss?.onHPThreshold) return
     const config = campaignConfigRef.current
     const maxHP = config?.leaderHP || LEADER_HP
-    const currentHP = enemyLeaderHpRef.current
+    const currentHP = battleStateRef.current.enemy.leaderHp
     const result = boss.onHPThreshold({
       currentHP,
       maxHP,
@@ -287,9 +294,8 @@ export function useBattle() {
   //  side: 'player' | 'enemy'（技能拥有者，用于 leader / powerBank 事件）
   // ----------------------------------------------------------------
   function applySkillEvents(events, friendlySetter, enemySetter, side = 'player') {
-    // 技能拥有者视角的 leader / powerBank setter
-    const selfLeaderSetter = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
-    const enemyLeaderSetter = side === 'player' ? setEnemyLeaderHp : setPlayerLeaderHp
+    // 技能拥有者视角的 leader side（E5c-3：leader 写走 dispatch delta，不再 setter 变量）
+    const oppSide = side === 'player' ? 'enemy' : 'player'
     for (const evt of events) {
       switch (evt.type) {
         case 'NARRATIVE_LOG': {
@@ -512,7 +518,7 @@ export function useBattle() {
           break
         }
         case 'HEAL_LEADER': {
-          selfLeaderSetter(hp => Math.min(LEADER_HP, hp + (evt.amount || 0)))
+          dispatch({ type: 'LEADER_HEAL', side, amount: evt.amount || 0, cap: LEADER_HP })
           if (evt.message) addLog(evt.message)
           break
         }
@@ -600,24 +606,17 @@ export function useBattle() {
       allEvents.push(...killEvents)
 
       // 处理溢出伤害到主人（Overpower / Piercing，均来自 onKill）
+      // E5c-3：leader 走 dispatch LEADER_DAMAGE（reducer 累加）；胜负判定读本地累减值 leaderRunning，
+      //   保「同 tick 多个溢出事件」与旧 setX(prev=>...) 链式一致（攻击方一侧永远打对方主人 = oppSide）。
+      let leaderRunning = battleStateRef.current[oppSide].leaderHp
       for (const evt of allEvents) {
         if ((evt.type === 'OVERFLOW_DAMAGE' || evt.type === 'PIERCING_DAMAGE') && evt.damage > 0) {
-          if (side === 'player') {
-            // 玩家攻击 → 扣敌方主人
-            let won = false
-            setEnemyLeaderHp(prev => {
-              const next = Math.max(0, prev - evt.damage)
-              if (next <= 0) { setWinner('player'); setPhase('over'); won = true }
-              return next
-            })
-            if (!won) checkBossHPThreshold()
-          } else {
-            // 敌方攻击 → 扣玩家主人
-            setPlayerLeaderHp(prev => {
-              const next = Math.max(0, prev - evt.damage)
-              if (next <= 0) { setWinner('enemy'); setPhase('over') }
-              return next
-            })
+          dispatch({ type: 'LEADER_DAMAGE', side: oppSide, amount: evt.damage })
+          leaderRunning = Math.max(0, leaderRunning - evt.damage)
+          if (leaderRunning <= 0) {
+            setWinner(side); setPhase('over')
+          } else if (side === 'player') {
+            checkBossHPThreshold()
           }
           addLog(evt.message)
         }
@@ -647,8 +646,7 @@ export function useBattle() {
     const fieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
     const field = fieldRef.current
     const setter = side === 'player' ? setPlayerField : setEnemyField
-    const selfLeaderSetter = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
-    const enemyLeaderSetter = side === 'player' ? setEnemyLeaderHp : setPlayerLeaderHp
+    const oppSide = side === 'player' ? 'enemy' : 'player'  // E5c-3：leader 走 dispatch delta
     const allEvents = []
 
     // onTurnEnd 技能（自愈等）。传 turn → 让 interval 类技能(如胸腺 T-Cell Training 每2回合抽牌)能判回合。
@@ -662,7 +660,7 @@ export function useBattle() {
     for (const evt of turnEndEvents) {
       if (evt.type === 'HEAL' && evt.amount > 0 && evt._leaderHeal) {
         // 主人回血（蛔虫吸血回己方主人等）：onTurnEnd 原本按字段卡 uid 找 '__leader__' 找不到 → 走主人 setter
-        selfLeaderSetter(hp => Math.min(LEADER_HP, hp + evt.amount))
+        dispatch({ type: 'LEADER_HEAL', side, amount: evt.amount, cap: LEADER_HP })
         addLog(evt.message)
       } else if (evt.type === 'HEAL' && evt.amount > 0) {
         setter(prev => {
@@ -676,7 +674,7 @@ export function useBattle() {
         addLog(evt.message)
       } else if (evt.type === 'OVERFLOW_DAMAGE' && evt.damage > 0) {
         // 扣敌方主人血（蛔虫 Nutrient Hijack 吸血等）：onTurnEnd 原本完全不处理 OVERFLOW_DAMAGE → 技能哑火
-        enemyLeaderSetter(hp => Math.max(0, hp - evt.damage))
+        dispatch({ type: 'LEADER_DAMAGE', side: oppSide, amount: evt.damage })
         addLog(evt.message)
       } else if (evt.type === 'DRAW_CARD') {
         // 抽牌（胸腺 T-Cell Training 每2回合抽1张等）：复用 applySkillEvents 的 drawCards/aiDrawCards 机制
@@ -848,19 +846,13 @@ export function useBattle() {
     const vo = virusOutbreakRef.current
     if (vo.turnsLeft <= 0) return
     if (vo.playerAffected) {
-      setPlayerLeaderHp(prev => {
-        const next = Math.max(0, prev - 500)
-        if (next <= 0) { setWinner('enemy'); setPhase('over') }
-        return next
-      })
+      dispatch({ type: 'LEADER_DAMAGE', side: 'player', amount: 500 })
+      if (Math.max(0, battleStateRef.current.player.leaderHp - 500) <= 0) { setWinner('enemy'); setPhase('over') }
       addLog('🦠 病毒爆发：我方主人 -500 HP（无人体系保护）')
     }
     if (vo.enemyAffected) {
-      setEnemyLeaderHp(prev => {
-        const next = Math.max(0, prev - 500)
-        if (next <= 0) { setWinner('player'); setPhase('over') }
-        return next
-      })
+      dispatch({ type: 'LEADER_DAMAGE', side: 'enemy', amount: 500 })
+      if (Math.max(0, battleStateRef.current.enemy.leaderHp - 500) <= 0) { setWinner('player'); setPhase('over') }
       addLog('🦠 病毒爆发：敌方主人 -500 HP（无人体系保护）')
     }
     virusOutbreakRef.current = { ...vo, turnsLeft: vo.turnsLeft - 1 }
@@ -887,7 +879,6 @@ export function useBattle() {
     const { drawCards, addToHand } = opts
     const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
     const enemySetter = side === 'player' ? setEnemyField : setPlayerField
-    const setLeaderHp = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
     const friendlyFieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
     const enemyFieldRef_ = side === 'player' ? enemyFieldRef : playerFieldRef
 
@@ -1292,12 +1283,9 @@ export function useBattle() {
 
     // SP6 Ancient Virus: 5000 damage to leader
     if (spCard.id === 'sp_ancient_virus') {
-      const setLeaderHp = side === 'player' ? setEnemyLeaderHp : setPlayerLeaderHp
-      setLeaderHp(prev => {
-        const next = Math.max(0, prev - 5000)
-        if (next <= 0) { setWinner(side); setPhase('over') }
-        return next
-      })
+      const oppSide = side === 'player' ? 'enemy' : 'player'
+      dispatch({ type: 'LEADER_DAMAGE', side: oppSide, amount: 5000 })
+      if (Math.max(0, battleStateRef.current[oppSide].leaderHp - 5000) <= 0) { setWinner(side); setPhase('over') }
       addLog(`🧊 远古病毒：冰封释放！对敌方主人造成 5000 伤害！`)
     }
 
@@ -1478,8 +1466,8 @@ export function useBattle() {
     setTurn(1)
     dispatch({ type: 'ENERGY_SET', side: 'player', value: spDecks.playerStartEnergy || 1 })   // 测试场可满能量开局
     dispatch({ type: 'ENERGY_SET', side: 'enemy', value: spDecks.enemyStartEnergy || 1 })
-    setPlayerLeaderHp(spDecks.playerLeaderHP || LEADER_HP)
-    setEnemyLeaderHp(spDecks.enemyLeaderHP || LEADER_HP)
+    dispatch({ type: 'LEADER_SET', side: 'player', value: spDecks.playerLeaderHP || LEADER_HP })
+    dispatch({ type: 'LEADER_SET', side: 'enemy', value: spDecks.enemyLeaderHP || LEADER_HP })
     // Phase B：记录初始主人 HP（50% 触发阈值用）+ 清空三条件触发记录
     playerInitLeaderHpRef.current = spDecks.playerLeaderHP || LEADER_HP
     enemyInitLeaderHpRef.current = spDecks.enemyLeaderHP || LEADER_HP
@@ -1764,12 +1752,9 @@ export function useBattle() {
       pushSkillEvents(atkEvents)
 
       const dmg = calcLeaderDamage(atkCard, dmgOpts)
-      let gameWon = false
-      setEnemyLeaderHp(prev => {
-        const next = Math.max(0, prev - dmg)
-        if (next <= 0) { setWinner('player'); setPhase('over'); gameWon = true }
-        return next
-      })
+      dispatch({ type: 'LEADER_DAMAGE', side: 'enemy', amount: dmg })
+      const gameWon = Math.max(0, battleStateRef.current.enemy.leaderHp - dmg) <= 0
+      if (gameWon) { setWinner('player'); setPhase('over') }
       addLog(`${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
       battleStatsRef.current.totalDamage += dmg
       if (!gameWon) checkBossHPThreshold()
@@ -1882,7 +1867,7 @@ export function useBattle() {
 
     // Phase B：敌方第8回合"开闸"——主人HP≤50% 才召（AI 不答题，无"连对2题"那半）
     if (t >= SP_TURN_TRIGGER &&
-        enemyLeaderHpRef.current <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
+        battleStateRef.current.enemy.leaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO) {
       tryTriggerSp('enemy', 'gated')
     }
     return gain
@@ -1995,12 +1980,9 @@ export function useBattle() {
       }
 
       const dmg = calcLeaderDamage(atkCard, dmgOpts)
-      let gameOver = false
-      setPlayerLeaderHp(prev => {
-        const next = Math.max(0, prev - dmg)
-        if (next <= 0) { setWinner('enemy'); setPhase('over'); gameOver = true }
-        return next
-      })
+      dispatch({ type: 'LEADER_DAMAGE', side: 'player', amount: dmg })
+      const gameOver = Math.max(0, battleStateRef.current.player.leaderHp - dmg) <= 0
+      if (gameOver) { setWinner('enemy'); setPhase('over') }
       addLog(`🔴 ${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
       return { atkDmg: dmg, defDmg: 0, defKilled: false, atkKilled: false, leaderHit: true, gameOver }
     }
@@ -2076,7 +2058,7 @@ export function useBattle() {
     // （满血且没连对2题则不召；这是"撑到第8回合也不一定召"的关键判断点）
     if (newTurn >= SP_TURN_TRIGGER &&
         (quizStreakRef.current >= SP_QUIZ_STREAK ||
-         playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO)) {
+         battleStateRef.current.player.leaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO)) {
       tryTriggerSp('player', 'gated')
     }
 
@@ -2090,7 +2072,7 @@ export function useBattle() {
         setPlayerField,
         enemyField: enemyFieldRef.current,
         setEnemyField,
-        enemyLeaderHp: enemyLeaderHpRef.current,
+        enemyLeaderHp: battleStateRef.current.enemy.leaderHp,
         maxLeaderHP: config?.leaderHP || LEADER_HP,
         setEnemyLeaderHp,
         addLog,
@@ -2110,7 +2092,7 @@ export function useBattle() {
         setPlayerField,
         enemyField: enemyFieldRef.current,
         setEnemyField,
-        playerLeaderHp: playerLeaderHpRef.current,
+        playerLeaderHp: battleStateRef.current.player.leaderHp,
         setPlayerLeaderHp: setPlayerLeaderHp,
         addLog,
       })
@@ -2237,8 +2219,8 @@ export function useBattle() {
   const latest = {
     get playerField() { return playerFieldRef.current },
     get enemyField() { return enemyFieldRef.current },
-    get playerLeaderHp() { return playerLeaderHpRef.current },
-    get enemyLeaderHp() { return enemyLeaderHpRef.current },
+    get playerLeaderHp() { return battleStateRef.current.player.leaderHp },
+    get enemyLeaderHp() { return battleStateRef.current.enemy.leaderHp },
     get enemyPowerBank() { return battleStateRef.current.enemy.powerBank },
     get enemySpDeck() { return enemySpDeckRef.current },
     get enemyDiscard() { return battleStateRef.current.enemy.discard },

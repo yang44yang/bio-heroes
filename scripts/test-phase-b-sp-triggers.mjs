@@ -48,13 +48,14 @@ ok('HP useEffect：玩家/敌方 HP≤阈值 → gated',
   has('playerLeaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
   has('enemyLeaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
   has("tryTriggerSp('player', 'gated')") && has("tryTriggerSp('enemy', 'gated')"))
+// E5c-3：leaderHp 迁进 battleReducer → 读 battleStateRef.current.<side>.leaderHp（init 阈值 ref 不动）
 ok('玩家回合点：newTurn≥SP_TURN_TRIGGER 且（连对2题 OR HP≤阈值）→ player/gated',
   has('newTurn >= SP_TURN_TRIGGER') &&
   has('quizStreakRef.current >= SP_QUIZ_STREAK ||') &&
-  has('playerLeaderHpRef.current <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO'))
+  has('battleStateRef.current.player.leaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO'))
 ok('敌方回合点：t≥SP_TURN_TRIGGER 且 HP≤阈值 → enemy/gated',
   has('t >= SP_TURN_TRIGGER') &&
-  has('enemyLeaderHpRef.current <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
+  has('battleStateRef.current.enemy.leaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
   has("tryTriggerSp('enemy', 'gated')"))
 ok('旧 reason 已全部替换：tryTriggerSp 调用只用 gated（无 combo/turn/quiz/hp）', (() => {
   const calls = [...src.matchAll(/tryTriggerSp\([^)]*\)/g)].map(m => m[0])

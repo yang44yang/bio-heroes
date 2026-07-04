@@ -22,19 +22,18 @@ const cards = readFileSync(join(ROOT, 'src/data/cards.js'), 'utf8')
 ok('① onTurnEnd triggerSkills 传 turn: turnRef.current',
   /triggerSkills\(\s*'onTurnEnd'[\s\S]{0,160}turn:\s*turnRef\.current/.test(ub))
 
-// ② processEndOfTurnEffects 派生主人 setter（吸血扣敌方主人 / 回己方主人）
+// ② processEndOfTurnEffects 派生 oppSide（E5c-3：leader 写走 dispatch delta，不再 setter 变量）
 const peStart = ub.indexOf('function processEndOfTurnEffects')
 const pe = peStart >= 0 ? ub.slice(peStart, peStart + 2600) : ''
-ok('② 派生 selfLeaderSetter(回己方主人)', /selfLeaderSetter\s*=\s*side === 'player'\s*\?\s*setPlayerLeaderHp\s*:\s*setEnemyLeaderHp/.test(pe))
-ok('② 派生 enemyLeaderSetter(扣敌方主人)', /enemyLeaderSetter\s*=\s*side === 'player'\s*\?\s*setEnemyLeaderHp\s*:\s*setPlayerLeaderHp/.test(pe))
+ok('② 派生 oppSide(用于扣敌方主人)', /oppSide\s*=\s*side === 'player'\s*\?\s*'enemy'\s*:\s*'player'/.test(pe))
 
-// ③ dispatcher 三个新 case 都接上（之前缺 → 技能哑火）
+// ③ dispatcher 三个新 case 都接上（之前缺 → 技能哑火）。E5c-3：leader 走 dispatch LEADER_HEAL/DAMAGE
 ok('③ OVERFLOW_DAMAGE → 扣敌方主人血(蛔虫吸血)',
-  /evt\.type === 'OVERFLOW_DAMAGE'[\s\S]{0,120}enemyLeaderSetter\(hp => Math\.max\(0, hp - evt\.damage\)\)/.test(pe))
+  /evt\.type === 'OVERFLOW_DAMAGE'[\s\S]{0,120}dispatch\(\{\s*type:\s*'LEADER_DAMAGE',\s*side:\s*oppSide,\s*amount:\s*evt\.damage\s*\}\)/.test(pe))
 ok('③ DRAW_CARD → drawCards/aiDrawCards 抽牌(胸腺)',
   /evt\.type === 'DRAW_CARD'[\s\S]{0,160}drawCards\s*:\s*handsRef\.current\.aiDrawCards/.test(pe))
 ok('③ _leaderHeal HEAL → 回己方主人(原按字段卡 uid 找 __leader__ 找不到)',
-  /evt\.type === 'HEAL'[\s\S]{0,80}evt\._leaderHeal[\s\S]{0,120}selfLeaderSetter\(hp => Math\.min\(LEADER_HP/.test(pe))
+  /evt\.type === 'HEAL'[\s\S]{0,80}evt\._leaderHeal[\s\S]{0,140}dispatch\(\{\s*type:\s*'LEADER_HEAL',\s*side,\s*amount:\s*evt\.amount,\s*cap:\s*LEADER_HP/.test(pe))
 
 // ④ skillRegistry：T-Cell 改 passiveDraw、蛔虫保持 passiveDrain
 ok('④ T-Cell Training → passiveDraw(interval:2)(原 passiveHeal 与描述不符)',

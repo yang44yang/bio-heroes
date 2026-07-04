@@ -13,9 +13,12 @@
 //  否则触发无谓重渲染/动画抖动。纯函数、无副作用、无返回额外值。
 // ----------------------------------------------------------------
 
+// 主人初始 HP（与 deckRules.LEADER_HP 一致，reducer 保持 React-free 故内联常量）
+const LEADER_HP_INIT = 30000
+
 export const initialBattleState = {
-  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1 },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1 },
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT },
 }
 
 export function battleReducer(state, action) {
@@ -72,6 +75,27 @@ export function battleReducer(state, action) {
       // 出牌扣费（等价旧 setEnergy(prev => prev - cost)）
       const { side, cost } = action
       return { ...state, [side]: { ...state[side], energy: state[side].energy - cost } }
+    }
+
+    // --- 主人 HP leaderHp（E5c-3）---
+    // 全部 delta 型（DAMAGE/HEAL）→ 同 tick 多次 dispatch 靠 reducer 顺序累加，
+    // 保「事件循环里多次扣/回主人血」与旧 setX(prev=>...) 链式一致。胜负判定留在
+    // 调用端（读 battleStateRef 本地算 gameWon/gameOver + winner/phase 副作用），
+    // reducer 保持纯：只改血，胜负与阶段不在此处。
+    case 'LEADER_DAMAGE': {
+      const { side, amount } = action
+      return { ...state, [side]: { ...state[side], leaderHp: Math.max(0, state[side].leaderHp - amount) } }
+    }
+    case 'LEADER_HEAL': {
+      // cap 传入则封顶（回主人血不超上限 LEADER_HP）
+      const { side, amount, cap } = action
+      const next = state[side].leaderHp + amount
+      return { ...state, [side]: { ...state[side], leaderHp: cap == null ? next : Math.min(cap, next) } }
+    }
+    case 'LEADER_SET': {
+      // 直接设值（开局起始 HP / boss·关卡机制经 setter 垫片走此路）
+      const { side, value } = action
+      return { ...state, [side]: { ...state[side], leaderHp: value } }
     }
 
     default:
