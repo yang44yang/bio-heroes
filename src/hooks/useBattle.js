@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { useLatestRef } from './useLatestRef'
 import {
   ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
   SP_QUIZ_STREAK, SP_LEADER_HP_RATIO, SP_TURN_TRIGGER,
@@ -55,18 +56,14 @@ export function useBattle() {
   // === Power Bank 能量储蓄罐 ===
   const [playerPowerBank, setPlayerPowerBank] = useState({ stored: 0, intact: true })
   const [enemyPowerBank, setEnemyPowerBank] = useState({ stored: 0, intact: true })
-  const playerPowerBankRef = useRef(playerPowerBank)
-  playerPowerBankRef.current = playerPowerBank
-  const enemyPowerBankRef = useRef(enemyPowerBank)
-  enemyPowerBankRef.current = enemyPowerBank
+  const playerPowerBankRef = useLatestRef(playerPowerBank)
+  const enemyPowerBankRef = useLatestRef(enemyPowerBank)
 
   // === 弃牌堆（用于阵营标记计算）===
   const [playerDiscard, setPlayerDiscard] = useState([])
   const [enemyDiscard, setEnemyDiscard] = useState([])
-  const playerDiscardRef = useRef(playerDiscard)
-  playerDiscardRef.current = playerDiscard
-  const enemyDiscardRef = useRef(enemyDiscard)
-  enemyDiscardRef.current = enemyDiscard
+  const playerDiscardRef = useLatestRef(playerDiscard)
+  const enemyDiscardRef = useLatestRef(enemyDiscard)
 
   // Sprint 27: 手牌引用（由 BattleScreen 通过 setHandRefs 注入）
   // 用于 REVEAL_HAND 以及需要读取手牌的技能
@@ -95,15 +92,12 @@ export function useBattle() {
   // === SP 卡组 ===
   const [playerSpDeck, setPlayerSpDeck] = useState([])
   const [enemySpDeck, setEnemySpDeck] = useState([])
-  const playerSpDeckRef = useRef(playerSpDeck)
-  playerSpDeckRef.current = playerSpDeck
-  const enemySpDeckRef = useRef(enemySpDeck)
-  enemySpDeckRef.current = enemySpDeck
+  const playerSpDeckRef = useLatestRef(playerSpDeck)
+  const enemySpDeckRef = useLatestRef(enemySpDeck)
 
   // === 事件卡效果日志（供 UI 展示动画用）===
   const [pendingSpSummon, setPendingSpSummon] = useState(null) // { side, candidates }
-  const pendingSpSummonRef = useRef(null)
-  pendingSpSummonRef.current = pendingSpSummon
+  const pendingSpSummonRef = useLatestRef(pendingSpSummon)
   // Phase B: SP 三条件自动触发 —— 每条件本局只触发一次（按 `${side}:${reason}` 去重）
   const spTriggeredRef = useRef(new Set())
   // 主人初始 HP（用于 50% 触发阈值；campaign Boss 主人 HP 可能 ≠ 30000）
@@ -163,20 +157,13 @@ export function useBattle() {
   }, [])
 
   // === Refs（解决闭包问题）===
-  const playerFieldRef = useRef(playerField)
-  playerFieldRef.current = playerField
-  const enemyFieldRef = useRef(enemyField)
-  enemyFieldRef.current = enemyField
-  const playerLeaderHpRef = useRef(playerLeaderHp)
-  playerLeaderHpRef.current = playerLeaderHp
-  const enemyLeaderHpRef = useRef(enemyLeaderHp)
-  enemyLeaderHpRef.current = enemyLeaderHp
-  const turnRef = useRef(turn)
-  turnRef.current = turn
-  const playerEnergyRef = useRef(playerEnergy)
-  playerEnergyRef.current = playerEnergy
-  const enemyEnergyRef = useRef(enemyEnergy)
-  enemyEnergyRef.current = enemyEnergy
+  const playerFieldRef = useLatestRef(playerField)
+  const enemyFieldRef = useLatestRef(enemyField)
+  const playerLeaderHpRef = useLatestRef(playerLeaderHp)
+  const enemyLeaderHpRef = useLatestRef(enemyLeaderHp)
+  const turnRef = useLatestRef(turn)
+  const playerEnergyRef = useLatestRef(playerEnergy)
+  const enemyEnergyRef = useLatestRef(enemyEnergy)
 
   // ----------------------------------------------------------------
   //  辅助

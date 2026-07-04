@@ -74,7 +74,7 @@ ok('startBattle 记录双方初始主人HP',
 
 // ===== E. 防双触发 / 防多弹窗 =====
 ok('玩家侧已有 pendingSpSummon 时不重复弹', has("side === 'player' && pendingSpSummonRef.current"))
-ok('pendingSpSummonRef 已同步', has('pendingSpSummonRef.current = pendingSpSummon'))
+ok('pendingSpSummonRef 同步到最新（决策E5a：useLatestRef 保证每渲染同步）', has('const pendingSpSummonRef = useLatestRef(pendingSpSummon)'))
 
 // ===== F. 'auto' 规则资格判定（复刻，与 useBattle 同公式）=====
 // auto：阵营/费用不限（maxCost 默认 99），仍受回合门槛 turn ≥ spEarliestSummonTurn(spCost)。

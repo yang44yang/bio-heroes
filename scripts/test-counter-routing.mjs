@@ -68,5 +68,9 @@ ok('⑤ attack/aiAttack 两处都调 applyCombatOutcome（去重）', (ub.match(
 ok('⑤ 结算里的护盾 setState 块已收敛（源码不再有 3+ 处 applyShieldAbsorb(next[…]）',
   (ub.match(/applyShieldAbsorb\(next\[/g) || []).length <= 2)
 
+// ⑥ 决策E5a：14 处 state-mirror 双写收进 useLatestRef，不再有裸 `xRef.current = x` 顶层镜像写
+ok('⑥ useBattle 不再有裸镜像双写（顶层 xRef.current = x）', !/^ {2}\w+Ref\.current = \w+$/m.test(ub))
+ok('⑥ state-mirror 改用 useLatestRef（≥14 处）', (ub.match(/= useLatestRef\(/g) || []).length >= 14)
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)
