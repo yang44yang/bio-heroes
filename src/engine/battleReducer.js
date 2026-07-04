@@ -14,8 +14,8 @@
 // ----------------------------------------------------------------
 
 export const initialBattleState = {
-  player: { powerBank: { stored: 0, intact: true }, discard: [] },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [] },
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1 },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1 },
 }
 
 export function battleReducer(state, action) {
@@ -54,6 +54,24 @@ export function battleReducer(state, action) {
       const idx = pile.findIndex(c => c.uid === uid)
       if (idx === -1) return state
       return { ...state, [side]: { ...state[side], discard: [...pile.slice(0, idx), ...pile.slice(idx + 1)] } }
+    }
+
+    // --- 能量 energy（E5c-2）---
+    case 'ENERGY_SET': {
+      // 直接设值（回合刷新 gain / 消耗全部归 0 / 开局起始能量）
+      const { side, value } = action
+      return { ...state, [side]: { ...state[side], energy: value } }
+    }
+    case 'ENERGY_ADD': {
+      // 增益：cap 传入则封顶（技能/事件充能，ENERGY_CAP），不传则不封顶（打破 Power Bank 可破 10）
+      const { side, amount, cap } = action
+      const next = state[side].energy + amount
+      return { ...state, [side]: { ...state[side], energy: cap == null ? next : Math.min(cap, next) } }
+    }
+    case 'ENERGY_SPEND': {
+      // 出牌扣费（等价旧 setEnergy(prev => prev - cost)）
+      const { side, cost } = action
+      return { ...state, [side]: { ...state[side], energy: state[side].energy - cost } }
     }
 
     default:

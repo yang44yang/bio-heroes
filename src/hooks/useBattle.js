@@ -28,8 +28,7 @@ export function useBattle() {
   const [turn, setTurn] = useState(1)
   const [phase, setPhase] = useState('init')
   // init | mulligan | main | battle | animating | enemyTurn | over
-  const [playerEnergy, setPlayerEnergy] = useState(1)
-  const [enemyEnergy, setEnemyEnergy] = useState(1)
+  // ⚡ 能量 playerEnergy/enemyEnergy 于 E5c-2 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
 
   // === 主人 HP ===
   const [playerLeaderHp, setPlayerLeaderHp] = useState(LEADER_HP)
@@ -63,6 +62,10 @@ export function useBattle() {
   // === Power Bank 能量储蓄罐（派生自 reducer，供 return 导出 / UI 读取）===
   const playerPowerBank = battleState.player.powerBank
   const enemyPowerBank = battleState.enemy.powerBank
+
+  // === 能量（E5c-2 迁进 battleReducer，派生自 reducer）===
+  const playerEnergy = battleState.player.energy
+  const enemyEnergy = battleState.enemy.energy
 
   // === 弃牌堆（用于阵营标记计算）— E5c-1 迁进 battleReducer，派生自 reducer ===
   const playerDiscard = battleState.player.discard
@@ -164,8 +167,6 @@ export function useBattle() {
   const playerLeaderHpRef = useLatestRef(playerLeaderHp)
   const enemyLeaderHpRef = useLatestRef(enemyLeaderHp)
   const turnRef = useLatestRef(turn)
-  const playerEnergyRef = useLatestRef(playerEnergy)
-  const enemyEnergyRef = useLatestRef(enemyEnergy)
 
   // ----------------------------------------------------------------
   //  辅助
@@ -441,8 +442,7 @@ export function useBattle() {
         }
         case 'ENERGY_BOOST': {
           // Sprint 27: 实际增加能量（不再只打日志）
-          const setEnergy = side === 'player' ? setPlayerEnergy : setEnemyEnergy
-          setEnergy(prev => Math.min(ENERGY_CAP, prev + (evt.amount || 1)))
+          dispatch({ type: 'ENERGY_ADD', side, amount: evt.amount || 1, cap: ENERGY_CAP })
           if (evt.message) addLog(evt.message)
           break
         }
@@ -771,10 +771,7 @@ export function useBattle() {
   //  Power Bank：回合结束时剩余能量流入
   // ----------------------------------------------------------------
   function processEndPhase(side) {
-    const energyRef = side === 'player' ? playerEnergyRef : enemyEnergyRef
-    const setEnergy = side === 'player' ? setPlayerEnergy : setEnemyEnergy
-
-    const energy = energyRef.current
+    const energy = battleStateRef.current[side].energy
     const pb = battleStateRef.current[side].powerBank
 
     if (pb.intact && energy > 0) {
@@ -784,7 +781,7 @@ export function useBattle() {
         battleStatsRef.current.powerBankMax = newStored
       }
       addLog(`⚡ ${energy} 点剩余能量流入 Power Bank！(总计: ${newStored})`)
-      setEnergy(0)
+      dispatch({ type: 'ENERGY_SET', side, value: 0 })
     }
   }
 
@@ -796,9 +793,9 @@ export function useBattle() {
     if (!pb.intact || pb.stored <= 0) return 0
 
     const released = pb.stored
-    const setEnergy = side === 'player' ? setPlayerEnergy : setEnemyEnergy
 
-    setEnergy(prev => prev + released)
+    // 打破可突破上限 10 → ENERGY_ADD 不传 cap
+    dispatch({ type: 'ENERGY_ADD', side, amount: released })
     dispatch({ type: 'POWERBANK_SET', side, powerBank: { stored: 0, intact: false } })
     addLog(`💥 Power Bank 打破！释放 ${released} 点能量！`)
 
@@ -890,7 +887,6 @@ export function useBattle() {
     const { drawCards, addToHand } = opts
     const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
     const enemySetter = side === 'player' ? setEnemyField : setPlayerField
-    const setEnergy = side === 'player' ? setPlayerEnergy : setEnemyEnergy
     const setLeaderHp = side === 'player' ? setPlayerLeaderHp : setEnemyLeaderHp
     const friendlyFieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
     const enemyFieldRef_ = side === 'player' ? enemyFieldRef : playerFieldRef
@@ -898,7 +894,7 @@ export function useBattle() {
     switch (card.effectType) {
       case 'energy': {
         // 回复能量
-        setEnergy(prev => Math.min(prev + card.effectValue, ENERGY_CAP))
+        dispatch({ type: 'ENERGY_ADD', side, amount: card.effectValue, cap: ENERGY_CAP })
         addLog(`✨ ${card.name}：回复 ${card.effectValue} 点能量！`)
         return { success: true }
       }
@@ -1343,7 +1339,7 @@ export function useBattle() {
     if (card.cost > playerEnergy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
 
     // 1. Deduct energy
-    setPlayerEnergy(prev => prev - card.cost)
+    dispatch({ type: 'ENERGY_SPEND', side: 'player', cost: card.cost })
 
     // 2. Execute effect
     executeEventEffect(card, 'player', opts)
@@ -1356,11 +1352,11 @@ export function useBattle() {
     // 4. Check SP summon
     let spCandidates = []
     if (card.spSummonRule) {
-      let remainEnergy = playerEnergyRef.current
+      let remainEnergy = battleStateRef.current.player.energy
       if (card.spSummonRule.type === 'spend_all_energy') {
         // Consume all remaining energy
-        remainEnergy = playerEnergyRef.current
-        setPlayerEnergy(0)
+        remainEnergy = battleStateRef.current.player.energy
+        dispatch({ type: 'ENERGY_SET', side: 'player', value: 0 })
         addLog(`⚡ 消耗所有剩余能量 ${remainEnergy} 点！`)
       }
       spCandidates = getEligibleSpCards(card.spSummonRule, 'player', remainEnergy)
@@ -1379,7 +1375,7 @@ export function useBattle() {
   // ----------------------------------------------------------------
   const aiPlayEventCard = useCallback((card, opts = {}) => {
     // 1. Deduct energy
-    setEnemyEnergy(prev => prev - card.cost)
+    dispatch({ type: 'ENERGY_SPEND', side: 'enemy', cost: card.cost })
 
     // 2. Execute effect
     executeEventEffect(card, 'enemy', opts)
@@ -1391,10 +1387,10 @@ export function useBattle() {
 
     // 4. Check SP summon
     if (card.spSummonRule) {
-      let remainEnergy = enemyEnergyRef.current
+      let remainEnergy = battleStateRef.current.enemy.energy
       if (card.spSummonRule.type === 'spend_all_energy') {
-        remainEnergy = enemyEnergyRef.current
-        setEnemyEnergy(0)
+        remainEnergy = battleStateRef.current.enemy.energy
+        dispatch({ type: 'ENERGY_SET', side: 'enemy', value: 0 })
         addLog(`🔴 ⚡ 消耗所有剩余能量 ${remainEnergy} 点！`)
       }
       const candidates = getEligibleSpCards(card.spSummonRule, 'enemy', remainEnergy)
@@ -1480,8 +1476,8 @@ export function useBattle() {
   // ----------------------------------------------------------------
   const startBattle = useCallback((spDecks = {}) => {
     setTurn(1)
-    setPlayerEnergy(spDecks.playerStartEnergy || 1)   // 测试场可满能量开局
-    setEnemyEnergy(spDecks.enemyStartEnergy || 1)
+    dispatch({ type: 'ENERGY_SET', side: 'player', value: spDecks.playerStartEnergy || 1 })   // 测试场可满能量开局
+    dispatch({ type: 'ENERGY_SET', side: 'enemy', value: spDecks.enemyStartEnergy || 1 })
     setPlayerLeaderHp(spDecks.playerLeaderHP || LEADER_HP)
     setEnemyLeaderHp(spDecks.enemyLeaderHP || LEADER_HP)
     // Phase B：记录初始主人 HP（50% 触发阈值用）+ 清空三条件触发记录
@@ -1615,7 +1611,7 @@ export function useBattle() {
       return next
     })
 
-    setPlayerEnergy(prev => prev - card.cost)
+    dispatch({ type: 'ENERGY_SPEND', side: 'player', cost: card.cost })
 
     // Consume faction markers if needed
     if (card.factionRequirement?.type === 'consume') {
@@ -1875,7 +1871,7 @@ export function useBattle() {
     const t = turnRef.current
     let gain = Math.min(Math.ceil(t / 2) + 1, ENERGY_CAP)
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
-    setEnemyEnergy(gain)
+    dispatch({ type: 'ENERGY_SET', side: 'enemy', value: gain })
     addLog(`\n🔴 敌方回合（能量 ${gain}）`)
     // onTurnStart 技能（向日葵/线粒体充能、蚁后召唤、变形虫、肝/肾、超算）
     const tsEvents = processTurnStartEffects('enemy')
@@ -1901,7 +1897,7 @@ export function useBattle() {
       next[slotIdx] = makeFieldCard(card)
       return next
     })
-    setEnemyEnergy(prev => prev - card.cost)
+    dispatch({ type: 'ENERGY_SPEND', side: 'enemy', cost: card.cost })
 
     // Consume faction markers if needed
     if (card.factionRequirement?.type === 'consume') {
@@ -2067,7 +2063,7 @@ export function useBattle() {
     const gain = Math.min(Math.ceil(newTurn / 2) + 1, ENERGY_CAP)
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
     setTurn(newTurn)
-    setPlayerEnergy(gain)
+    dispatch({ type: 'ENERGY_SET', side: 'player', value: gain })
     addLog(`\n🔵 你的回合 ${newTurn}（能量 ${gain}）`)
     summonedThisTurn.current.clear()
     attackedThisTurn.current.clear()

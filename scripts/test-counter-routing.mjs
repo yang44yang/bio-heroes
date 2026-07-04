@@ -73,7 +73,7 @@ ok('⑤ 结算里的护盾 setState 块已收敛（源码不再有 3+ 处 applyS
 //    （E5c-0 已退役 playerPowerBankRef/enemyPowerBankRef，新增 battleStateRef）。
 //    故下界随迁移下调；核心不变式仍是「没有裸镜像双写」。
 ok('⑥ useBattle 不再有裸镜像双写（顶层 xRef.current = x）', !/^ {2}\w+Ref\.current = \w+$/m.test(ub))
-ok('⑥ state-mirror 仍走 useLatestRef helper（≥10 处，E5c 迁移中逐步退役）', (ub.match(/= useLatestRef\(/g) || []).length >= 10)
+ok('⑥ state-mirror 仍走 useLatestRef helper（≥8 处，E5c 迁移中逐步退役）', (ub.match(/= useLatestRef\(/g) || []).length >= 8)
 
 // ⑦ 决策E5c-0：Power Bank 迁进 battleReducer（reducer 拿最新 state + 原子改）
 ok('⑦ 引入 useReducer(battleReducer)', /useReducer\(battleReducer/.test(ub))
@@ -86,6 +86,12 @@ ok('⑦ 弃牌堆写全走 dispatch（DISCARD_*），不再 setPlayer/EnemyDisca
   /dispatch\(\{\s*type:\s*'DISCARD_/.test(ub) && !/set(Player|Enemy)Discard/.test(ub))
 ok('⑦ 弃牌堆读全走 battleStateRef，不再 player/enemyDiscardRef',
   !/(player|enemy)DiscardRef/.test(ub))
+
+// ⑦ 决策E5c-2：能量迁进 battleReducer（ENERGY_SET/ADD/SPEND）
+ok('⑦ 能量写全走 dispatch（ENERGY_*），不再 setPlayer/EnemyEnergy',
+  /dispatch\(\{\s*type:\s*'ENERGY_(SET|ADD|SPEND)'/.test(ub) && !/set(Player|Enemy)Energy/.test(ub))
+ok('⑦ 能量读全走 battleStateRef，不再 player/enemyEnergyRef',
+  !/(player|enemy)EnergyRef/.test(ub))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

@@ -13,7 +13,8 @@ const ok = (n, c) => { if (c) pass++; else { fail++; console.error('❌ ' + n) }
 
 // ① 引擎：startBattle 支持 testPlayerField/testEnemyField 摆盘 + startEnergy
 const ub = read('src/hooks/useBattle.js')
-ok('① startBattle 支持满能量开局 (playerStartEnergy)', /setPlayerEnergy\(spDecks\.playerStartEnergy \|\| 1\)/.test(ub))
+// E5c-2：能量迁进 battleReducer → 起始能量走 dispatch ENERGY_SET
+ok('① startBattle 支持满能量开局 (playerStartEnergy)', /dispatch\(\{\s*type:\s*'ENERGY_SET',\s*side:\s*'player',\s*value:\s*spDecks\.playerStartEnergy \|\| 1\s*\}\)/.test(ub))
 ok('① startBattle 处理 testPlayerField / testEnemyField 按格摆放',
   /testPlayerField.*setPlayerField.*testEnemyField.*setEnemyField/s.test(ub) && /makeFieldCard\(arr\[i\]\)/.test(ub))
 ok('① 测试场挂的 statuses 会补回（makeFieldCard 清空后重挂，供无视护盾/标记等测法）',
