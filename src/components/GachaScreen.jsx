@@ -2,8 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
+import { TOTAL_DEX_CARDS } from '../data/dexSets'
 import cardsData from '../data/cards'
-import spCardsData from '../data/spCards'
 import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
 import GachaAnimation from './GachaAnimation'
@@ -17,7 +17,8 @@ import { loadCampaignProgress } from '../data/campaignData'
 import { useLanguage } from '../i18n/LanguageContext'
 
 const cardById = (id) => cardsData.find(c => c.id === id)
-const TOTAL_OBTAINABLE = cardsData.length + spCardsData.filter(s => s.unlockMode === 'gacha').length
+// 图鉴进度条用「全图鉴总数」(TOTAL_DEX_CARDS = 生物+事件+SP)，与 Collection 图鉴同源，两屏总数不再打架。
+// 分子 owned 数的是整个 collection（含已拥有的事件/SP 卡），所以分母必须是同一个全集，否则会 owned>分母。
 
 const rarityColors = {
   R: 'text-blue-400',
@@ -152,13 +153,13 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
       {/* 图鉴进度条 */}
       {(() => {
         const owned = Object.keys(economy.collection).length
-        const pct = Math.min(100, (owned / TOTAL_OBTAINABLE) * 100)
-        const remaining = Math.max(0, TOTAL_OBTAINABLE - owned)
+        const pct = Math.min(100, (owned / TOTAL_DEX_CARDS) * 100)
+        const remaining = Math.max(0, TOTAL_DEX_CARDS - owned)
         return (
           <div className="bg-gray-800/40 rounded-lg p-3 mb-3 max-w-md w-full">
             <div className="flex justify-between text-xs mb-1.5">
               <span className="text-gray-300">{t('gacha.dexProgress')}</span>
-              <span className="text-cyan-300 font-bold">{owned} / {TOTAL_OBTAINABLE}</span>
+              <span className="text-cyan-300 font-bold">{owned} / {TOTAL_DEX_CARDS}</span>
             </div>
             <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
               <motion.div

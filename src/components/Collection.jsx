@@ -1,11 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
-import cards from '../data/cards'
-import eventCards from '../data/eventCards'
-import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES } from '../data/deckRules'
-import { DEX_SETS, setOf } from '../data/dexSets'
+import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS } from '../data/dexSets'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
 import { COLLECTION_ACHIEVEMENTS, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS } from '../data/achievements'
 import { loadCampaignProgress } from '../data/campaignData'
@@ -13,8 +10,8 @@ import AchievementModal from './AchievementModal'
 import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
 
-const allCards = [...cards, ...eventCards, ...spCards]
-const TOTAL_CARDS = allCards.length // 64
+const allCards = ALL_DEX_CARDS
+const TOTAL_CARDS = TOTAL_DEX_CARDS
 const cardMap = Object.fromEntries(allCards.map(c => [c.id, c]))
 
 // 稀有度颜色

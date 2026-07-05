@@ -3,10 +3,11 @@
 //   Collection 的分包进度按 DEX_SETS 分组统计。若未来加了带新 set 字段的卡（如 BODY/ANCIENT）
 //   却忘了在 src/data/dexSets.js 注册，setStats 就不会统计那一包 → 那些卡在分包进度里"消失"、
 //   分包合计 ≠ 总进度。本测试守住：每个出现过的 set 都在 DEX_SETS，且分包合计 == 总卡数。
+import { readFileSync } from 'fs'
 import cards from '../src/data/cards.js'
 import eventCards from '../src/data/eventCards.js'
 import spCards from '../src/data/spCards.js'
-import { DEX_SETS, setOf } from '../src/data/dexSets.js'
+import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS } from '../src/data/dexSets.js'
 import { COLLECTION_ACHIEVEMENTS } from '../src/data/achievements.js'
 
 let pass = 0, fail = 0
@@ -40,6 +41,20 @@ for (const s of DEX_SETS) {
 // ⑤ BASE 是初始包，endowed 应为 0（预存起点只给新季，避免基础包也显示"已开启"假进度）
 const base = DEX_SETS.find(s => s.id === 'BASE')
 ok('BASE 基础包 endowed=0（预存起点只给新季）', base && base.endowed === 0)
+
+// ⑥ 单一权威卡池：TOTAL_DEX_CARDS / ALL_DEX_CARDS 与「生物+事件+SP」全集一致。
+//    修 bug（2026-07-05）：Gacha「图鉴进度」曾用 138（生物+可抽SP）、Collection 用 157（全部），
+//    两屏同叫"图鉴进度"却总数打架。现在两屏都从 dexSets 的 TOTAL_DEX_CARDS 取数，同源。
+ok(`ALL_DEX_CARDS 全集 == 生物+事件+SP (${allCards.length})`, ALL_DEX_CARDS.length === allCards.length)
+ok(`TOTAL_DEX_CARDS (${TOTAL_DEX_CARDS}) == 全集卡数 (${allCards.length})`, TOTAL_DEX_CARDS === allCards.length)
+
+// ⑦ grep 锚点：Gacha 与 Collection 的图鉴进度分母都必须用 TOTAL_DEX_CARDS（防两屏再各算各的漂移）
+const gacha = readFileSync(new URL('../src/components/GachaScreen.jsx', import.meta.url), 'utf8')
+const collection = readFileSync(new URL('../src/components/Collection.jsx', import.meta.url), 'utf8')
+ok('GachaScreen 图鉴进度分母用 TOTAL_DEX_CARDS', /owned\s*\/\s*TOTAL_DEX_CARDS/.test(gacha))
+ok('GachaScreen 不再用「cardsData.length + spCardsData…」当图鉴分母', !/cardsData\.length\s*\+\s*spCardsData/.test(gacha))
+ok('Collection 图鉴总数用 TOTAL_DEX_CARDS', /TOTAL_CARDS\s*=\s*TOTAL_DEX_CARDS/.test(collection))
+ok('Collection 不再本地拼 [...cards, ...eventCards, ...spCards]', !/\[\s*\.\.\.cards\s*,\s*\.\.\.eventCards/.test(collection))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

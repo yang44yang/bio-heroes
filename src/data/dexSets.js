@@ -1,3 +1,7 @@
+import cards from './cards.js'
+import eventCards from './eventCards.js'
+import spCards from './spCards.js'
+
 // 图鉴包（dex set）元数据 — 驱动 Collection 的分包收集进度展示（决策4：dex 收集追踪器）。
 //
 // endowed = 预存进度基线（Endowed Progress Effect，视觉用）：在进度条最左画一段浅色"已开启"
@@ -13,3 +17,9 @@ export const DEX_SETS = [
 
 // 卡的归包（无 set 字段的旧卡/事件卡/SP 卡归入基础包）
 export const setOf = (card) => card.set || 'BASE'
+
+// 图鉴收录的全部卡（生物 + 事件 + SP）—— 收集进度的**单一权威卡池**。
+// Collection 图鉴总进度 与 Gacha 图鉴进度条 都必须用它，否则两屏各算各的会漂移：
+// 历史 bug —— Gacha 用「生物+可抽SP=138」当分母、Collection 用「全部=157」，同叫"图鉴进度"却打架。
+export const ALL_DEX_CARDS = [...cards, ...eventCards, ...spCards]
+export const TOTAL_DEX_CARDS = ALL_DEX_CARDS.length
