@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { exportSave, importSave, resetSave } from '../utils/saveManager'
 import { getQuizMode, setQuizMode } from '../utils/settings'
+import { ownedDexCount } from '../data/dexSets'
 import { useLanguage } from '../i18n/LanguageContext'
 
 export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, onOpenTestArena, daily, economy }) {
@@ -87,7 +88,7 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         >
           <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
           <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
-          <span className="text-gray-500">{t('menu.collected', { n: Object.keys(economy.collection).length })}</span>
+          <span className="text-gray-500">{t('menu.collected', { n: ownedDexCount(economy.collection) })}</span>
           {daily?.currentStreak > 0 && (
             <span className="text-orange-400 font-bold">🔥 {daily.currentStreak}</span>
           )}

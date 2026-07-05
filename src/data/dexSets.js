@@ -23,3 +23,8 @@ export const setOf = (card) => card.set || 'BASE'
 // 历史 bug —— Gacha 用「生物+可抽SP=138」当分母、Collection 用「全部=157」，同叫"图鉴进度"却打架。
 export const ALL_DEX_CARDS = [...cards, ...eventCards, ...spCards]
 export const TOTAL_DEX_CARDS = ALL_DEX_CARDS.length
+
+// 收藏里「当前卡池内真正拥有的卡」数 —— 收集进度分子的单一权威。
+// 只数 ALL_DEX_CARDS 里存在且拥有(truthy)的卡：① 天然 ≤ TOTAL_DEX_CARDS（分子不会超分母）
+//   ② 忽略陈旧 key（将来删/改卡后老存档里残留的 id）③ 与图鉴 isOwn 的 truthy 判定一致。
+export const ownedDexCount = (collection) => ALL_DEX_CARDS.filter(c => collection?.[c.id]).length

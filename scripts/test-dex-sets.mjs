@@ -7,7 +7,7 @@ import { readFileSync } from 'fs'
 import cards from '../src/data/cards.js'
 import eventCards from '../src/data/eventCards.js'
 import spCards from '../src/data/spCards.js'
-import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS } from '../src/data/dexSets.js'
+import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS, ownedDexCount } from '../src/data/dexSets.js'
 import { COLLECTION_ACHIEVEMENTS } from '../src/data/achievements.js'
 
 let pass = 0, fail = 0
@@ -55,6 +55,31 @@ ok('GachaScreen 图鉴进度分母用 TOTAL_DEX_CARDS', /owned\s*\/\s*TOTAL_DEX_
 ok('GachaScreen 不再用「cardsData.length + spCardsData…」当图鉴分母', !/cardsData\.length\s*\+\s*spCardsData/.test(gacha))
 ok('Collection 图鉴总数用 TOTAL_DEX_CARDS', /TOTAL_CARDS\s*=\s*TOTAL_DEX_CARDS/.test(collection))
 ok('Collection 不再本地拼 [...cards, ...eventCards, ...spCards]', !/\[\s*\.\.\.cards\s*,\s*\.\.\.eventCards/.test(collection))
+
+// ⑧ ownedDexCount：收集进度分子只数「当前卡池内拥有的卡」，天然 ≤ 总数、忽略陈旧 key。
+//    防御性硬化（2026-07-05）：Collection/Gacha/Title 曾用 Object.keys(collection).length，
+//    今日安全（无陈旧 key），但将来删/改卡后老存档残留 id 会让「已收集 > 总数」（同前两个 bug 的根）。
+{
+  const firstId = ALL_DEX_CARDS[0].id
+  ok('⑧ ownedDexCount 忽略陈旧/不存在的 key', ownedDexCount({ [firstId]: 1, ghost_removed_card: 1, 'stage_x': 3 }) === 1)
+  ok('⑧ ownedDexCount 空收藏 → 0（且不抛）', ownedDexCount({}) === 0 && ownedDexCount(undefined) === 0)
+  const full = Object.fromEntries(ALL_DEX_CARDS.map(c => [c.id, 1]))
+  ok(`⑧ 全拥有 → ownedDexCount == TOTAL_DEX_CARDS (${TOTAL_DEX_CARDS})`, ownedDexCount(full) === TOTAL_DEX_CARDS)
+  // 大量陈旧 key 也不会撑爆分子
+  const polluted = { ...full }
+  for (let i = 0; i < 50; i++) polluted['ghost_' + i] = 9
+  ok('⑧ 50 个陈旧 key 污染下 ownedDexCount 仍 == 总数（不超标）', ownedDexCount(polluted) === TOTAL_DEX_CARDS)
+  // count:0 的卡不算拥有（与图鉴 isOwn 的 truthy 判定一致）
+  ok('⑧ count 为 0 的卡不计入（与 isOwn truthy 一致）', ownedDexCount({ [firstId]: 0 }) === 0)
+
+  // grep 锚点：三处显示收集数都走 ownedDexCount，不再用 Object.keys(collection).length 当分子
+  const coll = readFileSync(new URL('../src/components/Collection.jsx', import.meta.url), 'utf8')
+  const gacha2 = readFileSync(new URL('../src/components/GachaScreen.jsx', import.meta.url), 'utf8')
+  const title = readFileSync(new URL('../src/components/TitleScreen.jsx', import.meta.url), 'utf8')
+  ok('⑧ Collection ownedCount 用 ownedDexCount', /ownedCount\s*=\s*ownedDexCount\(/.test(coll))
+  ok('⑧ Gacha 收集数用 ownedDexCount（含 beforeCount 里程碑）', /owned\s*=\s*ownedDexCount\(/.test(gacha2) && /beforeCount\s*=\s*ownedDexCount\(/.test(gacha2))
+  ok('⑧ Title 收集数用 ownedDexCount', title.includes('ownedDexCount(economy.collection)'))
+}
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

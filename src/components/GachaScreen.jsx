@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useGacha } from '../hooks/useGacha'
 import { FACTIONS } from '../data/deckRules'
-import { TOTAL_DEX_CARDS } from '../data/dexSets'
+import { TOTAL_DEX_CARDS, ownedDexCount } from '../data/dexSets'
 import cardsData from '../data/cards'
 import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
@@ -60,7 +60,7 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
     const cost = count === 1 ? economy.SINGLE_COST : economy.MULTI_COST
     if (!economy.canAfford(cost)) return
 
-    const beforeCount = Object.keys(economy.collection).length
+    const beforeCount = ownedDexCount(economy.collection)
     economy.spendCoins(cost)
     setPulling(true)
     setPulled([])
@@ -152,7 +152,7 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
 
       {/* 图鉴进度条 */}
       {(() => {
-        const owned = Object.keys(economy.collection).length
+        const owned = ownedDexCount(economy.collection)
         const pct = Math.min(100, (owned / TOTAL_DEX_CARDS) * 100)
         const remaining = Math.max(0, TOTAL_DEX_CARDS - owned)
         return (

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 import { FACTIONS, SUBTYPES } from '../data/deckRules'
-import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS } from '../data/dexSets'
+import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS, ownedDexCount } from '../data/dexSets'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
 import { COLLECTION_ACHIEVEMENTS, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS } from '../data/achievements'
 import { loadCampaignProgress } from '../data/campaignData'
@@ -30,7 +30,7 @@ export default function Collection({ onBack, economy }) {
 
   const owned = economy.collection // { cardId: count } map
   const isOwn = (id) => !!owned[id]
-  const ownedCount = Object.keys(owned).length
+  const ownedCount = ownedDexCount(owned)
   const progress = Math.round((ownedCount / TOTAL_CARDS) * 100)
 
   // 成就展示用 ctx（战役进度只读一次；战斗/答题成就靠 economy 累计计数器算进度）
