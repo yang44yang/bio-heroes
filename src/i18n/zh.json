@@ -102,6 +102,11 @@
   "quiz.easy": "初级",
   "quiz.medium": "中级",
   "quiz.hard": "高级",
+  "quiz.correct": "🎉 答对了！",
+  "quiz.wrong": "❌ 答错了",
+  "quiz.correctAnswer": "正确答案",
+  "quiz.yourAnswer": "你选的",
+  "quiz.continue": "继续 ▶",
 
   "gacha.title": "🎰 抽卡",
   "gacha.subtitle": "收集生物英雄，组建最强战队！",

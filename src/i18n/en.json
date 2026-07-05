@@ -102,6 +102,11 @@
   "quiz.easy": "Easy",
   "quiz.medium": "Medium",
   "quiz.hard": "Hard",
+  "quiz.correct": "🎉 Correct!",
+  "quiz.wrong": "❌ Wrong",
+  "quiz.correctAnswer": "Correct answer",
+  "quiz.yourAnswer": "You picked",
+  "quiz.continue": "Continue ▶",
 
   "gacha.title": "🎰 Gacha",
   "gacha.subtitle": "Collect Bio Heroes, build the strongest team!",
