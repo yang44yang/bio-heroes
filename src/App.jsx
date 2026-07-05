@@ -7,7 +7,7 @@ import { useEconomy } from './hooks/useEconomy'
 import { useDailyChallenge } from './hooks/useDailyChallenge'
 import { loadTutorialProgress } from './data/tutorialData'
 import {
-  loadCampaignProgress, saveCampaignProgress, calculateStars,
+  loadCampaignProgress, saveCampaignProgress, calculateStars, getTotalStars,
 } from './data/campaignData'
 import cards from './data/cards'
 import eventCards from './data/eventCards'
@@ -244,8 +244,8 @@ export default function App() {
           }
         }
 
-        // 星数里程碑奖励
-        const totalStars = Object.values(prog.stageStars).reduce((sum, s) => sum + s, 0)
+        // 星数里程碑奖励（走 getTotalStars：只数当前关卡星，防幽灵 key 让里程碑提前发奖）
+        const totalStars = getTotalStars(prog)
         if (totalStars >= 30 && !prog.claimedRewards['star_milestone_30']) {
           prog.claimedRewards['star_milestone_30'] = true
           pendingGrants.push(() => economy.addCoins(500))

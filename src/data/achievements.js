@@ -1,5 +1,6 @@
 // 主题成就 — 集齐一组主题卡 → 解锁徽章 + 科学知识包
 // 卡片 ID 已对照 cards.js / spCards.js 验证存在
+import { getTotalStars } from './campaignData.js'
 
 export const COLLECTION_ACHIEVEMENTS = [
   {
@@ -145,9 +146,10 @@ export const BATTLE_ACHIEVEMENTS = [
     icon: '⭐',
     category: 'battle',
     reward: { type: 'badge_only' },
-    check: (ctx) => Object.values(ctx.stageStars || {}).reduce((s, v) => s + v, 0) >= 30,
+    // 走 getTotalStars：只数当前关卡星，防幽灵 key（旧格式 1-N 等）让成就提前解锁
+    check: (ctx) => getTotalStars({ stageStars: ctx.stageStars }) >= 30,
     progress: (ctx) => {
-      const stars = Object.values(ctx.stageStars || {}).reduce((s, v) => s + v, 0)
+      const stars = getTotalStars({ stageStars: ctx.stageStars })
       return { have: Math.min(stars, 30), total: 30 }
     },
   },

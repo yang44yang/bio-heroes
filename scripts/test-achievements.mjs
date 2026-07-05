@@ -51,11 +51,17 @@ ok('boss_slayer: 三 boss 全 ≥1 命中',
 ok('boss_slayer: 缺一不中',
   !ids(detectNewlyUnlockedFrom(POOL, { stats: {}, stageStars: { stage_2_8: 1, stage_3_8: 0, stage_4_8: 1 }, battleResult: {} }, [])).includes('boss_slayer'))
 
-// ---- 战斗：累计星 ----
+// ---- 战斗：累计星（走 getTotalStars：只数当前存在的关卡，幽灵/假 key 不计入）----
+// 用真实关卡 id：ch2 全 8 关 + ch3 前 2 关 = 10 关 ×3 = 30 星
+const stars30 = { stage_2_1: 3, stage_2_2: 3, stage_2_3: 3, stage_2_4: 3, stage_2_5: 3, stage_2_6: 3, stage_2_7: 3, stage_2_8: 3, stage_3_1: 3, stage_3_2: 3 }
+const stars29 = { ...stars30, stage_3_2: 2 } // 29 星
 ok('star_shine: 30 星命中',
-  ids(detectNewlyUnlockedFrom(POOL, { stats: {}, stageStars: { a: 15, b: 15 }, battleResult: {} }, [])).includes('star_shine'))
+  ids(detectNewlyUnlockedFrom(POOL, { stats: {}, stageStars: stars30, battleResult: {} }, [])).includes('star_shine'))
 ok('star_shine: 29 星不中',
-  !ids(detectNewlyUnlockedFrom(POOL, { stats: {}, stageStars: { a: 15, b: 14 }, battleResult: {} }, [])).includes('star_shine'))
+  !ids(detectNewlyUnlockedFrom(POOL, { stats: {}, stageStars: stars29, battleResult: {} }, [])).includes('star_shine'))
+// 回归守卫（2026-07-05）：幽灵 key（旧格式 1-N / 已删关卡 / 假 id）凑够 30 也不能解锁 star_shine
+ok('star_shine: 幽灵 key 的星不计入（30「幽灵星」不解锁）',
+  !ids(detectNewlyUnlockedFrom(POOL, { stats: {}, stageStars: { '1-1': 15, removed_stage: 15 }, battleResult: {} }, [])).includes('star_shine'))
 
 // ---- 答题：累计答对 ----
 ok('quiz_first: 答对1道命中',

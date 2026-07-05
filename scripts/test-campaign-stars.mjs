@@ -70,5 +70,16 @@ const allStageIds = campaignData.chapters.flatMap(ch => ch.stages.map(s => s.id)
     !!m && /campaignData\.chapters/.test(m[0]) && !/Object\.values\(progress\.stageStars\)/.test(m[0]))
 }
 
+// ⑧ grep 锚点：其它「用总星数」的地方也走 getTotalStars，别再内联 Object.values(stageStars) 全 key 求和
+//    （否则幽灵 key 会让 ① 里程碑发奖提前 ② star_shine 成就提前解锁 —— 与显示 bug 同根）
+{
+  const app = readFileSync(join(ROOT, 'src/App.jsx'), 'utf8')
+  const ach = readFileSync(join(ROOT, 'src/data/achievements.js'), 'utf8')
+  ok('⑧ App.jsx 星数里程碑用 getTotalStars（非内联 Object.values(prog.stageStars)）',
+    /getTotalStars\(prog\)/.test(app) && !/Object\.values\(prog\.stageStars\)/.test(app))
+  ok('⑧ achievements star_shine 用 getTotalStars（非内联 Object.values(ctx.stageStars)）',
+    /getTotalStars\(\{\s*stageStars/.test(ach) && !/Object\.values\(ctx\.stageStars/.test(ach))
+}
+
 console.log(`\n${fail ? '❌' : '✅'} test-campaign-stars: ${pass} passed, ${fail} failed`)
 process.exit(fail ? 1 : 0)
