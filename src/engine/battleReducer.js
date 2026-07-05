@@ -5,12 +5,15 @@
 //  reducer 每次拿到最新 state（消掉 useLatestRef 手动镜像的根本需求），
 //  且一个 dispatch 可原子地改多组状态。
 //
-//  迁移是**分组切片**推进（见 outputs/e5c-reducer-migration-plan.md）：
-//  E5c-0 只迁 powerBank（本文件当前形态）；后续切片往 player/enemy 子树
-//  和顶层逐步加 field/leaderHp/energy/turn/phase…
+//  迁移是**分组切片**推进（见 outputs/e5c-reducer-migration-plan.md），已全部完成：
+//  E5c-0 powerBank / E5c-1 discard / E5c-2 energy / E5c-3 leaderHp /
+//  E5c-4 turn·phase·winner / E5c-5 field。纯函数单测见 scripts/test-battle-reducer.mjs。
 //
 //  ⚠️ 不变式：reducer 必须让「没改的子树引用不变」（只 spread 被改的一侧），
 //  否则触发无谓重渲染/动画抖动。纯函数、无副作用、无返回额外值。
+//  ⚠️ useReducer dispatch **不 eager 计算** → 凡「updater 闭包内赋值、setter 返回后
+//  同步读回」的量（defKilled/atkKilled/replaced）在 useBattle 侧已改成 dispatch 前
+//  用 battleStateRef 确定性算好，不靠闭包。
 // ----------------------------------------------------------------
 
 // 主人初始 HP（与 deckRules.LEADER_HP 一致，reducer 保持 React-free 故内联常量）

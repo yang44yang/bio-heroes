@@ -41,10 +41,11 @@ mulligan → main → battle → animating → over
 ```
 - `mulligan` 起手换牌 → `main` 我方主回合（出牌/攻击）→ `battle`/`animating` 结算与演出 → 敌方回合 → … → 某方主人 HP≤0 → `over`。
 
-### 状态模型（⚠️ 债务点）
-- 单 Hook 里约 **25 个 `useState` + 34 个 `useRef`**。大量 `xRef.current = x` 的「state↔ref 双写镜像」用来绕 React 闭包陈旧值问题（见文件顶部注释）。
-- 返回对象向 `BattleScreen` 泄漏了一批原始 `*Ref`（`playerFieldRef` 等）——组件直接读内部 ref，封装被击穿。
-- **核心逻辑与 React 强耦合 → 无法脱离组件单测**（见 §6）。重构方向：抽成不依赖 React 的 `battleReducer` / `BattleEngine`。
+### 状态模型（E5 已大幅收敛）
+- **棋盘状态收进 `src/engine/battleReducer.js`（E5c，6/6 组完成）**：`turn/phase/winner`（顶层）+ 每方 `powerBank/discard/energy/leaderHp/field`（`player`/`enemy` 子树）。`useBattle` 里 `battleState`/`dispatch` + `battleStateRef = useLatestRef(battleState)`（供异步 AI 回合/`latest` 快照读最新）；这些状态全部 `派生自 reducer`，callbacks 改 `dispatch(ACTION)`。**纯函数单测 `scripts/test-battle-reducer.mjs`**（首个真驱动 reducer 的测试）。
+- ⚠️ **useReducer dispatch 不 eager 计算**：凡「updater 闭包内赋值、setter 返回后同步读回」的量（`defKilled/atkKilled/replaced`）在 `useBattle` 侧已改成 dispatch 前用 `battleStateRef` 确定性算好，不靠闭包。field setter（`setPlayerField/setEnemyField`）是**透传垫片**（原样把 updater 交给 reducer 跑，保同 tick 顺序累加）。
+- E5a→E5b→E5c 已消掉大部分 `xRef.current=x` 双写（收进 `useLatestRef` helper 再随迁移退役）+ 停止向 `BattleScreen` 泄漏原始 `*Ref`（改导出只读 `latest` getter 快照）。剩余 `useState`/`useRef` 多为 UI 态（battleLog/currentQuiz/skillEvents/pendingSpSummon…）与准记忆 ref（attackedThisTurn/summonedThisTurn/SP 阈值 init ref…），不属棋盘状态。
+- 未做（可选后续）：SP 卡组 `playerSpDeck/enemySpDeck` 仍在 useState（边界状态、改动少）；`attack/aiAttack` 两份近重复仍未合并（见下）。
 
 ### 玩家 vs AI
 `attack`/`aiAttack`、`playToField`/`aiPlayToField` 是**两份近重复实现**，只差 `player↔enemy` 变量与返回形状。改战斗规则须两处同步改，否则出现「玩家能 / AI 不能」的不对称 bug。
@@ -102,9 +103,9 @@ hooks/useBattle.js  applySkillEvents(events, friendlySetter, enemySetter, side)
 
 ## 6. 测试
 
-- `scripts/test-*.mjs`：27 套断言测试，`npm test` 统一入口（`scripts/run-tests.mjs`），CI 在 `.github/workflows/ci.yml` 上跑 test + build。
-- **重要局限**：其中约 21 套是 `readFileSync` **把源码当字符串正则匹配**（守「文案/数值没被改坏」），仅约 3 套能 import `src/engine` 的**纯函数**（`damage.js` / `statusEffects.js` / `skillTemplates.js` 无 React 依赖，可测）。
-- **战斗编排层（谁先谁后、事件如何派发、死亡如何收口）被焊死在 React Hook 里，测不到** → 引擎 bug 容易「测试全绿却仍存在」。解耦成 reducer 是提升可测性的关键一步。
+- `scripts/test-*.mjs`：32 套断言测试，`npm test` 统一入口（`scripts/run-tests.mjs`），CI 在 `.github/workflows/ci.yml` 上跑 test + build。
+- **局限（E5c 起改善）**：仍有一批是 `readFileSync` **把源码当字符串正则匹配**（守「文案/数值没被改坏」+ grep 迁移锚点）；能 import 纯函数直测的在增多：`damage.js`/`statusEffects.js`/`skillTemplates.js`/`combat.js`（`resolveCardCombat`）+ **`battleReducer.js`（`test-battle-reducer.mjs`，35 断言，真驱动 state+action→next）**。
+- **棋盘状态机已解耦成可单测的 `battleReducer`（E5c）** → 状态转移能脱离 React 直测。仍焊在 Hook 里的：跨状态编排（谁先 dispatch、事件派发顺序、死亡收口的提交后 useEffect）——这些走 preview 冒烟兜底。
 - `audit-*.mjs` / `validate-*.mjs` 是信息性脚本，不在 `npm test` 门禁内，按需手动跑。
 
 ---
