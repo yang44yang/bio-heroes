@@ -598,6 +598,7 @@ export function useBattle() {
   //  在攻击后调用，处理 onKill / onDeath 时机
   // ----------------------------------------------------------------
   function handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, side) {
+    const oppSide = side === 'player' ? 'enemy' : 'player'  // 溢出伤害打对方主人（E5c-3 漏定义→击杀防守方时 ReferenceError 冻结 AI 回合）
     const allEvents = []                                    // 仅 onKill（攻击方技能）
 
     if (defKilled) {

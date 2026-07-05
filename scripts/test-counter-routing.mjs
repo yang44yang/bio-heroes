@@ -122,5 +122,25 @@ ok('⑦ 击杀判定确定性算（不再 updater 闭包 defKilled=true 读回�
 ok('⑦ FIELD_UPDATE 有引用相等 bailout（next === cur）',
   /case 'FIELD_UPDATE'[\s\S]{0,200}if \(next === cur\) return state/.test(readFileSync(join(ROOT, 'src/engine/battleReducer.js'), 'utf8')))
 
+// ⑧ 回归（AI 冻结 bug）：E5c-3 在 handlePostAttackSkills 的溢出伤害循环里用了 oppSide 却没在本函数定义，
+//    → 击杀防守方(defKilled)时 ReferenceError，异步 AI 回合被 reject、卡死不进下一回合。
+//    守：凡在函数体内用 [oppSide] / side: oppSide 的地方，本函数必须先 const oppSide=。
+{
+  // 用「每个 function/const…=(…)=>{ 到下一个同类声明」粗切函数块，逐块查 oppSide 定义先于使用
+  const funcStarts = [...ub.matchAll(/\n  (?:function \w+|const \w+ = useCallback\(|const \w+ = \()/g)].map(m => m.index)
+  funcStarts.push(ub.length)
+  let bad = null
+  for (let i = 0; i < funcStarts.length - 1; i++) {
+    const block = ub.slice(funcStarts[i], funcStarts[i + 1])
+    const useIdx = block.search(/\[oppSide\]|side:\s*oppSide/)
+    if (useIdx < 0) continue // 本块不用 oppSide
+    const defIdx = block.search(/const oppSide\s*=/)
+    if (defIdx < 0 || defIdx > useIdx) { bad = block.slice(0, 40).trim(); break }
+  }
+  ok('⑧ 每个用 oppSide 的函数都先定义了它（防 handlePostAttackSkills 类 ReferenceError 冻结 AI）', bad === null)
+}
+ok('⑧ handlePostAttackSkills 明确定义 oppSide',
+  /function handlePostAttackSkills[\s\S]{0,120}const oppSide\s*=\s*side === 'player'/.test(ub))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)
