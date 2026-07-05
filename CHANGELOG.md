@@ -5,8 +5,33 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 引擎重构 + 真机 bug-fix（2026-07）✅
+> 🔧 从「决策 / Phase」转入战斗引擎结构重构，随后齐齐开始真机实测、逐个修 bug。倒序，完整过程见 git。
+
+**真机 bug-fix：「分子 > 分母 / 两处总数不一致」一族清零（2026-07-05）：**
+- [x] 教学毕业奖励 1400 反复领 → 加独立持久标记「先落盘再发放」（`df1b184`）
+- [x] 抽卡图鉴进度 138 vs 图鉴屏 157 打架 → `dexSets.js` 建单一权威 `ALL_DEX_CARDS`/`TOTAL_DEX_CARDS`(=157)，两屏同源（`ccb351c`）
+- [x] 闯关右上角 ★ 92/87（已得 > 总数）→ ① 教学同步写旧格式 `1-N` 幽灵 key 改 `stage_1_N` ② `getTotalStars` 只数当前关卡、每关封顶 3（`cd79583`）
+- [x] 同根扫出另 2 处：星里程碑发奖(App.jsx) + `star_shine` 成就(achievements.js) 也内联重算星数 → 都改调 `getTotalStars`（`97c99a1`）
+- [x] 收集数硬化：Collection/Gacha/Title 的 `Object.keys(collection).length` → `ownedDexCount()`（只数当前卡池内拥有、天然 ≤ 总数，防将来删卡后老存档超标）（`dc5e57d`）
+- [x] 上一窗口 4 修：**AI 击杀防守方后冻结回合**（`handlePostAttackSkills` 漏定义 `oppSide` → 异步 AI 回合静默 reject，`2234ff0`）/ 闯关重进反复领 1400（`e89c324`）/ boss·关卡 updater 闭包读回 2 处（`fb5980d`）/ 答题反馈阶段（`36d7872`）
+
+**SP 平衡重调（齐齐定「两者都做」，2026-07-05）：**
+- [x] 回合门槛 `max(3,spCost−3)` → `max(4,spCost−2)`：第 1-3 回合不召任何 SP；5-6费→T4 / 7→T5 / 8→T6，第 8 回合残局仍全解锁
+- [x] 7 张事件卡 `maxCost` 收口 = 本卡 `cost+3`（堵「2 费秒召 28000 生物膜 @T3」越级）；SP 属性未动（`a510c94`）
+
+**E5 战斗引擎架构重构全系列（E1→E5c-6，2026-07-02~04）：**
+- [x] 代码体检（3 子代理审引擎正确性/架构/数据）+ `ARCHITECTURE.md` + `npm test` 统一入口 + CI
+- [x] 剥引擎：`combat.js` 的 `resolveCardCombat`（玩家=AI 单一真相源）+ `canCardAttack` + `applyCombatOutcome` 纯函数（可单测）
+- [x] 引擎正确性 B/C/D/F：战斗修饰符 mods 折叠 / 无视守护纯谓词 / 3 事件流路由 bug / 「描述≠实现」批
+- [x] E1-E5c-6：删死桩 + `useLatestRef` + `battleReducer` 6/6 组迁移（powerBank/discard/energy/leaderHp/回合机/field）+ `useAITurn.js` 独立文件
+- [x] 🧪 测试场（主菜单家长门 56 进，全卡池摆双方战场 + 满能量 + 一键开打，定点测机制零抽卡运气）
+- ⚠️ **教训**：E5 动大量战斗热路径，grep 测试全绿但真机才暴露运行时 bug（如 oppSide ReferenceError）→ 战斗改动务必 preview 真跑「卡打卡致死 + AI 回合跑完整」
+
+---
+
 ## Post-Sprint 33：决策 / Phase 制开发（2026-06）✅
-> 🧬 项目从「Sprint 编号」转为「决策 / Phase」驱动。以下按时间倒序，完整过程见 `SESSION.md`。
+> 🧬 项目从「Sprint 编号」转为「决策 / Phase」驱动。以下按时间倒序，完整过程见 git。
 
 **批 0 地基收官（决策 1/2/3/6/7，2026-06-29~30）：**
 - [x] 决策1 POWER_CURVE 收成单一权威常量 + `test-power-curve.mjs` 校验（代码表==SKILL.md + 124 张生物卡全不超预算）
