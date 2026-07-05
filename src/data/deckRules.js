@@ -32,11 +32,12 @@ export const SP_TURN_TRIGGER = 8     // 第 N 回合触发
 
 // === SP 召唤回合门槛（看费用）===
 // 打出"可触发SP"事件卡后，SP 还需满足 turn ≥ max(SP_SUMMON_MIN_TURN, spCost − SP_SUMMON_COST_OFFSET) 才能召唤。
-// 小 SP(5-6费) 第 3 回合可召；大 SP 自然推迟：7费→T4 / 8费→T5 / 9费→T6 / 10费→T7。
-// 既挡住第 1-2 回合（齐齐原抱怨"AI 早期甩 SP"），又拦掉"无视费事件 2 费秒高费巨兽"。
+// 第 1-3 回合任何 SP 都召不出；之后按费用递增：5-6费→T4 / 7费→T5 / 8费→T6 / 9费→T7 / 10费→T8。
+// （2026-07 平衡：原 max(3,spCost−3) 让 5-6 费巨兽第 3 回合就登场太强 → 抬地板到 4、offset 收到 2。
+//   同时事件卡 maxCost 收口(=本卡 cost+3)，堵掉"2 费便宜事件秒召 28000 巨兽"。两者一起做。）
 // ⚠️ 门槛逻辑(useBattle.getEligibleSpCards)与 SP 卡面显示(Card/CardDetailModal)共用此函数，改一处即同步。
-export const SP_SUMMON_MIN_TURN = 3      // 最早可召回合（地板）
-export const SP_SUMMON_COST_OFFSET = 3   // spCost 高于此值的部分逐回合推迟
+export const SP_SUMMON_MIN_TURN = 4      // 最早可召回合（地板）——第 1-3 回合任何 SP 都召不出
+export const SP_SUMMON_COST_OFFSET = 2   // spCost 高于此值的部分逐回合推迟
 export const spEarliestSummonTurn = (spCost) =>
   Math.max(SP_SUMMON_MIN_TURN, (spCost || 0) - SP_SUMMON_COST_OFFSET)
 

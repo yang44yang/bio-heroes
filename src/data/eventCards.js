@@ -54,7 +54,7 @@ const eventCards = [
     spSummonRule: {
       type: "faction_only",
       factionLimit: "nature",
-      maxCost: 99,
+      maxCost: 6, // 本卡 cost(2)+3=5，但自然系最低 SP=世界树(6)，故取 6 避免死规则（原 99 可白嫖 8 费盖娅/远古世界树）
     },
     skills: [],
     scienceCard: "食物链中的能量从底层向上传递：植物→食草动物→食肉动物。顶级掠食者汇聚了整个生态系统的力量！",
@@ -110,7 +110,7 @@ const eventCards = [
       type: "discard_check",
       discardFaction: "nature",
       discardCount: 3,
-      maxCost: 99,
+      maxCost: 7, // = 本卡 cost(4)+3
     },
     skills: [],
     scienceCard: "5.4亿年前的寒武纪大爆发是生命史上最神奇的事件——在短短几百万年内，几乎所有现代动物的祖先同时出现！从三叶虫到奇虾，生命的多样性瞬间爆发。",
@@ -166,7 +166,7 @@ const eventCards = [
     spSummonRule: {
       type: "faction_only",
       factionLimit: "body",
-      maxCost: 99,
+      maxCost: 5, // = 本卡 cost(2)+3：原 99 = 抗原呈递 2 费秒召 25000 骨骼巨人
     },
     skills: [],
     scienceCard: "抗原呈递细胞（如树突状细胞）是免疫系统的\"侦察兵\"。它们吞噬病原体后把碎片展示在自己表面，像举着\"通缉令\"给T细胞看，激活整个适应性免疫反应！",
@@ -221,13 +221,14 @@ const eventCards = [
     effectTarget: "revive_body_from_discard",
     // 齐齐定调：把这张 SSR 的身份做成"分化出大 body SP"。原 discard_check(弃牌堆要先有3张body)
     // 触发条件太苛刻、几乎永远不满足 → 齐齐从没见它召出大 SP，只觉得是张废复活卡。
-    // 改 faction_only(随时可触发，仍受回合门槛 turn≥max(3,spCost−3) 约束) → 打出即可分化出
-    // 大脑(7)/骨骼巨人(6)/免疫风暴(8)/CAR-T(5) 这类人体系大 SP，主题贴合（干细胞分化成重要器官/系统）。
+    // 改 faction_only(随时可触发，仍受回合门槛 turn≥max(4,spCost−2) 约束) → 打出即可分化出
+    // CAR-T(5)/骨骼巨人(6)/大脑(7) 这类人体系大 SP，主题贴合（干细胞分化成重要器官/系统）。
+    // maxCost = 本卡 cost(4)+3 = 7（越贵的事件能召越大的 SP）；cost-8 免疫风暴需更贵的召唤路径。
     // 复活仍保留 → 复活一张小细胞 + 分化一个大系统 = 名副其实的 SSR（不再和那张 R 生物卡撞、显废）。
     spSummonRule: {
       type: "faction_only",
       factionLimit: "body",
-      maxCost: 99,
+      maxCost: 7,
     },
     skills: [],
     scienceCard: "干细胞是身体里的\"万能细胞\"——它们可以分化成任何类型的细胞！骨髓的造血干细胞每天造数千亿血细胞，还能分化成神经、骨骼、肌肉……科学家正研究用干细胞修复受损的大脑和心脏。一颗小小的干细胞，能变成身体里最强大的器官！",
@@ -283,7 +284,7 @@ const eventCards = [
     spSummonRule: {
       type: "faction_only",
       factionLimit: "pathogen",
-      maxCost: 99,
+      maxCost: 5, // = 本卡 cost(2)+3：原 99 = 基因突变 2 费秒召 28000 生物膜
     },
     skills: [],
     scienceCard: "基因突变是进化的引擎！大部分突变是有害的或中性的，但偶尔会出现有利突变，让生物获得新的能力。病毒的高突变率让它们能快速适应环境——这就是为什么流感病毒每年都在变。",
@@ -419,7 +420,7 @@ const eventCards = [
     spSummonRule: {
       type: "faction_only",
       factionLimit: "tech",
-      maxCost: 99,
+      maxCost: 6, // = 本卡 cost(3)+3
     },
     skills: [],
     scienceCard: "现代外科手术能精准切除病变组织而几乎不伤及周围健康组织。从19世纪李斯特的无菌手术，到今天的达芬奇机器人手术系统，手术越来越精确、创伤越来越小。",
@@ -449,7 +450,7 @@ const eventCards = [
       type: "discard_check",
       discardFaction: "tech",
       discardCount: 2,
-      maxCost: 99,
+      maxCost: 8, // = 本卡 cost(5)+3
     },
     skills: [],
     scienceCard: "从显微镜到X光，从青霉素到基因编辑，每次科技革命都彻底改变了人类对抗疾病的方式。18世纪的疫苗、19世纪的无菌手术、20世纪的抗生素、21世纪的基因疗法——下一个革命会是什么？每次科技革命不只是让武器更强，而是彻底改变了人类对抗疾病的方式。这一次，你获得了全新的力量！",

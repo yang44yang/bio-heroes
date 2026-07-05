@@ -82,11 +82,11 @@ ok('pendingSpSummonRef 同步到最新（决策E5a：useLatestRef 保证每渲�
 function autoGate(spDeck, turn) {
   return spDeck.filter(sp => sp.spCost <= 99).filter(sp => turn >= spEarliestSummonTurn(sp.spCost))
 }
-ok('auto@turn1/2：任何 SP 都召不出（地板 turn≥3）',
-  [1, 2].every(t => autoGate(spCards, t).length === 0))
-ok('auto@turn3：恰好放行 spCost≤6 的 SP（小 SP 解封）',
-  autoGate(spCards, 3).every(sp => sp.spCost <= 6) &&
-  autoGate(spCards, 3).length === spCards.filter(sp => sp.spCost <= 6).length)
+ok('auto@turn1-3：任何 SP 都召不出（地板 turn≥4，2026-07 平衡抬高）',
+  [1, 2, 3].every(t => autoGate(spCards, t).length === 0))
+ok('auto@turn4：恰好放行 spCost≤6 的 SP（地板 T4 解封小 SP）',
+  autoGate(spCards, 4).every(sp => sp.spCost <= 6) &&
+  autoGate(spCards, 4).length === spCards.filter(sp => sp.spCost <= 6).length)
 ok('auto@turn8（条件③回合）：全部 SP 都够回合门槛',
   autoGate(spCards, 8).length === spCards.length)
 ok('auto 候选随 turn 单调不减（大 SP 逐步解封）',

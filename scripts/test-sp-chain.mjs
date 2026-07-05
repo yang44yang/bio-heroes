@@ -52,7 +52,7 @@ function gate(rule, spDeck, turn, { remainingEnergy = 99, markers = {}, hasEmpty
       break
     default: break
   }
-  // 召唤门槛（看费用）：turn ≥ spEarliestSummonTurn(spCost)=max(3,spCost−3)，与 useBattle 同公式
+  // 召唤门槛（看费用）：turn ≥ spEarliestSummonTurn(spCost)=max(4,spCost−2)，与 useBattle 同公式
   return candidates.filter(sp => turn >= spEarliestSummonTurn(sp.spCost))
 }
 
@@ -71,19 +71,19 @@ for (const [who, deckName, spName] of [
   ok(`${who}: SP 卡组解析非空且卡都存在`, spDeck.length > 0 && spDeck.every(Boolean))
   ok(`${who}: 预设卡组含带 spSummonRule 的触发事件卡`, evts.length > 0)
 
-  // 1/2 回合：所有触发事件卡都召不出 SP（杜绝过早）
-  for (const turn of [1, 2]) {
+  // 1-3 回合：所有触发事件卡都召不出 SP（杜绝过早；2026-07 平衡把地板抬到 T4）
+  for (const turn of [1, 2, 3]) {
     const anySummonable = evts.some(e => gate(e.spSummonRule, spDeck, turn, ample).length > 0)
     ok(`${who}: 第 ${turn} 回合任何触发卡都召不出 SP（不过早）`, !anySummonable)
   }
 
-  // 第 3 回合：至少一张触发事件卡能召出 SP（解封 + 触发路径真实可达）
-  const summonableAt3 = evts
-    .map(e => ({ e, cands: gate(e.spSummonRule, spDeck, 3, ample) }))
+  // 第 4 回合（新地板）：至少一张触发事件卡能召出 SP（解封 + 触发路径真实可达）
+  const summonableAt4 = evts
+    .map(e => ({ e, cands: gate(e.spSummonRule, spDeck, 4, ample) }))
     .filter(x => x.cands.length > 0)
-  ok(`${who}: 第 3 回合存在可召出 SP 的触发事件卡（已解封）`, summonableAt3.length > 0)
-  console.log(`\n  ${who} 第 3 回合可召唤路径：`)
-  for (const { e, cands } of summonableAt3)
+  ok(`${who}: 第 4 回合存在可召出 SP 的触发事件卡（已解封）`, summonableAt4.length > 0)
+  console.log(`\n  ${who} 第 4 回合可召唤路径：`)
+  for (const { e, cands } of summonableAt4)
     console.log(`    📜 ${e.name}（${e.spSummonRule.type}）→ ${cands.map(c => `${c.name}[cost${c.spCost}]`).join('、')}`)
 }
 
@@ -98,17 +98,35 @@ for (const e of eventCards.filter(c => c.spSummonRule)) {
   ok(`无死规则：${e.name} 至少能召出 1 张 SP`, reachable)
 }
 
-// ===== 看费用门槛（turn ≥ max(3, spCost−3)）：小 SP 照常 T3、大 SP 自然推迟 =====
-ok('门槛公式 spEarliestSummonTurn: 5→3 / 6→3 / 7→4 / 8→5 / 9→6 / 10→7',
-  [[5, 3], [6, 3], [7, 4], [8, 5], [9, 6], [10, 7]].every(([c, t]) => spEarliestSummonTurn(c) === t))
+// ===== 看费用门槛（turn ≥ max(4, spCost−2)）：第 1-3 回合全锁、大 SP 逐步推迟 =====
+ok('门槛公式 spEarliestSummonTurn: 5→4 / 6→4 / 7→5 / 8→6 / 9→7 / 10→8',
+  [[5, 4], [6, 4], [7, 5], [8, 6], [9, 7], [10, 8]].every(([c, t]) => spEarliestSummonTurn(c) === t))
 const facRule = f => ({ type: 'faction_only', factionLimit: f, maxCost: 99 })
 const cost5p = spCards.find(s => s.spCost === 5 && s.faction === 'pathogen') // 超级细菌
 const cost9p = spCards.find(s => s.spCost === 9 && s.faction === 'pathogen') // 丧尸瘟疫
-ok('看费用：cost5 SP 第 3 回合可召（小 SP 照常解封）', gate(facRule('pathogen'), [cost5p], 3, ample).length === 1)
-ok('看费用：cost9 巨兽 第 5 回合仍召不出（拦"2费秒巨兽"）', gate(facRule('pathogen'), [cost9p], 5, ample).length === 0)
-ok('看费用：cost9 巨兽 第 6 回合起可召（自然推迟）', gate(facRule('pathogen'), [cost9p], 6, ample).length === 1)
-ok('看费用：任何 SP 第 1-2 回合都召不出（地板 turn≥3）',
-  [1, 2].every(t => spCards.every(sp => gate(facRule(sp.faction), [sp], t, ample).length === 0)))
+ok('看费用：cost5 SP 第 3 回合仍召不出（新地板 T4，杜绝"第三轮出强卡"）', gate(facRule('pathogen'), [cost5p], 3, ample).length === 0)
+ok('看费用：cost5 SP 第 4 回合可召（地板 T4 解封）', gate(facRule('pathogen'), [cost5p], 4, ample).length === 1)
+ok('看费用：cost9 巨兽 第 6 回合仍召不出', gate(facRule('pathogen'), [cost9p], 6, ample).length === 0)
+ok('看费用：cost9 巨兽 第 7 回合起可召（自然推迟）', gate(facRule('pathogen'), [cost9p], 7, ample).length === 1)
+ok('看费用：任何 SP 第 1-3 回合都召不出（地板 turn≥4）',
+  [1, 2, 3].every(t => spCards.every(sp => gate(facRule(sp.faction), [sp], t, ample).length === 0)))
+
+// ===== 事件卡 maxCost 收口（2026-07 平衡：便宜事件不能越级召大 SP）=====
+// 规则：faction_only / discard_check 的 maxCost = max(本卡 cost+3, 该阵营最低 SP 费)。
+const factionMinSpCost = {}
+for (const sp of spCards) factionMinSpCost[sp.faction] = Math.min(factionMinSpCost[sp.faction] ?? 99, sp.spCost)
+for (const e of eventCards.filter(c => c.spSummonRule && (c.spSummonRule.type === 'faction_only' || c.spSummonRule.type === 'discard_check'))) {
+  const r = e.spSummonRule
+  const fac = r.factionLimit || r.discardFaction
+  ok(`收口：${e.name} maxCost 不再是无限 99`, r.maxCost < 99)
+  ok(`收口：${e.name} maxCost(${r.maxCost}) ≤ 本卡cost+3 或 = 阵营最低SP费（不越级）`,
+    r.maxCost <= (e.cost || 0) + 3 || r.maxCost === factionMinSpCost[fac])
+}
+// 具体反例：修前"基因突变(2费)秒召 cost-6 生物膜(28000)"现在被彻底堵死（任何回合都召不出）
+const geneMut = eventCards.find(c => c.id === 'event_gene_mutation')
+const biofilm = spCards.find(s => s.spCost === 6 && s.faction === 'pathogen') // 生物膜 28000
+ok('收口：基因突变(2费) 在任何回合都召不出 cost-6 生物膜（越级被堵）',
+  [4, 5, 6, 7, 8].every(t => gate(geneMut.spSummonRule, [biofilm], t, ample).length === 0))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)
