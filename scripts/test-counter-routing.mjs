@@ -49,9 +49,10 @@ ok('② AOE_DAMAGE 用 dmgSetter（不再写死 enemySetter）',
 const hitCalls = [...ub.matchAll(/triggerSkills\('onHit',\s*\{[^}]*\}/g)].map(m => m[0])
 ok('③ onHit 触发点共 2 处', hitCalls.length === 2)
 ok('③ 每个 onHit 都传 attackerField', hitCalls.every(c => /attackerField:/.test(c)))
-ok('③ 玩家攻击侧传 playerFieldRef、敌方攻击侧传 enemyFieldRef',
-  hitCalls.some(c => /attackerField:\s*playerFieldRef\.current/.test(c)) &&
-  hitCalls.some(c => /attackerField:\s*enemyFieldRef\.current/.test(c)))
+// E5c-5：field 迁进 reducer → attackerField 读走 battleStateRef.current.<side>.field
+ok('③ 玩家攻击侧传 player.field、敌方攻击侧传 enemy.field',
+  hitCalls.some(c => /attackerField:\s*battleStateRef\.current\.player\.field/.test(c)) &&
+  hitCalls.some(c => /attackerField:\s*battleStateRef\.current\.enemy\.field/.test(c)))
 
 // ④ MRSA·耐药壁垒 反弹路由修复（决策D）—— 与 onHitCounter 同款 _side:'attacker' + ctx.attackerField
 const reg = readFileSync(join(ROOT, 'src/engine/skillRegistry.js'), 'utf8')
@@ -73,7 +74,7 @@ ok('⑤ 结算里的护盾 setState 块已收敛（源码不再有 3+ 处 applyS
 //    （E5c-0 已退役 playerPowerBankRef/enemyPowerBankRef，新增 battleStateRef）。
 //    故下界随迁移下调；核心不变式仍是「没有裸镜像双写」。
 ok('⑥ useBattle 不再有裸镜像双写（顶层 xRef.current = x）', !/^ {2}\w+Ref\.current = \w+$/m.test(ub))
-ok('⑥ state-mirror 仍走 useLatestRef helper（≥6 处，E5c 迁移中逐步退役）', (ub.match(/= useLatestRef\(/g) || []).length >= 6)
+ok('⑥ state-mirror 仍走 useLatestRef helper（≥4 处，E5c 迁移中逐步退役）', (ub.match(/= useLatestRef\(/g) || []).length >= 4)
 
 // ⑦ 决策E5c-0：Power Bank 迁进 battleReducer（reducer 拿最新 state + 原子改）
 ok('⑦ 引入 useReducer(battleReducer)', /useReducer\(battleReducer/.test(ub))
@@ -108,6 +109,18 @@ ok('⑦ turn/phase/winner 写走 dispatch（TURN_SET/PHASE_SET/WINNER_SET/GAME_O
 ok('⑦ 胜负走原子 GAME_OVER（winner+phase 一步）', /dispatch\(\{\s*type:\s*'GAME_OVER',\s*winner:/.test(ub))
 ok('⑦ turnRef 退役（读走 battleStateRef.current.turn）',
   !/turnRef/.test(ub) && /battleStateRef\.current\.turn/.test(ub))
+
+// ⑦ 决策E5c-5：战场 field 迁进 battleReducer（FIELD_UPDATE，setter 垫片透传 updater）
+ok('⑦ field 写全走 dispatch（FIELD_UPDATE），setPlayerField/setEnemyField 是垫片',
+  /dispatch\(\{\s*type:\s*'FIELD_UPDATE',\s*side:\s*'player',\s*value:\s*u\s*\}\)/.test(ub) &&
+  /dispatch\(\{\s*type:\s*'FIELD_UPDATE',\s*side:\s*'enemy',\s*value:\s*u\s*\}\)/.test(ub))
+ok('⑦ field 状态镜像 ref 已退役（无 player/enemyFieldRef）', !/(player|enemy)FieldRef/.test(ub))
+ok('⑦ field 派生自 reducer（battleState.<side>.field）', /battleState\.player\.field/.test(ub) && /battleState\.enemy\.field/.test(ub))
+ok('⑦ 击杀判定确定性算（不再 updater 闭包 defKilled=true 读回）',
+  /const defKilled = Math\.max\(0, defCard\.currentHp - defActualDmg\)/.test(ub) &&
+  /const atkKilled = Math\.max\(0, atkCard\.currentHp - atkActualDmg\)/.test(ub))
+ok('⑦ FIELD_UPDATE 有引用相等 bailout（next === cur）',
+  /case 'FIELD_UPDATE'[\s\S]{0,200}if \(next === cur\) return state/.test(readFileSync(join(ROOT, 'src/engine/battleReducer.js'), 'utf8')))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

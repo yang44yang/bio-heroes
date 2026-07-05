@@ -30,10 +30,8 @@ export function useBattle() {
 
   // === 主人 HP === playerLeaderHp/enemyLeaderHp 于 E5c-3 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
 
-  // === 战场（每方 MAX_FIELD_SLOTS 位，null = 空）===
+  // === 战场（每方 MAX_FIELD_SLOTS 位，null = 空）— E5c-5 迁进 battleReducer，派生自 reducer（见下方 battleState 后）===
   const emptyField = () => Array(MAX_FIELD_SLOTS).fill(null)
-  const [playerField, setPlayerField] = useState(emptyField)
-  const [enemyField, setEnemyField] = useState(emptyField)
 
   // === 召唤疲劳 & 已攻击（uid Set）===
   const summonedThisTurn = useRef(new Set())
@@ -82,6 +80,19 @@ export function useBattle() {
     (u) => dispatch({ type: 'LEADER_SET', side: 'player', value: typeof u === 'function' ? u(battleStateRef.current.player.leaderHp) : u }), [])
   const setEnemyLeaderHp = useCallback(
     (u) => dispatch({ type: 'LEADER_SET', side: 'enemy', value: typeof u === 'function' ? u(battleStateRef.current.enemy.leaderHp) : u }), [])
+
+  // === 战场（E5c-5 迁进 battleReducer，派生自 reducer）===
+  const playerField = battleState.player.field
+  const enemyField = battleState.enemy.field
+  // field 垫片：与 leaderHp 垫片不同，**原样透传 updater**（不在垫片里 resolve function）→ 让
+  // reducer 对着「运行中已提交 state」跑 updater，保同 tick 多次 dispatch 顺序累加（等价旧
+  // setField(prev=>...) 链）。所有传 setter 当参数的点（applySkillEvents/executeEventEffect/
+  // boss·stage 机制）都收到这个垫片、调用兼容。⚠️ 凡「updater 闭包内赋值后同步读回」(defKilled/
+  // atkKilled/replaced) 或「updater 内有副作用」(addLog/summonedThisTurn/非幂等 uid) 的点，已
+  // 各自改成 dispatch 前用 battleStateRef 确定性算好（见 applyCombatOutcome/playToField/
+  // processEndOfTurnEffects/MASS_REVIVE）。
+  const setPlayerField = useCallback((u) => dispatch({ type: 'FIELD_UPDATE', side: 'player', value: u }), [])
+  const setEnemyField = useCallback((u) => dispatch({ type: 'FIELD_UPDATE', side: 'enemy', value: u }), [])
 
   // Sprint 27: 手牌引用（由 BattleScreen 通过 setHandRefs 注入）
   // 用于 REVEAL_HAND 以及需要读取手牌的技能
@@ -173,9 +184,7 @@ export function useBattle() {
     setSkillEvents([])
   }, [])
 
-  // === Refs（解决闭包问题）===
-  const playerFieldRef = useLatestRef(playerField)
-  const enemyFieldRef = useLatestRef(enemyField)
+  // === Refs（解决闭包问题）===（field 于 E5c-5 退役，读走 battleStateRef.current.<side>.field）
 
   // ----------------------------------------------------------------
   //  辅助
@@ -209,7 +218,6 @@ export function useBattle() {
   const fireOnDeathRef = useRef(null)
   fireOnDeathRef.current = (deadCards, deadSide) => {
     if (!deadCards || deadCards.length === 0) return
-    const fRef = deadSide === 'player' ? playerFieldRef : enemyFieldRef
     const fSet = deadSide === 'player' ? setPlayerField : setEnemyField
     const eSet = deadSide === 'player' ? setEnemyField : setPlayerField
     for (const dc of deadCards) {
@@ -219,7 +227,7 @@ export function useBattle() {
       //   （DISCARD_ADD dispatch 在本 effect 的 fireOnDeath 之后才调），干细胞 revive 读弃牌堆看不到它 →
       //   误判"弃牌堆里没有合适的细胞模板"。把同批死卡并入模板池即修正（revive_as 仍按 id 过滤自身）。
       const batchDiscard = [...(battleStateRef.current[deadSide].discard || []), ...deadCards.filter(c => c.uid !== dc.uid)]
-      const events = triggerSkills('onDeath', { card: dc, friendlyField: fRef.current, discardPile: batchDiscard })
+      const events = triggerSkills('onDeath', { card: dc, friendlyField: battleStateRef.current[deadSide].field, discardPile: batchDiscard })
       if (events && events.length) {
         applySkillEvents(events, fSet, eSet, deadSide)
         for (const e of events) if (e.message && e.type !== 'OVERFLOW_DAMAGE' && e.type !== 'PIERCING_DAMAGE') addLog(e.message)
@@ -255,7 +263,7 @@ export function useBattle() {
       if (side === 'enemy' && stageRuleRef.current?.onEnemyCardDeath) {
         for (const deadCard of fresh) {
           const ruleEvents = stageRuleRef.current.onEnemyCardDeath({
-            deadCard, enemyField: enemyFieldRef.current, setEnemyField, addLog,
+            deadCard, enemyField: battleStateRef.current.enemy.field, setEnemyField, addLog,
           })
           if (ruleEvents?.length > 0) setBossMechanicEvents(prev => [...prev, ...ruleEvents])
         }
@@ -276,7 +284,7 @@ export function useBattle() {
     const result = boss.onHPThreshold({
       currentHP,
       maxHP,
-      enemyField: enemyFieldRef.current,
+      enemyField: battleStateRef.current.enemy.field,
       setEnemyField,
       addLog,
       bossState: bossStateRef.current,
@@ -537,26 +545,29 @@ export function useBattle() {
             else if (evt.message) addLog(evt.message)
             break
           }
+          // E5c-5：复活卡（含 Date.now()/Math.random() 非幂等 uid）在 updater **外**预造，
+          //   summonedThisTurn.add 也在外；updater 只把预造卡放进运行中场的空位（保同 tick 累加）。
+          const revivedCards = chars.map(killed => {
+            const maxHp = killed.maxHp || killed.hp || 1000
+            return {
+              ...killed,
+              uid: (killed.id || 'rev') + '_mass_revive_' + Date.now() + '_' + Math.random(),
+              currentHp: Math.floor(maxHp * hpPercent),
+              maxHp,
+              statuses: [],
+              summonSick: true,
+            }
+          })
           friendlySetter(prev => {
             const next = [...prev]
-            for (const killed of chars) {
-              // 找空位
+            for (const revived of revivedCards) {
               const emptyIdx = next.findIndex(c => !c || c.currentHp <= 0)
               if (emptyIdx < 0) break
-              const maxHp = killed.maxHp || killed.hp || 1000
-              const revived = {
-                ...killed,
-                uid: (killed.id || 'rev') + '_mass_revive_' + Date.now() + '_' + Math.random(),
-                currentHp: Math.floor(maxHp * hpPercent),
-                maxHp,
-                statuses: [],
-                summonSick: true,
-              }
               next[emptyIdx] = revived
-              summonedThisTurn.current.add(revived.uid)
             }
             return next
           })
+          for (const revived of revivedCards) summonedThisTurn.current.add(revived.uid)
           if (evt.message) addLog(evt.message)
           break
         }
@@ -594,8 +605,8 @@ export function useBattle() {
 
       // onKill — 检查攻击方技能
       const killFriendlyField = side === 'player'
-        ? playerFieldRef.current
-        : enemyFieldRef.current
+        ? battleStateRef.current.player.field
+        : battleStateRef.current.enemy.field
       const killEvents = triggerSkills('onKill', {
         attacker: atkCard,
         defender: defCard,
@@ -645,63 +656,57 @@ export function useBattle() {
   //  回合结束技能处理（Natural Recovery / 状态效果 tick）
   // ----------------------------------------------------------------
   function processEndOfTurnEffects(side) {
-    const fieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
-    const field = fieldRef.current
-    const setter = side === 'player' ? setPlayerField : setEnemyField
-    const oppSide = side === 'player' ? 'enemy' : 'player'  // E5c-3：leader 走 dispatch delta
+    const oppSide = side === 'player' ? 'enemy' : 'player'
+    const startField = battleStateRef.current[side].field
     const allEvents = []
+
+    // E5c-5：onTurnEnd 的己方场地改动（HEAL/SUMMON/状态 tick）全部折进一个本地 nextField，
+    //   同步算完、addLog/事件同步收集，最后一次 dispatch 快照。原因：useReducer dispatch 不 eager，
+    //   ① 状态 tick 的 allEvents 要同步返回给 pushSkillEvents（浮字）；② HEAL 后接状态 tick 若各自
+    //   dispatch 快照会互相覆盖丢累加；③ processStatuses 就地改血 + addLog 不能进 reducer（渲染中 setState）。
+    let nextField = startField.map(c => c ? { ...c } : null)
 
     // onTurnEnd 技能（自愈等）。传 turn → 让 interval 类技能(如胸腺 T-Cell Training 每2回合抽牌)能判回合。
     const turnEndEvents = triggerSkills('onTurnEnd', {
-      friendlyField: field.filter(c => c && c.currentHp > 0),
-      friendlyFieldRaw: field, // 决策F：真 5 格数组（含 null 空位），供骨髓造血等召唤类找空位
+      friendlyField: startField.filter(c => c && c.currentHp > 0),
+      friendlyFieldRaw: startField, // 决策F：真 5 格数组（含 null 空位），供骨髓造血等召唤类找空位
       turn: battleStateRef.current.turn,
     })
 
-    // 处理回合结束技能事件
+    // 处理回合结束技能事件（HEAL/SUMMON 就地改 nextField；leader/抽牌走各自 dispatch/手牌）
     for (const evt of turnEndEvents) {
       if (evt.type === 'HEAL' && evt.amount > 0 && evt._leaderHeal) {
-        // 主人回血（蛔虫吸血回己方主人等）：onTurnEnd 原本按字段卡 uid 找 '__leader__' 找不到 → 走主人 setter
+        // 主人回血（蛔虫吸血回己方主人等）
         dispatch({ type: 'LEADER_HEAL', side, amount: evt.amount, cap: LEADER_HP })
         addLog(evt.message)
       } else if (evt.type === 'HEAL' && evt.amount > 0) {
-        setter(prev => {
-          const next = prev.map(c => c ? { ...c } : null)
-          const target = next.find(c => c && c.uid === evt.targetUid) || next.find(c => c && c.name === evt.target)
-          if (target) {
-            target.currentHp = Math.min(target.maxHp, target.currentHp + evt.amount)
-          }
-          return next
-        })
+        const target = nextField.find(c => c && c.uid === evt.targetUid) || nextField.find(c => c && c.name === evt.target)
+        if (target) target.currentHp = Math.min(target.maxHp, target.currentHp + evt.amount)
         addLog(evt.message)
       } else if (evt.type === 'OVERFLOW_DAMAGE' && evt.damage > 0) {
-        // 扣敌方主人血（蛔虫 Nutrient Hijack 吸血等）：onTurnEnd 原本完全不处理 OVERFLOW_DAMAGE → 技能哑火
+        // 扣敌方主人血（蛔虫 Nutrient Hijack 吸血等）
         dispatch({ type: 'LEADER_DAMAGE', side: oppSide, amount: evt.damage })
         addLog(evt.message)
       } else if (evt.type === 'DRAW_CARD') {
-        // 抽牌（胸腺 T-Cell Training 每2回合抽1张等）：复用 applySkillEvents 的 drawCards/aiDrawCards 机制
+        // 抽牌（胸腺 T-Cell Training 每2回合抽1张等）
         const drawFn = side === 'player' ? handsRef.current.drawCards : handsRef.current.aiDrawCards
         if (typeof drawFn === 'function') drawFn(evt.amount || 1)
         if (evt.message) addLog(evt.message)
       } else if (evt.type === 'SUMMON_CARD') {
         // 骨髓造血等召唤技能
-        setter(prev => {
-          const next = [...prev]
-          if (evt.slot >= 0 && evt.slot < next.length && (!next[evt.slot] || next[evt.slot].currentHp <= 0)) {
-            next[evt.slot] = evt.card
-          }
-          return next
-        })
+        if (evt.slot >= 0 && evt.slot < nextField.length && (!nextField[evt.slot] || nextField[evt.slot].currentHp <= 0)) {
+          nextField[evt.slot] = evt.card
+        }
         if (evt.card?.uid) summonedThisTurn.current.add(evt.card.uid)
         addLog(evt.message)
       }
       allEvents.push(evt)
     }
 
-    // 处理状态效果（中毒 / 沉睡 tick）
-    setter(prev => {
-      const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null)
-      for (const card of next) {
+    // 处理状态效果（中毒 / 沉睡 tick）—— 就地改 nextField（含 statuses 克隆），事件/日志同步收集
+    nextField = nextField.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null)
+    {
+      for (const card of nextField) {
         if (!card || card.currentHp <= 0) continue
         const statusEvents = processStatuses(card)
         for (const evt of statusEvents) {
@@ -709,9 +714,10 @@ export function useBattle() {
           allEvents.push(evt)
         }
       }
-      return next
-    })
-    // 中毒/状态 tick 可能致死 → 清理死卡并触发其 onDeath（干细胞分化/复活/分裂/孢子散播等）。
+    }
+    // 一次性提交 onTurnEnd 的全部己方场地改动（HEAL+SUMMON+状态 tick）
+    dispatch({ type: 'FIELD_UPDATE', side, value: nextField })
+    // 中毒/状态 tick 可能致死 → 清理死卡并触发其 onDeath（干细胞分化/复活/分裂/孢子散播等）由提交后 useEffect 处理。
 
     return allEvents
   }
@@ -731,15 +737,14 @@ export function useBattle() {
   //  （结构参考 processEndOfTurnEffects 的 onTurnEnd 调用，但走 applySkillEvents 全量分派）
   // ----------------------------------------------------------------
   function processTurnStartEffects(side) {
-    const fieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
-    const oppFieldRef = side === 'player' ? enemyFieldRef : playerFieldRef
+    const oppSide = side === 'player' ? 'enemy' : 'player'
     const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
     const enemySetter = side === 'player' ? setEnemyField : setPlayerField
 
     // 遍历己方场上存活卡触发 onTurnStart（triggerSkills 内部逐卡注入 ctx.card）
     const events = triggerSkills('onTurnStart', {
-      friendlyField: fieldRef.current.filter(c => c && c.currentHp > 0),
-      enemyField: oppFieldRef.current.filter(c => c && c.currentHp > 0),
+      friendlyField: battleStateRef.current[side].field.filter(c => c && c.currentHp > 0),
+      enemyField: battleStateRef.current[oppSide].field.filter(c => c && c.currentHp > 0),
       playerHand: side === 'player' ? handsRef.current.playerHand : handsRef.current.enemyHand,
       enemyHand: side === 'player' ? handsRef.current.enemyHand : handsRef.current.playerHand,
       discardPile: battleStateRef.current[side].discard,
@@ -813,8 +818,8 @@ export function useBattle() {
   }
 
   function applyEnvironmentEvent(event) {
-    const pField = [...playerFieldRef.current.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null)]
-    const eField = [...enemyFieldRef.current.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null)]
+    const pField = [...battleStateRef.current.player.field.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null)]
+    const eField = [...battleStateRef.current.enemy.field.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses] : [] } : null)]
 
     const result = event.apply(pField, eField)
 
@@ -881,8 +886,7 @@ export function useBattle() {
     const { drawCards, addToHand } = opts
     const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
     const enemySetter = side === 'player' ? setEnemyField : setPlayerField
-    const friendlyFieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
-    const enemyFieldRef_ = side === 'player' ? enemyFieldRef : playerFieldRef
+    const oppSide = side === 'player' ? 'enemy' : 'player'   // E5c-5：field 读走 battleStateRef
 
     switch (card.effectType) {
       case 'energy': {
@@ -942,7 +946,7 @@ export function useBattle() {
           addLog(`💥 ${card.name}：对所有敌方卡造成 ${card.effectValue} 伤害！`)
         } else if (target === 'destroy_enemy_low_hp') {
           // Destroy one enemy card with HP <= threshold
-          const eField = enemyFieldRef_.current
+          const eField = battleStateRef.current[oppSide].field
           const targetCard = eField.find(c => c && c.currentHp > 0 && c.currentHp <= card.effectValue)
           if (targetCard) {
             enemySetter(prev => prev.map(c => {
@@ -955,7 +959,7 @@ export function useBattle() {
           }
         } else if (target === 'one_enemy_poison') {
           // Poison one random enemy card
-          const eField = enemyFieldRef_.current
+          const eField = battleStateRef.current[oppSide].field
           const alive = eField.filter(c => c && c.currentHp > 0)
           if (alive.length > 0) {
             const victim = alive[Math.floor(Math.random() * alive.length)]
@@ -974,7 +978,7 @@ export function useBattle() {
         const target = card.effectTarget
         if (target === 'one_ally_heal') {
           // Heal one friendly card with lowest HP
-          const field = friendlyFieldRef.current
+          const field = battleStateRef.current[side].field
           const alive = field.filter(c => c && c.currentHp > 0 && c.currentHp < c.maxHp)
           if (alive.length > 0) {
             const lowest = alive.reduce((min, c) => c.currentHp < min.currentHp ? c : min, alive[0])
@@ -986,7 +990,7 @@ export function useBattle() {
           }
         } else if (target === 'one_ally_body_shield') {
           // Shield one body faction ally
-          const field = friendlyFieldRef.current
+          const field = battleStateRef.current[side].field
           const bodyAlive = field.filter(c => c && c.currentHp > 0 && c.faction === 'body')
           if (bodyAlive.length > 0) {
             const target = bodyAlive[Math.floor(Math.random() * bodyAlive.length)]
@@ -1033,7 +1037,7 @@ export function useBattle() {
           // Revive a body card from discard to field at 50% HP
           const pile = battleStateRef.current[side].discard
           const candidates = pile.filter(c => c.type === 'character' && c.faction === 'body')
-          const field = friendlyFieldRef.current
+          const field = battleStateRef.current[side].field
           const emptySlot = field.findIndex(c => !c || c.currentHp <= 0)
           if (candidates.length > 0 && emptySlot >= 0) {
             const chosen = candidates[candidates.length - 1]
@@ -1052,7 +1056,7 @@ export function useBattle() {
           }
         } else if (target === 'one_ally_pathogen_mutate') {
           // Mutate: ATK ×1.5, HP ×0.5 (permanent)
-          const field = friendlyFieldRef.current
+          const field = battleStateRef.current[side].field
           const pathAlive = field.filter(c => c && c.currentHp > 0 && c.faction === 'pathogen')
           if (pathAlive.length > 0) {
             const chosen = pathAlive[Math.floor(Math.random() * pathAlive.length)]
@@ -1066,7 +1070,7 @@ export function useBattle() {
           }
         } else if (target === 'one_ally_pathogen_immune_tech') {
           // Immune to tech for 1 turn
-          const field = friendlyFieldRef.current
+          const field = battleStateRef.current[side].field
           const pathAlive = field.filter(c => c && c.currentHp > 0 && c.faction === 'pathogen')
           if (pathAlive.length > 0) {
             const chosen = pathAlive[Math.floor(Math.random() * pathAlive.length)]
@@ -1110,7 +1114,7 @@ export function useBattle() {
   function getEligibleSpCards(summonRule, side, remainingEnergy = 0) {
     const spDeck = side === 'player' ? playerSpDeckRef.current : enemySpDeckRef.current
     const discardPile = battleStateRef.current[side].discard
-    const field = side === 'player' ? playerFieldRef.current : enemyFieldRef.current
+    const field = side === 'player' ? battleStateRef.current.player.field : battleStateRef.current.enemy.field
 
     // 场上必须有空位
     const hasEmpty = field.some(c => !c || c.currentHp <= 0)
@@ -1158,11 +1162,11 @@ export function useBattle() {
   //  SP 卡召唤到战场
   // ----------------------------------------------------------------
   const summonSpCard = useCallback((spCard, side) => {
-    const fieldRef = side === 'player' ? playerFieldRef : enemyFieldRef
+    const oppSide = side === 'player' ? 'enemy' : 'player'   // E5c-5：field 读走 battleStateRef
     const setter = side === 'player' ? setPlayerField : setEnemyField
     const setSpDeck = side === 'player' ? setPlayerSpDeck : setEnemySpDeck
 
-    const field = fieldRef.current
+    const field = battleStateRef.current[side].field
     const emptySlot = field.findIndex(c => !c || c.currentHp <= 0)
     if (emptySlot < 0) return null
 
@@ -1196,8 +1200,8 @@ export function useBattle() {
     // Execute onPlay skills
     const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
     const enemySetter = side === 'player' ? setEnemyField : setPlayerField
-    const friendlyFieldCards = fieldRef.current.filter(Boolean)
-    const enemyFieldCards = (side === 'player' ? enemyFieldRef : playerFieldRef).current.filter(Boolean)
+    const friendlyFieldCards = battleStateRef.current[side].field.filter(Boolean)
+    const enemyFieldCards = battleStateRef.current[oppSide].field.filter(Boolean)
 
     const playEvents = triggerSkills('onPlay', {
       card: fieldCard,
@@ -1241,7 +1245,7 @@ export function useBattle() {
 
     // SP3 CAR-T: Destroy one pathogen
     if (spCard.id === 'sp_car_t_cell') {
-      const eField = (side === 'player' ? enemyFieldRef : playerFieldRef).current
+      const eField = battleStateRef.current[oppSide].field
       const pathogen = eField.find(c => c && c.currentHp > 0 && c.faction === 'pathogen')
       if (pathogen) {
         enemySetter(prev => prev.map(c => {
@@ -1256,7 +1260,7 @@ export function useBattle() {
     if (spCard.id === 'sp_brain_awakening') {
       addLog(`🧠 大脑觉醒：揭示对方手牌，全队获得迅击！`)
       // Give swift to all friendly for 1 turn (simplified: clear summon sickness)
-      const fField = fieldRef.current
+      const fField = battleStateRef.current[side].field
       fField.forEach(c => {
         if (c && c.currentHp > 0) {
           summonedThisTurn.current.delete(c.uid)
@@ -1304,7 +1308,7 @@ export function useBattle() {
 
     // SP8 CRISPR: Swap ATK/HP of one enemy (pick highest ATK)
     if (spCard.id === 'sp_crispr') {
-      const eField = (side === 'player' ? enemyFieldRef : playerFieldRef).current
+      const eField = battleStateRef.current[oppSide].field
       const alive = eField.filter(c => c && c.currentHp > 0)
       if (alive.length > 0) {
         const target = alive.reduce((max, c) => c.atk > max.atk ? c : max, alive[0])
@@ -1591,12 +1595,11 @@ export function useBattle() {
       }
     }
 
-    let replaced = null
+    // E5c-5：被替换下场的卡在 dispatch 前用 battleStateRef 确定性取（updater 闭包读回失效）
+    const prevOccupant = battleStateRef.current.player.field[slotIdx]
+    const replaced = (prevOccupant && prevOccupant.currentHp > 0) ? prevOccupant : null
     setPlayerField(prev => {
       const next = [...prev]
-      if (next[slotIdx] && next[slotIdx].currentHp > 0) {
-        replaced = next[slotIdx]
-      }
       next[slotIdx] = makeFieldCard(card)
       return next
     })
@@ -1625,8 +1628,8 @@ export function useBattle() {
     // onPlay 技能触发（Oxygen Delivery, Clotting Shield 等）
     const playEvents = triggerSkills('onPlay', {
       card: makeFieldCard(card),
-      friendlyField: playerFieldRef.current.filter(Boolean),
-      enemyField: enemyFieldRef.current.filter(Boolean),
+      friendlyField: battleStateRef.current.player.field.filter(Boolean),
+      enemyField: battleStateRef.current.enemy.field.filter(Boolean),
       playerHand: handsRef.current.playerHand,
       enemyHand: handsRef.current.enemyHand,
       discardPile: battleStateRef.current.player.discard,
@@ -1675,19 +1678,26 @@ export function useBattle() {
     const { atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed } = outcome
     const defShield = mods.ignoreShield ? null : defCard.statuses?.find(s => s.type === 'shield')
     const atkShield = atkCard.statuses?.find(s => s.type === 'shield')
-    let defKilled = false, atkKilled = false
+    // E5c-5：击杀判定确定性算（field 走 dispatch、reducer 不 eager → 不能再靠 updater 闭包读回）。
+    //   defActualDmg/atkActualDmg 已净护盾吸收（combat.js），故用「战前 HP − 实际伤害 ≤0」。
+    //   （旧 eager 闭包在 applySkillEvents 已改场时本就 deferred=false、best-effort；死卡最终仍由
+    //    提交后 useEffect 扫 currentHp≤0 权威清理，defKilled 仅供 onKill/stats/日志）。
+    const defKilled = Math.max(0, defCard.currentHp - defActualDmg) <= 0
+    const atkKilled = Math.max(0, atkCard.currentHp - atkActualDmg) <= 0
     defSetter(prev => {
       const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({ ...s }))] : [] } : null)
-      if (defShield) applyShieldAbsorb(next[defSlot], atkDmg)
-      next[defSlot].currentHp = Math.max(0, next[defSlot].currentHp - defActualDmg)
-      if (next[defSlot].currentHp <= 0) defKilled = true
+      if (next[defSlot]) {
+        if (defShield) applyShieldAbsorb(next[defSlot], atkDmg)
+        next[defSlot].currentHp = Math.max(0, next[defSlot].currentHp - defActualDmg)
+      }
       return next
     })
     atkSetter(prev => {
       const next = prev.map(c => c ? { ...c, statuses: c.statuses ? [...c.statuses.map(s => ({ ...s }))] : [] } : null)
-      if (atkShield) applyShieldAbsorb(next[atkSlot], defDmg)
-      next[atkSlot].currentHp = Math.max(0, next[atkSlot].currentHp - atkActualDmg)
-      if (next[atkSlot].currentHp <= 0) atkKilled = true
+      if (next[atkSlot]) {
+        if (atkShield) applyShieldAbsorb(next[atkSlot], defDmg)
+        next[atkSlot].currentHp = Math.max(0, next[atkSlot].currentHp - atkActualDmg)
+      }
       return next
     })
     if (defShieldAbsorbed > 0) addLog(`🛡️ ${defCard.name} 护盾吸收 ${defShieldAbsorbed} 伤害！`)
@@ -1776,10 +1786,10 @@ export function useBattle() {
     // onAttack / onHit 技能（Discharge Strike 等）
     const preAtkEvents = triggerSkills('onAttack', {
       attacker: atkCard, defender: defCard, target: 'card',
-      defSlot, enemyField: enemyFieldRef.current,
+      defSlot, enemyField: battleStateRef.current.enemy.field,
     })
     // attackerField = 攻击者(玩家)的场 → onHitCounter 据此定位攻击者 slot，反击才能落到正确目标
-    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: playerFieldRef.current })
+    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: battleStateRef.current.player.field })
     const allPreEvents = [...preAtkEvents, ...preHitEvents]
     applySkillEvents(allPreEvents, setPlayerField, setEnemyField, 'player')
     for (const evt of allPreEvents) {
@@ -1794,7 +1804,7 @@ export function useBattle() {
       defImmune, atkFactionBonus, defFactionBonus, auraApplied,
     } = resolveCardCombat({
       attacker: atkCard, defender: defCard, awakenOpts, mods,
-      attackerField: playerFieldRef.current, defenderField: enemyFieldRef.current,
+      attackerField: battleStateRef.current.player.field, defenderField: battleStateRef.current.enemy.field,
     })
     if (defImmune) addLog(`🛡️ ${defCard.name} 免疫了攻击！`)
     if (atkFactionBonus) addLog(`⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
@@ -1839,7 +1849,7 @@ export function useBattle() {
     const boss = bossMechanicRef.current
     if (boss?.onTurnEnd) {
       const bossEvents = boss.onTurnEnd({
-        enemyField: enemyFieldRef.current,
+        enemyField: battleStateRef.current.enemy.field,
         setEnemyField,
         addLog,
       })
@@ -1902,8 +1912,8 @@ export function useBattle() {
     // onPlay 技能触发（Oxygen Delivery, Clotting Shield 等）
     const playEvents = triggerSkills('onPlay', {
       card: makeFieldCard(card),
-      friendlyField: enemyFieldRef.current.filter(Boolean),
-      enemyField: playerFieldRef.current.filter(Boolean),
+      friendlyField: battleStateRef.current.enemy.field.filter(Boolean),
+      enemyField: battleStateRef.current.player.field.filter(Boolean),
       playerHand: handsRef.current.enemyHand,
       enemyHand: handsRef.current.playerHand,
       discardPile: battleStateRef.current.enemy.discard,
@@ -1918,7 +1928,7 @@ export function useBattle() {
 
     // 关卡特殊规则：敌方出牌后触发（丛林迷雾隐身等）
     if (stageRuleRef.current?.onEnemyCardPlayed) {
-      const fieldCard = enemyFieldRef.current[slotIdx]
+      const fieldCard = battleStateRef.current.enemy.field[slotIdx]
       if (fieldCard) {
         const ruleEvents = stageRuleRef.current.onEnemyCardPlayed({
           card: fieldCard,
@@ -1938,8 +1948,8 @@ export function useBattle() {
   //  AI 攻击（单次，返回结果）
   // ----------------------------------------------------------------
   const aiAttack = useCallback((atkSlot, defSlot) => {
-    let eField = enemyFieldRef.current
-    let pField = playerFieldRef.current
+    let eField = battleStateRef.current.enemy.field
+    let pField = battleStateRef.current.player.field
     const atkCard = eField[atkSlot]
     if (!atkCard || atkCard.currentHp <= 0) return null
 
@@ -1996,10 +2006,10 @@ export function useBattle() {
     // onAttack / onHit（Discharge Strike 等）
     const preAtkEvents = triggerSkills('onAttack', {
       attacker: atkCard, defender: defCard, target: 'card',
-      defSlot, enemyField: playerFieldRef.current,
+      defSlot, enemyField: battleStateRef.current.player.field,
     })
     // attackerField = 攻击者(敌方)的场 → onHitCounter 据此定位攻击者 slot（友方反击卡的反伤才能打到正确目标）
-    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: enemyFieldRef.current })
+    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: battleStateRef.current.enemy.field })
     const allPreEvents = [...preAtkEvents, ...preHitEvents]
     applySkillEvents(allPreEvents, setEnemyField, setPlayerField, 'enemy')
     for (const evt of allPreEvents) {
@@ -2012,7 +2022,7 @@ export function useBattle() {
       atkFactionBonus, defFactionBonus,
     } = resolveCardCombat({
       attacker: atkCard, defender: defCard, mods,
-      attackerField: enemyFieldRef.current, defenderField: playerFieldRef.current,
+      attackerField: battleStateRef.current.enemy.field, defenderField: battleStateRef.current.player.field,
     })
     if (atkFactionBonus) addLog(`🔴 ⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
@@ -2070,9 +2080,9 @@ export function useBattle() {
       const config = campaignConfigRef.current
       const bossEvents = boss.onTurnStart({
         turn: newTurn,
-        playerField: playerFieldRef.current,
+        playerField: battleStateRef.current.player.field,
         setPlayerField,
-        enemyField: enemyFieldRef.current,
+        enemyField: battleStateRef.current.enemy.field,
         setEnemyField,
         enemyLeaderHp: battleStateRef.current.enemy.leaderHp,
         maxLeaderHP: config?.leaderHP || LEADER_HP,
@@ -2090,9 +2100,9 @@ export function useBattle() {
     if (stageRule?.onTurnStart) {
       const ruleEvents = stageRule.onTurnStart({
         turn: newTurn,
-        playerField: playerFieldRef.current,
+        playerField: battleStateRef.current.player.field,
         setPlayerField,
-        enemyField: enemyFieldRef.current,
+        enemyField: battleStateRef.current.enemy.field,
         setEnemyField,
         playerLeaderHp: battleStateRef.current.player.leaderHp,
         setPlayerLeaderHp: setPlayerLeaderHp,
@@ -2147,8 +2157,8 @@ export function useBattle() {
 
     // 收集当前战场上所有卡牌的 id
     const battleCardIds = [
-      ...playerFieldRef.current.filter(Boolean).map(c => c.id),
-      ...enemyFieldRef.current.filter(Boolean).map(c => c.id),
+      ...battleStateRef.current.player.field.filter(Boolean).map(c => c.id),
+      ...battleStateRef.current.enemy.field.filter(Boolean).map(c => c.id),
     ]
     const quiz = getRandomQuiz({ battleCardIds, streak: quizStreakRef.current, mode: getQuizMode() })
     setCurrentQuiz(quiz)
@@ -2219,8 +2229,8 @@ export function useBattle() {
   //  但外部拿不到 ref 本体、无法写 .current（只读）。
   // ----------------------------------------------------------------
   const latest = {
-    get playerField() { return playerFieldRef.current },
-    get enemyField() { return enemyFieldRef.current },
+    get playerField() { return battleStateRef.current.player.field },
+    get enemyField() { return battleStateRef.current.enemy.field },
     get playerLeaderHp() { return battleStateRef.current.player.leaderHp },
     get enemyLeaderHp() { return battleStateRef.current.enemy.leaderHp },
     get enemyPowerBank() { return battleStateRef.current.enemy.powerBank },

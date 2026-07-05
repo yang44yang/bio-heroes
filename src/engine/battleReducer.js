@@ -15,14 +15,16 @@
 
 // 主人初始 HP（与 deckRules.LEADER_HP 一致，reducer 保持 React-free 故内联常量）
 const LEADER_HP_INIT = 30000
+const FIELD_SLOTS = 5   // 与 deckRules.MAX_FIELD_SLOTS 一致（reducer React-free 内联）
+const emptyField = () => Array(FIELD_SLOTS).fill(null)
 
 export const initialBattleState = {
   // 顶层「回合机」状态（E5c-4）
   turn: 1,
   phase: 'init',   // init|mulligan|main|battle|animating|enemyTurn|over
   winner: null,    // null|'player'|'enemy'
-  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT },
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField() },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField() },
 }
 
 export function battleReducer(state, action) {
@@ -112,6 +114,20 @@ export function battleReducer(state, action) {
     case 'GAME_OVER':
       // 胜负 = winner + phase:'over' 原子设（取代散落的两步式胜负写）
       return { ...state, winner: action.winner, phase: 'over' }
+
+    // --- 战场 field（E5c-5）---
+    // value 是「updater 函数」或「新数组」。updater 在 reducer 内跑 → 同 tick 多次 dispatch
+    // 靠队列顺序累加（每个 updater 见到前一个结果），等价旧 setField(prev=>...) 链。
+    // ⚠️ 与旧 useState 唯一差异：useReducer dispatch **不 eager 计算** → 任何「在 updater
+    //   闭包里赋值、setter 返回后同步读回」的变量（defKilled/atkKilled/replaced）不能再靠
+    //   闭包，必须在 dispatch 前用 battleStateRef 确定性算好（见 useBattle 各调用点）。
+    case 'FIELD_UPDATE': {
+      const { side, value } = action
+      const cur = state[side].field
+      const next = typeof value === 'function' ? value(cur) : value
+      if (next === cur) return state   // 引用相等 bailout（对齐 useState no-op，死亡扫场 effect deps 不抖）
+      return { ...state, [side]: { ...state[side], field: next } }
+    }
 
     default:
       return state

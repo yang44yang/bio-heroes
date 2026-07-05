@@ -26,8 +26,9 @@ const fnStart = ub.indexOf('function processTurnStartEffects')
 ok('① processTurnStartEffects 函数已定义', fnStart >= 0)
 const fnBody = fnStart >= 0 ? ub.slice(fnStart, fnStart + 1600) : ''
 ok("① 调用 triggerSkills('onTurnStart', ...)", /triggerSkills\(\s*['"]onTurnStart['"]/.test(fnBody))
-ok('① 遍历己方场上存活卡 (friendlyField: fieldRef.current.filter)',
-  /friendlyField:\s*fieldRef\.current\.filter/.test(fnBody))
+// E5c-5：field 迁进 reducer → 读走 battleStateRef.current[side].field
+ok('① 遍历己方场上存活卡 (friendlyField: battleStateRef[side].field.filter)',
+  /friendlyField:\s*battleStateRef\.current\[side\]\.field\.filter/.test(fnBody))
 ok('① 事件走 applySkillEvents 全量分派', /applySkillEvents\(/.test(fnBody))
 ok('① 透析主人回血: HEAL+_leaderHeal 转 HEAL_LEADER',
   /evt\.type\s*===\s*['"]HEAL['"]\s*&&\s*evt\._leaderHeal/.test(fnBody))

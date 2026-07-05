@@ -55,8 +55,10 @@ ok('③ fSet 按 deadSide 派生(死卡那方为 friendly)',
   /deadSide\s*===\s*'player'\s*\?\s*setPlayerField\s*:\s*setEnemyField/.test(fod))
 ok('③ applySkillEvents 用 fSet/eSet + deadSide',
   /applySkillEvents\(\s*events\s*,\s*fSet\s*,\s*eSet\s*,\s*deadSide\s*\)/.test(fod))
-ok('③ friendlyField 用 fRef.current（保留 null 空位，不 .filter(Boolean) 假阴性"没空位"）',
-  /friendlyField:\s*fRef\.current/.test(fod) && !/fRef\.current\.filter\(Boolean\)/.test(fod))
+// E5c-5：field 迁进 reducer → friendlyField 读走 battleStateRef.current[deadSide].field（仍保 null 空位）
+ok('③ friendlyField 用 battleStateRef[deadSide].field（保留 null 空位，不 .filter(Boolean) 假阴性"没空位"）',
+  /friendlyField:\s*battleStateRef\.current\[deadSide\]\.field/.test(fod) &&
+  !/battleStateRef\.current\[deadSide\]\.field\.filter\(Boolean\)/.test(fod))
 
 // ④ handlePostAttackSkills 不再触发 onDeath（已收口，避免双触发），但仍触发 onKill
 const hpStart = ub.indexOf('function handlePostAttackSkills')
