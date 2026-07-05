@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-04 续⁵（**E5c-5 战场 field 迁进 battleReducer — reducer 迁移 6/6 组收官**（`3153cef`）：最险最后一刀。动手前跑 mapping workflow（5 agent 穷举）出验证 spec。加 FIELD_UPDATE {side,value}（value=updater/数组，reducer 内对运行中场跑→同 tick 累加，带 next===cur 引用相等 bailout）；setPlayerField/setEnemyField 变**透传垫片**→ 所有传 setter 当参数/纯 array-transform updater 的点零改动；45 处 field 读走 battleStateRef.current.<side>.field。**4 类闭包读回/副作用确定性重写**（useReducer 不 eager）：①applyCombatOutcome defKilled/atkKilled 用「战前HP−净护盾伤害≤0」算；②playToField replaced 读 battleStateRef；③processEndOfTurnEffects 状态 tick 折进本地 nextField 一次快照；④MASS_REVIVE 非幂等 uid+summonedThisTurn.add 移到 updater 外。grep 锚点 counter-routing/onDeath/onturnstart 同步更新。全 31/31 绿+build+preview 桌面视口端到端：**卡打卡互杀「造成1500 受反击1500→被击败！→也倒下了！」defKilled+atkKilled 双正确**、信息素召集技能经 applySkillEvents 函数式 updater 召唤累加正确、AI 事件卡改场、回合机循环，0 error。**reducer 迁移全完成（powerBank/discard/energy/leaderHp/回合机/field）。下一步 E5c-6 收尾**：删净 return 里已无用的东西 + 新增 `scripts/test-battle-reducer.mjs`（首个纯函数驱动 reducer 单测）+ ARCHITECTURE.md 更新状态模型段。）
+> 更新时间: 2026-07-05（**进入真机实测 bug-fix 模式**——E5 大重构收官后齐齐开始真机玩，本窗口修了 4 个：①**AI 击杀防守方后冻结回合**（`2234ff0`，最要紧）：E5c-3 在 `handlePostAttackSkills` 用了 `oppSide` 却漏定义→击杀防守方(defKilled)时 ReferenceError，异步 AI 回合被 reject 卡死。修=补 1 行 `const oppSide=`；test-counter-routing ⑧ 加回归守卫（负向验证过）。②**闯关重进反复领 1400 金币**（`e89c324`）：`handleExitBattle` 旧写法「发放+最后存盘」，中途异常丢已领标记→重进又领。修=改「先标记+立即 saveCampaignProgress，再发放」（pendingGrants 推迟）；loadCampaignProgress 兜底 claimedRewards；新增 `test-campaign-rewards.mjs`。③**boss/关卡机制 2 处 updater 闭包读回**（`fb5980d`，E5c-5 对抗审查跟进）：深海压力 affected / 蓝鲸 events 从 field 快照同步算。④**答题反馈**（`36d7872`，功能非 bug）：QuizModal 加反馈阶段（标正确答案✓/错误✗+讲解+继续按钮），起学习作用。全 33/33 套绿+build 绿，工作区干净全推送。⚠️**核心教训**：E5 reducer 迁移动了大量战斗热路径，grep 测试全绿但真机才暴露运行时 bug（如 oppSide ReferenceError）——**新窗口继续 bug-fix：拿齐齐日志复现，优先怀疑 E5 改过的战斗/死亡/结算路径**。⭐ 复现工具=主菜单家长门(56)进「🧪 测试场」摆卡定点测。详见「下次启动时优先」置顶段。）
+> 历史更新时间: 2026-07-04 续⁵（**E5c-5 战场 field 迁进 battleReducer — reducer 迁移 6/6 组收官**（`3153cef`）：最险最后一刀。动手前跑 mapping workflow（5 agent 穷举）出验证 spec。加 FIELD_UPDATE {side,value}（value=updater/数组，reducer 内对运行中场跑→同 tick 累加，带 next===cur 引用相等 bailout）；setPlayerField/setEnemyField 变**透传垫片**→ 所有传 setter 当参数/纯 array-transform updater 的点零改动；45 处 field 读走 battleStateRef.current.<side>.field。**4 类闭包读回/副作用确定性重写**（useReducer 不 eager）：①applyCombatOutcome defKilled/atkKilled 用「战前HP−净护盾伤害≤0」算；②playToField replaced 读 battleStateRef；③processEndOfTurnEffects 状态 tick 折进本地 nextField 一次快照；④MASS_REVIVE 非幂等 uid+summonedThisTurn.add 移到 updater 外。grep 锚点 counter-routing/onDeath/onturnstart 同步更新。全 31/31 绿+build+preview 桌面视口端到端：**卡打卡互杀「造成1500 受反击1500→被击败！→也倒下了！」defKilled+atkKilled 双正确**、信息素召集技能经 applySkillEvents 函数式 updater 召唤累加正确、AI 事件卡改场、回合机循环，0 error。**reducer 迁移全完成（powerBank/discard/energy/leaderHp/回合机/field）。下一步 E5c-6 收尾**：删净 return 里已无用的东西 + 新增 `scripts/test-battle-reducer.mjs`（首个纯函数驱动 reducer 单测）+ ARCHITECTURE.md 更新状态模型段。）
 > 历史更新时间: 2026-07-04 续⁴（**E5c-4 turn/phase/winner 迁进 battleReducer**（`37fca8c`）：接 E5c-3 第五刀，回合机三态。reducer 顶层加 turn/phase/winner + TURN_SET/PHASE_SET/WINNER_SET/**GAME_OVER**（winner+phase:'over' 原子设，取代散落 6 处两步式胜负写）；三态派生自 reducer、`turnRef` 退役（读走 battleStateRef.current.turn）。外部读不受影响：BattleScreen 大量读 battle.phase/turn/winner、useAITurn deps [battle.phase] 都拿派生字符串/数字按值比较（AI 触发不变）。grep 锚点 counter-routing/onturnend/phase-b/bugfix 同步更新。全 31/31 绿+build+preview 完整回合机循环（mulligan→main→battle→enemyTurn→AI 触发→R2 main，0 error）。**reducer 迁移 5/6 组完成**（powerBank/discard/energy/leaderHp/回合机）。**下一步 E5c-5 = field（最险最后一刀，62 处 + APPLY_COMBAT 原子结算吃掉 applyCombatOutcome 两 setter，风险：引用相等/重渲染/动画抖动；playerField/enemyField 被 setPlayerField/setEnemyField 大量传入 applySkillEvents/executeEventEffect 当参数——需保留 field setter 垫片或全量改 dispatch）**。）
 > 历史更新时间: 2026-07-04 续³（**E5c-3 主人 HP 迁进 battleReducer**（`49dcd67`）：接 E5c-2 第四刀，leaderHp 最缠（setter 传给 boss/关卡引擎 + updater 内嵌 setWinner/setPhase 副作用 + 事件循环同 tick 多次扣/回血）。加 LEADER_DAMAGE/HEAL/SET 三 **delta** action（顺序累加保多事件链式一致，reducer 保持纯不碰胜负/阶段）；leaderHp 派生自 reducer，**SP 阈值 init ref 保持 useRef 不动**；胜负判定从 updater 副作用抽到调用端（dispatch 后读 battleStateRef 本地算 gameWon/gameOver + setWinner/setPhase，溢出循环用本地 leaderRunning 累减）；boss/关卡机制拿纯 updater → 保留 setter **垫片**（跑 updater 后 dispatch LEADER_SET）。grep 锚点 counter-routing/onturnend/phase-b 同步更新。全 31/31 绿+build+preview（AI 突进直攻我方主人→LEADER_DAMAGE 3000、30000→27000 派生渲染、gameOver 未误触发、Rush×2 仍生效，0 error）。**reducer 迁移 4/6 组完成**（powerBank/discard/energy/leaderHp）。**下一步 E5c-4 = turn/phase/winner**（turn 3处+phase 15处+winner 少，`turnRef` 退役；注意 phase 被多处 useEffect deps 依赖 + BattleScreen 读，`over` 阶段=胜负）。）
 > 历史更新时间: 2026-07-04 续²（**E5c-2 能量迁进 battleReducer**（`b7d19a8`）：接 E5c-1 第三刀。能量 20 处 → 加 ENERGY_SET（回合刷新/消耗归0/开局）/ENERGY_ADD（cap 传入封顶=技能·事件充能、不传不封顶=打破 PB 破10）/ENERGY_SPEND（扣费）三 action；`playerEnergy/enemyEnergy` 两 useState+两 useLatestRef → 派生自 reducer（派生挪到 battleState 声明后避 TDZ），14 写点走 dispatch、4 读点走 `battleStateRef.current[side].energy`。语义保真：①playEventCard 的 SPEND 后读 battleStateRef 拿渲染快照（pre-deduct，与旧 playerEnergyRef 一致）②ENERGY_SPEND reducer 内减保批处理累减正确 ③打破 PB 走无 cap ADD 保「破10」。外部读不受影响（useAITurn 取 beginEnemyTurn 返回值、BattleScreen 读派生 battle.playerEnergy）。grep 锚点：test-test-arena ①、counter-routing ⑥下界 10→8+⑦加两断言。全 31/31 绿+build+preview 端到端能量循环（起始⚡10→流入PB+归0→回合 gain⚡2，0 error）。**下一步 E5c-3 = leaderHp**（24 处，注意 `*InitLeaderHpRef` SP 阈值不动、Phase-B useEffect 依赖改读 reducer）。）
@@ -769,7 +770,30 @@ ch3/ch4 各加 2 个两难关（先给 Yang 过设计再写入）。每章 boss 
 
 ## 下次启动时优先
 
-### 🔴 最优先（交接给下个窗口，2026-07-04 更新）：E5c-1+ — reducer 逐组迁移（继续绞杀式）
+### 🔴🔴 最优先（2026-07-05）：真机实测 bug-fix 模式 —— 拿齐齐日志修 bug
+**E5 架构大重构（E1→E5c-6，battleReducer 6/6 组）已全部完成并推送。现在阶段变了：齐齐在真机玩、bug 一个个冒出来，本窗口的活就是修它们。**
+
+**工作节奏（每个 bug）**：
+1. **拿齐齐的战斗日志/复现步骤** → 先在 `.claude/rules/` 或代码里定位相关模块。
+2. **优先怀疑 E5 reducer 迁移动过的路径**：战斗结算（`applyCombatOutcome`/`resolveCardCombat`）、死亡收口（提交后 useEffect 扫 currentHp≤0）、`handlePostAttackSkills`（onKill/溢出/Overpower/Piercing）、AI 回合（`useAITurn`，**async IIFE——里面抛异常会静默 reject 卡死 AI**）、技能事件派发（`applySkillEvents`）、`battleReducer` 的 FIELD_UPDATE/LEADER_*/ENERGY_* 等。
+3. ⭐ **复现工具**：主菜单 → 「🧪 测试场（家长）」→ 家长门输 **56** → 全卡池摆双方战场任意格 + 满能量 + 一键开打（预置卡无召唤疲劳可立刻攻击）。定点造局（如"卡打卡把对方打死"）压路径。**桌面视口下点卡更稳**（`preview_resize` 1280×850）；先选己方卡（黄框=可攻击）再点敌方卡/主人。
+4. **验证铁律**：改完 `npm test`（33 套，grep+纯函数混合）+ `npm run build` + `vite preview`（4174，**不是 dev**，HMR 沙箱连不上）走测试场端到端，0 console error 才算完。
+5. 每修一个独立 commit + push（main 直推，Vercel 才是齐齐实测目标）。
+
+**⚠️ 血泪教训（本窗口踩的）**：`grep 锚点测试全绿 ≠ 运行时没 bug`。E5 把变量在函数间搬来搬去，`handlePostAttackSkills` 漏了个 `const oppSide=` → 击杀防守方就 ReferenceError → **async AI 回合被 reject、卡在敌方回合不动**（齐齐报"AI 老卡住"）。grep 测试查不出未定义变量/运行时抛错。**所以战斗改动务必 preview 真跑一遍"卡打卡致死 + AI 回合跑完整"**。已在 test-counter-routing ⑧ 加了"用 oppSide 的函数必须先定义它"的守卫，但类似坑（其它未定义变量/时序）可能还有。
+
+**本窗口已修 4 个（都已 push，见顶部时间戳）**：AI 冻结 `2234ff0` / 闯关反复领 1400 `e89c324` / boss 机制闭包读回 `fb5980d` / 答题反馈功能 `36d7872`。
+
+**还没做/待观察**：
+- 闯关反复领 1400 我本地复刻旧逻辑是"发一次"、抓不出确切触发点，**改成"标记不可能不落盘"来兜死**——请齐齐真机验证重进那关不再发。
+- 深海压力/蓝鲸 AOE 浮字是 ch3 战役关，测试场不覆盖 → 齐齐战役实测眼验 banner/浮字。
+- **E5 全程热路径 + B/C/D/F 改的几十张卡数值**，齐齐才刚开始真机玩，预计还会冒 bug（尤其触发各种技能/onKill/onDeath/SP 的少见组合）。
+
+---
+
+### 🟡 次优先（架构，已收官，仅存档）：E5c reducer 迁移 6/6 完成
+架构重构 E 已推进大半。**注意 context 换窗口了，先读本段 + `outputs/e5c-reducer-migration-plan.md`（E5c 完整迁移计划：state shape + action 清单 + 分组切片 + 风险，动手前必读）。**
+**已完成（都已 push 到 main）**：
 架构重构 E 已推进大半。**注意 context 换窗口了，先读本段 + `outputs/e5c-reducer-migration-plan.md`（E5c 完整迁移计划：state shape + action 清单 + 分组切片 + 风险，动手前必读）。**
 **已完成（都已 push 到 main）**：
 - ✅ E1 `1a95e62` 删 cleanupDeadCards 死桩 · ✅ E2 `23e5084` 抽 `canCardAttack` · ✅ E3 `39e3716` 抽 `applyCombatOutcome`（判定 attack/aiAttack 全量合并不值得）· ✅ E4 `36434ed` 抽 `useAITurn`（BattleScreen 1861→1608 行）· ✅ E5a `e96ec1c` state-mirror → `useLatestRef`。
