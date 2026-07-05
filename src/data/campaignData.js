@@ -1110,6 +1110,10 @@ export function loadCampaignProgress() {
       const parsed = JSON.parse(raw)
       const before = parsed._idMigrationVersion ?? (parsed._idMigrated ? 1 : 0)
       const migrated = migrateStageIds(parsed)
+      // 防御：老/异常存档可能缺 stageStars / claimedRewards → 兜底为 {}，
+      //   否则 App 里 `prog.claimedRewards[key]` 会抛（读 undefined 的属性），奖励守卫失效。
+      if (!migrated.stageStars) migrated.stageStars = {}
+      if (!migrated.claimedRewards) migrated.claimedRewards = {}
       if (before < ID_MIGRATION_VERSION) saveCampaignProgress(migrated) // 持久化一次性迁移
       return migrated
     }

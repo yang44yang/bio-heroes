@@ -199,27 +199,68 @@ export default function App() {
         prog.stageStars[stageConfig.stageId] = stars
       }
 
-      // 发放奖励
-      if (battleResult.won && stageConfig.rewards) {
-        const rewardKey = `${stageConfig.stageId}_first`
-        if (!prog.claimedRewards[rewardKey]) {
-          prog.claimedRewards[rewardKey] = true
-          const r = stageConfig.rewards.firstClear
-          if (r?.coins) economy.addCoins(r.coins)
-          if (r?.diamonds) economy.addDiamonds(r.diamonds)
-        }
-        if (stars >= 3) {
-          const threeKey = `${stageConfig.stageId}_three`
-          if (!prog.claimedRewards[threeKey]) {
-            prog.claimedRewards[threeKey] = true
-            const r = stageConfig.rewards.threeStars
-            if (r?.coins) economy.addCoins(r.coins)
-            if (r?.ssrTicket) economy.useSSRTicket()
+      // 发放奖励 —— ⚠️ 修复「重进关卡反复领同一奖励」bug 的关键顺序：
+      //   先把「已领取」标记全部写进 prog 并**立即存盘**，再发放金币/钻石。
+      //   旧写法是「标记 + 当场发放」交织、最后才 saveCampaignProgress；一旦发放或其后代码
+      //   （SP解锁/成就/里程碑…）中途抛异常或页面被打断，标记就没落盘 → 重进该关又当首通再领。
+      //   现在「领过 ⟺ 标记已落盘」原子成立：发放副作用推迟到存盘之后执行。
+      prog.claimedRewards = prog.claimedRewards || {}
+      const pendingGrants = [] // 延后到存盘后执行的发放副作用
+      if (battleResult.won) {
+        // 首通 + 三星
+        if (stageConfig.rewards) {
+          const rewardKey = `${stageConfig.stageId}_first`
+          if (!prog.claimedRewards[rewardKey]) {
+            prog.claimedRewards[rewardKey] = true
+            const r = stageConfig.rewards.firstClear
+            if (r?.coins) pendingGrants.push(() => economy.addCoins(r.coins))
+            if (r?.diamonds) pendingGrants.push(() => economy.addDiamonds(r.diamonds))
           }
+          if (stars >= 3) {
+            const threeKey = `${stageConfig.stageId}_three`
+            if (!prog.claimedRewards[threeKey]) {
+              prog.claimedRewards[threeKey] = true
+              const r = stageConfig.rewards.threeStars
+              if (r?.coins) pendingGrants.push(() => economy.addCoins(r.coins))
+              if (r?.ssrTicket) pendingGrants.push(() => economy.useSSRTicket())
+            }
+          }
+        }
+
+        // 章节完成奖励（Boss 关首通）
+        const chapterMap = { 'stage_2_8': 'ch2', 'stage_3_8': 'ch3', 'stage_4_8': 'ch4' }
+        const chapterId = chapterMap[stageConfig.stageId]
+        if (chapterId) {
+          const chapterKey = `${chapterId}_complete`
+          if (!prog.claimedRewards[chapterKey]) {
+            prog.claimedRewards[chapterKey] = true
+            if (chapterId === 'ch2') {
+              pendingGrants.push(() => economy.addCoins(500))
+            } else if (chapterId === 'ch3') {
+              pendingGrants.push(() => economy.addCoins(500))
+              pendingGrants.push(() => economy.addDiamonds(10))
+            }
+            // ch4：仅标记"科学家🔬"称号，无金币（UI 从 claimedRewards 读取显示）
+          }
+        }
+
+        // 星数里程碑奖励
+        const totalStars = Object.values(prog.stageStars).reduce((sum, s) => sum + s, 0)
+        if (totalStars >= 30 && !prog.claimedRewards['star_milestone_30']) {
+          prog.claimedRewards['star_milestone_30'] = true
+          pendingGrants.push(() => economy.addCoins(500))
+        }
+        if (totalStars >= 45 && !prog.claimedRewards['star_milestone_45']) {
+          prog.claimedRewards['star_milestone_45'] = true
+          pendingGrants.push(() => economy.addCoins(1000))
         }
       }
 
-      // SP 解锁（Boss 通关）— 不依赖首通：每次通关都尝试解锁，unlockCampaignSP 幂等
+      // ★ 先存盘（持久化 stars + 全部已领标记），再发放 —— 保证「领过 ⟺ 已落盘」
+      saveCampaignProgress(prog)
+      for (const grant of pendingGrants) grant()
+
+      // SP 解锁（Boss 通关）— 幂等、不依赖首通、不涉及 claimedRewards，放存盘之后
       if (battleResult.won) {
         const unlockableId = SP_UNLOCK_MAP[stageConfig.stageId]
         if (unlockableId && !(economy.unlockedSPs || []).includes(unlockableId)) {
@@ -227,40 +268,6 @@ export default function App() {
           setPendingSpUnlock(unlockableId)
         }
       }
-
-      // 章节完成奖励（Boss 关首通时检查）— Boss 为各章末关，用 chapterMap 成员判定
-      const chapterMap = { 'stage_2_8': 'ch2', 'stage_3_8': 'ch3', 'stage_4_8': 'ch4' }
-      if (battleResult.won && chapterMap[stageConfig.stageId]) {
-        const chapterId = chapterMap[stageConfig.stageId]
-        if (chapterId) {
-          const chapterKey = `${chapterId}_complete`
-          if (!prog.claimedRewards[chapterKey]) {
-            prog.claimedRewards[chapterKey] = true
-            if (chapterId === 'ch2') {
-              economy.addCoins(500)
-            } else if (chapterId === 'ch3') {
-              economy.addCoins(500)
-              economy.addDiamonds(10)
-            } else if (chapterId === 'ch4') {
-              // "科学家🔬"称号 — 标记存在 claimedRewards 中
-              // UI 在 TitleScreen / CampaignScreen 读取显示
-            }
-          }
-        }
-      }
-
-      // 星数里程碑奖励
-      const totalStars = Object.values(prog.stageStars).reduce((sum, s) => sum + s, 0)
-      if (totalStars >= 30 && !prog.claimedRewards['star_milestone_30']) {
-        prog.claimedRewards['star_milestone_30'] = true
-        economy.addCoins(500)
-      }
-      if (totalStars >= 45 && !prog.claimedRewards['star_milestone_45']) {
-        prog.claimedRewards['star_milestone_45'] = true
-        economy.addCoins(1000)
-      }
-
-      saveCampaignProgress(prog)
       campaignStageRef.current = null
       // 清除闯关残留的 _campaignEnemy，保留玩家自选卡组
       setSelectedDeck(prev => {
