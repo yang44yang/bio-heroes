@@ -300,10 +300,14 @@ export default function App() {
     setScreen('deckBuilder')
   }, [])
 
-  // 教学毕业奖励
+  // 教学毕业奖励（一次性：先标记落盘、再发放，防重复领取）
+  // 用独立标记而非 tutorial.graduated —— 后者在进毕业画面前就已置 true，挡不住发奖。
+  // 重玩最后一关→「毕业」→「开始自由对战」可重回此处，无幂等防护则每次都发 1400。
   const handleTutorialGraduate = useCallback(() => {
-    economy.addCoins(500)
-    economy.addCoins(900)
+    if (localStorage.getItem('bio-heroes-tutorial-reward-claimed')) return
+    localStorage.setItem('bio-heroes-tutorial-reward-claimed', '1') // ★ 先标记落盘，再发放
+    economy.addCoins(500) // 毕业金币
+    economy.addCoins(900) // 免费十连抽（十连价 MULTI_COST=900）
   }, [economy])
 
   // 新手欢迎弹窗（首次进入）
