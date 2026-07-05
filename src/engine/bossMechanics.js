@@ -115,13 +115,16 @@ const whaleBoss = {
   onTurnStart({ turn, playerField, setPlayerField, addLog }) {
     if (turn < 3 || turn % 3 !== 0) return []
 
+    // E5c-5：setPlayerField 是 reducer 垫片、updater 延迟执行 → 闭包内 events.push 读不回。
+    //   BOSS_AOE 每卡伤害浮字事件从 playerField 快照同步收集；血量扣减仍走 updater。
     const events = []
+    playerField.forEach((c, i) => {
+      if (c && c.currentHp > 0) events.push({ type: 'BOSS_AOE', slot: i, damage: 2500 })
+    })
     setPlayerField(prev =>
-      prev.map((c, i) => {
+      prev.map(c => {
         if (!c || c.currentHp <= 0) return c
-        const newHp = Math.max(0, c.currentHp - 2500)
-        events.push({ type: 'BOSS_AOE', slot: i, damage: 2500 })
-        return { ...c, currentHp: newHp }
+        return { ...c, currentHp: Math.max(0, c.currentHp - 2500) }
       })
     )
     addLog('🐋 声纳震荡！对所有玩家卡造成 2500 伤害！')

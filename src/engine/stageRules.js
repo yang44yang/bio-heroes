@@ -72,15 +72,17 @@ const deepSeaRule = {
   id: 'deep_sea_pressure',
   // 标记已被深海压力影响的卡（通过 status）
   onTurnStart({ playerField, setPlayerField, addLog }) {
-    let affected = 0
+    // E5c-5：setPlayerField 是 reducer 垫片、updater 延迟执行 → 闭包内 affected++ 读不回。
+    //   受影响计数从 playerField 快照同步算（谓词与下面 updater 一致），日志/banner 才能触发；
+    //   ATK 扣减仍走 updater（对运行中场跑）。
+    const notMarineNoDebuff = c =>
+      c && c.currentHp > 0 &&
+      !(c.tags?.includes('marine') || c.subType === 'fish') &&
+      !c.statuses?.some(s => s.type === 'deep_pressure')
+    const affected = playerField.filter(notMarineNoDebuff).length
     setPlayerField(prev =>
       prev.map(c => {
-        if (!c || c.currentHp <= 0) return c
-        // Sprint 26: marine 迁移到 tags；海洋生物不受深海压力影响
-        if (c.tags?.includes('marine') || c.subType === 'fish') return c
-        // 已经有深海压力 debuff 则跳过
-        if (c.statuses?.some(s => s.type === 'deep_pressure')) return c
-        affected++
+        if (!notMarineNoDebuff(c)) return c
         return {
           ...c,
           atk: Math.max(0, c.atk - 500),
