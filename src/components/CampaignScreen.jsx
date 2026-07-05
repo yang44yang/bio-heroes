@@ -32,7 +32,10 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
       setProgress(prev => {
         const next = { ...prev, stageStars: { ...prev.stageStars } }
         tutProgress.completedLevels.forEach(lvl => {
-          const stageId = `1-${lvl}`
+          // 用当前关卡 id 格式 stage_1_N（章1 = 5 个教学关）。历史 bug：这里曾写旧连字符格式 1-N，
+          // 而 loadCampaignProgress 迁移后关卡 id 已是 stage_1_N → 旧格式写回成「幽灵 key」，
+          // 与 stage_1_N 并存被 getTotalStars 双算，导致右上角 ★ 已得星 > 总星数。
+          const stageId = `stage_1_${lvl}`
           if (!next.stageStars[stageId]) {
             next.stageStars[stageId] = 3 // 教学完成默认3星
           }

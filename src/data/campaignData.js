@@ -1197,7 +1197,13 @@ export function isChapterComplete(chapterId, progress) {
 
 // 获取总星数
 export function getTotalStars(progress) {
-  return Object.values(progress.stageStars).reduce((sum, s) => sum + s, 0)
+  // 只统计「当前存在的关卡」的星数，且每关封顶 3 星 —— 与 getMaxStars 数同一集合，保证 earned ≤ max。
+  // 否则 stageStars 里的历史残留 key（旧格式 1-N、已删/改名关卡）会被一并求和 → 已得星 > 总星数。
+  const stars = progress?.stageStars || {}
+  return campaignData.chapters.reduce(
+    (sum, ch) => sum + ch.stages.reduce((s, stage) => s + Math.min(3, stars[stage.id] || 0), 0),
+    0
+  )
 }
 
 // 最大星数
