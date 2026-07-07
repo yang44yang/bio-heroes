@@ -69,6 +69,26 @@ const neutralA = FACTION_ADVANTAGE[defFac]?.strong === atkFac ? null : defFac
   eq(r.defActualDmg, 0, '④ 免疫→实际扣血 0')
 }
 
+// ---- 4b. 技能级「免疫科技系伤害」（2026-07 真机压测揪出：isImmune 原只认 Drug Immunity，
+//      MRSA 的 Antibiotic Resistance / 生物膜 的 Biofilm Shield 从没生效）----
+for (const skillName of ['Drug Immunity', 'Antibiotic Resistance', 'Biofilm Shield']) {
+  const r = resolveCardCombat({
+    attacker: card({ atk: 5000, faction: 'tech' }),
+    defender: card({ atk: 6000, faction: 'pathogen', skills: [{ nameEn: skillName }] }),
+  })
+  eq(r.defImmune, true, `④b ${skillName}：被科技系攻击→免疫标志 true`)
+  eq(r.atkDmg, 0, `④b ${skillName}：科技系伤害→0`)
+}
+// 反例：非科技系攻击者，免疫技能不触发（仍正常互扣）
+{
+  const r = resolveCardCombat({
+    attacker: card({ atk: 5000, faction: 'nature' }),
+    defender: card({ atk: 6000, faction: 'pathogen', skills: [{ nameEn: 'Antibiotic Resistance' }] }),
+  })
+  eq(r.defImmune, false, '④b 非科技系攻击→免疫不触发')
+  assert(r.atkDmg > 0, '④b 非科技系攻击→照常扣血')
+}
+
 // ---- 5. 阵营克制加成（+20%）----
 {
   const r = resolveCardCombat({

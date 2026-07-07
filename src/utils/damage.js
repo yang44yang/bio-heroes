@@ -35,18 +35,23 @@ export function applyFactionAdvantage(attacker, defender, baseDmg) {
   return { dmg: baseDmg, factionBonus: false }
 }
 
+// 卡面写「免疫科技系伤害」的技能名 —— 统一在此登记（单一真相源）。
+// ⚠️ 历史坑（2026-07 真机压测揪出）：isImmune 原本只认 Drug Immunity →
+//    MRSA(Antibiotic Resistance) 与 生物膜(Biofilm Shield) 的免疫从没生效。
+//    这两张的「反弹/守护/日志」那半有实现，造成「看着免疫、照样被科技系打满血」的假象。
+const TECH_IMMUNE_SKILLS = new Set(['Drug Immunity', 'Antibiotic Resistance', 'Biofilm Shield'])
+
 /**
  * 检查卡牌是否免疫该次攻击
  * - immune: 完全免疫所有伤害
- * - immune_tech: 免疫科技系伤害
- * - Drug Immunity 技能（Sprint 24 SP·超级细菌）: 免疫科技系
+ * - immune_tech: 免疫科技系伤害（状态）
+ * - TECH_IMMUNE_SKILLS 里的技能: 被科技系攻击时免疫伤害
  */
 function isImmune(defender, attacker) {
-  if (!defender.statuses) return false
-  if (defender.statuses.some(s => s.type === 'immune')) return true
-  if (defender.statuses.some(s => s.type === 'immune_tech') && attacker?.faction === 'tech') return true
-  // Drug Immunity 技能等同于免疫科技系
-  if (attacker?.faction === 'tech' && defender.skills?.some(s => s.nameEn === 'Drug Immunity')) return true
+  const statuses = defender.statuses || [] // 不因缺 statuses 数组而漏掉下方技能判定
+  if (statuses.some(s => s.type === 'immune')) return true
+  if (statuses.some(s => s.type === 'immune_tech') && attacker?.faction === 'tech') return true
+  if (attacker?.faction === 'tech' && defender.skills?.some(s => TECH_IMMUNE_SKILLS.has(s.nameEn))) return true
   return false
 }
 
