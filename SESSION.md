@@ -1,10 +1,10 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-05（**真机实测 bug-fix 模式**。本窗口清了一整族「分子 > 分母 / 两处总数不一致」bug（5 连修 + 1 硬化）并按齐齐要求重调了 SP 平衡，全 35/35 套绿 + build 绿、全推送。）
+> 更新时间: 2026-07-11（**真机实测 bug-fix 模式**续。本窗口做了一次 8 视角并行审计→对抗核实→修 4 个真机 bug（banner 永久失效 / 关卡浮字不显示 / 重开死卡卡场 / AI 回合无异常兜底）+ 加 1 套 banner 守卫测试。全 37/37 套绿 + build 绿、全推 main。）
 >
-> ⚠️ **本文件只留「活的交接」**——历史阶段（Sprint 1-33 + 06 决策/Phase + 07 引擎重构·真机 bug-fix）已归档到 `CHANGELOG.md`，逐 commit 细节在 git。精简于 2026-07-05（原 1000+ 行）。
+> ⚠️ **本文件只留「活的交接」**——历史阶段（Sprint 1-33 + 06 决策/Phase + 07 引擎重构·真机 bug-fix）已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
 
 ## 项目位置
-- **实际路径**: `/Users/YangYANG/projects/bio-heroes/`（Mac mini）
+- **实际路径**: `/Users/YangYANG/Projects/Bio-heroes/`（Mac mini）
 - **GitHub**: github.com/yang44yang/bio-heroes (main 分支)
 - **工作流**: 直接在 main 工作和 push，每次 commit 后立即 push（Vercel 部署版才是齐齐实测目标）
 
@@ -12,64 +12,52 @@
 
 ## 最近完成
 
-### 2026-07-05 「分子 > 分母」一族 bug 清零 + 收集数硬化 + SP 平衡重调
-真机实测挖出并修完一整族「计数遍历全部记录、上限只数当前有效项」的 bug。每修一个：独立 commit + 回归测试（含**负向验证**守卫真会咬）+ `vite preview` 端到端。
-- **教学毕业奖励 1400 可反复领** `df1b184`：`App.jsx handleTutorialGraduate` 零幂等（重玩最后一关→毕业→领奖可重入）→ 加独立持久标记 `bio-heroes-tutorial-reward-claimed`「先落盘再发放」。
-- **抽卡图鉴 138 vs 图鉴屏 157 打架** `ccb351c`：两屏各算总数（138=生物+可抽SP、157=全部）→ `dexSets.js` 建单一权威 `ALL_DEX_CARDS`/`TOTAL_DEX_CARDS`(=157)，两屏同源。
-- **闯关右上角 ★ 92/87（已得 > 总数）** `cd79583`：① `CampaignScreen` 教学同步写旧格式 `1-N` 幽灵 key（迁移后关卡 id 已是 `stage_1_N`）→ 改写 `stage_1_${lvl}` ② `getTotalStars` 只统计当前存在的关卡、每关封顶 3（与 `getMaxStars` 数同一集合）。
-- **同根另 2 处（主动扫出）** `97c99a1`：`App.jsx:248` 星里程碑发奖 + `achievements.js` `star_shine` 成就也内联 `Object.values(stageStars).reduce` 重算 → 幽灵 key 让里程碑提前发奖/成就提前解锁 → 都改调 `getTotalStars`。
-- **收集数硬化** `dc5e57d`：Collection/Gacha/Title 的 `Object.keys(collection).length` → `ownedDexCount()`（只数当前卡池内拥有、天然 ≤ 总数）。今日 collection 无陈旧 key、显示零变化，纯防御（防将来删/改卡后老存档超标）。
-- **SP 太强重调（齐齐定「两者都做」）** `a510c94`：① 回合门槛 `max(3,spCost−3)`→`max(4,spCost−2)`（第 1-3 回合不召任何 SP；5-6费→T4/7→T5/8→T6，第 8 回合残局仍全解锁）② 7 张事件卡 `maxCost` 收口 = 本卡 `cost+3`（堵「2 费秒召 28000 生物膜 @T3」）。SP 属性未动、保留觉醒爽感。旋钮见「下次启动 🟡」。
+### 2026-07-11 8 视角审计 → 对抗核实 → 修 4 个真机 bug + banner 守卫
+一次并行审计（8 视角 fan-out + 对抗式核实）扫出问题，逐条自查后只修**确认的真 bug**。每条独立 commit + 全套测试 + build。
+- **抽卡「本期推荐」banner 永久失效** `7509cb1`：`selectBanner` 用 `s.startsWith('${ch}-')` 匹配，但关卡 key 早迁成 `stage_X_Y`（连它自己注释都写 `stage_1_1`）→ 恒回落 default → 齐齐**从没见过**推荐卡区块和 +50% 角标。改 `stage_${ch}_` 前缀。
+- **关卡规则浮字全部不显示** `d58e35e`：`stageRules` 发的 `STAGE_RULE` 事件（蚊虫/深海压力/隐身/孢子/警报）经正确 channel 流进 `bossMechanicEvents`、机制在跑，但 `BattleScreen` 排空循环只认 `BOSS_*` → 浮字被静默丢弃。补 `STAGE_RULE` 渲染分支。
+- **重开一局后 SP/Boss 死卡卡场** `eb53628`：`processedDeathsRef`（死亡去重）在 `startBattle` 从不重置；SP uid `sp_p_${id}_${i}`、Boss `boss_${id}_0` 确定性 → 上局死过的这局再死被跳过：不触发亡语、不进弃牌堆、0HP 赖场上。startBattle 里 `clear()`。
+- **useAITurn 无异常兜底（系统性）** `9e654e6`：AI 完整回合是无 try 的 async IIFE，中途抛错 → 静默 reject → `aiRunning` 永卡 true → 敌方回合冻死。改 `.catch(记日志+尽力交还玩家).finally(aiRunning 必归位)`，堵整族「async AI 边界吞异常」。
+- **banner 守卫** `6d183a6`：`test-gacha-banner.mjs`（22 断言），把选章逻辑**耦合到 `campaignData` 真实 stage id** → 将来再迁 key 格式会当场炸而非静默失效。测试 36→**37 套**。
 
-### 2026-07-05 真机 bug-fix（上一窗口）：AI 冻结 / 闯关金币 / boss 机制 / 答题反馈 4 修
-- **AI 击杀防守方后冻结回合** `2234ff0`（最要紧）：`handlePostAttackSkills` 用了 `oppSide` 却漏定义 → 击杀防守方 ReferenceError → **异步 AI 回合被静默 reject 卡死**（齐齐报「AI 老卡住」）。
-- 闯关重进反复领 1400 `e89c324`（先标记落盘再发放）· boss/关卡 updater 闭包读回 2 处 `fb5980d` · 答题反馈阶段 `36d7872`（功能非 bug）。
-
-### 2026-07-02→04 E5 战斗引擎架构重构全系列（E1→E5c-6）+ 🧪 测试场
-> 详见 `CHANGELOG.md`。把 useBattle/BattleScreen 的战斗状态全迁进 `src/engine/battleReducer.js`（6/6 组：powerBank/discard/energy/leaderHp/回合机/field），抽纯函数 `combat.js`(resolveCardCombat/canCardAttack/applyCombatOutcome) + `useAITurn.js`。引擎正确性 B/C/D/F（战斗修饰符/无视守护/事件流/描述≠实现）。新增「🧪 测试场」。
+> 07-07 真机压测跟进（`isImmune` 漏认技能名致 MRSA/生物膜「免疫科技系」从没生效 `6033e64` + `no-undef` eslint 静态守卫堵 oppSide 那族 `d014e3c`）、07-05「分子>分母」一族清零 + SP 平衡重调、E5 引擎重构全系列 —— 均见 `CHANGELOG.md`。
 
 ---
 
 ## 进行中
-（无。核心闭环都已上线、一族计数 bug 已清零。等齐齐真机实测反馈——尤其**新调的 SP 平衡手感**、深海压力/蓝鲸 AOE 战役浮字。）
+（无。等齐齐真机实测反馈——尤其**新 SP 平衡手感**，以及这次刚修的 banner / 关卡浮字 / 重开死卡三处上线后是否真的好了。）
 
 ---
 
 ## 已知问题
-- 战斗日志 message 文本硬编码中文（100+ 条，spec 方案 A：不翻译）
-- Vite dev 偶尔 504（已用 optimizeDeps.include 修复主要路径）
-- preview 沙箱 HMR WebSocket 连不上 → 验证须走 `vite preview`(4174)，非 dev（浏览器跑旧模块）
-- **闯关反复领 1400** 本地复刻不出确切触发点，已改「标记不可能不落盘」兜死 → 待齐齐真机验证重进那关不再发
-- **深海压力 / 蓝鲸 AOE 浮字**（ch3 战役关，测试场不覆盖）→ 待齐齐战役实测眼验 banner/浮字
-- **未覆盖**：Card-designer skill 需在 Claude.ai 侧手动更新（反映新 subType + SP unlockMode）；`bio-heroes-knowledge-map.md`（KP_ID+NGSS+中国课标）尚未创建
+- 战斗日志 message 文本硬编码中文（~240 条，spec 方案 A：不翻译；英文模式战斗日志仍中文）
+- Vite dev 偶尔 504（已用 optimizeDeps.include 修主要路径）；preview 沙箱 HMR 连不上 → 验证走 `vite preview`(4174) 非 dev
+- **未对抗核实的 bug 候选**（8 视角审计因 session 额度腰斩只跑完 17/54 agent，这几条没核实、别当真 bug）：同批多张 AOE 复活撞空位 / `bio_alert` 主人扣 0 不判负（无全局 `leaderHp<=0→GAME_OVER` 兜底）/ 进化成卡不触发收集成就（只在抽卡屏检测）/ dex 奖励轨 OCEAN 承接
+- **测试空洞（对抗核实已确认）**：`statusEffects.js`（processStatuses 等 13 状态分支，每回合结算热路径 `useBattle:712`）零执行测试；`useAITurn.js` 选靶零执行测试（现有只正则匹配源码）
+- **未覆盖**：Card-designer skill 需 Claude.ai 侧手动更新（新 subType + SP unlockMode）；`bio-heroes-knowledge-map.md` 未创建；`.github/`(CI 写好没提交) 和 `sync-setup-plan.md`(个人笔记误落仓库) 两个未跟踪项待决
 
 ---
 
 ## 下次启动时优先
 
-### 🔴🔴 最优先：真机实测 bug-fix 模式 —— 拿齐齐日志修 bug
-**E5 架构重构已全部收官（见 CHANGELOG）。现阶段 = 齐齐真机玩、bug 逐个冒、本窗口修它们。**
+### 🔴 继续真机实测 bug-fix（拿齐齐日志修）
+**工作节奏**：拿复现步骤→定位模块（**优先怀疑 E5 reducer 迁移动过的路径**：`applyCombatOutcome`/`resolveCardCombat`、死亡收口 useEffect、`handlePostAttackSkills`、`useAITurn`（async IIFE 现已有 catch 兜底）、`battleReducer` 各 action）→独立 commit + push。
+- ⭐ **复现工具**：主菜单→「🧪 测试场（家长）」门 **56**→全卡池摆双方场 + 满能量 + 一键开打。桌面视口 1280×850 更稳；先选己方卡（黄框=可攻击）再点敌方卡/主人。
+- **验证铁律**：`npm test`（**37 套**，grep+纯函数混合）+ `npm run build` + `vite preview`(4174，**非 dev**，HMR 沙箱连不上) 端到端，0 console error 才算完。
+- ⚠️ **血泪教训**：`grep 全绿 ≠ 运行时没 bug`。战斗改动务必 preview 真跑「卡打卡致死 + AI 回合跑完整」。
 
-**工作节奏（每个 bug）**：
-1. 拿齐齐的战斗日志/复现步骤 → 定位相关模块。
-2. **优先怀疑 E5 reducer 迁移动过的路径**：战斗结算（`applyCombatOutcome`/`resolveCardCombat`）、死亡收口（提交后 useEffect 扫 currentHp≤0）、`handlePostAttackSkills`（onKill/溢出/Overpower/Piercing）、`useAITurn`（**async IIFE——里面抛异常会静默 reject 卡死 AI**）、`applySkillEvents`、`battleReducer` 各 action。
-3. ⭐ **复现工具**：主菜单 →「🧪 测试场（家长）」→ 门 **56** → 全卡池摆双方战场 + 满能量 + 一键开打（预置卡无召唤疲劳可立刻攻击），定点造局压路径。桌面视口更稳（`preview_resize` 1280×850）；先选己方卡（黄框=可攻击）再点敌方卡/主人。
-4. **验证铁律**：`npm test`（35 套，grep+纯函数混合）+ `npm run build` + `vite preview`（4174，**不是 dev**，HMR 沙箱连不上）走测试场端到端，0 console error 才算完。
-5. 每修一个独立 commit + push（main 直推，Vercel 才是齐齐实测目标）。
-
-**⚠️ 血泪教训**：`grep 锚点测试全绿 ≠ 运行时没 bug`。E5 把变量在函数间搬来搬去，漏个 `const oppSide=` → 击杀防守方就 ReferenceError → async AI 回合被 reject 卡死。**战斗改动务必 preview 真跑「卡打卡致死 + AI 回合跑完整」**。
-
-### 🟡 待观察 / 滚动实测
-- **SP 平衡刚调完**（`a510c94`）→ 齐齐真机打几局看手感。旋钮：地板 4→5 或 offset 2→1（每费更晚一回合）、或反向松、或单独削 6 费巨兽属性（生物膜 28000 / 骨骼巨人 25000 对 6 费偏肥）。
-- **一族「分子 > 分母」bug 已全库扫过、清零**，但 B/C/D/F + E 改的几十张卡数值/热路径仍在滚动实测，少见的技能/onKill/onDeath/SP 组合可能还会冒 bug。
-- 每日挑战 v2（硬阵营锁约束 / 未领推送 / 更多约束·敌池·主题填充）、抽卡 Phase D/E（稀有卡分享截图 / 限时活动 banner）—— 面向产品、低优先。
+### 🟡 可选下一步（非 bug）
+- **补 `statusEffects.js` 单测**（最高性价比测试空洞）；把 AI 选靶抽 `pickAiTarget` 纯函数再补单测
+- **续跑审计剩余 37 视角** + 对抗核实上面 4 个 bug 候选
+- **SP 平衡**滚动观察（旋钮：地板 4→5 / offset 2→1 每费更晚一回合 / 单独削 6 费巨兽属性）
+- **新功能线**：S1 海洋深渊季（引擎就绪缺卡，第一刀=补 OCEAN 到曲线空档）/ 题库 Leitner 间隔复习（`_qid` 主键已就绪，加 `useQuizMastery` hook 不动 745 题）/ 每日挑战 v2 扩池
 
 ---
 
 ## 关键文件（战斗引擎地图）
 - **状态机** `src/hooks/useBattle.js` + `src/engine/battleReducer.js`（6 组 reducer 子树 + `battleStateRef`=useLatestRef 供异步 AI 回合读最新值）
-- **纯函数** `src/engine/combat.js`（resolveCardCombat / canCardAttack / applyCombatOutcome）· `src/hooks/useAITurn.js`（AI 完整回合，async IIFE）
-- **技能/状态** `src/engine/{skillRegistry,skillTemplates,statusEffects}.js` · **boss/关卡** `src/engine/{bossMechanics,stageRules}.js`
-- **数据** `src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets}.js`
-- **测试** `scripts/test-*.mjs`（35 套，`npm test` 统一入口）
+- **纯函数** `src/engine/combat.js`（resolveCardCombat / canCardAttack / applyCombatOutcome）· `src/hooks/useAITurn.js`（AI 完整回合，async IIFE，已加 catch/finally 兜底）
+- **技能/状态** `src/engine/{skillRegistry,skillTemplates,statusEffects}.js` · **boss/关卡** `src/engine/{bossMechanics,stageRules}.js`（stageRules 发 `STAGE_RULE` 事件，BattleScreen 排空循环消费）
+- **数据** `src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets,gachaBanners}.js`
+- **测试** `scripts/test-*.mjs`（**37 套**，`npm test` 统一入口）
 - 架构总览见 `ARCHITECTURE.md`；历史 Sprint/决策/重构见 `CHANGELOG.md`

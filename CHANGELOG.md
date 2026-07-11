@@ -8,6 +8,17 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 ## 引擎重构 + 真机 bug-fix（2026-07）✅
 > 🔧 从「决策 / Phase」转入战斗引擎结构重构，随后齐齐开始真机实测、逐个修 bug。倒序，完整过程见 git。
 
+**真机 bug-fix 续：8 视角审计 → 对抗核实 → 修 4 bug + banner 守卫（2026-07-11）：**
+- [x] 抽卡「本期推荐」banner 永久失效：`selectBanner` 用旧 `${ch}-` 前缀匹配，关卡 key 早迁 `stage_X_Y` → 恒回落 default，齐齐从没见过推荐卡区块/+50% 角标 → 改 `stage_${ch}_`（`7509cb1`）
+- [x] 关卡规则浮字全不显示：`stageRules` 的 `STAGE_RULE` 事件流进 `bossMechanicEvents`、机制在跑，但 `BattleScreen` 排空循环只认 `BOSS_*` → 补 `STAGE_RULE` 渲染分支（`d58e35e`）
+- [x] 重开一局后 SP/Boss 死卡卡场：`processedDeathsRef` 死亡去重集 `startBattle` 漏重置，SP `sp_p_${id}_${i}`/Boss `boss_${id}_0` uid 确定性 → 上局死卡再死被跳过（不亡语/不进弃牌/0HP 赖场）→ `clear()`（`eb53628`）
+- [x] `useAITurn` async IIFE 无 try → 中途抛错静默 reject → `aiRunning` 永卡 true 冻死 AI；改 `.catch(记日志+尽力交还玩家).finally(aiRunning 必归位)`，堵整族「async AI 边界吞异常」（`9e654e6`）
+- [x] `test-gacha-banner.mjs` 守卫（22 断言，选章逻辑耦合 `campaignData` 真实 stage id，再迁 key 格式会当场炸）；36→37 套（`6d183a6`）
+
+**真机压测跟进（2026-07-07）：**
+- [x] `isImmune` 漏认技能名 → MRSA/生物膜「免疫科技系」从没生效（`6033e64`）
+- [x] `no-undef` eslint 静态守卫 + `test-no-undef.mjs`，堵住 oppSide 那族「用了未定义变量」bug（`d014e3c`）
+
 **真机 bug-fix：「分子 > 分母 / 两处总数不一致」一族清零（2026-07-05）：**
 - [x] 教学毕业奖励 1400 反复领 → 加独立持久标记「先落盘再发放」（`df1b184`）
 - [x] 抽卡图鉴进度 138 vs 图鉴屏 157 打架 → `dexSets.js` 建单一权威 `ALL_DEX_CARDS`/`TOTAL_DEX_CARDS`(=157)，两屏同源（`ccb351c`）
