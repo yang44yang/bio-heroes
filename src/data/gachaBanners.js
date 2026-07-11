@@ -44,7 +44,7 @@ export function selectBanner(stageStars = {}) {
   const stages = Object.keys(stageStars)
   // 从高到低章节扫描，找到玩家进展最深的章节
   for (const ch of [4, 3, 2, 1]) {
-    const hasInChapter = stages.some(s => s.startsWith(`${ch}-`) && stageStars[s] > 0)
+    const hasInChapter = stages.some(s => s.startsWith(`stage_${ch}_`) && stageStars[s] > 0)
     if (hasInChapter) return GACHA_BANNERS[`ch${ch}`]
   }
   return GACHA_BANNERS.default
