@@ -358,6 +358,10 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           setDialogueIdx(0)
         }, 800)
       }
+      // 关卡特殊规则浮字（蚊虫/深海压力/隐身/孢子/警报）—— stageRules 发 STAGE_RULE 事件，此前无消费分支被静默丢弃
+      if (evt.type === 'STAGE_RULE') {
+        showFloat('enemy', -1, evt.text, evt.color || 'text-cyan-400')
+      }
     }
   }, [battle.bossMechanicEvents])
 
