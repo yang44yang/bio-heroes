@@ -1513,6 +1513,7 @@ export function useBattle() {
     const mechId = spDecks.campaignConfig?.bossMechanic
     bossMechanicRef.current = mechId ? getBossMechanic(mechId) : null
     setBossMechanicEvents([])
+    processedDeathsRef.current.clear() // 每局重置死亡去重集，否则重开后确定性 uid（boss_x_0 / sp_p_x_i）死卡被跳过 → 不触发亡语、不进弃牌堆、0HP 赖在场上
     // Sprint 30b: Conundrum globalEffects 初始化（必须在 makeFieldCard 调用前设置）
     globalEffectsRef.current = Array.isArray(spDecks.globalEffects) ? spDecks.globalEffects : []
     if (globalEffectsRef.current.includes('antibiotic_weakened')) {
