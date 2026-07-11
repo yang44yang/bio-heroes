@@ -261,8 +261,25 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         battle.startPlayerTurn()
         playSound('turnStart')
       }
-
-      aiRunning.current = false
     })()
+      .catch((err) => {
+        // 血泪教训：async AI 回合抛错会静默 reject → 冻死回合（oppSide 那一族 bug）。
+        // 兜底：记日志（不再静默）+ 尽力把回合交还玩家（不再卡死）。
+        console.error('[useAITurn] 敌方回合异常，已兜底交还玩家：', err)
+        try {
+          battle.addLog('⚠️ 敌方回合出错，已跳过并交还给你')
+          if (battle.phase !== 'over') {
+            playerHand.draw(1)
+            battle.startPlayerTurn()
+            playSound('turnStart')
+          }
+        } catch (recoverErr) {
+          console.error('[useAITurn] 兜底交还回合也失败：', recoverErr)
+        }
+      })
+      .finally(() => {
+        // 无论成功/抛错，aiRunning 必须归位，否则下个敌方回合被永久锁死
+        aiRunning.current = false
+      })
   }, [battle.phase])
 }
