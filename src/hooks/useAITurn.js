@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { playSound } from '../audio/soundManager'
-import { cardHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
+import { pickAiTarget } from '../engine/aiTarget'
 import { MAX_FIELD_SLOTS, LEADER_HP } from '../data/deckRules'
 import { canPlayWithMarkers } from '../utils/factionMarkers'
 
@@ -175,61 +175,14 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         const atkCard = eFieldNow[atkSlot]
         if (!atkCard || atkCard.currentHp <= 0) continue
 
-        // 找攻击目标（排除隐身 stealth 卡 —— 与玩家攻击选靶对称；全员隐身则 pAlive 空 → 走直攻主人）
-        const pAlive = pFieldNow.map((c, i) => (c && c.currentHp > 0 && !c.statuses?.some(s => s.type === 'stealth')) ? { ...c, slot: i } : null).filter(Boolean)
-        // 走统一 helper, 识别 Guard / Shell Defense / Physical Barrier 三种 nameEn
-        const guardCards = pAlive.filter(cardHasGuard)
-        // 无视守护的攻击者（精准切除 / 抗原锁定打标记）不被守护强制（当前敌方卡组无此卡，防御性支持）
-        const bypassGuard = attackerBypassesGuard(atkCard, null) || pAlive.some(c => attackerBypassesGuard(atkCard, c))
-
-        let defSlot
-
-        if (guardCards.length > 0 && !bypassGuard) {
-          // T1: 必须打守护
-          defSlot = guardCards[0].slot
-        } else if (pAlive.length === 0) {
-          // T2: 场上零卡，直攻主人
-          defSlot = -1
-        } else {
-          // Sprint 28: T3 — 基于 aiPersonality 决定是否直攻主人
-          const leaderHp = battle.latest.playerLeaderHp ?? battle.playerLeaderHp ?? LEADER_HP
-          const leaderHpPercent = leaderHp / LEADER_HP
-          let faceChance = 0
-
-          if (aiPersonality === 'aggressive') {
-            // 激进：基础 35% 直攻；残血时更激进；一击必杀几乎必推
-            faceChance = 0.35
-            if (leaderHpPercent < 0.5) faceChance = 0.5
-            if (leaderHpPercent < 0.3) faceChance = 0.7
-            if (atkCard.atk >= leaderHp) faceChance = 0.95
-          } else if (aiPersonality === 'balanced') {
-            // 平衡：10% 偶尔推；能一击杀主人时大概率推
-            faceChance = 0.1
-            if (atkCard.atk >= leaderHp) faceChance = 0.8
-          } else {
-            // defensive：基本不主动直攻；能一击秒主人时才推
-            faceChance = 0
-            if (atkCard.atk >= leaderHp) faceChance = 0.6
-          }
-
-          if (Math.random() < faceChance) {
-            // 直攻主人
-            defSlot = -1
-          } else if (Math.random() < aiStr) {
-            // T4: 最优攻击 — 尝试一击杀 → 打最大威胁
-            const killable = pAlive
-              .filter(c => atkCard.atk >= c.currentHp)
-              .sort((a, b) => b.atk - a.atk)
-            if (killable.length > 0) {
-              defSlot = killable[0].slot
-            } else {
-              defSlot = pAlive.reduce((max, c) => c.atk > max.atk ? c : max, pAlive[0]).slot
-            }
-          } else {
-            // T5: 随机攻击（弱 AI 有时打随机目标）
-            defSlot = pAlive[Math.floor(Math.random() * pAlive.length)].slot
-          }
-        }
+        // 选靶（纯函数 pickAiTarget，可单测；T1 守护/T2 空场直攻/T3 概率直攻/T4 最优/T5 随机，默认 rng=Math.random 行为不变）
+        const defSlot = pickAiTarget({
+          atkCard,
+          playerField: pFieldNow,
+          aiPersonality,
+          aiStrength: aiStr,
+          leaderHp: battle.latest.playerLeaderHp ?? battle.playerLeaderHp ?? LEADER_HP,
+        })
 
         const result = battle.aiAttack(atkSlot, defSlot)
         if (result?.skipped) continue

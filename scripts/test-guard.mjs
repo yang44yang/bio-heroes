@@ -113,7 +113,7 @@ for (const id of ['red_blood_cell', 'flu_virus', 'mrna_vaccine', 'cheetah_sprint
 // ============ 6. 接线: 三个调用点都走 helper ============
 const ub = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
 const bs = readFileSync(join(ROOT, 'src/components/BattleScreen.jsx'), 'utf8')
-const aiTurn = readFileSync(join(ROOT, 'src/hooks/useAITurn.js'), 'utf8') // 决策E4：AI 选靶逻辑已抽到此 hook
+const aiTarget = readFileSync(join(ROOT, 'src/engine/aiTarget.js'), 'utf8') // AI 选靶已从 useAITurn 抽到纯函数 aiTarget（执行式覆盖见 test-ai-target）
 const cardJsx = readFileSync(join(ROOT, 'src/components/Card.jsx'), 'utf8')
 
 ok('useBattle import fieldHasGuard + cardHasGuard',
@@ -124,8 +124,8 @@ ok('useBattle 已删除内联 nameEn === Guard 硬编码', !/skills\?\.some\(s\s
 
 ok('BattleScreen import cardHasGuard',
   /import\s*\{[^}]*\bcardHasGuard\b[^}]*\}\s*from\s*['"]\.\.\/utils\/guardSkill/.test(bs))
-ok('useAITurn AI 选目标走 pAlive.filter(cardHasGuard)（决策E4：从 BattleScreen 抽出）',
-  /pAlive\.filter\(cardHasGuard\)/.test(aiTurn))
+ok('aiTarget AI 选靶走 pAlive.filter(cardHasGuard)（纯函数，执行式断言见 test-ai-target）',
+  /pAlive\.filter\(cardHasGuard\)/.test(aiTarget))
 ok('BattleScreen 已删除内联 nameEn === Guard 硬编码',
   !/c\.skills\?\.some\(s\s*=>\s*s\.nameEn\s*===\s*['"]Guard['"]\)/.test(bs))
 

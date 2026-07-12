@@ -17,7 +17,7 @@ const ok = (n, c) => { if (c) pass++; else { fail++; console.error(`❌ ${n}`) }
 
 const reg = readFileSync(join(ROOT, 'src/engine/skillRegistry.js'), 'utf8')
 const bs = readFileSync(join(ROOT, 'src/components/BattleScreen.jsx'), 'utf8')
-const ai = readFileSync(join(ROOT, 'src/hooks/useAITurn.js'), 'utf8') // 决策E4：AI 回合逻辑已抽到此 hook
+const ai = readFileSync(join(ROOT, 'src/engine/aiTarget.js'), 'utf8') // AI 选靶已从 useAITurn 抽到纯函数 aiTarget（执行式覆盖见 test-ai-target）
 
 // ---- ① Color Camouflage 改真隐身 ----
 const cc = reg.slice(reg.indexOf("'Color Camouflage'"), reg.indexOf("'Color Camouflage'") + 600)
@@ -28,8 +28,8 @@ ok('① 死代码 _stealth 标记已移除', !/_stealth/.test(cc))
 
 // ---- ② 选靶两条路径都尊重 stealth ----
 const stealthHits = ((bs + ai).match(/!c\.statuses\?\.some\(s => s\.type === 'stealth'\)/g) || []).length
-ok('② stealth 过滤出现 2 次（AI 的 pFieldNow@useAITurn + 玩家的 enemyField@BattleScreen）', stealthHits >= 2)
-ok('② AI 攻击选靶(pAlive/pFieldNow)含 stealth 过滤（决策E4：在 useAITurn）', /pAlive[\s\S]{0,140}stealth/.test(ai))
+ok('② stealth 过滤出现 2 次（AI 的 pAlive@aiTarget + 玩家的 enemyField@BattleScreen）', stealthHits >= 2)
+ok('② AI 攻击选靶(pAlive)含 stealth 过滤（纯函数 aiTarget，执行式断言见 test-ai-target）', /pAlive[\s\S]{0,140}stealth/.test(ai))
 ok('② 玩家攻击选靶(enemyField)含 stealth 过滤（未回归）', /enemyField\.map[\s\S]{0,140}stealth/.test(bs))
 
 // ---- ③ 正解参照仍在（抹香鲸 Abyssal Dive 用真 stealth）----
