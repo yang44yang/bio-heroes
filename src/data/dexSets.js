@@ -11,8 +11,8 @@ import spCards from './spCards.js'
 // season = 资料片季号（路线图 S1 海洋 / S2 微观…），null = 初始基础包。
 export const DEX_SETS = [
   { id: 'BASE',  name: '基础包',   nameEn: 'Base Set',          icon: '📦', color: '#FACC15', endowed: 0, season: null, rewardAchId: null },
-  { id: 'OCEAN', name: '海洋深渊', nameEn: 'Ocean Abyss',       icon: '🌊', color: '#38BDF8', endowed: 2, season: 'S1', rewardAchId: 'apex_predator' },
-  { id: 'MICRO', name: '微观战场', nameEn: 'Micro Battlefield', icon: '🔬', color: '#34D399', endowed: 2, season: 'S2', rewardAchId: 'microbe_explorer' },
+  { id: 'OCEAN', name: '海洋深渊', nameEn: 'Ocean Abyss',       icon: '🌊', color: '#38BDF8', endowed: 2, season: 'S1', rewardAchId: 'ocean_abyss' },
+  { id: 'MICRO', name: '微观战场', nameEn: 'Micro Battlefield', icon: '🔬', color: '#34D399', endowed: 2, season: 'S2', rewardAchId: 'micro_battlefield' },
 ]
 
 // 卡的归包（无 set 字段的旧卡/事件卡/SP 卡归入基础包）

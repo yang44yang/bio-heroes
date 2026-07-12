@@ -38,6 +38,20 @@ for (const s of DEX_SETS) {
   if (s.rewardAchId) ok(`${s.id} 的 rewardAchId「${s.rewardAchId}」是真实成就`, achIds.has(s.rewardAchId))
 }
 
+// ④b 集齐奖励的 requiredCards 必须真属于该包 —— 否则「集齐该季包解锁」名不副实。
+//    修 bug（2026-07-12）：OCEAN/MICRO 的 rewardAchId 曾误指 apex_predator/microbe_explorer，
+//    三张 requiredCards 全是 BASE 卡，导致集齐 11 张 OCEAN / 9 张 MICRO 对奖励进度贡献 0。
+for (const s of DEX_SETS) {
+  if (!s.rewardAchId) continue
+  const ach = COLLECTION_ACHIEVEMENTS.find(a => a.id === s.rewardAchId)
+  if (!ach) continue // 断头情况上面 ④ 已报
+  const offPack = (ach.requiredCards || []).filter(id => {
+    const card = allCards.find(c => c.id === id)
+    return card && setOf(card) !== s.id
+  })
+  ok(`${s.id} 集齐奖励「${s.rewardAchId}」的 requiredCards 全属于 ${s.id} 包（越包卡: ${offPack.join(',') || '无'}）`, offPack.length === 0)
+}
+
 // ⑤ BASE 是初始包，endowed 应为 0（预存起点只给新季，避免基础包也显示"已开启"假进度）
 const base = DEX_SETS.find(s => s.id === 'BASE')
 ok('BASE 基础包 endowed=0（预存起点只给新季）', base && base.endowed === 0)

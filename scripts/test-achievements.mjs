@@ -89,7 +89,7 @@ ok('已解锁的不再返回',
     .every(a => !['battle_veteran', 'quiz_master', 'boss_slayer'].includes(a.id)))
 
 // ---- 结构完整性 ----
-ok('ALL_ACHIEVEMENTS = 5+5+4 = 14', ALL_ACHIEVEMENTS.length === 14)
+ok('ALL_ACHIEVEMENTS = 7+5+4 = 16', ALL_ACHIEVEMENTS.length === 16)
 ok('每个成就都有 category', ALL_ACHIEVEMENTS.every(a => ['collection', 'battle', 'quiz'].includes(a.category)))
 ok('每个成就都有 check 函数', ALL_ACHIEVEMENTS.every(a => typeof a.check === 'function'))
 ok('id 无重复', new Set(ALL_ACHIEVEMENTS.map(a => a.id)).size === ALL_ACHIEVEMENTS.length)

@@ -78,6 +78,46 @@ export const COLLECTION_ACHIEVEMENTS = [
       type: 'badge_only',
     },
   },
+  {
+    // 🌊 海洋深渊 S1 扩展包「集齐奖励」——requiredCards 必须是真正的 set:"OCEAN" 卡
+    // （dexSets.OCEAN.rewardAchId 指向此成就；过去误指 apex_predator，三张全 BASE，集齐 OCEAN 无进度）
+    id: 'ocean_abyss',
+    name: '深渊探索者',
+    icon: '🌊',
+    requiredCards: ['tube_worm_vent', 'giant_squid', 'sperm_whale'],
+    reward: {
+      type: 'science_pack',
+      title: '📚 深海里没有阳光，生命靠什么活？',
+      content: `海洋最深处一片漆黑，太阳光根本照不到。可那里照样热闹！
+
+🌋 海底热泉喷出滚烫的含硫气体，管虫体内的细菌能"吃"这些化学物质造出食物——
+不靠阳光、靠化学，这叫"化能合成"，是另一套完全不同的生命能量来源。
+🦑 大王乌贼在黑暗里游弋，眼睛大得像篮球，专门在没有光的深海中捕猎。
+🐋 抹香鲸能一口气潜到 2000 米深、屏息一个多小时，就为了猎捕大王乌贼——
+这场巨兽之战，就发生在阳光永远照不到的地方。
+
+深海告诉我们：只要有能量来源，哪怕没有一丝阳光，生命也能找到活下去的办法。`,
+    },
+  },
+  {
+    // 🔬 微观战场 S2 扩展包「集齐奖励」——requiredCards 必须是真正的 set:"MICRO" 卡
+    // （dexSets.MICRO.rewardAchId 指向此成就；过去误指 microbe_explorer，三张全 BASE）
+    id: 'micro_battlefield',
+    name: '微观世界向导',
+    icon: '🔬',
+    requiredCards: ['cyanobacteria_oxygen', 'chloroplast_solar_forge', 'euglena'],
+    reward: {
+      type: 'science_pack',
+      title: '📚 你呼吸的氧气，是小到看不见的生命造的',
+      content: `🫧 几十亿年前，地球空气里几乎没有氧气。是蓝细菌学会了"光合作用"——
+用阳光、水和二氧化碳造糖，顺便放出氧气，一点点把天空变成我们能呼吸的样子。
+🌱 后来，一个蓝细菌"住进"了别的细胞里不走了，变成今天植物细胞里的"叶绿体"——
+所以每一片叶子里，都藏着远古细菌的后代。
+🦠 眼虫更有趣：有光时它像植物一样晒太阳造食物，没光时又像动物一样游出去找吃的，两边都占。
+
+微观世界虽然看不见，却造出了整个地球的氧气，也藏着生命演化最奇妙的故事。`,
+    },
+  },
 ]
 
 // ============================================================
