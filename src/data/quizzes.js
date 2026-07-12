@@ -478,7 +478,7 @@ const cardQuizzes = [
   // — 普通感冒病毒 (3) —
   { q: "引起普通感冒的病毒大约有多少种？", options: ["只有 1 种叫'感冒病毒'", "10 种左右跟流感分开", "超过 200 种不同的病毒", "上万种数都数不清"], answer: 2, fact: "感冒不是一种病而是 200+ 种病毒(鼻病毒/腺病毒/冠状病毒等)的统称。所以你才会反复感冒——每次得的是不同的病毒。", difficulty: "easy", faction: "pathogen", cardId: "common_cold_virus", type: "memorization", tags: ["ch2","virus","diversity"] },
   { q: "为什么一个喷嚏能把感冒病毒传到几米外？", options: ["因为感冒病毒喜欢长距离旅行", "因为喷嚏飞沫时速 160 公里能喷 8 米远", "因为打喷嚏声音很响传得很远", "因为感冒人的鼻子里有推动力"], answer: 1, fact: "打喷嚏的飞沫时速 160 公里(高速公路速度)+ 携带几十万个病毒——所以能喷到 8 米远！这就是为什么医生说打喷嚏要捂着嘴。", difficulty: "medium", faction: "pathogen", cardId: "common_cold_virus", type: "mechanism", principle: "mechanism", tags: ["ch2","airborne","droplet"] },
-  { q: "为什么人一年能感冒好几次，但水痘一辈子只得一次？", options: ["感冒种类多，每次得的可能是新病毒", "感冒病毒会让免疫系统忘记训练", "水痘病毒比感冒病毒厉害得多", "身体对感冒病毒没有任何免疫"], answer: 0, fact: "抗体只认一种病原。水痘只有 1 种病毒——免疫一次终身。但感冒是 200+ 种病毒的统称，每次得的可能是新的一种，旧抗体认不出。", difficulty: "hard", faction: "pathogen", cardId: "common_cold_virus", type: "inference", principle: "mechanism", tags: ["ch2","immunity","specificity"] },
+  { q: "普通感冒一般过几天就自己好了，主要是靠谁把感冒病毒赶走的？", options: ["全靠吃下去的感冒药，把病毒一个一个都杀死了", "靠身体自己的免疫系统慢慢把病毒清掉", "病毒在身体里待腻了，自己决定离开", "多盖两床被子，把病毒捂得出不来"], answer: 1, fact: "普通感冒没有能直接杀死病毒的特效药；是身体自己的免疫系统花几天时间把病毒清除掉，所以才会'过几天自己好'。多休息多喝水，是帮免疫系统好好打这一仗。", difficulty: "medium", faction: "pathogen", cardId: "common_cold_virus", type: "inference", principle: "mechanism", tags: ["ch2","感冒","免疫清除"] },
 
   // — 诺如病毒 (3) —
   { q: "诺如病毒最让人害怕的特点是什么？", options: ["传播力超强：18 个病毒颗粒就让人病倒", "致死率特别高超过 50%", "病情持续时间长达几个月", "感染后会永久留在身体里"], answer: 0, fact: "诺如病毒只需要 18 个病毒颗粒就能让人病倒(大多数病毒需要上千个)！这就是为什么冬天的学校、邮轮特别容易爆发——传播力是它的超能力。", difficulty: "easy", faction: "pathogen", cardId: "norovirus_storm", type: "memorization", tags: ["ch2","virus","infectivity"] },
@@ -567,7 +567,7 @@ const cardQuizzes = [
 
   // — 🧬 body 干细胞分化 (3) —
   { q: "骨髓中的造血干细胞每天能制造多少个血细胞？", options: ["几万个", "数千亿个", "几亿个", "数百万亿个"], answer: 1, fact: "骨髓中的造血干细胞每天制造数千亿个血液细胞,皮肤干细胞不断更新皮肤。干细胞是身体的'生产线主管'。", difficulty: "easy", faction: "body", cardId: "event_stem_cell_diff", type: "memorization", tags: ["ch2","stem_cell","production"] },
-  { q: "干细胞为什么能变成各种各样的细胞？", options: ["干细胞会魔法变形", "它每天换一种身份生活", "它的基因开关都还没'锁'", "它跟周围细胞商量后变"], answer: 2, fact: "所有细胞 DNA 一样,但成熟细胞已经'锁'了大部分基因。干细胞所有基因都没锁——理论上能变成任何细胞类型。这是'多能性'。", difficulty: "medium", faction: "body", cardId: "event_stem_cell_diff", type: "mechanism", principle: "mechanism", tags: ["ch2","gene_regulation"] },
+  { q: "医生为什么特别看重干细胞，想用它来帮病人治病？", options: ["因为它个头特别大、力气又足，打进身体里能把病菌全打跑", "它能长成缺的那种细胞，去补上坏掉的地方", "因为它便宜又好买，医院里到处都能找到", "因为它能马上让人长高又变强壮"], answer: 1, fact: "干细胞能变成身体需要的各种细胞，所以科学家想用它来'修补'——长出新的皮肤、神经或血细胞，帮受伤或生病的地方重新长好，这是再生医学的希望。", difficulty: "medium", faction: "body", cardId: "event_stem_cell_diff", type: "inference", principle: "mechanism", tags: ["ch2","stem_cell","再生医学"] },
   { q: "为什么白血病病人需要做'骨髓移植'？", options: ["重新植入健康的造血干细胞", "把坏掉的骨头换成好的", "增加病人的体重和力气", "给病人一个新的免疫系统"], answer: 0, fact: "白血病是造血干细胞癌变,产出的血细胞有问题。移植 = 先化疗杀光病人的坏干细胞,再植入健康捐献者的——重建整个造血系统。", difficulty: "hard", faction: "body", cardId: "event_stem_cell_diff", type: "inference", principle: "mechanism", tags: ["ch2","leukemia","transplant"] },
 
   // — 🧬 body SP CAR-T (3) —
@@ -588,7 +588,7 @@ const cardQuizzes = [
   // — 🧬 body SP 骨骼 (3) —
   { q: "你的骨骼大约多少年完全更新一次？", options: ["10 年", "1 年", "100 年", "永远不变"], answer: 0, fact: "人体有 206 块骨头！骨骼不是死的——它们一直在更新,每 10 年你的骨骼就完全换新一次。骨头比钢铁还结实,但重量只有钢铁的 1/5。", difficulty: "easy", faction: "body", cardId: "sp_bone_titan", type: "memorization", tags: ["ch2","bone","remodeling"] },
   { q: "骨头为什么比钢铁结实但重量只有 1/5？", options: ["骨头里有特殊的轻质金属元素", "骨头里有空气填充", "骨头是蜂窝状结构，材料强度+轻巧组合", "骨头会自动变轻不增重"], answer: 2, fact: "骨头内部是'蜂窝状'结构——既保证强度又节省材料。这是工程学'结构优化'的范本,人造蜂窝结构(飞机翼)就是模仿骨头。", difficulty: "medium", faction: "body", cardId: "sp_bone_titan", type: "mechanism", principle: "mechanism", tags: ["ch2","structure","biomechanics"] },
-  { q: "为什么宇航员在太空待久了，骨头会变脆？", options: ["太空辐射伤了骨头里的细胞", "太空没钙补充给骨头", "没重力骨头不用承压，慢慢变薄", "太空食物里营养不全"], answer: 2, fact: "骨头是'用进废退'——重力承压让骨头维持密度。失重时骨头'没事做'就被身体回收钙,越来越薄。所以宇航员要每天运动 2 小时维持骨密度。", difficulty: "hard", faction: "body", cardId: "sp_bone_titan", type: "inference", principle: "homeostasis", tags: ["ch2","space","use_it_or_lose_it"] },
+  { q: "骨头看着硬邦邦，可里面软软的'骨髓'每天都在忙什么？", options: ["储存身体里多余的脂肪和糖分，留着饿的时候慢慢用", "不停造出新鲜的血细胞，送进血管里", "把骨头里的钙一点点吃掉再排出去", "帮我们消化吃进肚子里的食物"], answer: 1, fact: "骨头里软软的红骨髓是身体的'血细胞工厂'，每天造出大量新的红细胞和白细胞送进血液，去送氧气、打病菌——所以骨头不只是支架，还是一座活的工厂。", difficulty: "medium", faction: "body", cardId: "sp_bone_titan", type: "mechanism", principle: "mechanism", tags: ["ch2","bone_marrow","造血"] },
 
   // — 🌱 nature 苔藓 (3) —
   { q: "苔藓在地球上存在了多久？", options: ["1 千万年", "1 亿年", "10 亿年", "4 亿多年"], answer: 3, fact: "苔藓是最早登上陆地的植物之一,已经存在了 4 亿多年！它们没有根,通过全身吸收水分,是生态系统的拓荒者。", difficulty: "easy", faction: "nature", cardId: "moss_pioneer", type: "memorization", tags: ["ch3","plant","ancient"] },
