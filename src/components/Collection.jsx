@@ -1,10 +1,10 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 import { FACTIONS, SUBTYPES } from '../data/deckRules'
 import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS, ownedDexCount } from '../data/dexSets'
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
-import { COLLECTION_ACHIEVEMENTS, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS } from '../data/achievements'
+import { COLLECTION_ACHIEVEMENTS, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS, detectNewlyUnlocked } from '../data/achievements'
 import { loadCampaignProgress } from '../data/campaignData'
 import AchievementModal from './AchievementModal'
 import CardDetailModal from './CardDetailModal'
@@ -27,6 +27,7 @@ export default function Collection({ onBack, economy }) {
   const [evolving, setEvolving] = useState(false) // 进化动画中
   const [sellAmount, setSellAmount] = useState(1)
   const [achievementDetail, setAchievementDetail] = useState(null)
+  const [unlockedQueue, setUnlockedQueue] = useState([]) // 进化补齐收集成就 → 当场弹窗队列
 
   const owned = economy.collection // { cardId: count } map
   const isOwn = (id) => !!owned[id]
@@ -103,6 +104,18 @@ export default function Collection({ onBack, economy }) {
       }
     }, 800)
   }, [economy])
+
+  // 进化补齐收集成就 → 当场检测解锁（不然要等下次进抽卡屏抽一次卡才补检测，徽章 3/3 却灰着、领不到科学包）。
+  // 挂在 collection 变化上而非 handleEvolve 内联：evolveCard 是 setState、同一 tick 读 economy.collection 是旧值；
+  // 且进页面时会一次性补检测过去被静默漏掉的进化成就（自愈）。markAchievementsUnlocked 只改 unlockedAchievements
+  // 不改 collection，故不会自触发死循环。
+  useEffect(() => {
+    const newly = detectNewlyUnlocked(economy.collection, economy.unlockedAchievements)
+    if (newly.length > 0) {
+      economy.markAchievementsUnlocked(newly.map(a => a.id))
+      setUnlockedQueue(q => [...q, ...newly])
+    }
+  }, [economy.collection]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 获取选中卡的进化信息
   const selectedEvoInfo = selectedCard ? economy.checkEvolution(selectedCard.id) : null
@@ -521,6 +534,11 @@ export default function Collection({ onBack, economy }) {
       )}
 
       {/* 成就详情弹窗（已解锁的可点开重读知识包） */}
+      {/* 进化补齐收集成就的解锁弹窗（依次出队）；与"点徽章看详情"的 achievementDetail 互斥不叠 */}
+      {unlockedQueue.length > 0 && !achievementDetail && (
+        <AchievementModal achievement={unlockedQueue[0]} onClose={() => setUnlockedQueue(q => q.slice(1))} />
+      )}
+
       {achievementDetail && (
         <AchievementModal achievement={achievementDetail} onClose={() => setAchievementDetail(null)} />
       )}
