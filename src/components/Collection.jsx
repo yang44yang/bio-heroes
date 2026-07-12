@@ -6,6 +6,7 @@ import { DEX_SETS, setOf, ALL_DEX_CARDS, TOTAL_DEX_CARDS, ownedDexCount } from '
 import { EVOLUTION_CHAINS, getEvolutionTarget, getChainForCard } from '../data/evolutions'
 import { COLLECTION_ACHIEVEMENTS, BATTLE_ACHIEVEMENTS, QUIZ_ACHIEVEMENTS, detectNewlyUnlocked } from '../data/achievements'
 import { loadCampaignProgress } from '../data/campaignData'
+import { getReviewStats } from '../data/quizzes'
 import AchievementModal from './AchievementModal'
 import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -33,6 +34,9 @@ export default function Collection({ onBack, economy }) {
   const isOwn = (id) => !!owned[id]
   const ownedCount = ownedDexCount(owned)
   const progress = Math.round((ownedCount / TOTAL_CARDS) * 100)
+  // 🧠 知识复习进度（Leitner）—— 进屏时算一次（答题在战斗里发生，Collection 每次重进都新鲜）
+  const reviewStats = useMemo(() => getReviewStats(), [])
+  const masteredPct = reviewStats.total ? Math.round((reviewStats.mastered / reviewStats.total) * 100) : 0
 
   // 成就展示用 ctx（战役进度只读一次；战斗/答题成就靠 economy 累计计数器算进度）
   const stageStars = useMemo(() => loadCampaignProgress().stageStars || {}, [])
@@ -167,6 +171,27 @@ export default function Collection({ onBack, economy }) {
             className="h-full bg-gradient-to-r from-yellow-500 to-amber-400 rounded-full"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
+            transition={{ duration: 0.8 }}
+          />
+        </div>
+      </div>
+
+      {/* 🧠 知识复习进度 — Leitner 间隔复习：已掌握 X/总数 + 今日待复习 */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-sm mb-1">
+          <span className="text-gray-400">🧠 {lang === 'en' ? 'Knowledge Review' : '知识复习'}</span>
+          <span className="text-cyan-400 font-bold">
+            {lang === 'en' ? 'Mastered' : '已掌握'} {reviewStats.mastered}/{reviewStats.total}
+            {reviewStats.dueToday > 0 && (
+              <span className="text-amber-400 ml-2">· {lang === 'en' ? 'Due today' : '今日待复习'} {reviewStats.dueToday}</span>
+            )}
+          </span>
+        </div>
+        <div className="h-3 bg-gray-800 rounded-full overflow-hidden">
+          <motion.div
+            className="h-full bg-gradient-to-r from-cyan-500 to-teal-400 rounded-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${masteredPct}%` }}
             transition={{ duration: 0.8 }}
           />
         </div>

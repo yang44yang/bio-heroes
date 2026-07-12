@@ -3,6 +3,7 @@
 // 难度分布: easy ~45% / medium ~35% / hard ~20%
 import { localDateStr } from './dailyChallenges.js'
 import { generalQuizzes } from './quizzesGeneral.js'
+import { readLeitner, isDue, todayNum, getLeitnerStats } from './quizLeitner.js'
 
 const cardQuizzes = [
 
@@ -901,13 +902,19 @@ export function getRandomQuiz({ battleCardIds = [], streak = 0, mode = 'any' } =
 
   const seen = getSeenToday()
 
-  // 从一组候选里挑：优先未出过 + 匹配难度；抽干则放宽（允许重复）保证有题
+  // Leitner：优先出"到期"题（新题/dueDay≤今天）。读一次盒子 map，pickFrom 内复用。
+  const lmap = readLeitner()
+  const lToday = todayNum()
+
+  // 从一组候选里挑：优先未出过 → 优先到期(Leitner) → 匹配难度；层层抽干则平滑放宽，保证有题
   function pickFrom(cands) {
     if (!cands.length) return null
     const unseen = cands.filter(q => !seen.has(q._qid))
     const base = unseen.length ? unseen : cands           // 降级：全出过则允许重复
-    const byDiff = base.filter(q => q.difficulty === targetDifficulty)
-    const pool = byDiff.length ? byDiff : base
+    const due = base.filter(q => isDue(q._qid, lmap, lToday))
+    const dueBase = due.length ? due : base               // 无到期题 → 退回全部（优雅降级）
+    const byDiff = dueBase.filter(q => q.difficulty === targetDifficulty)
+    const pool = byDiff.length ? byDiff : dueBase
     return pool[Math.floor(Math.random() * pool.length)]
   }
 
@@ -928,8 +935,9 @@ export function getRandomQuiz({ battleCardIds = [], streak = 0, mode = 'any' } =
 
   markSeen(picked._qid)
 
-  // 返回统一格式（兼容 QuizModal 和 answerQuiz）
+  // 返回统一格式（兼容 QuizModal 和 answerQuiz）。带上 _qid → answerQuiz 才能更 Leitner 盒子。
   return {
+    _qid:     picked._qid,
     question: picked.q,
     options:  picked.options,
     correct:  picked.answer,
@@ -939,6 +947,9 @@ export function getRandomQuiz({ battleCardIds = [], streak = 0, mode = 'any' } =
     cardId:    picked.cardId,
   }
 }
+
+// 复习进度（供 UI）：把题库总数喂给 Leitner 统计。
+export function getReviewStats() { return getLeitnerStats(quizzes.length) }
 
 /**
  * 旧：每局开战清空已出题记录。现在"当天不重复"要跨局保持（诉求③）→ 本函数改为 no-op；

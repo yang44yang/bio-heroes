@@ -8,6 +8,7 @@ import {
 import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { calcLeaderDamage } from '../utils/damage'
 import { getRandomQuiz, resetQuizHistory } from '../data/quizzes'
+import { recordQuizResult } from '../data/quizLeitner'
 import { getQuizMode } from '../utils/settings'
 import { triggerSkills } from '../engine/skillTriggers'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
@@ -2177,6 +2178,7 @@ export function useBattle() {
   const answerQuiz = useCallback((chosenIdx) => {
     if (!currentQuiz) return {}
     const correct = chosenIdx === currentQuiz.correct
+    recordQuizResult(currentQuiz._qid, correct) // Leitner：答对升盒(下次隔更久)、答错回 Box1(明天再考)
     setCurrentQuiz(null)
     battleStatsRef.current.quizTotal++
 
