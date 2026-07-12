@@ -41,6 +41,15 @@ export const THEMES = [
     point: '显微镜让我们看见肉眼看不到的微生物世界。', pointEn: 'Microscopes reveal a microbial world invisible to the naked eye.' },
   { id: 'coevolve', emoji: '🔄', name: '协同演化', nameEn: 'Coevolution', cardId: 'bacteriophage_killer', faction: 'pathogen',
     point: '猎手与猎物、病原与免疫，在亿万年里互相追赶着进化。', pointEn: 'Predator vs prey, pathogen vs immunity — chasing each other for eons.' },
+  // —— v2 扩池：补 body/nature/tech，平衡四阵营（卡 ID 均已验真，test-daily 会咬）——
+  { id: 'blood', emoji: '🩸', name: '血液循环', nameEn: 'Blood Circulation', cardId: 'red_blood_cell', faction: 'body',
+    point: '红细胞像不知疲倦的快递员，一刻不停把氧气送到全身每个角落。', pointEn: 'Red blood cells are tireless couriers, delivering oxygen to every corner of your body.' },
+  { id: 'ocean', emoji: '🐋', name: '海洋巨兽', nameEn: 'Ocean Giants', cardId: 'humpback_whale', faction: 'nature',
+    point: '座头鲸用一圈圈气泡织成"泡泡网"，把小鱼赶成一团再一口吞下。', pointEn: 'Humpback whales blow spiral bubble-nets to herd fish into a ball, then swallow them whole.' },
+  { id: 'genetech', emoji: '🧬', name: '基因科技', nameEn: 'Gene Tech', cardId: 'crispr_editor', faction: 'tech',
+    point: 'CRISPR 像一把精准的基因剪刀，能剪掉致病的坏基因——现代医学的超能力。', pointEn: 'CRISPR is a precise gene-scissor that snips out disease-causing genes — a modern medical superpower.' },
+  { id: 'survival', emoji: '🐻', name: '极限生存', nameEn: 'Extreme Survival', cardId: 'tardigrade', faction: 'nature',
+    point: '水熊虫能在滚烫、冰冻、真空甚至太空辐射里活下来，是地球最顽强的生命。', pointEn: 'Tardigrades survive boiling, freezing, vacuum, even space radiation — the toughest life on Earth.' },
 ]
 
 // ===== 敌方阵容池(引用现有卡 ID；buildEnemyDeck 会安全跳过无效 ID) =====
@@ -53,6 +62,15 @@ export const ENEMY_POOL = [
     deck: ['covid_invader', 'flu_virus', 'flu_virus', 'ecoli_thug', 'bacteriophage_killer'] },
   { stageName: '混合军团', leaderHP: 17000, aiStrength: 0.5, aiPersonality: 'defensive',
     deck: ['orca_alpha', 'ecoli_thug', 'sunflower_charger', 'flu_virus', 'cavity_bacteria'] },
+  // —— v2 扩池：难度档位拉开（14000 新手 → 20000 硬核），含 OCEAN 阵容 ——
+  { stageName: '虫群突袭', leaderHP: 14000, aiStrength: 0.4, aiPersonality: 'balanced',
+    deck: ['ant_soldier', 'bee_worker', 'ant_soldier', 'bee_worker', 'cheetah_sprinter'] },
+  { stageName: '深海猎队', leaderHP: 17000, aiStrength: 0.5, aiPersonality: 'balanced',
+    deck: ['sperm_whale', 'giant_squid', 'anglerfish', 'blue_ringed_octopus', 'clownfish_anemone'] },
+  { stageName: '超级细菌营', leaderHP: 19000, aiStrength: 0.55, aiPersonality: 'aggressive',
+    deck: ['mrsa_superbug', 'ecoli_thug', 'cavity_bacteria', 'flu_virus', 'ecoli_thug'] },
+  { stageName: '巨兽领主', leaderHP: 20000, aiStrength: 0.5, aiPersonality: 'defensive',
+    deck: ['orca_alpha', 'humpback_whale', 'sperm_whale', 'giant_squid', 'blue_ringed_octopus'] },
 ]
 
 // ===== 约束(平衡档：正向 buff / 负向约束 各半) =====
@@ -84,6 +102,27 @@ export const CONSTRAINTS = [
   { id: 'blitz', emoji: '⏱️', kind: 'constraint', name: '速战速决', nameEn: 'Blitz',
     desc: '8 回合内取胜，额外奖励！', descEn: 'Win within 8 turns for a bonus!',
     effect: {}, maxTurns: 8 },
+  // —— v2 扩池：+3 buff / +3 约束（保持 buff==约束，test-daily 会咬平衡）——
+  // 追加正向 buff
+  { id: 'immune_aid', emoji: '🛡️', kind: 'buff', name: '免疫驰援', nameEn: 'Immune Support',
+    desc: '开局多发 2 张人体系卡！', descEn: 'Start with 2 extra Body cards!',
+    effect: { playerStartingHandBonus: { filter: 'body', count: 2 } } },
+  { id: 'precise_strike', emoji: '💉', kind: 'buff', name: '精准打击', nameEn: 'Precise Strike',
+    desc: '敌方主将血量 -8000！', descEn: 'Enemy leader loses 8000 HP!',
+    effect: { enemyLeaderHpBonus: -8000 } },
+  { id: 'full_support', emoji: '🌈', kind: 'buff', name: '全面驰援', nameEn: 'Full Support',
+    desc: '主人 +3000、敌方 -3000！', descEn: 'Your leader +3000, enemy -3000!',
+    effect: { playerLeaderHpBonus: 3000, enemyLeaderHpBonus: -3000 } },
+  // 追加负向约束
+  { id: 'resistance', emoji: '🧫', kind: 'constraint', name: '耐药危机', nameEn: 'Resistance Crisis',
+    desc: '细菌耐药了！你的抗生素卡攻击力减半。', descEn: 'Bacteria grew resistant — your antibiotic cards deal half ATK.',
+    effect: { globalEffect: 'antibiotic_weakened' } },
+  { id: 'swarm', emoji: '🌊', kind: 'constraint', name: '群敌压境', nameEn: 'Swarm',
+    desc: '敌方开局已有 3 个病原在场！', descEn: 'Enemy starts with 3 pathogens on the field!',
+    effect: { preplaceEnemyCards: ['ecoli_thug', 'flu_virus', 'cavity_bacteria'] } },
+  { id: 'lightning', emoji: '⚡', kind: 'constraint', name: '闪电战', nameEn: 'Lightning War',
+    desc: '6 回合内取胜，额外奖励！', descEn: 'Win within 6 turns for a bonus!',
+    effect: {}, maxTurns: 6 },
 ]
 
 // 周日自由日：纯 buff，喘息
@@ -117,10 +156,13 @@ export function constraintToConundrum(constraint, theme) {
 // ===== 确定性当日挑战 =====
 export function getDailyChallenge(dateStr) {
   const dn = dayNumber(dateStr)
+  // v2 轮换新鲜度：三池不同节奏且低相关（互质乘子打散），让扩的池子真被感觉到。
+  //   theme  每天换；enemy ~每 2 天换（×7 与池长互质）；constraint ~每 3 天换（×5 与池长互质）。
+  //   仍是 dn 的纯函数 → 确定性不变；周日仍强制自由日。（旧：enemy dn>>2=每4天、constraint dn>>4=每16天）
   const theme = pick(THEMES, dn)
-  const enemyConfig = pick(ENEMY_POOL, dn >> 2)
+  const enemyConfig = pick(ENEMY_POOL, Math.floor(dn / 2) * 7)
   const isSunday = dayOfWeek(dateStr) === 0
-  const constraint = isSunday ? SUNDAY_CONSTRAINT : pick(CONSTRAINTS, dn >> 4)
+  const constraint = isSunday ? SUNDAY_CONSTRAINT : pick(CONSTRAINTS, Math.floor(dn / 3) * 5)
   return {
     id: `daily_${dateStr}`,
     date: dateStr,

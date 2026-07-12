@@ -59,6 +59,22 @@ for (const c of [...CONSTRAINTS, SUNDAY_CONSTRAINT]) {
 ok(`startingHandBonus.filter 都是合法阵营${badFilter.length ? ' → ' + badFilter.join(',') : ''}`, badFilter.length === 0)
 ok('约束正负各半(buff/constraint)', CONSTRAINTS.filter(c => c.kind === 'buff').length === CONSTRAINTS.filter(c => c.kind === 'constraint').length)
 
+// ---- v2 扩池：池子规模 + 轮换新鲜度 + globalEffect 契约 ----
+ok(`THEMES ≥ 10（v2 扩池，实 ${THEMES.length}）`, THEMES.length >= 10)
+ok(`ENEMY_POOL ≥ 8（v2 扩池，实 ${ENEMY_POOL.length}）`, ENEMY_POOL.length >= 8)
+ok(`CONSTRAINTS ≥ 14（v2 扩池，实 ${CONSTRAINTS.length}）`, CONSTRAINTS.length >= 14)
+// 轮换新鲜度：连续 14 天约束应 ≥4 种（旧 dn>>4=每16天才换→只1-2种；防回退到"连着两周同一个修正"）
+{
+  const ids = new Set()
+  for (let i = 0; i < 14; i++) ids.add(getDailyChallenge(localDateStr(new Date(Date.parse('2026-06-01T00:00:00') + i * 86400000))).constraint.id)
+  ok(`轮换新鲜度：14 天内约束 ≥4 种（实 ${ids.size}）`, ids.size >= 4)
+}
+// globalEffect 只能用引擎已实现的 antibiotic_weakened（用别的值需改 useBattle，就不是纯扩池了 → 防脚枪）
+{
+  const badGlobal = [...CONSTRAINTS, SUNDAY_CONSTRAINT].filter(c => c.effect.globalEffect && c.effect.globalEffect !== 'antibiotic_weakened')
+  ok(`globalEffect 只用引擎已实现值${badGlobal.length ? ' → ' + badGlobal.map(c => c.id).join(',') : ''}`, badGlobal.length === 0)
+}
+
 // ---- streak ----
 ok('首次完成 → streak=1', computeStreakUpdate({}, '2026-06-21').next.currentStreak === 1)
 ok('昨天完成 → 接龙 +1', computeStreakUpdate({ lastCompleteDate: '2026-06-20', currentStreak: 4, maxStreak: 4 }, '2026-06-21').next.currentStreak === 5)
