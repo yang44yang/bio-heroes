@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-11（**真机实测 bug-fix 模式**续。本窗口做了一次 8 视角并行审计→对抗核实→修 4 个真机 bug（banner 永久失效 / 关卡浮字不显示 / 重开死卡卡场 / AI 回合无异常兜底）+ 加 1 套 banner 守卫测试。全 37/37 套绿 + build 绿、全推 main。）
+> 更新时间: 2026-07-12（**真机实测 bug-fix 模式**。跑了两轮 8 视角并行审计 → 对抗式核实 → 修 bug：本窗口把审计翻出的 6 个候选核实成「5 真 bug + 1 降级欠账」并全修了（bio_alert 不判负 / 进化不触发成就 / OCEAN·MICRO 奖励轨 / AOE 复活撞槽 / LeaderHP 垫片覆盖）+ 2 套守卫。全 37 套测试绿 + build 绿、全推 main。）
 >
 > ⚠️ **本文件只留「活的交接」**——历史阶段（Sprint 1-33 + 06 决策/Phase + 07 引擎重构·真机 bug-fix）已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
 
@@ -12,52 +12,49 @@
 
 ## 最近完成
 
-### 2026-07-11 8 视角审计 → 对抗核实 → 修 4 个真机 bug + banner 守卫
-一次并行审计（8 视角 fan-out + 对抗式核实）扫出问题，逐条自查后只修**确认的真 bug**。每条独立 commit + 全套测试 + build。
-- **抽卡「本期推荐」banner 永久失效** `7509cb1`：`selectBanner` 用 `s.startsWith('${ch}-')` 匹配，但关卡 key 早迁成 `stage_X_Y`（连它自己注释都写 `stage_1_1`）→ 恒回落 default → 齐齐**从没见过**推荐卡区块和 +50% 角标。改 `stage_${ch}_` 前缀。
-- **关卡规则浮字全部不显示** `d58e35e`：`stageRules` 发的 `STAGE_RULE` 事件（蚊虫/深海压力/隐身/孢子/警报）经正确 channel 流进 `bossMechanicEvents`、机制在跑，但 `BattleScreen` 排空循环只认 `BOSS_*` → 浮字被静默丢弃。补 `STAGE_RULE` 渲染分支。
-- **重开一局后 SP/Boss 死卡卡场** `eb53628`：`processedDeathsRef`（死亡去重）在 `startBattle` 从不重置；SP uid `sp_p_${id}_${i}`、Boss `boss_${id}_0` 确定性 → 上局死过的这局再死被跳过：不触发亡语、不进弃牌堆、0HP 赖场上。startBattle 里 `clear()`。
-- **useAITurn 无异常兜底（系统性）** `9e654e6`：AI 完整回合是无 try 的 async IIFE，中途抛错 → 静默 reject → `aiRunning` 永卡 true → 敌方回合冻死。改 `.catch(记日志+尽力交还玩家).finally(aiRunning 必归位)`，堵整族「async AI 边界吞异常」。
-- **banner 守卫** `6d183a6`：`test-gacha-banner.mjs`（22 断言），把选章逻辑**耦合到 `campaignData` 真实 stage id** → 将来再迁 key 格式会当场炸而非静默失效。测试 36→**37 套**。
+### 2026-07-12 审计 6 候选 → 对抗核实 → 修 5 真 bug + 2 守卫
+把 8 视角审计翻出的 bug 候选用**对抗式双视角核实**（代码真相 + 真机可达性，默认证伪）过一遍，只修确认为真且可达的。每条独立 commit + 全套测试 + build，可视者真机验证。
+- **bio_alert 主人扣 0 不判负** `39dbfea`：GAME_OVER 只在各显式伤害点派发，无全局兜底 → stageRule 把主人打到 0 后 phase 照进 'main' 还能操作。加全局 `useEffect(leaderHp≤0→GAME_OVER)`，系统性覆盖所有 setter 式非战斗扣血源。
+- **进化不触发收集成就** `14e84af`：`handleEvolve` 不跑 `detectNewlyUnlocked` → 靠进化集齐成就时徽章 3/3 却灰着、领不到科学包。Collection 挂 `collection` 变化跑检测 + 弹窗队列（挂 collection 变化而非内联，因 evolveCard 是 setState、同 tick 读是旧值；且自愈过去漏检）。✅ 真机弹「深渊探索者」。
+- **OCEAN/MICRO 图鉴奖励轨名不副实** `0195fe0`：`rewardAchId` 误指 apex_predator/microbe_explorer（三卡全 BASE）→ 集齐 OCEAN/MICRO 对奖励进度贡献 0。建 `ocean_abyss`/`micro_battlefield` 真季成就（真卡 + 科学包）repoint + `test-dex-sets` ④b 耦合守卫。✅ 真机两包正确显示「集齐解锁…」。
+- **同批 AOE 复活撞同一空位** `10f95ef`：死亡扫场对整批死卡传同一份快照 → `findEmptySlot` 给每张复活卡算出同槽 → 除首张外被 `SUMMON_CARD` 守卫静默丢弃（两张海星「必定复活」同批死只活一张）。改 `SUMMON_CARD` 目标槽被占时回退下一个空/死槽。
+- **LeaderHP 垫片绝对写覆盖同 tick delta** `10f95ef`：垫片读 stale ref 跑 updater 再绝对 `LEADER_SET` → 抹掉同 tick 的 `LEADER_DAMAGE/HEAL` delta（bio_alert 抹掉透析机同回合回血、日志还照打「💚回血」）。加 `LEADER_APPLY` reducer action 让 updater 在 reducer 内对当前提交态跑、与 delta 可交换 + 回归单测。
+- **降级（非 bug）**：里程碑发放顺序 grant-first vs App.jsx save-first 属一致性欠账，正常玩不双领（仅 Safari 隐私模式 `localStorage.setItem` 抛异常的极端边界）。
 
-> 07-07 真机压测跟进（`isImmune` 漏认技能名致 MRSA/生物膜「免疫科技系」从没生效 `6033e64` + `no-undef` eslint 静态守卫堵 oppSide 那族 `d014e3c`）、07-05「分子>分母」一族清零 + SP 平衡重调、E5 引擎重构全系列 —— 均见 `CHANGELOG.md`。
+> 07-11 一轮（banner 永久失效 / 关卡浮字不显示 / 重开死卡卡场 / useAITurn 异常兜底 + banner 守卫）、07-07（isImmune / no-undef 守卫）、07-05「分子>分母」一族、E5 引擎重构全系列 —— 均见 `CHANGELOG.md`。
 
 ---
 
 ## 进行中
-（无。等齐齐真机实测反馈——尤其**新 SP 平衡手感**，以及这次刚修的 banner / 关卡浮字 / 重开死卡三处上线后是否真的好了。）
+（无。审计翻出的确认 bug 已全修。等齐齐真机实测反馈——尤其新调的 SP 平衡、以及这批修的 banner/浮字/判负/成就/复活是否真的好了。）
 
 ---
 
 ## 已知问题
-- 战斗日志 message 文本硬编码中文（~240 条，spec 方案 A：不翻译；英文模式战斗日志仍中文）
-- Vite dev 偶尔 504（已用 optimizeDeps.include 修主要路径）；preview 沙箱 HMR 连不上 → 验证走 `vite preview`(4174) 非 dev
-- **未对抗核实的 bug 候选**（8 视角审计因 session 额度腰斩只跑完 17/54 agent，这几条没核实、别当真 bug）：同批多张 AOE 复活撞空位 / `bio_alert` 主人扣 0 不判负（无全局 `leaderHp<=0→GAME_OVER` 兜底）/ 进化成卡不触发收集成就（只在抽卡屏检测）/ dex 奖励轨 OCEAN 承接
-- **测试空洞（对抗核实已确认）**：`statusEffects.js`（processStatuses 等 13 状态分支，每回合结算热路径 `useBattle:712`）零执行测试；`useAITurn.js` 选靶零执行测试（现有只正则匹配源码）
+- 战斗日志硬编码中文（~240 条，spec 方案 A 不译；英文模式战斗日志仍中文）
+- Vite dev 偶尔 504（optimizeDeps.include 已修主要路径）；preview 沙箱 HMR 连不上 → 验证走 `vite preview`(4174) 非 dev
+- **测试空洞（对抗核实已确认、本轮最高杠杆盲区）**：`statusEffects.js`（processStatuses 等 13 状态分支，每回合结算热路径 `useBattle:712`）零执行测试；`useAITurn.js` 选靶零执行测试（现有只正则匹配源码）
 - **未覆盖**：Card-designer skill 需 Claude.ai 侧手动更新（新 subType + SP unlockMode）；`bio-heroes-knowledge-map.md` 未创建；`.github/`(CI 写好没提交) 和 `sync-setup-plan.md`(个人笔记误落仓库) 两个未跟踪项待决
 
 ---
 
 ## 下次启动时优先
 
-### 🔴 继续真机实测 bug-fix（拿齐齐日志修）
-**工作节奏**：拿复现步骤→定位模块（**优先怀疑 E5 reducer 迁移动过的路径**：`applyCombatOutcome`/`resolveCardCombat`、死亡收口 useEffect、`handlePostAttackSkills`、`useAITurn`（async IIFE 现已有 catch 兜底）、`battleReducer` 各 action）→独立 commit + push。
-- ⭐ **复现工具**：主菜单→「🧪 测试场（家长）」门 **56**→全卡池摆双方场 + 满能量 + 一键开打。桌面视口 1280×850 更稳；先选己方卡（黄框=可攻击）再点敌方卡/主人。
-- **验证铁律**：`npm test`（**37 套**，grep+纯函数混合）+ `npm run build` + `vite preview`(4174，**非 dev**，HMR 沙箱连不上) 端到端，0 console error 才算完。
-- ⚠️ **血泪教训**：`grep 全绿 ≠ 运行时没 bug`。战斗改动务必 preview 真跑「卡打卡致死 + AI 回合跑完整」。
+### 🟢 建议先补 `statusEffects.js` 执行式单测（最高性价比盲区）
+本轮审计对抗核实确认：它是每回合结算热路径、13 个 status 分支纯 mutate 场上卡（中毒/护盾/atk_boost 到期消退…），出错无任何测试拦得住。造 card fixture 逐分支断言 mutation + turnsLeft 边界（M）。同理可把 AI 选靶抽 `pickAiTarget` 纯函数补单测。
 
-### 🟡 可选下一步（非 bug）
-- **补 `statusEffects.js` 单测**（最高性价比测试空洞）；把 AI 选靶抽 `pickAiTarget` 纯函数再补单测
-- **续跑审计剩余 37 视角** + 对抗核实上面 4 个 bug 候选
-- **SP 平衡**滚动观察（旋钮：地板 4→5 / offset 2→1 每费更晚一回合 / 单独削 6 费巨兽属性）
-- **新功能线**：S1 海洋深渊季（引擎就绪缺卡，第一刀=补 OCEAN 到曲线空档）/ 题库 Leitner 间隔复习（`_qid` 主键已就绪，加 `useQuizMastery` hook 不动 745 题）/ 每日挑战 v2 扩池
+### 🔴 或继续真机实测 bug-fix
+拿齐齐日志修，**优先怀疑 E5 reducer 迁移动过的路径**（`applyCombatOutcome`/`resolveCardCombat`、死亡收口 useEffect、`handlePostAttackSkills`、`useAITurn`(已有 catch 兜底)、`battleReducer` 各 action）。复现工具：主菜单→🧪 测试场（家长门 56）→摆双方场+满能量+一键开打。**验证铁律**：`npm test`（37 套）+ `npm run build` + `vite preview`(4174 非 dev) 端到端 0 console error 才算完。⚠️ 血泪教训：`grep/单测全绿 ≠ 运行时没 bug`，战斗改动务必 preview 真跑「卡打卡致死 + AI 回合跑完整」。
+
+### 🟡 或摊开 feature 线（非 bug）
+S1 海洋深渊季（引擎就绪缺卡，第一刀=补 OCEAN 到曲线空档）/ 题库 Leitner 间隔复习（`_qid` 主键已就绪，加 `useQuizMastery` hook 不动 745 题）/ 每日挑战 v2 扩池 / SP 平衡滚动观察。
 
 ---
 
 ## 关键文件（战斗引擎地图）
-- **状态机** `src/hooks/useBattle.js` + `src/engine/battleReducer.js`（6 组 reducer 子树 + `battleStateRef`=useLatestRef 供异步 AI 回合读最新值）
+- **状态机** `src/hooks/useBattle.js` + `src/engine/battleReducer.js`（6 组 reducer 子树 + `LEADER_APPLY`(updater 对当前态跑) + `battleStateRef`=useLatestRef 供异步 AI 回合读最新值）
 - **纯函数** `src/engine/combat.js`（resolveCardCombat / canCardAttack / applyCombatOutcome）· `src/hooks/useAITurn.js`（AI 完整回合，async IIFE，已加 catch/finally 兜底）
-- **技能/状态** `src/engine/{skillRegistry,skillTemplates,statusEffects}.js` · **boss/关卡** `src/engine/{bossMechanics,stageRules}.js`（stageRules 发 `STAGE_RULE` 事件，BattleScreen 排空循环消费）
-- **数据** `src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets,gachaBanners}.js`
-- **测试** `scripts/test-*.mjs`（**37 套**，`npm test` 统一入口）
+- **技能/状态** `src/engine/{skillRegistry,skillTemplates,statusEffects}.js`（statusEffects 零执行测试）· **boss/关卡** `src/engine/{bossMechanics,stageRules}.js`（发 `STAGE_RULE` 事件，BattleScreen 排空循环消费）
+- **数据** `src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets,gachaBanners,achievements}.js`
+- **测试** `scripts/test-*.mjs`（**37 套**，`npm test` 统一入口；test-battle-reducer 含 LEADER_APPLY 回归、test-dex-sets ④b 奖励轨耦合守卫、test-gacha-banner 选章守卫）
 - 架构总览见 `ARCHITECTURE.md`；历史 Sprint/决策/重构见 `CHANGELOG.md`

@@ -8,6 +8,15 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 ## 引擎重构 + 真机 bug-fix（2026-07）✅
 > 🔧 从「决策 / Phase」转入战斗引擎结构重构，随后齐齐开始真机实测、逐个修 bug。倒序，完整过程见 git。
 
+**真机 bug-fix 续²：审计 6 候选对抗核实 → 修 5 真 bug + 2 守卫（2026-07-12）：**
+- [x] bio_alert 主人扣 0 不判负 → 加全局 `leaderHp≤0→GAME_OVER` useEffect，系统性覆盖所有 setter 式非战斗扣血源（`39dbfea`）
+- [x] 进化补齐收集成就不当场检测（徽章 3/3 灰着、领不到科学包）→ Collection 挂 `collection` 变化跑 `detectNewlyUnlocked` + 弹窗，自愈过去被静默漏检的（`14e84af`）
+- [x] OCEAN/MICRO 图鉴「集齐奖励」名不副实（`rewardAchId` 误指全 BASE 卡成就）→ 建 `ocean_abyss`/`micro_battlefield` 真季成就（真 OCEAN/MICRO 卡 + 科学包）repoint + `test-dex-sets` ④b 耦合守卫（`0195fe0`）
+- [x] 同批 AOE 复活撞同一空位（同一份死亡快照 → `findEmptySlot` 给整批同一槽，除首张外被 `SUMMON_CARD` 守卫静默丢弃，两张海星同批死只活一张）→ `SUMMON_CARD` 目标槽被占时回退下一个空/死槽（`10f95ef`）
+- [x] 主人HP 垫片读 stale ref 绝对写覆盖同 tick delta（bio_alert 抹掉透析机同回合 +1000 回血、日志还照打「💚回血」）→ 加 `LEADER_APPLY` reducer action 让 updater 在 reducer 内对当前提交态跑、与 delta 可交换 + 回归单测（`10f95ef`）
+- 降级（非 bug）：里程碑发放顺序 grant-first vs App.jsx save-first 属一致性欠账、正常玩不双领（仅 Safari 隐私模式 `localStorage.setItem` 抛异常的极端边界）
+- 方法：8 视角并行审计 fan-out（因 session 额度腰斩只跑完 17/54 agent）+ 对抗式双视角核实（代码真相 + 真机可达性；有 2 条代码事实对但触发源被可达性视角纠正，如 leaderHp 覆盖真正撞的是玩家透析机而非敌方吸血卡）
+
 **真机 bug-fix 续：8 视角审计 → 对抗核实 → 修 4 bug + banner 守卫（2026-07-11）：**
 - [x] 抽卡「本期推荐」banner 永久失效：`selectBanner` 用旧 `${ch}-` 前缀匹配，关卡 key 早迁 `stage_X_Y` → 恒回落 default，齐齐从没见过推荐卡区块/+50% 角标 → 改 `stage_${ch}_`（`7509cb1`）
 - [x] 关卡规则浮字全不显示：`stageRules` 的 `STAGE_RULE` 事件流进 `bossMechanicEvents`、机制在跑，但 `BattleScreen` 排空循环只认 `BOSS_*` → 补 `STAGE_RULE` 渲染分支（`d58e35e`）
