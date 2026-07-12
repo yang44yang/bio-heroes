@@ -2219,6 +2219,18 @@ export function useBattle() {
   }, [playerLeaderHp, enemyLeaderHp, phase, tryTriggerSp])
 
   // ----------------------------------------------------------------
+  //  全局判负兜底：任一方主人 HP ≤ 0 即结算失败。覆盖 stageRule / 环境等「setter 式」
+  //  扣血源——它们不走显式 GAME_OVER 分派（如 bio_alert 把玩家主人打到 0 却不判负、
+  //  phase 照进 'main' 还能操作，要等下次敌方直攻才真判负）。GAME_OVER 原子设 phase:'over'，
+  //  下一次渲染守卫自身早返回，幂等不重复派发；与显式伤害点的 GAME_OVER 也不冲突（先到先设）。
+  // ----------------------------------------------------------------
+  useEffect(() => {
+    if (phase === 'init' || phase === 'mulligan' || phase === 'over') return
+    if (playerLeaderHp <= 0) dispatch({ type: 'GAME_OVER', winner: 'enemy' })
+    else if (enemyLeaderHp <= 0) dispatch({ type: 'GAME_OVER', winner: 'player' })
+  }, [playerLeaderHp, enemyLeaderHp, phase])
+
+  // ----------------------------------------------------------------
   //  动画控制
   // ----------------------------------------------------------------
   const setAnimating = useCallback(() => dispatch({ type: 'PHASE_SET', phase: 'animating' }), [])
