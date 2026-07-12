@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Lint (eslint engine+hooks，含 no-undef 守卫)
+        run: npm run lint
+      - name: 断言测试 (scripts/test-*.mjs)
+        run: npm test
+      - name: 构建 (vite build)
+        run: npm run build
