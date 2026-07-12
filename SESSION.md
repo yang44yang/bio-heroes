@@ -34,7 +34,7 @@
 - 战斗日志硬编码中文（~240 条，spec 方案 A 不译；英文模式战斗日志仍中文）
 - Vite dev 偶尔 504（optimizeDeps.include 已修主要路径）；preview 沙箱 HMR 连不上 → 验证走 `vite preview`(4174) 非 dev
 - **测试空洞（对抗核实已确认、本轮最高杠杆盲区）**：`statusEffects.js`（processStatuses 等 13 状态分支，每回合结算热路径 `useBattle:712`）零执行测试；`useAITurn.js` 选靶零执行测试（现有只正则匹配源码）
-- **未覆盖**：Card-designer skill 需 Claude.ai 侧手动更新（新 subType + SP unlockMode）；`bio-heroes-knowledge-map.md` 未创建；`.github/`(CI 写好没提交) 和 `sync-setup-plan.md`(个人笔记误落仓库) 两个未跟踪项待决
+- **未覆盖**：Card-designer skill 需 Claude.ai 侧手动更新（新 subType + SP unlockMode）；`bio-heroes-knowledge-map.md` 未创建
 
 ---
 
@@ -56,5 +56,6 @@ S1 海洋深渊季（引擎就绪缺卡，第一刀=补 OCEAN 到曲线空档）
 - **纯函数** `src/engine/combat.js`（resolveCardCombat / canCardAttack / applyCombatOutcome）· `src/hooks/useAITurn.js`（AI 完整回合，async IIFE，已加 catch/finally 兜底）
 - **技能/状态** `src/engine/{skillRegistry,skillTemplates,statusEffects}.js`（statusEffects 零执行测试）· **boss/关卡** `src/engine/{bossMechanics,stageRules}.js`（发 `STAGE_RULE` 事件，BattleScreen 排空循环消费）
 - **数据** `src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets,gachaBanners,achievements}.js`
-- **测试** `scripts/test-*.mjs`（**37 套**，`npm test` 统一入口；test-battle-reducer 含 LEADER_APPLY 回归、test-dex-sets ④b 奖励轨耦合守卫、test-gacha-banner 选章守卫）
+- **测试** `scripts/test-*.mjs`（**38 套**，`npm test` 统一入口；test-status-effects 55 断言全 13 状态分支、test-battle-reducer 含 LEADER_APPLY 回归、test-dex-sets ④b 奖励轨耦合守卫、test-gacha-banner 选章守卫）
+- **CI** `.github/workflows/ci.yml`（push/PR 到 main 跑 lint→test→build 门禁；2026-07-12 启用、首跑绿。改 workflow 文件需令牌带 `workflow` scope）
 - 架构总览见 `ARCHITECTURE.md`；历史 Sprint/决策/重构见 `CHANGELOG.md`
