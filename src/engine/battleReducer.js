@@ -102,9 +102,17 @@ export function battleReducer(state, action) {
       return { ...state, [side]: { ...state[side], leaderHp: cap == null ? next : Math.min(cap, next) } }
     }
     case 'LEADER_SET': {
-      // 直接设值（开局起始 HP / boss·关卡机制经 setter 垫片走此路）
+      // 直接设值（开局起始 HP）
       const { side, value } = action
       return { ...state, [side]: { ...state[side], leaderHp: value } }
+    }
+    case 'LEADER_APPLY': {
+      // updater 在 reducer 内对「当前提交态」跑 → 同 tick 多次 dispatch 顺序累加，
+      // 与 DAMAGE/HEAL delta 可交换。修 bug：boss/关卡机制的 setter 垫片过去在外面读
+      // battleStateRef（stale）再绝对 LEADER_SET，会覆盖同 tick 已派发的 LEADER_DAMAGE/HEAL
+      // delta（如 bio_alert 抹掉透析机同回合的 +1000 回血）。Math.max(0) 兜底不出现负血。
+      const { side, updater } = action
+      return { ...state, [side]: { ...state[side], leaderHp: Math.max(0, updater(state[side].leaderHp)) } }
     }
 
     // --- 回合机 turn / phase / winner（E5c-4）---

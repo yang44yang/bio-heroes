@@ -74,12 +74,13 @@ export function useBattle() {
   const playerLeaderHp = battleState.player.leaderHp
   const enemyLeaderHp = battleState.enemy.leaderHp
   // 兼容垫片：boss/关卡机制（engine/bossMechanics·stageRules）拿的是 setter 且用
-  // 纯 updater（min(max,+2000) / max(0,-dmg)）→ 垫片跑 updater 后 dispatch LEADER_SET。
-  // 仅用于这类「单次、纯 updater」外部回调；内部有胜负副作用或需累加的点直接 dispatch delta。
+  // 纯 updater（min(max,+2000) / max(0,-dmg)）。走 LEADER_APPLY 让 updater 在 reducer 内对
+  // 「当前提交态」跑，而非在垫片里读 battleStateRef（stale）再绝对 LEADER_SET —— 否则会覆盖
+  // 同 tick 已派发的 LEADER_DAMAGE/HEAL delta（bio_alert 抹掉透析机回血、super_bacteria 同理）。
   const setPlayerLeaderHp = useCallback(
-    (u) => dispatch({ type: 'LEADER_SET', side: 'player', value: typeof u === 'function' ? u(battleStateRef.current.player.leaderHp) : u }), [])
+    (u) => dispatch({ type: 'LEADER_APPLY', side: 'player', updater: typeof u === 'function' ? u : () => u }), [])
   const setEnemyLeaderHp = useCallback(
-    (u) => dispatch({ type: 'LEADER_SET', side: 'enemy', value: typeof u === 'function' ? u(battleStateRef.current.enemy.leaderHp) : u }), [])
+    (u) => dispatch({ type: 'LEADER_APPLY', side: 'enemy', updater: typeof u === 'function' ? u : () => u }), [])
 
   // === 战场（E5c-5 迁进 battleReducer，派生自 reducer）===
   const playerField = battleState.player.field
@@ -418,8 +419,14 @@ export function useBattle() {
           // 召唤卡牌到己方场上
           friendlySetter(prev => {
             const next = [...prev]
-            if (evt.slot >= 0 && evt.slot < next.length && (!next[evt.slot] || next[evt.slot].currentHp <= 0)) {
-              next[evt.slot] = evt.card
+            const isFree = (i) => i >= 0 && i < next.length && (!next[i] || next[i].currentHp <= 0)
+            // 优先用事件指定的 slot；若已被占则回退到当前累积场上的下一个空/死槽。
+            // 修 bug：同一批被 AOE 一起打死的多张亡语复活卡，onDeath 读的是同一份死亡快照 →
+            // findEmptySlot 给它们算出同一个 slot，除第一张外过去在此被静默丢弃（如两张海星只活一张）。
+            // friendlySetter 是累积型 updater，回退用 next（已含前一张落位）→ 同批复活自然铺开到不同槽。
+            let slot = isFree(evt.slot) ? evt.slot : next.findIndex((c, i) => isFree(i))
+            if (slot >= 0 && slot < next.length) {
+              next[slot] = evt.card
             }
             return next
           })

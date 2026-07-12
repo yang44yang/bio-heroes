@@ -89,6 +89,17 @@ ok('LEADER_DAMAGE 扣血、下限 0', battleReducer(fresh(), { type: 'LEADER_DAM
 ok('LEADER_DAMAGE 不下溢（clamp 0）', (() => { let s = fresh(); s.player.leaderHp = 500; return battleReducer(s, { type: 'LEADER_DAMAGE', side: 'player', amount: 9999 }).player.leaderHp === 0 })())
 ok('LEADER_HEAL 带 cap 封顶', (() => { let s = fresh(); s.player.leaderHp = 29500; return battleReducer(s, { type: 'LEADER_HEAL', side: 'player', amount: 2000, cap: 30000 }).player.leaderHp === 30000 })())
 ok('LEADER_SET 直接设', battleReducer(fresh(), { type: 'LEADER_SET', side: 'enemy', value: 12345 }).enemy.leaderHp === 12345)
+ok('LEADER_APPLY updater 对当前态跑', (() => { let s = fresh(); s.player.leaderHp = 10000; return battleReducer(s, { type: 'LEADER_APPLY', side: 'player', updater: (hp) => hp - 3000 }).player.leaderHp === 7000 })())
+ok('LEADER_APPLY 下限 0（不出现负血）', battleReducer(fresh(), { type: 'LEADER_APPLY', side: 'enemy', updater: () => -5000 }).enemy.leaderHp === 0)
+// ★ 修 bug：垫片过去读 stale ref 再绝对 LEADER_SET，会抹掉同 tick 已派发的 delta。
+//   现在 LEADER_APPLY 的 updater 在 reducer 内对「当前提交态」跑 → 与 delta 可交换、顺序累加。
+ok('② LEADER_HEAL(delta) 后 LEADER_APPLY 累加、不覆盖（bio_alert 抹掉透析机回血的回归）', (() => {
+  let s = fresh() // player.leaderHp = 30000
+  s = battleReducer(s, { type: 'LEADER_DAMAGE', side: 'player', amount: 5000 }) // 25000
+  s = battleReducer(s, { type: 'LEADER_HEAL', side: 'player', amount: 1000, cap: 30000 }) // 26000（透析机同 tick 回血）
+  s = battleReducer(s, { type: 'LEADER_APPLY', side: 'player', updater: (hp) => Math.max(0, hp - 2000) }) // bio_alert 扣 2000 → 24000
+  return s.player.leaderHp === 24000 // 而非旧垫片的 30000-2000=28000（抹掉了 -5000/+1000）
+})())
 ok('② LEADER_DAMAGE 同 tick 多次累减（溢出循环语义）', (() => {
   let s = fresh()
   s = battleReducer(s, { type: 'LEADER_DAMAGE', side: 'enemy', amount: 1000 })
