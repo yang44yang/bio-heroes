@@ -5,6 +5,26 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 特性硬化 + 内容扩建（2026-07-12~13）✅
+> 🧬 9 个真机 bug 清完后转入：补测试盲区 → 上 CI 门禁 → 做 feature/内容。倒序，逐 commit 见 git。
+
+**题库审核 + 扩容 745→805（2026-07-12~13）：**
+- [x] 「防太相近」审核工具 + CI 守卫：`audit-quiz-similarity.mjs`（信息性、阈值可调）+ `test-quiz-similarity.mjs`（门禁，任两题中文 bigram-Jaccard ≥0.70 即红）。审现状：745 题 0 精确重复、仅 3 对轻微跨卡重叠（`200044b`）
+- [x] 通用题扩池批1 +24：补齐此前空缺的 pathogen/tech 两阵营（182→206）（`8430089`）
+- [x] 差异化 3 对跨卡重叠题：同知识点各问一次 → 改成互补两知识点（骨骼巨人SP→骨髓造血 / 干细胞事件卡→医学修补 / 感冒病毒卡→免疫清除），0.55 阈值下近似对 3→0（`0e223d3`）
+- [x] 通用题扩池批2 +36：pathogen/tech 各补到 30（206→242，总 745→805）（`be7b5dc`）
+- 生成流程：并行 workflow 按子主题过量生成 → 独立 agent 核科学准确性/7岁可读/广度 → 确定性 bigram 查重 + 最长选项过滤 → 人工审阅页确认 → 入库
+
+**Leitner 间隔复习（`847de6a`）：** 问答从随机 trivia 升级成个性化记忆训练。新模块 `quizLeitner.js`（5 盒制、间隔 1/2/3/5/8 天，针对 7 岁调短）；`getRandomQuiz` 选题优先出到期题（无到期退回随机）、`answerQuiz` 答后更盒子；Collection 显示「已掌握 X/总数 · 今日待复习 Y」。
+
+**每日挑战 v2 扩池（`89178da`）：** 纯数据零引擎改动（约束只用 BattleScreen 已消费的 effect 契约字段）。THEMES 6→10 / ENEMY_POOL 4→8 / CONSTRAINTS 8→14（buff==约束 保 7/7）；轮换从 `dn>>2`(4天)/`dn>>4`(16天) 改互质乘子 ~2天/~3天一换。组合空间 192→1120，30 天不重样 8-10→30/30。
+
+**测试盲区补齐 + CI 上线：**
+- [x] `pickAiTarget` —— AI 选靶从 useAITurn 抽成纯函数（rng 可注入）+ `test-ai-target`（33 断言五级选靶）（`5913210`）
+- [x] `statusEffects.js` 执行式单测 55 断言（每回合结算热路径、13 状态分支，含高危 atk_boost 到期消退）（`9f63e57`）
+- [x] GitHub Actions CI（node 20 · `npm ci`→lint→test→build），push/PR 到 main 门禁；首跑绿 23s（`83efcf1`）。改 workflow 文件需令牌带 `workflow` scope
+- 测试套 36→**41**（+test-gacha-banner / status-effects / ai-target / quiz-similarity）
+
 ## 引擎重构 + 真机 bug-fix（2026-07）✅
 > 🔧 从「决策 / Phase」转入战斗引擎结构重构，随后齐齐开始真机实测、逐个修 bug。倒序，完整过程见 git。
 
