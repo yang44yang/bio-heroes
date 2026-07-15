@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-13（**特性 + 内容扩建模式**。9 个真机 bug 清完后转入：补齐测试盲区 → 上 GitHub Actions CI 门禁 → 做 feature/内容。本弧线完成：pickAiTarget 抽纯函数 + 每日挑战 v2 扩池 + Leitner 间隔复习 + 题库审核并扩容 745→805。全 41 套测试绿 + CI 绿、全推 main。）
+> 更新时间: 2026-07-15（**部署上线 + 等真机反馈**。特性/内容弧线收官后接入自托管 VPS 发布：生产站 `https://bio.socialcontract.capital` 已 200，`npm run deploy` = build+rsync。前序弧线：pickAiTarget 纯函数 + 每日挑战 v2 + Leitner 复习 + 题库 745→805。全 41 套测试绿 + CI 绿、全推 main。下一步见「下次启动时优先」。）
 >
 > ⚠️ **本文件只留「活的交接」**——历史阶段（Sprint 1-33 + 决策/Phase + 引擎重构 + 真机 bug-fix + 本轮特性/内容扩建）已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
 
@@ -12,6 +12,13 @@
 ---
 
 ## 最近完成
+
+### 2026-07-15 生产部署上线
+自托管 VPS 发布流程接入（`2bf2978`）。
+- 生产环境 `https://bio.socialcontract.capital`（搬瓦工 CN2 GIA · Caddy 2 自动 HTTPS · Cloudflare 灰云国内直连）已 200。
+- `npm run deploy` = `vite build && rsync dist/ → VPS /var/www/bio/`；Vercel 保留为海外镜像（git push 仍自动部署）。
+- 交接文档 `DEPLOY.md`：架构 / 日常部署 / Caddy 归属（在 spacev repo）/ 账号对战预案 / 排障。
+- SSH 免密已配（ed25519 公钥入服务器 authorized_keys，已验证）：`npm run deploy` 不再提示 root 密码。
 
 ### 2026-07-13 题库审核 + 扩容 745→805
 先建「防太相近」守卫，再用「过量生成→对抗核实→确定性过滤→人工审阅」流程扩题。
@@ -61,4 +68,5 @@
 - **问答**：`src/data/{quizzes(563卡题),quizzesGeneral(242通用题),quizLeitner}.js` —— 总 **805 题**，Leitner 间隔复习
 - **测试**：`scripts/test-*.mjs`（**41 套**，`npm test` 入口）+ `scripts/audit-quiz-similarity.mjs`（信息性细审）
 - **CI**：`.github/workflows/ci.yml`
+- 部署交接 `DEPLOY.md`（发布命令 / Caddy 归属 / 账号对战预案 / 排障）
 - 架构总览 `ARCHITECTURE.md`；历史 Sprint/决策/重构/bug-fix/特性 见 `CHANGELOG.md`
