@@ -135,6 +135,13 @@ bio-heroes/
 
 ---
 
+## 部署
+
+- 生产环境:`https://bio.socialcontract.capital`(自有 VPS,国内直连;详见 `DEPLOY.md`)
+- 发布命令:`npm run deploy`(= build + rsync;改完代码测试通过后执行)
+- Vercel 保留为海外预览,git push 仍自动部署 Vercel,互不影响
+- 未来账号/对战系统的架构预案见 `DEPLOY.md` 第 4 节
+
 ## Git 工作流
 
 - **所有改动直接在 main 分支上工作和推送**，不创建 feature branch 或 PR
