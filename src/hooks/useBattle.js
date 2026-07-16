@@ -1133,18 +1133,27 @@ export function useBattle() {
 
   // ----------------------------------------------------------------
   //  SP 召唤规则匹配
-  //  返回可用的 SP 卡列表
+  //  getEligibleSpCards → 可召唤的 SP 列表（薄封装，保持原签名）
+  //  getSpSummonOutcome → 同一判定 + **为什么召不出**（给玩家反馈用，见 playEventCard）
   // ----------------------------------------------------------------
   function getEligibleSpCards(summonRule, side, remainingEnergy = 0) {
+    return getSpSummonOutcome(summonRule, side, remainingEnergy).eligible
+  }
+
+  /**
+   * @returns {{ eligible: object[], reason: null|'no_field_slot'|'no_deck'|'no_match'|'turn_gate', soonestTurn?: number }}
+   *   reason 仅在 eligible 为空时有意义。turn_gate 时附 soonestTurn（最早能召出来的回合）。
+   */
+  function getSpSummonOutcome(summonRule, side, remainingEnergy = 0) {
     const spDeck = side === 'player' ? playerSpDeckRef.current : enemySpDeckRef.current
     const discardPile = battleStateRef.current[side].discard
     const field = side === 'player' ? battleStateRef.current.player.field : battleStateRef.current.enemy.field
 
     // 场上必须有空位
     const hasEmpty = field.some(c => !c || c.currentHp <= 0)
-    if (!hasEmpty) return []
+    if (!hasEmpty) return { eligible: [], reason: 'no_field_slot' }
 
-    if (!summonRule || spDeck.length === 0) return []
+    if (!summonRule || spDeck.length === 0) return { eligible: [], reason: 'no_deck' }
 
     let candidates = []
     switch (summonRule.type) {
@@ -1176,10 +1185,20 @@ export function useBattle() {
       default:
         break
     }
-    // 召唤回合门槛（看费用）：turn ≥ max(3, spCost−3)，见 deckRules.spEarliestSummonTurn。
-    // 小 SP 第 3 回合可召；大 SP 自然推迟（7→T4 / 8→T5 / 9→T6 / 10→T7）——
-    // 既挡第 1-2 回合，又拦"无视费事件秒召高费巨兽"。与 SP 卡面显示同一公式。
-    return candidates.filter(sp => battleStateRef.current.turn >= spEarliestSummonTurn(sp.spCost))
+    if (candidates.length === 0) return { eligible: [], reason: 'no_match' }
+
+    // 召唤回合门槛（看费用）：turn ≥ max(SP_SUMMON_MIN_TURN, spCost − SP_SUMMON_COST_OFFSET)，
+    // 见 deckRules.spEarliestSummonTurn（当前 = max(4, spCost−2)：5/6费→T4 · 7→T5 · 8→T6 · 9→T7 · 10→T8）。
+    // 既挡早期抢召，又拦"低费事件卡秒召高费巨兽"。与 SP 卡面显示同一公式。
+    const turn = battleStateRef.current.turn
+    const eligible = candidates.filter(sp => turn >= spEarliestSummonTurn(sp.spCost))
+    if (eligible.length > 0) return { eligible, reason: null }
+
+    // 有匹配的 SP、但回合没到 —— 必须让调用方能告诉玩家还要等几回合。
+    // 旧版这里直接返回空数组，playEventCard 没有 else 分支 → 能量扣了、卡进弃牌堆了、
+    // 一句提示都没有（对 7 岁玩家 = 游戏骗了他）。
+    const soonestTurn = Math.min(...candidates.map(sp => spEarliestSummonTurn(sp.spCost)))
+    return { eligible: [], reason: 'turn_gate', soonestTurn }
   }
 
   // ----------------------------------------------------------------
@@ -1377,11 +1396,33 @@ export function useBattle() {
         dispatch({ type: 'ENERGY_SET', side: 'player', value: 0 })
         addLog(`⚡ 消耗所有剩余能量 ${remainEnergy} 点！`)
       }
-      spCandidates = getEligibleSpCards(card.spSummonRule, 'player', remainEnergy)
+      const outcome = getSpSummonOutcome(card.spSummonRule, 'player', remainEnergy)
+      spCandidates = outcome.eligible
       if (spCandidates.length > 0) {
         // Set pending SP summon for UI to handle selection
         setPendingSpSummon({ side: 'player', candidates: spCandidates, rule: card.spSummonRule })
         addLog(`🌟 可以召唤 SP 卡！选择一张...`)
+      } else {
+        // ★ 召不出来时必须说清为什么。旧版这里什么都不做：能量扣了、卡进弃牌堆了、
+        //   SP 没出来、也没有任何提示 —— 玩家（尤其 7 岁的）只会觉得游戏吞了他的卡。
+        switch (outcome.reason) {
+          case 'turn_gate': {
+            const wait = outcome.soonestTurn - battleStateRef.current.turn
+            addLog(`⏳ SP 还不能召唤 —— 最早要到第 ${outcome.soonestTurn} 回合（还差 ${wait} 回合）`)
+            break
+          }
+          case 'no_field_slot':
+            addLog(`🌟 SP 无法召唤：战场已满，先腾出一个位置`)
+            break
+          case 'no_match':
+            addLog(`🌟 SP 无法召唤：SP 卡组里没有符合这张事件卡条件的卡`)
+            break
+          case 'no_deck':
+            addLog(`🌟 SP 无法召唤：SP 卡组已空`)
+            break
+          default:
+            break
+        }
       }
     }
 

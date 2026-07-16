@@ -15,11 +15,17 @@ ok('bug1: 护盾数值不再用 top-0 left-0(老的左上角重叠位)', !/top-0
 
 // ============ bug2: SP 召唤门槛改为「只挡第 1-2 回合」(turn<3)，不再用 spCost<=turn 量纲错配卡死高费 SP ============
 const ub = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
-const spFn = ub.slice(ub.indexOf('function getEligibleSpCards'), ub.indexOf('function getEligibleSpCards') + 2800)
-ok('bug2: getEligibleSpCards 召唤门槛改"看费用"(turn ≥ spEarliestSummonTurn(spCost)，已含 turn≥3 地板挡第1-2回合)',
-  /battleStateRef\.current\.turn\s*>=\s*spEarliestSummonTurn\(sp\.spCost\)/.test(spFn))
+// 门槛判定现住在 getSpSummonOutcome（getEligibleSpCards 已是它的薄封装）——
+// 2026-07 为「静默蒸发」修复而拆：召不出时要能回答"为什么"，才能提示玩家还差几回合。
+// 锚点从 getEligibleSpCards 移到 getSpSummonOutcome，断言的**意图不变**：门槛必须看 spCost 走
+// spEarliestSummonTurn，绝不能退回 spCost<=turn 那种量纲错配。
+const spFn = ub.slice(ub.indexOf('function getSpSummonOutcome'), ub.indexOf('function getSpSummonOutcome') + 2800)
+ok('bug2: 召唤门槛看费用(turn ≥ spEarliestSummonTurn(spCost)，含地板挡早期抢召)',
+  /turn\s*>=\s*spEarliestSummonTurn\(sp\.spCost\)/.test(spFn))
 ok('bug2: 不再用 spCost<=turn 量纲错配门槛(那会把所有 SP 推到第 5-10 回合，SP 永远出不来)',
-  !/sp\.spCost\s*<=\s*battleStateRef\.current\.turn/.test(spFn))
+  !/sp\.spCost\s*<=\s*(battleStateRef\.current\.)?turn\b/.test(spFn))
+ok('bug2: getEligibleSpCards 仍是可用入口(薄封装，不破坏既有调用方)',
+  /function getEligibleSpCards[\s\S]{0,200}?getSpSummonOutcome\([^)]*\)\.eligible/.test(ub))
 ok('bug2: 仍先收集 candidates 再统一返回(switch 内不直接 return spDeck.filter)',
   /let candidates = \[\]/.test(spFn))
 
