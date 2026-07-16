@@ -218,6 +218,28 @@ const nf = neutralA || atkFac // 中立阵营（无克制），用于隔离修�
 }
 
 // ---- 汇总 ----
+// ── uid 碰撞陷阱（测试场「一张卡攻击→全场锁死」bug 的机制本身）────────────────
+// 这里钉死的是**陷阱**，不是修复：canCardAttack 按 uid 在 Set 里查，uid 为 undefined 时
+// 全场塌缩成同一个键。修复在 useBattle.makeFieldCard 的 uid 兜底（由 test-test-arena ⑥ 守卫）。
+// 保留这两条是为了：① 记录这个坑为什么存在；② 万一 combat.js 侧被改坏，仍能咬住语义。
+{
+  const collided = new Set([undefined])
+  assert(
+    canCardAttack({ uid: undefined, skills: [] }, { attackedThisTurn: collided, checkAttacked: true }).reason === 'attacked',
+    'uid=undefined 时 attackedThisTurn 退化成全场开关（此为陷阱 → makeFieldCard 必须兜底发 uid）',
+  )
+  const unique = new Set(['whale_shark_wall_0'])
+  const other = canCardAttack({ uid: 'eagle_hunter_1', skills: [] }, { attackedThisTurn: unique, checkAttacked: true })
+  assert(other.ok === true, 'uid 唯一时，一张卡攻击只锁它自己，不波及未动作的卡')
+  const self = canCardAttack({ uid: 'whale_shark_wall_0', skills: [] }, { attackedThisTurn: unique, checkAttacked: true })
+  assert(self.ok === false && self.reason === 'attacked', 'uid 唯一时，攻击者自己仍被正确锁住')
+  // 召唤疲劳同一个坑（combat.js:124 summonedThisTurn.has(card.uid)）
+  assert(
+    canCardAttack({ uid: undefined, skills: [] }, { summonedThisTurn: new Set([undefined]) }).reason === 'fatigue',
+    'uid=undefined 时 summonedThisTurn 同样全场塌缩（召唤疲劳侧的同一个坑）',
+  )
+}
+
 if (fails.length) {
   console.error(`❌ test-combat-resolve: ${pass} 通过, ${fails.length} 失败`)
   for (const f of fails) console.error('   ✗ ' + f)

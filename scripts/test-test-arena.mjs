@@ -48,5 +48,17 @@ if (existsSync(join(ROOT, 'src/components/TestArena.jsx'))) {
     /STATUS_DEFS/.test(ta) && /toggleStatus/.test(ta) && /toggleGuard/.test(ta) && /type: 'shield'/.test(ta))
 }
 
+// ⑥ uid 兜底守卫 —— 防「测试场卡 uid=undefined → 引擎里按 uid 的 Set/find 全部塌缩」回归
+//    历史 bug：测试场把 cards.js 原始卡直接摆上场（绕过 useHand.js:25 这个 uid 唯一产地），
+//    makeFieldCard 又不发 uid → 场上每张卡 uid 都是 undefined。后果（均已实测复现）：
+//      · 一张卡攻击 → attackedThisTurn.add(undefined) → 全场每张卡都被判「本回合已攻击过」
+//      · 死一张卡   → deadUids=Set{undefined} → 整排卡（含满血的）被一起清空
+//      · 首张死卡后 → processedDeathsRef 认为其余卡「已处理」→ 亡语全部不触发
+//      · 技能定向   → find(c=>c.uid===targetUid) 恒定命中战场第一张卡
+ok('⑥ makeFieldCard 给上场的卡兜底发 uid（且用 ?? 保留已有 uid，不破坏手牌路径）',
+  /function makeFieldCard[\s\S]{0,1400}?return \{[\s\S]{0,80}?uid:\s*card\.uid\s*\?\?/.test(ub))
+ok('⑥ 数据层前提未变：cards.js 原始卡不含 uid 字段（正是必须兜底的原因）',
+  !/(^|[^_a-zA-Z])uid:/m.test(read('src/data/cards.js')))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} test-test-arena: 通过 ${pass}/${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

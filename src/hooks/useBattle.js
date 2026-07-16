@@ -18,6 +18,10 @@ import { getBossMechanic } from '../engine/bossMechanics'
 import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
 import { getStageRule } from '../engine/stageRules'
 
+// 上场卡的 uid 兜底序号 —— 见 makeFieldCard。
+// 模块级而非 useRef：uid 只需全局唯一，跨 hook 实例/跨对局单调递增即可。
+let __fieldUidSeq = 0
+
 /**
  * useBattle — Sprint 3 技能触发框架版
  *
@@ -199,7 +203,18 @@ export function useBattle() {
     }
     // baseAtk/baseHp 保留卡牌设计原值，供 UI 显示数值增量(buff/突变后差异化)
     // 注意 atk 已经可能被 antibiotic_weakened 减半，baseAtk 仍取 card.atk(更"原始"的数据层值)
-    return { ...card, atk, baseAtk: card.atk, baseHp: card.hp, currentHp: card.hp, maxHp: card.hp, statuses: [] }
+    //
+    // ★ uid 兜底：这里是「上场的卡必有唯一 uid」这个不变式的唯一收口点。
+    //   cards.js 的原始卡不带 uid（uid 的产地只有 useHand.js:25 的「卡组→手牌」）。
+    //   测试场把原始卡直接摆上场、绕过 useHand → uid 全是 undefined，而引擎里大量
+    //   逻辑按 uid 做 Set 去重 / find 定位，undefined 会让它们全部塌缩成"同一张卡"：
+    //     · combat.js:124/125  attackedThisTurn/summonedThisTurn.has(undefined) → 一张卡攻击=全场锁死
+    //     · 本文件 261-263     deadUids=Set{undefined} → 死一张卡=整排（含满血的）被清空
+    //     · 本文件 249-254     processedDeathsRef → 首张死卡后，其余卡亡语全部不触发
+    //     · 技能事件 targetUid  find(c=>c.uid===targetUid) → 恒定命中战场第一张卡
+    //   用 ?? 保留已有 uid：makeFieldCard 也被手牌/SP/复活等已带真 uid 的路径调用，
+    //   无条件覆盖会破坏那些路径。已有 uid 时行为与修复前完全一致 → 正常对战零影响。
+    return { ...card, uid: card.uid ?? `fc_${card.id}_${++__fieldUidSeq}`, atk, baseAtk: card.atk, baseHp: card.hp, currentHp: card.hp, maxHp: card.hp, statuses: [] }
   }
 
   // hasGuard / isGuardCard 委托给 utils/guardSkill 统一识别多个 nameEn
