@@ -7,9 +7,7 @@ import spCards from '../data/spCards'
 import { FACTIONS, SUBTYPES, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP } from '../data/deckRules'
 import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
-
-const STORAGE_KEY = 'bio-heroes-decks'
-const MAX_SLOTS = 10
+import { loadDecks, saveDecks, MAX_SLOTS } from '../utils/decks'
 
 // allMainCards 包含所有卡（用于 resolveCard / costCurve 等需要查找已入组卡牌的场景）
 const allMainCards = [...cards, ...eventCards]
@@ -19,23 +17,7 @@ const selectableMainCards = cards.filter(c => c.type === 'character')
 const selectableMainPool = [...selectableMainCards, ...eventCards]
 const allSpCards = spCards
 
-// Load saved decks from localStorage
-function loadDecks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      const padded = [...parsed]
-      while (padded.length < MAX_SLOTS) padded.push(null)
-      return padded.slice(0, MAX_SLOTS)
-    }
-  } catch (e) { /* ignore */ }
-  return Array(MAX_SLOTS).fill(null)
-}
-
-function saveDecks(decks) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(decks))
-}
+// 卡组存取已抽到 ../utils/decks（CampaignScreen 也要用，避免它 import 整个 DeckBuilder）
 
 // Generate a recommended deck (from available cards pool)
 function generateRecommendedDeck(factionPrimary, factionSecondary, mainPool, spPool) {

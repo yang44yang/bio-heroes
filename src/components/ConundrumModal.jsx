@@ -19,7 +19,10 @@ export default function ConundrumModal({ conundrum, lang = 'zh', onComplete }) {
     setSelected(choice)
     // 记录选择到 localStorage（未来数据分析用）
     try {
-      const key = `conundrum_${conundrum.id || 'unknown'}_choice`
+      // 前缀统一为 bio-heroes-：否则它逃出 resetSave 的前缀清扫，且任何 startsWith('bio-heroes-')
+      // 式的批量存档方案都会静默漏掉它（这是全项目唯一一个没前缀的 key）。
+      // 不进 SAVE_KEYS：当前是 write-only 的死数据（全项目无人读回），且 key 名无上界。
+      const key = `bio-heroes-conundrum-${conundrum.id || 'unknown'}-choice`
       localStorage.setItem(key, choice.id)
     } catch (_) { /* ignore */ }
   }

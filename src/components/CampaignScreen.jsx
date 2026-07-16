@@ -6,6 +6,7 @@ import {
   calculateStars,
 } from '../data/campaignData'
 import { loadTutorialProgress } from '../data/tutorialData'
+import { loadDecks } from '../utils/decks'
 import { FACTIONS } from '../data/deckRules'
 import DialogueBox from './DialogueBox'
 import { useLanguage } from '../i18n/LanguageContext'
@@ -364,7 +365,9 @@ export default function CampaignScreen({ onBack, onStartBattle, onStartTutorial,
               {/* 卡组状态提示 */}
               {selectedStage.type !== 'tutorial' && (() => {
                 try {
-                  const saved = JSON.parse(localStorage.getItem('bio-heroes-decks') || '[]')
+                  // 走 DeckBuilder.loadDecks 而不是裸读 key：全项目唯一一处跨模块硬编码 key，
+                  // 绕过了 loadDecks 的 padding/容错，也是存档 key 清单漂移的另一个入口。
+                  const saved = loadDecks()
                   const hasDeck = saved.some(d => d && d.main?.length > 0)
                   if (!hasDeck) {
                     return (
