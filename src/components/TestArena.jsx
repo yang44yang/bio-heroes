@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import cards from '../data/cards'
+import { MAX_FIELD_SLOTS } from '../data/deckRules'
 
 // 🧪 测试场 —— 直接把卡摆到双方战场任意格 + 给卡挂状态（护盾/标记/中毒…），一键开打定点验证机制（家长门后进入）。
 // 引擎支持见 useBattle.startBattle 的 testPlayerField / testEnemyField / playerStartEnergy（statuses 会补回、守护走 skills）。
@@ -13,7 +14,9 @@ const FACTIONS = [
 ]
 const FACTION_ICON = { nature: '🌱', body: '🧬', pathogen: '🦠', tech: '⚗️' }
 const characterCards = cards.filter((c) => c.type === 'character')
-const EMPTY = [null, null, null, null, null]
+// 派生自常量：测试场此前写死 5 元素数组，改 MAX_FIELD_SLOTS 时它纹丝不动。
+//   （这一处躲过了 Array\(5\) / < 5 / slice\(0,5\) / [0,1,2,3,4] 四种 grep）
+const EMPTY = Array(MAX_FIELD_SLOTS).fill(null)
 
 // 可挂状态：护盾(测无视护盾) / 标记(测抗原锁定) / 中毒 / 沉睡 / 隐身。守护单独走 skills。
 const STATUS_DEFS = [
@@ -126,11 +129,11 @@ export default function TestArena({ onBack, onStart }) {
 
       <div className="mb-2">
         <div className="text-xs text-red-400 mb-1.5">👹 敌方战场</div>
-        <div className="flex gap-1.5 sm:gap-2 justify-center">{enemyField.map((c, i) => <Slot key={i} card={c} side="enemy" i={i} />)}</div>
+        <div className="flex gap-1.5 sm:gap-2 justify-center overflow-x-auto" data-field-area="true">{enemyField.map((c, i) => <Slot key={i} card={c} side="enemy" i={i} />)}</div>
       </div>
       <div className="mb-2">
         <div className="text-xs text-blue-400 mb-1.5">🦸 我方战场</div>
-        <div className="flex gap-1.5 sm:gap-2 justify-center">{playerField.map((c, i) => <Slot key={i} card={c} side="player" i={i} />)}</div>
+        <div className="flex gap-1.5 sm:gap-2 justify-center overflow-x-auto" data-field-area="true">{playerField.map((c, i) => <Slot key={i} card={c} side="player" i={i} />)}</div>
       </div>
 
       {/* 状态编辑面板 */}

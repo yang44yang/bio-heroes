@@ -7,6 +7,7 @@
 //   ② delta 型（powerbank_add/energy/leader/field updater）同 tick 顺序累加
 //   ③ FIELD_UPDATE 的 next===cur 引用相等 bailout
 import { battleReducer, initialBattleState } from '../src/engine/battleReducer.js'
+import { MAX_FIELD_SLOTS } from '../src/data/deckRules.js'
 
 let pass = 0, fail = 0
 const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error(`❌ ${name}`) } }
@@ -21,7 +22,9 @@ ok('0 initialBattleState 六组状态齐全', (() => {
     ['player', 'enemy'].every(side =>
       s[side].powerBank && Array.isArray(s[side].discard) &&
       typeof s[side].energy === 'number' && typeof s[side].leaderHp === 'number' &&
-      Array.isArray(s[side].field) && s[side].field.length === 5)
+      // 派生自常量而非写死 —— 这条断言是全仓唯一会因改 MAX_FIELD_SLOTS 变红的，
+      // 写死 5 等于让「战场位数量」在测试里又多一个真相源。
+      Array.isArray(s[side].field) && s[side].field.length === MAX_FIELD_SLOTS)
 })())
 ok('0 未知 action 原样返回同一引用', battleReducer(initialBattleState, { type: 'NOPE' }) === initialBattleState)
 

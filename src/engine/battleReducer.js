@@ -16,10 +16,20 @@
 //  用 battleStateRef 确定性算好，不靠闭包。
 // ----------------------------------------------------------------
 
+// deckRules 是零 import 的纯常量模块 → reducer import 它不破坏本文件的 React-free 性质。
+// 旧版这里内联了一份战场位数量的副本，理由写的是「reducer React-free 故内联」——
+// 那个理由不成立，而代价是战场位有了第二个真相源：改 deckRules 时它不跟着变，且静默。
+// （注释里刻意不复述旧的常量名+数字：scripts/test-field-slots.mjs 是 source-grep 守卫，
+//   会把注释里的示例当成真的内联字面量 —— 守卫自己也警告过这类「注释污染扫描」的坑。）
+// ⚠️ 必须带 .js 扩展名：本模块被 scripts/test-battle-reducer.mjs 直接 import，
+//    node 的 ESM 不做扩展名补全（Vite 会，所以漏了扩展名 build 照过、只有 npm test 会红）。
+//    同侧参照 engine/aiTarget.js:11。
+import { MAX_FIELD_SLOTS } from '../data/deckRules.js'
+
 // 主人初始 HP（与 deckRules.LEADER_HP 一致，reducer 保持 React-free 故内联常量）
+// TODO: 同一个反模式，可比照 MAX_FIELD_SLOTS 收口，但不搭本次的车（另开单）。
 const LEADER_HP_INIT = 30000
-const FIELD_SLOTS = 5   // 与 deckRules.MAX_FIELD_SLOTS 一致（reducer React-free 内联）
-const emptyField = () => Array(FIELD_SLOTS).fill(null)
+const emptyField = () => Array(MAX_FIELD_SLOTS).fill(null)
 
 export const initialBattleState = {
   // 顶层「回合机」状态（E5c-4）

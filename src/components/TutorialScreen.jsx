@@ -27,8 +27,11 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
   // === 当前关卡的战斗状态 ===
   const [stepIdx, setStepIdx] = useState(0)
   const [playerHand, setPlayerHand] = useState([])
-  const [playerField, setPlayerField] = useState([null, null, null, null, null])
-  const [enemyField, setEnemyField] = useState([null, null, null, null, null])
+  // 教学关是**完全独立的一套棋盘**（不走 useBattle / battleReducer），所以必须自己跟随常量。
+  // 旧版这里是写死的 5 元素字面量 → 对 MAX_FIELD_SLOTS 完全免疫，改常量它纹丝不动。
+  // lazy initializer：避免每次 render 重建数组。
+  const [playerField, setPlayerField] = useState(() => Array(MAX_FIELD_SLOTS).fill(null))
+  const [enemyField, setEnemyField] = useState(() => Array(MAX_FIELD_SLOTS).fill(null))
   const [playerEnergy, setPlayerEnergy] = useState(0)
   const [maxEnergy, setMaxEnergy] = useState(0)
   const [playerLeaderHp, setPlayerLeaderHp] = useState(30000)
@@ -797,7 +800,11 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
 
       {/* === 敌方战场 === */}
       <div className={`flex-1 px-2 py-1 min-h-0 ${isHighlighted('enemy_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
-        <div className="grid grid-cols-5 gap-1 h-full">
+        <div
+          className="grid gap-1 h-full"
+          style={{ gridTemplateColumns: `repeat(${MAX_FIELD_SLOTS}, minmax(0, 1fr))` }}
+          data-field-area="true"
+        >
           {enemyField.map((card, slot) => (
             <div
               key={`ef-${slot}`}
@@ -860,7 +867,11 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
         isHighlighted('player_field') && !['attack', 'direct_attack', 'clear_field'].includes(currentStep?.waitFor)
           ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''
       }`}>
-        <div className="grid grid-cols-5 gap-1 h-full">
+        <div
+          className="grid gap-1 h-full"
+          style={{ gridTemplateColumns: `repeat(${MAX_FIELD_SLOTS}, minmax(0, 1fr))` }}
+          data-field-area="true"
+        >
           {playerField.map((card, slot) => {
             const isAttacker = selectedAtkSlot === slot
             const canAct = card && !summonedThisTurn.has(card.uid) && !attackedThisTurn.has(card.uid)

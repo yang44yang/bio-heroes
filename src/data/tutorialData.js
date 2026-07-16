@@ -2,6 +2,7 @@
 // Sprint 21: 3 基础 + 2 进阶教学关卡
 
 import cards from './cards'
+import { MAX_FIELD_SLOTS } from './deckRules'
 import eventCards from './eventCards'
 import spCards from './spCards'
 
@@ -87,11 +88,11 @@ export const LEVEL_1 = {
     cardById('bee_worker'),   // 1费
   ],
   getEnemyField: () => {
-    const field = [null, null, null, null, null]
+    const field = Array(MAX_FIELD_SLOTS).fill(null)
     field[2] = weakCard('训练假人', 500, 1000, 'pathogen', 'Training Dummy')
     return field
   },
-  playerField: () => [null, null, null, null, null],
+  playerField: () => Array(MAX_FIELD_SLOTS).fill(null),
   enemySpDeck: [],
   playerSpDeck: [],
   steps: [
@@ -184,12 +185,12 @@ export const LEVEL_2 = {
     cardById('white_blood_cell'), // 2费
   ],
   getEnemyField: () => {
-    const field = [null, null, null, null, null]
+    const field = Array(MAX_FIELD_SLOTS).fill(null)
     field[1] = weakCard('病原兵A', 800, 1500, 'pathogen', 'Pathogen A')
     field[3] = weakCard('病原兵B', 800, 1500, 'pathogen', 'Pathogen B')
     return field
   },
-  playerField: () => [null, null, null, null, null],
+  playerField: () => Array(MAX_FIELD_SLOTS).fill(null),
   enemySpDeck: [],
   playerSpDeck: [],
   steps: [
@@ -299,7 +300,7 @@ export const LEVEL_3 = {
     cardById('white_blood_cell'),   // 有技能
   ],
   getEnemyField: () => {
-    const field = [null, null, null, null, null]
+    const field = Array(MAX_FIELD_SLOTS).fill(null)
     field[1] = weakCardWithSkills('守卫兵', 1500, 2000, 'pathogen', 'Guard Soldier', [
       { name: '守护', nameEn: 'Guard', description: '对手只能攻击该卡', descriptionEn: 'Opponents must attack this card', type: 'guard' },
     ])
@@ -307,7 +308,7 @@ export const LEVEL_3 = {
     field[3] = weakCard('普通兵B', 1000, 1500, 'pathogen', 'Normal Soldier B')
     return field
   },
-  playerField: () => [null, null, null, null, null],
+  playerField: () => Array(MAX_FIELD_SLOTS).fill(null),
   enemySpDeck: [],
   playerSpDeck: [],
   steps: [
@@ -427,13 +428,13 @@ export const LEVEL_4 = {
     cardById('electric_eel_battery'), // 2费 SR
   ],
   getEnemyField: () => {
-    const field = [null, null, null, null, null]
+    const field = Array(MAX_FIELD_SLOTS).fill(null)
     field[1] = weakCard('沙袋A', 800, 2500, 'pathogen', 'Sandbag A')
     field[2] = weakCard('沙袋B', 800, 2500, 'pathogen', 'Sandbag B')
     field[3] = weakCard('沙袋C', 800, 2500, 'pathogen', 'Sandbag C')
     return field
   },
-  playerField: () => [null, null, null, null, null],
+  playerField: () => Array(MAX_FIELD_SLOTS).fill(null),
   enemySpDeck: [],
   playerSpDeck: [],
   steps: [
@@ -594,12 +595,12 @@ export const LEVEL_5 = {
     { ...cardById('event_food_chain_burst'), uid: `tut_event_fcb_${Math.random().toString(36).slice(2, 6)}` }, // 2费 事件卡
   ],
   getEnemyField: () => {
-    const field = [null, null, null, null, null]
+    const field = Array(MAX_FIELD_SLOTS).fill(null)
     field[1] = weakCard('测试靶A', 1000, 3000, 'pathogen', 'Target A')
     field[3] = weakCard('测试靶B', 1000, 3000, 'pathogen', 'Target B')
     return field
   },
-  playerField: () => [null, null, null, null, null],
+  playerField: () => Array(MAX_FIELD_SLOTS).fill(null),
   enemySpDeck: [],
   getPlayerSpDeck: () => [
     { ...cardById('sp_trex'), uid: `tut_sp_trex_${Math.random().toString(36).slice(2, 6)}` },

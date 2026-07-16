@@ -8,7 +8,10 @@ import { useBattle } from '../hooks/useBattle'
 import { useHand } from '../hooks/useHand'
 import { useAITurn } from '../hooks/useAITurn'
 import { cardHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
-import { FACTIONS, MAX_FIELD_SLOTS, LEADER_HP } from '../data/deckRules'
+// MAX_FIELD_SLOTS 曾在此 import 但全文未使用（死 import）。删掉不是洁癖：
+// 它是**伪装色** —— 任何按「有没有 import 常量」判断安全的审计都会把本文件误判为已覆盖，
+// 而它恰恰是战场位写死值的重灾区（槽宽 calc + `|| 5` 兜底）。
+import { FACTIONS, LEADER_HP } from '../data/deckRules'
 import { canPlayWithMarkers, getFactionMarkers } from '../utils/factionMarkers'
 import { playSound, toggleMute, isMuted, initAudio } from '../audio/soundManager'
 import { playerTestSpDeck, enemyTestSpDeck } from '../data/testDecks'
@@ -397,7 +400,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           const enemyField = battle.latest.enemyField || []
           let slotIdx = i
           while (slotIdx < enemyField.length && enemyField[slotIdx]) slotIdx++
-          if (slotIdx < (enemyField.length || 5)) {
+          if (slotIdx < enemyField.length) {
             battle.aiPlayToField(c, slotIdx)
             enemyHand.playCard(c.uid)
           }
@@ -934,7 +937,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           return (
           <div
             key={i}
-            className={`relative w-[calc((100%-1rem)/5)] h-full rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center transition-opacity
+            className={`relative flex-1 min-w-0 h-full rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center transition-opacity
               ${isTargeting && isValid && card && card.currentHp > 0
                 ? 'border-red-400 cursor-pointer hover:border-red-300'
                 : card && card.currentHp > 0 ? 'border-gray-600' : 'border-gray-700'
@@ -990,7 +993,7 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           return (
           <div
             key={i}
-            className={`relative w-[calc((100%-1rem)/5)] h-full rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center transition-all
+            className={`relative flex-1 min-w-0 h-full rounded-lg sm:rounded-xl border-2 border-dashed flex items-center justify-center transition-all
               ${isMainPhase && selectedHandIdx !== null
                 ? 'border-green-400 cursor-pointer hover:border-green-300'
                 : isAttacker ? 'border-yellow-400'

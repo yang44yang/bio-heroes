@@ -15,7 +15,10 @@ export const DRAW_PER_TURN = 1       // 每回合抽牌数
 export const ENERGY_CAP = 10         // 能量上限
 
 // === 战场 ===
-export const MAX_FIELD_SLOTS = 5     // 每方战场位数量
+// 每方战场位数量 —— **唯一真相源**，改这里全项目跟随。漂移守卫见 scripts/test-field-slots.mjs。
+// ⚠️ 本文件里 SP_DECK_SIZE / STARTING_HAND 也是 5，含义完全不同（SP 卡组张数 / 起手抽牌数）。
+//    严禁对本文件做 5→6 查找替换 —— 那会静默改掉起手抽牌数，且没有任何测试会红。
+export const MAX_FIELD_SLOTS = 6
 
 // === 主人 ===
 export const LEADER_HP = 30000       // 主人初始 HP
