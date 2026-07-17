@@ -1379,9 +1379,10 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  玩家出事件卡
   // ----------------------------------------------------------------
+  // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
   const playEventCard = useCallback((card, opts = {}) => {
-    if (phase !== 'main') return { ok: false, msg: '现在不能出牌' }
-    if (card.cost > playerEnergy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
+    if (battleStateRef.current.phase !== 'main') return { ok: false, msg: '现在不能出牌' }
+    if (card.cost > battleStateRef.current.player.energy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
 
     // 1. Deduct energy
     dispatch({ type: 'ENERGY_SPEND', side: 'player', cost: card.cost })
@@ -1435,7 +1436,7 @@ export function useBattle() {
     }
 
     return { ok: true, spCandidates }
-  }, [phase, playerEnergy, addLog])
+  }, [addLog])
 
   // ----------------------------------------------------------------
   //  AI 出事件卡
@@ -1648,18 +1649,21 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  结束换卡 → 进入出牌阶段
   // ----------------------------------------------------------------
+  // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
   const endMulligan = useCallback(() => {
-    if (phase !== 'mulligan') return
+    if (battleStateRef.current.phase !== 'mulligan') return
     addLog('🔵 你的回合 1（能量 1）')
     dispatch({ type: 'PHASE_SET', phase: 'main' })
-  }, [phase, addLog])
+  }, [addLog])
 
   // ----------------------------------------------------------------
   //  出牌（Main Phase）
   // ----------------------------------------------------------------
+  // ★ 读值一律走 battleStateRef，不读渲染闭包（S0 收口）。此前 phase/playerEnergy 读闭包，
+  //   而下面 :1667/:1673/:1686 的 discard/field 读 ref —— 同一函数两个真相源，隔了五行。
   const playToField = useCallback((card, slotIdx) => {
-    if (phase !== 'main') return { ok: false, msg: '现在不能出牌' }
-    if (card.cost > playerEnergy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
+    if (battleStateRef.current.phase !== 'main') return { ok: false, msg: '现在不能出牌' }
+    if (card.cost > battleStateRef.current.player.energy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
     if (slotIdx < 0 || slotIdx >= MAX_FIELD_SLOTS) return { ok: false, msg: '无效位置' }
 
     // Check faction requirement (SSR/high-cost cards need markers)
@@ -1718,28 +1722,35 @@ export function useBattle() {
     // onPlay AOE（声纳震荡/古老瘟疫等）可能击杀敌方卡 → 清理 + 触发其 onDeath。
 
     return { ok: true, replaced, skillEvents: playEvents }
-  }, [phase, playerEnergy, addLog, pushSkillEvents])
+  }, [addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
   //  结束出牌 → 战斗阶段
   // ----------------------------------------------------------------
   const endMainPhase = useCallback(() => {
-    if (phase !== 'main') return
+    if (battleStateRef.current.phase !== 'main') return
     attackedThisTurn.current.clear()
     dispatch({ type: 'PHASE_SET', phase: 'battle' })
     addLog('--- ⚔️ 战斗阶段 ---')
-  }, [phase, addLog])
+  }, [addLog])
 
   // ----------------------------------------------------------------
   //  某张卡能否攻击
   // ----------------------------------------------------------------
+  // ⚠️ canAttack 与本文件其它回调不同：它是**渲染期读取**（BattleScreen.jsx:990/:992 在
+  //    .map() 里直接调用，决定卡牌能否点/是否显示召唤疲劳），不是事件回调。改读 ref 仍安全：
+  //    useLatestRef 在 render 期间赋值（不是 effect），且发生在 useBattle 体内、早于
+  //    BattleScreen 渲染卡牌 → 渲染时 ref.current 已是本次渲染的 battleState。
+  //    deps 空数组不会让 UI 卡住：场面变化时 BattleScreen 因读 battle.playerField 而重渲，
+  //    那两处调用随之重新执行。已核实它没有被塞进任何 useMemo 的 deps（若将来有人这么做，
+  //    稳定身份会让 memo 永不重算 → 卡牌永远灰着）。
   const canAttack = useCallback((slotIdx) => {
-    if (phase !== 'battle') return false
-    const card = playerField[slotIdx]
+    if (battleStateRef.current.phase !== 'battle') return false
+    const card = battleStateRef.current.player.field[slotIdx]
     if (!card || card.currentHp <= 0) return false
     // sleep/fatigue/attacked 走 canCardAttack 纯谓词（决策E2，与 attack/aiAttack 同一真相源）
     return canCardAttack(card, { summonedThisTurn: summonedThisTurn.current, attackedThisTurn: attackedThisTurn.current, checkAttacked: true }).ok
-  }, [phase, playerField])
+  }, [])
 
   // ----------------------------------------------------------------
   //  玩家攻击
@@ -1784,9 +1795,12 @@ export function useBattle() {
     return { defKilled, atkKilled }
   }
 
+  // ★ 读值一律走 battleStateRef，不读渲染闭包（S0 收口，见文件顶部「读值真相源」注释）。
+  //   本函数此前是混合读法：phase/playerField/enemyField 读闭包，而 :1872/:1875/:1890
+  //   的 triggerSkills/resolveCardCombat 读 ref —— 同一个函数里两个真相源。
   const attack = useCallback((atkSlot, defSlot, awakenOpts = {}) => {
-    if (phase !== 'battle') return null
-    const atkCard = playerField[atkSlot]
+    if (battleStateRef.current.phase !== 'battle') return null
+    const atkCard = battleStateRef.current.player.field[atkSlot]
     if (!atkCard || atkCard.currentHp <= 0) return null
 
     // 能否攻击判定（sleep/fatigue/attacked 抽到 canCardAttack 纯谓词，决策E2）。
@@ -1795,7 +1809,7 @@ export function useBattle() {
     if (gate.reason === 'sleep') { addLog(`${atkCard.name} 正在沉睡中，无法攻击`); return null }
     // Sprint 26: 混乱状态 — 玩家的卡被操控，自动攻击随机友方
     if (atkCard.statuses?.some(s => s.type === 'confused')) {
-      const friendlyTargets = playerField
+      const friendlyTargets = battleStateRef.current.player.field
         .map((c, i) => ({ c, i }))
         .filter(({ c, i }) => c && c.currentHp > 0 && c.uid !== atkCard.uid)
       if (friendlyTargets.length > 0) {
@@ -1818,7 +1832,7 @@ export function useBattle() {
 
     // === 直攻主人 ===
     if (defSlot === -1) {
-      if (hasGuard(enemyField) && !attackerBypassesGuard(atkCard, null)) {
+      if (hasGuard(battleStateRef.current.enemy.field) && !attackerBypassesGuard(atkCard, null)) {
         addLog('对方有守护卡，必须先攻击守护卡！')
         attackedThisTurn.current.delete(atkCard.uid)
         return null
@@ -1857,10 +1871,10 @@ export function useBattle() {
     }
 
     // === 打对方场上卡 ===
-    const defCard = enemyField[defSlot]
+    const defCard = battleStateRef.current.enemy.field[defSlot]
     if (!defCard || defCard.currentHp <= 0) return null
 
-    if (hasGuard(enemyField) && !isGuardCard(defCard) && !attackerBypassesGuard(atkCard, defCard)) {
+    if (hasGuard(battleStateRef.current.enemy.field) && !isGuardCard(defCard) && !attackerBypassesGuard(atkCard, defCard)) {
       addLog('必须先攻击守护卡！')
       attackedThisTurn.current.delete(atkCard.uid)
       return null
@@ -1914,13 +1928,16 @@ export function useBattle() {
       atkDmg, defDmg, defKilled, atkKilled, leaderHit: false, gameWon: false,
       atkFactionBonus, defFactionBonus, skillEvents: postEvents,
     }
-  }, [phase, playerField, enemyField, addLog, pushSkillEvents])
+    // deps 摘掉 phase/playerField/enemyField：函数体已不读它们（全走 battleStateRef）。
+    // 副作用（正向）：attack 不再每次场面变动就换身份 → 少一批无谓重渲染。
+  }, [addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
   //  结束战斗阶段 → 敌方回合
   // ----------------------------------------------------------------
+  // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
   const endBattlePhase = useCallback(() => {
-    if (phase !== 'battle') return
+    if (battleStateRef.current.phase !== 'battle') return
     // 玩家回合结束时的 onTurnEnd 技能
     const endEvents = processEndOfTurnEffects('player')
     pushSkillEvents(endEvents)
@@ -1942,7 +1959,7 @@ export function useBattle() {
     }
 
     dispatch({ type: 'PHASE_SET', phase: 'enemyTurn' })
-  }, [phase, addLog, pushSkillEvents])
+  }, [addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
   //  敌方回合开始：刷新能量
