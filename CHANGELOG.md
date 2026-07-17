@@ -5,6 +5,47 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 存档止血 + 真机 bug-fix + SP/战场位重构（2026-07-16）✅
+> 🩹 齐齐真机反馈驱动的四连。多智能体审计两次纠正主 agent 的错误判断，全部改动真机验证后上线。
+
+**存档止血（`c62658b`）—— 4 个实测复现的 bug：**
+- [x] ★ **导入存档静默清空全部 10 副卡组**，UI 还显示「已导入 ✓」：`importSave` 对 decks 也跑 economy 的 `migrateData` → `{...数组}` spread 成对象 → `DeckBuilder.loadDecks` 的 `[...parsed]` 抛错被自己的 catch 吞掉 → `Array(10).fill(null)`。**用来恢复数据的动作本身会毁掉数据**
+- [x] `exportSave` 只导 2 个 key、实际在用 13 个（漏 campaign / quiz-leitner(27.8KB，最大项) / daily / tutorial-reward-claimed 发奖门闩等）；对每个值都 `JSON.parse` → 裸字符串 `lang='zh'` 抛错被吞、该 key 静默丢失
+- [x] `migrateData` 无条件盖戳导致版本降级（本地无害，云存档下会触发重复发奖）
+- [x] `resetSave` 只删 2 个留 11 个 → 重置后比新玩家更惨（首通奖/教学奖永久领不到）
+- [x] 新增 `ErrorBoundary`（全项目此前**零错误边界**，歪存档 → 白屏且够不到重置按钮）：白屏变可恢复界面，按钮顺序 **先备份（无损）→ 重试 → 最后才重置**
+- [x] `navigator.storage.persist()`（实测 Chrome 返回 false —— **不是解药**，真正的 ITP 豁免只有加主屏 PWA）
+- [x] `test-save-manager.mjs` 38 断言漂移守卫（扫 src/ 抓未登记 key）；变异测试逐条验证
+
+**测试场攻击锁死（`7588f61`）—— 与「金鲨」和「直攻主人」都无关：**
+- [x] 根因：`cards.js` 原始卡不带 uid（唯一产地是 `useHand.js:25` 的卡组→手牌），测试场绕过它直接摆盘 → `makeFieldCard` 也不发 uid → 场上每张卡 `uid === undefined` → `combat.js:125` `attackedThisTurn.has(undefined)` 对全场命中 → **一张卡攻击=全场锁死**
+- [x] 一处兜底（`makeFieldCard` 用 `??` 发 uid）同时修掉 4 个同源 bug：攻击门禁塌缩 · `deadUids=Set{undefined}` 死一张卡清空整排（比原 bug 更凶）· `processedDeathsRef` 首张死卡后亡语全不触发 · 技能 `targetUid` 恒定命中第一张卡
+- [x] 端到端 before/after 铁证：未修复版卡1「从没动过」被锁灰、修复后可正常攻击，唯一变量就是那行兜底
+
+**SP 事件卡重定价 + 静默蒸发（`e679640`）：**
+- [x] 按「每点能量买到多少 SP 属性」诊断（普通卡 ≈3000-3300/费）：抗药性进化 9333/费、食物链爆发 9000/费（普通卡 3 倍）· 紧急手术 4000/费（tech 无 6 费 SP，maxCost 6 是空头承诺）
+- [x] 重定价：抗药性进化 3→5 · 食物链爆发 2→4 · 物种大爆发 4→5 · 紧急手术 3→2（+maxCost 6→5）· 生态恢复 3→2，其余 7 张不动。效率区间 4000~9333 → **4500~7000**
+- [x] ★ **SP 召不出时静默蒸发**：`playEventCard` 的 `spCandidates.length > 0` 没有 else → 第 1-3 回合打出事件卡：能量扣了、卡进弃牌堆了、SP 没出、**一句提示都没有**。拆出 `getSpSummonOutcome` 回传 reason + soonestTurn → 现在明确告知「⏳ 最早要到第 N 回合（还差 M 回合）」
+
+**战场位 5→6（`344fce5`）—— 不是「改一行常量」，是 12 个文件 / 35 处：**
+- [x] 收口成单一真相源：删 `battleReducer` 内联副本（改 import，带 `.js` 扩展名——本模块被 node 测试直接 import）
+- [x] Tailwind 字面量（JIT 不认模板变量）：BattleScreen 槽宽 `calc(.../5)` → `flex-1 min-w-0`（唯一能同时活在 5/6/N 下的写法，且真机实测 568px 横屏 89px/格零溢出，而朴素解 `/6+1.25rem` 会溢出）· TutorialScreen `grid-cols-5` → 行内 `gridTemplateColumns`
+- [x] 13 处手写 5 元素数组（TestArena ×1 / TutorialScreen ×2 / tutorialData ×10）—— 这一类躲过了 `Array(5)` / `< 5` / `slice(0,5)` / `[0,1,2,3,4]` 全部四种 grep
+- [x] 删 3 处**死 import**（BattleScreen / TutorialScreen / bossMechanics，`grep -c` 均为 1）—— 它们是**伪装色**：任何按「有没有 import 常量」判断安全的审计都会把重灾区误判为已覆盖
+- [x] `test-field-slots.mjs` 14 条漂移守卫（全部派生自常量）；三种回归变异全部咬住
+- [x] ☠️ 地雷已在 deckRules 注释写死警告：同文件 `SP_DECK_SIZE` / `STARTING_HAND` 也是 5，**严禁 5→6 查找替换**（会静默改掉起手抽牌数且无测试会红）
+
+**上线：** `bio.socialcontract.capital` + Vercel（git push 自动），逐字节比对确认四个弧线的修复均在生产 bundle 内、生产环境实测 6 格。
+
+---
+
+## 生产部署上线（2026-07-15）✅
+- [x] 自托管 VPS 发布（`2bf2978`）：`bio.socialcontract.capital`（搬瓦工 CN2 GIA · Caddy 2 自动 HTTPS · Cloudflare 灰云国内直连）
+- [x] `npm run deploy` = `vite build && rsync dist/ → VPS /var/www/bio/`；Vercel 保留为海外镜像（git push 仍自动部署）
+- [x] SSH 免密（ed25519）；交接文档 `DEPLOY.md`（架构 / 日常部署 / Caddy 归属在 spacev repo / 账号对战预案 / 排障）
+
+---
+
 ## 特性硬化 + 内容扩建（2026-07-12~13）✅
 > 🧬 9 个真机 bug 清完后转入：补测试盲区 → 上 CI 门禁 → 做 feature/内容。倒序，逐 commit 见 git。
 
