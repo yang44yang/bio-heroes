@@ -1,5 +1,10 @@
 // Bio Heroes Service Worker — Cache-first for assets, network-first for navigation
-const CACHE_NAME = 'bio-heroes-v1'
+//
+// ⚠️ 改 fetch 规则（尤其是新增旁路）时**必须同时 bump CACHE_NAME**：
+//    activate 只删 `k !== CACHE_NAME` 的键 —— 不换名字，已经被旧规则缓存进去的
+//    条目一条都清不掉，新规则对它们无效。旁路和 bump 必须在同一个 commit 里。
+// v1 → v2 (2026-07-17): 新增 /api/* 旁路，见下方 fetch handler。
+const CACHE_NAME = 'bio-heroes-v2'
 
 // dev 兜底：若 SW 在本地 dev/preview 端口被激活（历史装过 PWA 的设备），
 // 主动自杀 + 清缓存。否则 cache-first 会截住 vite 的 /@vite/client、/src/main.jsx
@@ -56,6 +61,21 @@ self.addEventListener('fetch', (e) => {
 
   // Skip non-GET and cross-origin
   if (request.method !== 'GET' || url.origin !== location.origin) return
+
+  // ★ /api/* 一律不接管 —— 动态数据永远不能进 CacheStorage。
+  //
+  //   为什么必须显式旁路：下面只有 navigate / text-html 走 network-first，**其余全部
+  //   落进最后那段 cache-first**。而 /api/* 的 GET（Accept: */* 或 text/event-stream）
+  //   两个条件都不匹配 → 默认就被 cache-first 截住，后果是静默且难查的：
+  //     · 轮询：首个响应被缓存并永久重放 → 客户端冻在第一帧状态，看起来像「对手不动了」
+  //     · SSE ：res.clone() 把一条无限流 tee 进 cache.put，那个 put 永远不 settle
+  //             → 整局对战期间 buffer 一直涨
+  //   （WebSocket 不受影响：WS 握手根本不触发 fetch 事件。PvP 走 WS 正是因为这个。
+  //     但 P2 云存档会挂在同一个 Node 进程上走普通 HTTP —— 那时才发现就晚了，
+  //     这两行是提前买的保险。）
+  //
+  //   `return` 而不 respondWith = 交还给浏览器按默认走网络，正是我们要的。
+  if (url.pathname.startsWith('/api/')) return
 
   // HTML navigation → network-first
   if (request.mode === 'navigate' || request.headers.get('accept')?.includes('text/html')) {
