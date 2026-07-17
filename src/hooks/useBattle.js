@@ -1822,10 +1822,19 @@ export function useBattle() {
         target: 'leader',
         damageMultiplier: 1,
       })
-      let dmgOpts = { ...awakenOpts }
       for (const evt of atkEvents) {
         if (evt.message) addLog(evt.message)
-        if (evt.type === 'RUSH_BOOST') dmgOpts.damageMultiplier = (dmgOpts.damageMultiplier || 1) * 2
+      }
+      // 倍率读技能自己声明的 mods.damageMultiplier —— 与「打卡」路径共用 aggregateCombatMods 语义。
+      // ⚠️ 旧写法 `if (evt.type === 'RUSH_BOOST') ×= 2` 只认事件 type、从不读 mods → 三张卡全错：
+      //   · 手术刀·精准之刃「精准切除」只是「无视守护」、根本没声明倍率 → 白拿 ×2（11000→5500）
+      //   · 猎豹·闪电猎手 / 猫头鹰·暗夜猎手 卡面写「首次攻击 ×1.5」→ 实际 ×2（10000→7500）
+      // RUSH_BOOST 是个被复用的事件 type（无视守护/无视护盾/加伤都用它），拿 type 当"要翻倍"的
+      // 信号从一开始就是错的：能不能加伤、加多少，只有事件自己的 mods 说了算。
+      const leaderMods = aggregateCombatMods(atkEvents)
+      const dmgOpts = {
+        ...awakenOpts,
+        damageMultiplier: (awakenOpts.damageMultiplier || 1) * leaderMods.damageMultiplier,
       }
       pushSkillEvents(atkEvents)
 
@@ -2051,11 +2060,11 @@ export function useBattle() {
         target: 'leader',
         damageMultiplier: 1,
       })
-      let dmgOpts = {}
       for (const evt of atkEvents) {
         if (evt.message) addLog(`🔴 ${evt.message}`)
-        if (evt.type === 'RUSH_BOOST') dmgOpts.damageMultiplier = (dmgOpts.damageMultiplier || 1) * 2
       }
+      // 同玩家侧：读 mods 而非硬编码 ×2（AI 不答题、无觉醒，但敌方猎豹/猫头鹰/手术刀同样受害）
+      const dmgOpts = { damageMultiplier: aggregateCombatMods(atkEvents).damageMultiplier }
 
       const dmg = calcLeaderDamage(atkCard, dmgOpts)
       dispatch({ type: 'LEADER_DAMAGE', side: 'player', amount: dmg })

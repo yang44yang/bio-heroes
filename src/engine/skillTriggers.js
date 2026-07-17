@@ -5,7 +5,7 @@
  * 6 个触发时机，战斗状态机在对应阶段调用 triggerSkills(timing, context)
  */
 
-import { skillRegistry } from './skillRegistry'
+import { skillRegistry } from './skillRegistry.js'
 
 export const SKILL_TIMINGS = {
   ON_PLAY:       'onPlay',       // 卡牌从手牌放到战场时

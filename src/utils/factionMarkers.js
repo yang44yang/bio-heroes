@@ -1,4 +1,4 @@
-import { FACTIONS } from '../data/deckRules'
+import { FACTIONS } from '../data/deckRules.js'
 
 /**
  * Count faction markers in discard pile

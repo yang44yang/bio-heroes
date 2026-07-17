@@ -10,8 +10,8 @@
  *           RUSH_BOOST, APPLY_POISON, APPLY_SLEEP, SUMMON_CARD
  */
 
-import * as T from './skillTemplates'
-import { cardHasGuard } from '../utils/guardSkill'
+import * as T from './skillTemplates.js'
+import { cardHasGuard } from '../utils/guardSkill.js'
 
 // Sprint 27: 揭示卡对象辅助函数 — 只传必要信息到 UI
 const revealObj = (c) => ({
@@ -77,11 +77,13 @@ export const skillRegistry = {
     timing: 'onAttack',
     execute: (ctx) => {
       if (ctx.target === 'leader') {
-        ctx.damageMultiplier = (ctx.damageMultiplier || 1) * 2
+        // 倍率必须走 mods —— 改 ctx 会被 triggerSkills 的 {...context} 拷贝丢弃，
+        // 而调用方现在读 aggregateCombatMods(events)，无 mods = 无加成。
         return {
           type: 'RUSH_BOOST',
           source: ctx.attacker?.name || ctx.card?.name,
           message: `🏃 ${ctx.attacker?.name || ctx.card?.name} 突进！伤害翻倍！`,
+          mods: { damageMultiplier: 2 },
         }
       }
       return null
