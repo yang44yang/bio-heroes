@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-17（**P1 PvP 开工：地基已发布 + 引擎 de-fork 做到 S2/S7**。前 6 个 commit 已 push + deploy 到生产并逐项验证。de-fork 的 S0-S2 已 commit、**未发布**。48 套测试绿。）
+> 更新时间: 2026-07-17（**P1 PvP 开工：地基已发布 + 引擎 de-fork 做到 S2/S7**。前 6 个 commit 已 push + deploy 到生产并逐项验证。de-fork 的 S0-S2 已 commit、**未发布**。47 套测试绿。）
 >
 > ⚠️ **本文件只留「活的交接」**——历史阶段已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
 
@@ -99,7 +99,7 @@
 - **数据**：`src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets,gachaBanners,achievements,dailyChallenges}.js`
   - ☠️ `deckRules.js` 里 `MAX_FIELD_SLOTS`(6) / `SP_DECK_SIZE`(5) / `STARTING_HAND`(5) 同居 —— **严禁对该文件做数字查找替换**
 - **存档**：`src/utils/saveManager.js`（`SAVE_KEYS` 单一清单）· `src/components/ErrorBoundary.jsx`
-- **测试**：`scripts/test-*.mjs`（**48 套**，`npm test` 入口）。**真测试**（import 真模块）：`test-rules-gates`(60) / `test-battle-reducer`(51) / `test-hand-uid`(21) / `test-sw-api-bypass`(19) / `test-combat-resolve` / `test-leader-damage`
+- **测试**：`scripts/test-*.mjs`（**47 套**，`npm test` 入口）。**真测试**（import 真模块）：`test-rules-gates`(60) / `test-battle-reducer`(51) / `test-hand-uid`(21) / `test-sw-api-bypass`(19) / `test-combat-resolve` / `test-leader-damage`
   - ⚠️ **假绿铁律**：ctx 必须与生产调用点**逐字一致**；fixture 一律从**真的** `initialBattleState` + **真的** `cards.js` 改，**绝不手搓「长得像」的对象**。本项目已被假绿烧过四次（partialAwaken 档 / `test-leader-damage` 初版多传 `friendlyField` 造出假 bug / `test-sw-api-bypass` 初版漏 `location.origin` 导致全部因错误原因通过 / `MARKS_CLEAR` 的 no-op bailout 写错被当场抓住）
   - ⚠️ **eslint 只开 `no-undef`**，**没有** react-hooks 插件、**没有** `exhaustive-deps` —— 别以为「lint 干净」证明了 deps 正确
   - `engine/`+`utils/`+**`hooks/`** 的相对 import **必须带 `.js`**（`6cffff1` 起 hooks 也已补齐 → useBattle/useAITurn/useHand 现在 Node 可 import）
