@@ -25,7 +25,9 @@
 
 import { initialBattleState, battleReducer, derivePhase } from '../src/engine/battleReducer.js'
 import { canPlayCard, canAttackFrom, canTargetSlot } from '../src/engine/rules.js'
-import { PLAYER, ENEMY, opp } from '../src/engine/sides.js'
+// mirror 现在住 src/engine/sides.js（生产代码要用它 —— wire 边界就靠它）。
+// 本文件仍是它的**主要守卫**：⓪ 逐字段断言侧别值翻转（round-trip 对那个 bug 是瞎的）。
+import { PLAYER, ENEMY, mirror } from '../src/engine/sides.js'
 import CARDS from '../src/data/cards.js'
 
 let pass = 0
@@ -49,20 +51,6 @@ const ORCA = byId('orca_alpha')          // factionRequirement nature×2
 const ANT = byId('ant_soldier')
 const BEE = byId('bee_worker')
 
-/**
- * 镜像一个局面：两侧子树对调 + **翻 activeSide** + **翻 winner**。
- *
- * ⚠️ 这三样必须一起翻。子树对调是显然的；activeSide 与 winner 是**带侧别语义的顶层标量**，
- *   漏翻任何一个都会让「镜像后 enemy 的处境 === 原局面 player 的处境」不成立。
- *   而且漏翻它们**不会被 round-trip 抓到**（它们是 swap 的不动点）。
- */
-const mirror = (s) => ({
-  ...s,
-  activeSide: s.activeSide === PLAYER ? ENEMY : PLAYER,
-  winner: s.winner == null ? null : (s.winner === PLAYER ? ENEMY : PLAYER),
-  player: structuredClone(s.enemy),
-  enemy: structuredClone(s.player),
-})
 
 // ---- ⓪ mirror 自身的正确性 ----
 {

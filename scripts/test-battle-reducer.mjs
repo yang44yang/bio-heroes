@@ -316,23 +316,48 @@ ok('MARKS_CLEAR：本来就空 → 整个 state 引用不变（no-op bailout）'
 
 // ⚠️ 这一条是「棋盘状态能整棵推给 PvP guest」的护栏。Set 不过 JSON
 //    （JSON.stringify(new Set(['a'])) === '{}'）—— 将来谁把 Set/Map/函数塞进这棵树，这里红。
-ok('★ state 全树 JSON 干净（wire-clean）—— round-trip 后深等自身', (() => {
+//
+// ☠️ **别写 `JSON.stringify(round) === JSON.stringify(s)`** —— 那个比较**恒真**：
+//    round 本身就是 JSON.parse(JSON.stringify(s))，两边都过了 stringify，Set 在两边都
+//    塌成 `{}`、函数在两边都消失。它对「树里混了 Set/函数」是**结构性瞎的**
+//    —— 与 mirror 的不动点盲区同一族。本条初版就是这么写的，是 test-wire-privacy 的
+//    变异测试当场抓到的。正解：**直接在树上找非 JSON 类型**，不靠 round-trip 自证。
+function findNonJson(v, path = 'state', out = []) {
+  if (v === null || typeof v !== 'object') {
+    if (typeof v === 'function') out.push(`${path} = function`)
+    return out
+  }
+  const tag = Object.prototype.toString.call(v)
+  if (['[object Set]', '[object Map]', '[object Date]', '[object RegExp]'].includes(tag)) {
+    out.push(`${path} = ${tag}`); return out
+  }
+  for (const k of Object.keys(v)) findNonJson(v[k], `${path}.${k}`, out)
+  return out
+}
+
+ok('★ state 全树 JSON 干净（wire-clean）—— 树上不得有 Set/Map/函数', (() => {
   let s = fresh()
   s = battleReducer(s, { type: 'MARK_SUMMONED', side: 'player', uid: 'player_whale_3' })
   s = battleReducer(s, { type: 'MARK_ATTACKED', side: 'enemy', uid: 'enemy_ant_0' })
   s = battleReducer(s, { type: 'LEADER_DAMAGE', side: 'enemy', amount: 5000 })
   s = battleReducer(s, { type: 'DISCARD_ADD', side: 'player', cards: [{ id: 'ant_soldier', uid: 'player_ant_0' }] })
+  const bad = findNonJson(s)
+  if (bad.length) { console.error('   非 JSON 类型: ' + bad.join(', ')); return false }
   const round = JSON.parse(JSON.stringify(s))
-  return JSON.stringify(round) === JSON.stringify(s) &&
-         round.player.summoned[0] === 'player_whale_3' &&
-         round.enemy.attacked[0] === 'enemy_ant_0'
+  // 正向：round-trip 后关键字段仍是**数组**且值对（类型丢失会让 [0] 变 undefined）
+  return Array.isArray(round.player.summoned) && round.player.summoned[0] === 'player_whale_3' &&
+         Array.isArray(round.enemy.attacked) && round.enemy.attacked[0] === 'enemy_ant_0'
 })())
 
-ok('★ 标记若仍是 Set 就会在 JSON 里蒸发 —— 反向证明本护栏有效', (() => {
-  // 不是测生产代码，是证明上面那条断言真的抓得住「有人把 Set 塞回来」
+ok('★ findNonJson 自检：它真的抓得住混进来的 Set（否则上面那条是空转）', (() => {
+  // ⚠️ 这不是在测生产代码，是在测**守卫本身**。此前这里写的是
+  //   `JSON.stringify(new Set()) === '{}'` —— 那只证明了一个 JS 事实，没驱动被守的东西，
+  //   是覆盖剧场。现在它真的驱动 findNonJson。
   const withSet = { ...fresh(), player: { ...fresh().player, summoned: new Set(['x']) } }
-  const round = JSON.parse(JSON.stringify(withSet))
-  return JSON.stringify(round.player.summoned) === '{}' && round.player.summoned.x === undefined
+  const withFn = { ...fresh(), enemy: { ...fresh().enemy, hook: () => {} } }
+  return findNonJson(withSet).some(p => p.includes('summoned') && p.includes('Set')) &&
+         findNonJson(withFn).some(p => p.includes('hook') && p.includes('function')) &&
+         findNonJson(fresh()).length === 0
 })())
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} battle-reducer 通过 ${pass} / ${pass + fail}`)
