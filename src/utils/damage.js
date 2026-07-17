@@ -2,16 +2,26 @@
 // 攻击卡牌：双方互扣 ATK（含克制加成）
 // 直攻主人：ATK 直接扣主人 HP（主人不反击）
 
-import { FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS } from '../data/deckRules.js'
+import { FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS, AWAKEN_FULL, AWAKEN_PARTIAL } from '../data/deckRules.js'
 
 /**
  * 计算觉醒加成后的实际 ATK
+ *
+ * 倍率读 deckRules 而非硬编码：这两个常量此前是**第二个没人读的真相源**
+ * （deckRules 声明 AWAKEN_FULL=2.0 / AWAKEN_PARTIAL=1.3，本文件却各自硬编码
+ * 一份字面量，全项目对这两个常量零引用）—— 与 MAX_FIELD_SLOTS 栽过的
+ * 「会撒谎的 import」是同一个坑。同值接线，零行为变化。
+ *
+ * ⚠️ partialAwaken 这一档引擎从不产生（answerQuiz 是二元判定，题库也没有
+ *    「哪些选项算接近」的标注）。这里保留能力、不删 —— 但别据此以为游戏里
+ *    真打得出 ×1.3。详见 deckRules.js 的 AWAKEN_PARTIAL 注释。
+ *
  * @param {number} atk - 原始 ATK
  * @param {Object} opts - { awakened, partialAwaken }
  */
 export function getEffectiveAtk(atk, opts = {}) {
-  if (opts.awakened) return Math.round(atk * 2.0)
-  if (opts.partialAwaken) return Math.round(atk * 1.3)
+  if (opts.awakened) return Math.round(atk * AWAKEN_FULL)
+  if (opts.partialAwaken) return Math.round(atk * AWAKEN_PARTIAL)
   return atk
 }
 

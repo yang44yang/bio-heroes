@@ -1,8 +1,12 @@
 import { useState, useCallback, useRef, useEffect, useReducer } from 'react'
 import { useLatestRef } from './useLatestRef.js'
 import { battleReducer, initialBattleState } from '../engine/battleReducer.js'
+// QUIZ_CHANCE 曾在此 import、但从未被引用 —— 问答触发是确定性的（见 tryQuiz：
+// 首次攻击必触发，之后每 ≥3 回合一次），不是 25% 概率。留着这个 import 会让
+// 「文档写的 25% 概率」看起来像是接了线的，故摘除。常量本身保留在 deckRules
+// （连同解释），因为「概率 vs 确定」是设计决策，不该由清理死代码顺手定。
 import {
-  ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
+  ENERGY_CAP, LEADER_HP, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
   SP_QUIZ_STREAK, SP_LEADER_HP_RATIO, SP_TURN_TRIGGER,
 } from '../data/deckRules.js'
 import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers.js'

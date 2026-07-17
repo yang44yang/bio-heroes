@@ -51,7 +51,11 @@ const byName = (n) => CARDS.find((c) => c.name === n)
   eq(calcLeaderDamage(c, { awakened: true }), 10000, '① 觉醒 ×2')
   eq(calcLeaderDamage(c, { damageMultiplier: 1.5 }), 7500, '① 纯倍率 ×1.5')
   eq(calcLeaderDamage(c, { awakened: true, damageMultiplier: 1.5 }), 15000, '① 觉醒与倍率相乘 = ×3')
-  eq(calcLeaderDamage(c, { partialAwaken: true }), 6500, '① 部分觉醒 ×1.3')
+  // ⚠️ 这条断言本身是对的（纯函数给了 partialAwaken 就该算 ×1.3），但**别据此以为
+  //    游戏里打得出 ×1.3**：引擎从不产生这一档 —— answerQuiz 是二元判定，题库也没有
+  //    「哪些选项算接近」的标注，全项目零处写 partialAwaken:true。这里测的是一个
+  //    「有能力、无来源」的档位。要激活它是内容工作（805 道题标 near-miss），未排期。
+  eq(calcLeaderDamage(c, { partialAwaken: true }), 6500, '① 部分觉醒 ×1.3（能力存在，但引擎从不产生此档）')
   // 科学家模式(BattleScreen 的 ×1.2)也走 damageMultiplier，与技能倍率合成：
   eq(calcLeaderDamage(c, { awakened: true, damageMultiplier: 1.2 * 1.5 }), 18000,
     '① 觉醒×2 × 科学家×1.2 × 冲刺×1.5 = 18000')

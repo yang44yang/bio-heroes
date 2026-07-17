@@ -24,9 +24,21 @@ export const MAX_FIELD_SLOTS = 6
 export const LEADER_HP = 30000       // 主人初始 HP
 
 // === 问答觉醒 ===
-export const QUIZ_CHANCE = 0.25      // 触发概率 25%
-export const AWAKEN_FULL = 2.0       // 答对：ATK 倍率
-export const AWAKEN_PARTIAL = 1.3    // 答错但接近：ATK 倍率
+// ⚠️ QUIZ_CHANCE 未接线 —— 触发是**确定性**的，不是概率的。
+//    真实规则在 useBattle.tryQuiz：首次攻击必触发，之后每 ≥3 回合触发一次。
+//    这个常量从来没被读过（useBattle 只 import 了它，然后再没引用）。
+//    CLAUDE.md 与 .claude/rules/factions-events.md 写的「战斗中 25% 概率触发」
+//    描述的是一条从未存在过的代码路径 —— 已在那两处更正为实际行为。
+//    保留常量本身是因为「概率触发 vs 确定触发」是个设计决策（确定性对 PvP 更友好：
+//    双方无需就掷骰结果达成一致），要改是设计上的事，不该由清理死代码顺手决定。
+export const QUIZ_CHANCE = 0.25      // ⚠️ 未接线，见上。真实触发规则在 useBattle.tryQuiz
+export const AWAKEN_FULL = 2.0       // 答对：ATK 倍率（由 utils/damage.js 消费）
+// ⚠️ AWAKEN_PARTIAL「答错但接近」这一档**引擎从未产生过**：answerQuiz 是二元的
+//    （chosenIdx === currentQuiz.correct），题库也没有「哪些选项算接近」的标注。
+//    damage.js 读它（传了就按 ×1.3 算），但全项目没有任何一处写 partialAwaken:true。
+//    要激活它需要给 805 道题标注 near-miss 选项 —— 那是内容工作，不是接线。
+//    CLAUDE.md 的伤害表写了这一档，实际不可达 —— 已在文档侧标注。
+export const AWAKEN_PARTIAL = 1.3    // ⚠️ 引擎从不产生此档，见上
 
 // === SP 觉醒触发条件 ===
 export const SP_QUIZ_STREAK = 2      // 连续答对 N 题触发
