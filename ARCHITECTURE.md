@@ -37,18 +37,50 @@ App.jsx  (screen state + 全局经济/存档/成就编排)
 
 ### 相位机
 ```
-mulligan → main → battle → animating → over
+每侧 phase:  init → mulligan → main ⇄ battle → ended ─(下一轮)→ main
+顶层:        activeSide: 'player'|'enemy'    winner: null|side
 ```
-- `mulligan` 起手换牌 → `main` 我方主回合（出牌/攻击）→ `battle`/`animating` 结算与演出 → 敌方回合 → … → 某方主人 HP≤0 → `over`。
+- 每侧独立推进 `main`→`battle`→`ended`，`activeSide` 是那根接力棒（`TURN_HANDOFF` **原子**交接：拆开会有一帧「activeSide 已换、新行动方还没进 main」→ useAITurn 放行后 gate 全拒 → 回合永久锁死）。
+- `'over'` **不是相位值** —— 它就是 `winner != null`，由 `derivePhase` 派生。
+- `'animating'` **已删**（S3）：它是零消费的幽灵，`setAnimating`/`restorePhase` 曾被导出但全项目无人调用。
 
 ### 状态模型（E5 已大幅收敛）
-- **棋盘状态收进 `src/engine/battleReducer.js`（E5c，6/6 组完成）**：`turn/phase/winner`（顶层）+ 每方 `powerBank/discard/energy/leaderHp/field`（`player`/`enemy` 子树）。`useBattle` 里 `battleState`/`dispatch` + `battleStateRef = useLatestRef(battleState)`（供异步 AI 回合/`latest` 快照读最新）；这些状态全部 `派生自 reducer`，callbacks 改 `dispatch(ACTION)`。**纯函数单测 `scripts/test-battle-reducer.mjs`**（首个真驱动 reducer 的测试）。
+- **棋盘状态收进 `src/engine/battleReducer.js`（E5c 6/6 组 + S2/S3）**：`turn/activeSide/winner`（顶层）+ 每方 `powerBank/discard/energy/leaderHp/field/summoned/attacked/phase`（`player`/`enemy` 子树）。**全树 JSON-clean**（有护栏断言 —— 它是「棋盘状态能整棵推给 PvP guest」的前提）。`useBattle` 里 `battleState`/`dispatch` + `battleStateRef = useLatestRef(battleState)`（供异步 AI 回合/`latest` 快照读最新）；这些状态全部 `派生自 reducer`，callbacks 改 `dispatch(ACTION)`。**纯函数单测 `scripts/test-battle-reducer.mjs`**（首个真驱动 reducer 的测试）。
 - ⚠️ **useReducer dispatch 不 eager 计算**：凡「updater 闭包内赋值、setter 返回后同步读回」的量（`defKilled/atkKilled/replaced`）在 `useBattle` 侧已改成 dispatch 前用 `battleStateRef` 确定性算好，不靠闭包。field setter（`setPlayerField/setEnemyField`）是**透传垫片**（原样把 updater 交给 reducer 跑，保同 tick 顺序累加）。
-- E5a→E5b→E5c 已消掉大部分 `xRef.current=x` 双写（收进 `useLatestRef` helper 再随迁移退役）+ 停止向 `BattleScreen` 泄漏原始 `*Ref`（改导出只读 `latest` getter 快照）。剩余 `useState`/`useRef` 多为 UI 态（battleLog/currentQuiz/skillEvents/pendingSpSummon…）与准记忆 ref（attackedThisTurn/summonedThisTurn/SP 阈值 init ref…），不属棋盘状态。
-- 未做（可选后续）：SP 卡组 `playerSpDeck/enemySpDeck` 仍在 useState（边界状态、改动少）；`attack/aiAttack` 两份近重复仍未合并（见下）。
+- E5a→E5b→E5c 已消掉大部分 `xRef.current=x` 双写（收进 `useLatestRef` helper 再随迁移退役）+ 停止向 `BattleScreen` 泄漏原始 `*Ref`（改导出只读 `latest` getter 快照）。剩余 `useState`/`useRef` 多为 UI 态（battleLog/currentQuiz/skillEvents/pendingSpSummon…）与准记忆 ref（spTriggeredRef/processedDeathsRef/SP 阈值 init ref…），不属棋盘状态。（`summoned`/`attacked` 已于 S2 迁进 reducer —— 它们此前是**一个 Set 装两侧**。）
+- 未做（可选后续）：SP 卡组 `playerSpDeck/enemySpDeck` 仍在 useState（边界状态、改动少）。
+- ✅ `attack/aiAttack`、`playToField/aiPlayToField`、`playEventCard/aiPlayEventCard` **已于 2026-07-17 全部合并**（见下）。
+- ⚠️ 每侧 `summoned`/`attacked` 已收进 reducer（用**数组**不用 Set —— Set 不过 JSON，而棋盘状态要能整棵推给 PvP 的 guest）。
 
-### 玩家 vs AI
-`attack`/`aiAttack`、`playToField`/`aiPlayToField` 是**两份近重复实现**，只差 `player↔enemy` 变量与返回形状。改战斗规则须两处同步改，否则出现「玩家能 / AI 不能」的不对称 bug。
+### 玩家 vs AI —— ✅ 已 de-fork（2026-07-17，S0-S7）
+
+**这里曾经写着**：「`attack`/`aiAttack`、`playToField`/`aiPlayToField` 是两份近重复实现…改战斗规则须两处同步改，否则出现『玩家能 / AI 不能』的不对称 bug。」
+
+那条规矩现在**已经删掉了** —— 它本身就是那个 fork 的伤疤。`ai*` 三兄弟（`aiPlayToField` / `aiAttack` / `aiPlayEventCard`）全部退役，引擎里只剩一条 side 参数化的路：
+
+```
+playToField(card, slotIdx, side = 'player')
+attack(atkSlot, defSlot, awakenOpts = {}, side = 'player')
+playEventCard(card, opts = {}, side = 'player')
+endMainPhase(side = 'player')
+```
+
+- **规则**（能不能）住 `engine/rules.js` —— side-blind 纯谓词，**不得出现 'player'/'enemy' 字面量**。一个不能命名某一侧的模块，结构上无法偏袒某一侧。
+- **人格**（怎么选）住 `engine/aiTarget.js`（`pickAiTarget` / `pickAiSpCard`）—— 引擎不该知道「敌方会挑费用最高的 SP」这种事。
+- **侧别字面量**只允许活在 React 外壳（`useBattle` 的默认参数）里。
+
+那个 fork 逃掉的东西（都是真 bug，不是取舍）：`aiAttack` **一行守护检查都没有**（「守护优先」是 CLAUDE.md 速查里的核心规则，它至今没暴雷只因 `pickAiTarget` 的 T1 恰好优先挑守护卡 = 规则一直靠「AI 恰好礼貌」维持）；`aiPlayToField` 无条件扣能量（可扣成负数）、覆盖占位者却不送弃牌堆（弃牌堆是阵营标记的真相源 → 敌方标记长期少算）；`aiPlayEventCard` 召不出 SP 时完全静默。
+
+**守卫**（两个一起上，缺一个就是剧场）：
+- `scripts/test-side-symmetry.mjs`（462 断言）—— 镜像局面后两侧判定必须逐字相同；reducer 的镜像不变式。证明「拿了 side 且真的用了它」。
+- `scripts/test-no-side-fork.mjs`（22 断言）—— 棘轮：rules.js 零侧别字面量、ai* 不得复活、每个导出都收 side。证明「不能命名某一侧」。
+
+⚠️ 引擎里**仍保留一处具名的 side 分叉**：`resolveSpChoice` —— 因为背后是真实且今天消不掉的不对称（**玩家的 SP 选择是异步的（弹窗等点击），AI 的是同步的**）。它被具名、被解释，而不是埋在函数中段的 if。
+
+### 相位机（S3 起）
+真相源是 `state.activeSide`（轮到谁） + `state[side].phase`（那一侧的进度：`init|mulligan|main|battle|ended`）。对外仍由纯函数 `derivePhase(state)` 派生出旧的顶层标量 → BattleScreen 20+ 处 `battle.phase` 读取零改动。
+
+**为什么阶段机必须与 de-fork 捆在一起**：旧枚举把「发生什么」（main/battle）和「谁在做」（enemyTurn）编码进**同一个标量** —— 于是 `aiPlayToField` **即使有人想查 phase 也查不了**（不存在一个「敌方的 main」可查）。**缺失的 gate 不是懒，是不可表达。**
 
 ---
 
@@ -92,7 +124,7 @@ hooks/useBattle.js  applySkillEvents(events, friendlySetter, enemySetter, side)
 | `cards.js` | 124 张生物卡（含卡名/技能文本，**中文硬编码**，未走 i18n） |
 | `eventCards.js` / `spCards.js` | 16 事件卡 / 16 SP 觉醒卡 |
 | `evolutions.js` | 进化链（`EVOLUTION_CHAINS`，真实现只 2 链 5 卡；卡上 `evolutionTo` 字段是**装饰性死数据**，未被读取） |
-| `deckRules.js` | 常量权威：`DECK_SIZE` · `MAX_FIELD_SLOTS=5` · `POWER_CURVE`（ATK+HP 按 cost 的预算）· `RARITIES` · `FACTION_ADVANTAGE`（4 阵营克制环：nature/body/pathogen/tech） |
+| `deckRules.js` | 常量权威：`DECK_SIZE` · `MAX_FIELD_SLOTS`（现为 6）· `POWER_CURVE`（ATK+HP 按 cost 的预算）· `RARITIES` · `FACTION_ADVANTAGE`（4 阵营克制环：nature/body/pathogen/tech） |
 | `campaignData.js` / `tutorialData.js` | 关卡与教学数据 |
 | `quizzes.js` + `quizzesGeneral.js` | 卡题 + 通用题（答题觉醒/教育核心） |
 | `achievements.js` · `dailyChallenges.js` · `dexSets.js` · `gachaBanners.js` | 成就 / 每日 / 图鉴分包 / 抽卡 banner |
@@ -103,9 +135,13 @@ hooks/useBattle.js  applySkillEvents(events, friendlySetter, enemySetter, side)
 
 ## 6. 测试
 
-- `scripts/test-*.mjs`：32 套断言测试，`npm test` 统一入口（`scripts/run-tests.mjs`），CI 在 `.github/workflows/ci.yml` 上跑 test + build。
-- **局限（E5c 起改善）**：仍有一批是 `readFileSync` **把源码当字符串正则匹配**（守「文案/数值没被改坏」+ grep 迁移锚点）；能 import 纯函数直测的在增多：`damage.js`/`statusEffects.js`/`skillTemplates.js`/`combat.js`（`resolveCardCombat`）+ **`battleReducer.js`（`test-battle-reducer.mjs`，35 断言，真驱动 state+action→next）**。
-- **棋盘状态机已解耦成可单测的 `battleReducer`（E5c）** → 状态转移能脱离 React 直测。仍焊在 Hook 里的：跨状态编排（谁先 dispatch、事件派发顺序、死亡收口的提交后 useEffect）——这些走 preview 冒烟兜底。
+- `scripts/test-*.mjs`：**49 套**断言测试，`npm test` 统一入口（`scripts/run-tests.mjs`），CI 在 `.github/workflows/ci.yml` 上跑 lint + test + build。
+- ⚠️ **eslint 只开了 `no-undef`**（`eslint.config.js` 的注释说明了为什么）—— **没有** react-hooks 插件、**没有** `exhaustive-deps`。别以为「lint 干净」证明了 deps 正确。
+- **局限（E5c → S0-S7 大幅改善）**：仍有一批是 `readFileSync` **把源码当字符串正则匹配**（守文案/数值 + grep 迁移锚点）—— 那类**只能证明文本顺序，证明不了运行时行为**，别当行为测试用。
+- **真测试**（import 真模块驱动）：`test-rules-gates`(60) · `test-battle-reducer`(60) · **`test-side-symmetry`(462，镜像对称)** · **`test-no-side-fork`(22，棘轮)** · `test-combat-resolve`(68) · `test-leader-damage`(33) · `test-hand-uid`(21) · `test-sw-api-bypass`(19) · `damage.js`/`statusEffects.js`/`skillTemplates.js`。
+- ☠️ **假绿铁律**：engine 测试的 ctx 必须与生产调用点**逐字段一致**；fixture 一律从**真的** `initialBattleState` + **真的** `cards.js` 改，**绝不手搓「长得像」的对象**。本项目已被假绿烧过四次（`partialAwaken` 档 / `test-leader-damage` 初版多传 `friendlyField` 凭空造出假 bug / `test-sw-api-bypass` 初版漏 `location.origin` 导致全部因错误原因通过 / `MARKS_CLEAR` 的 no-op bailout）。新守卫**务必配变异测试**证明它咬得住。
+- **棋盘状态机已解耦成可单测的 `battleReducer`（E5c）+ 规则已抽成可单测的 `rules.js`（S1）** → 状态转移与规则判定都能脱离 React 直测。仍焊在 Hook 里的：跨状态编排（谁先 dispatch、事件派发顺序、死亡收口的提交后 useEffect）+ `useAITurn` 的 async 时序 —— 这些**只能走 preview 冒烟兜底**。
+- ⚠️ `src/hooks/*.js` 的相对 import **必须带 `.js`**（commit `6cffff1` 起已补齐）—— Node ESM 不做扩展名补全，漏了就 import 不进来，历史上「带扩展名的文件全都有测试、不带的全都没有」不是巧合，是因果。
 - `audit-*.mjs` / `validate-*.mjs` 是信息性脚本，不在 `npm test` 门禁内，按需手动跑。
 
 ---
