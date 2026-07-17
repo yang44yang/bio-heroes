@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-17（**P1 PvP 开工：地基已发布 + 引擎 de-fork 做到 S2/S7**。前 6 个 commit 已 push + deploy 到生产并逐项验证。de-fork 的 S0-S2 已 commit、**未发布**。47 套测试绿。）
+> 更新时间: 2026-07-17（**P1 PvP：地基已发布 + 引擎 de-fork 做到 S4/S7**。前 6 个 commit 已 push + deploy 并逐项验证。de-fork 的 S0-S4 已 commit、**未发布**。47 套测试绿。）
 >
 > ⚠️ **本文件只留「活的交接」**——历史阶段已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
 
@@ -11,7 +11,7 @@
 
 ---
 
-## 🔨 进行中：P1 PvP · 引擎 de-fork（8 步，已完成 3 步）
+## 🔨 进行中：P1 PvP · 引擎 de-fork（8 步，已完成 5 步）
 
 **已决**（`DEPLOY.md §4` 现在是权威，已改写）：房间码 + VPS 哑中继 + **host 权威** + **WebSocket**（选 WS 不是偏好，是 sw.js 逼的）+ 零依赖 · 公平模式 · 答题中性加成 · 三条不变量。
 **已决**（本次会话，用户裁定）：**de-fork 引擎**（否决「硬化 AI 接缝」）· 相位机与之捆绑 · 答题**各端只记自己的 Leitner**、streak 按方计分、奖励中性 · S4/S5 的平衡变化**先原样上、等齐齐实打再调**。
@@ -22,17 +22,24 @@
 | S0 | 玩家侧回调收口读 `battleStateRef`（**de-fork 的前提**） | ✅ `614dfa4` |
 | S1 | gate 抽成 side 参数化纯谓词 `engine/rules.js` + `sides.js` | ✅ `4cba729` |
 | S2 | 回合标记进 reducer 每侧数组 + 干掉「先标后滚」舞蹈 | ✅ `3e4e606` |
-| **S3** | `activeSide` + 每侧 `phase` + `derivePhase` + **把敌方阶段真正驱动起来（但不设 gate）** | ⬜ **下一步** |
-| S4 | de-fork `playToField`（**第一个真改 AI 行为的 commit**） | ⬜ |
-| S5 | de-fork `attack` | ⬜ |
+| S3 | `activeSide` + 每侧 `phase` + `derivePhase` + 驱动敌方阶段（不设 gate） | ✅ `1fdbed6` |
+| S4 | de-fork `playToField` —— AI 第一次受能量/阵营/槽位约束 | ✅ `afd933a` |
+| **S5** | de-fork `attack`（**守护优先 + 一卡一次 第一次约束 AI**） | ⬜ **下一步** |
 | S6 | de-fork `playEventCard` + **修 tryTriggerSp 的真 SP fork** | ⬜ |
 | S7 | 镜像测试 + 棘轮（让 de-fork 保持 de-forked） | ⬜ |
 
-### ⚠️ 开工 S3 前必读（三个设计全踩空、评审只有一个发现的坑）
-1. **顺序铁律：先让状态为真，再对它设卡。** 今天 useAITurn **没有任何** `endMainPhase` 调用 —— 敌方根本没有 main→battle 转移（唯一的 `PHASE_SET 'battle'` 在 `endMainPhase`，玩家专用）。所以 **S3 负责驱动敌方阶段、不设 gate；S4/S5 才设 gate**。反了 → AI 静默变哑、测试全绿。
-   → 因此「useAITurn diff 必须 0 行」这个诱人的验收标准**必须废掉**：它与 gate 数学上互斥。useAITurn 在 S3 确切新增两个调用（攻击循环前 `endMainPhase('enemy')`、交接处 `endBattlePhase('enemy')`）。
-2. **`TURN_HANDOFF{from,to}` 必须原子。** 分两次 dispatch → 有一帧 `activeSide` 已是 enemy 而 `enemy.phase` 还是 ended → useAITurn 放行、`aiRunning=true` 置位、gate 全拒 → **回合永久锁死**。（`aiRunning` 在 `.finally` 抛错时复位，**挂起时不复位**。）
-3. **`BattleScreen.jsx:869` 的 `battle.phase === 'enemyTurn'`** 是屏幕上**唯一**告诉七岁孩子「现在不是你动」的橙色标签。`derivePhase` 必须把 `activeSide==='enemy'` 映射回 `'enemyTurn'`，否则它恒为 false —— 不报错、不变红、build 通过，只是标签安静消失。
+### ⚠️ 开工 S5 前必读
+1. **返回形：`gameWon`(attack) 与 `gameOver`(aiAttack) 是同一个概念的两个名字** —— 都是「行动方刚赢了」。唯一消费者 `useAITurn:204`；BattleScreen **从不读 gameWon**（已 grep）。**绝不采用「gameOver = 本侧输」** —— 那会让 `attack('enemy')` 打死玩家主人时返回 `gameOver:false` → break 永不触发 → AI 在失败画面上继续挥砍。
+2. **`checkBossHPThreshold`（`useBattle.js:~303-322`）硬编码读 `enemy.leaderHp` + `setEnemyField`**，由 attack 的 leader 分支调用。**必须保持 `if (side === 'player')`**，否则 `attack('enemy')` 会拿错误的主人触发 Boss 台词/阶段转换。
+3. **删掉 `canCardAttack` 的 `checkAttacked` 参数**（`combat.js`）—— 这个参数存在的唯一理由就是让 aiAttack 弃权。删掉它就是 de-fork 在一个签名里的表达。同步更新 `test-combat-resolve.mjs`。
+4. **confused 分支分叉**：`attack` 写 attacked 并返回 `{confusedHit:true}`；`aiAttack` 返回 `{skipped:false, confusedHit:true}` 且**不**写标记。统一后 AI 的混乱卡会被标记 —— 正确，但是行为变化。
+5. **敌方技能浮字首次出现**：aiAttack 丢弃 `handlePostAttackSkills` 的返回。统一后敌方的压制/穿透浮字会第一次被喂进 BattleScreen。不是崩溃，是节奏变化。
+6. ⚠️ **AI 会变弱**（守护第一次约束它）—— 用户已裁定「先原样上，等齐齐实打再调」。**S5 单独发布、单独试玩**。
+
+### 📌 S0-S4 的经验（会再咬人）
+- **实机验证不可省**：S4 我自己引入过一个回归 —— `preplaceCard` 不打日志 → 开局那张敌方卡**凭空出现、无任何日志解释**。47 套测试全绿，只有看日志开头才发现。
+- **计划也会错**：它说 `BattleScreen:404` 直接改指向 `preplaceCard` —— 但旧路径会触发 onPlay，而 cost≤1 生物卡 24 张里 **11 张带 onPlay**。照做会静默丢掉近一半开局卡的技能。正解是抽 `runOnPlaySkills`：一份实现、两个调用方。
+- **eslint 的 `no-undef` 真的有用**：S4 当场抓住我漏 import 的 `opp`。
 
 ### 🚫 计划裁定的「不要做」（都经源码核实）
 - **不要把科学家模式搬进引擎。** 三个设计全要搬、全声称「逐字节保持」、全都说错了机制：`calcCardBattle`（`damage.js:86`）**根本不读 `opts.damageMultiplier`** → 那 ×1.2 只在直攻主人生效、卡对卡时被静默丢弃。搬进引擎 = **顺手给每次卡牌攻击 +20%，把难度改动伪装成重构**。它今天是玩家专属且正确（AI 不答题，永远赚不到）。卡牌路径的丢失另开平衡单。
@@ -48,6 +55,8 @@
 ## 最近完成（详见 CHANGELOG）
 | | |
 |---|---|
+| `afd933a` | **S4** de-fork playToField —— AI 第一次受能量/阵营/槽位约束。修掉三个真 bug（能量可扣成负数 / 被替换的卡不进弃牌堆→阵营标记长期少算 / 无阵营需求检查）。**真实平衡变化，两个方向** |
+| `1fdbed6` | **S3** activeSide + 每侧 phase + derivePhase。**敌方第一次有了相位机** —— 此前 main/battle 隐含「玩家的」，gate 不是懒得写，是**不可表达** |
 | `3e4e606` | **S2** 标记进 reducer 每侧数组（+13 真断言，含 JSON round-trip 护栏）。**「一卡一次」此前完全由 useAITurn 那个 for 循环的形状强制** —— 而那正是 PvP 要删的代码 |
 | `4cba729` | **S1** `rules.js` 纯谓词 + **60 条真断言**（规则第一次可测）。变异测试四发全中，其中「移除守护检查」= `aiAttack` 今天的真实状态 |
 | `614dfa4` | **S0** 玩家侧回调收口读 ref。**fork 的物理成因是「读值来源不同」，不是「gate 被删了」** |
@@ -57,7 +66,8 @@
 | `ac1169e` | 手牌 uid 补 side 前缀 —— 修 **PvE 既有**串台 bug（+21 断言） |
 | `6cffff1` | hooks 补 `.js` —— **战斗引擎从「不可测」变可测**（de-fork 的前提） |
 
-⚠️ **`6cffff1`…`8b2c1cc` 已 push + deploy 并逐项验证**（生产 sw.js = v2 + 旁路、bundle hash 与本地一致）。**`614dfa4`/`4cba729`/`3e4e606`（S0/S1/S2）已 commit 但未 push、未 deploy。**
+⚠️ **`6cffff1`…`8b2c1cc` 已 push + deploy 并逐项验证**（生产 sw.js = v2 + 旁路、bundle hash 与本地一致）。**S0-S4（`614dfa4` / `4cba729` / `3e4e606` / `1fdbed6` / `afd933a`）已 commit 但未 push、未 deploy。**
+⚠️ S0-S3 是纯重构零行为变化；**S4 起有真实平衡变化**（见上），发布前想清楚。
 
 ---
 
@@ -74,8 +84,8 @@
 ---
 
 ## 下次启动时优先
-1. **接着做 S3**（先读上方「开工 S3 前必读」三条）
-2. 视情况把 S0/S1/S2 push + deploy（三者都是纯重构、零行为变化、已实机验证）
+1. **接着做 S5**（先读上方「开工 S5 前必读」六条）
+2. 视情况把 S0-S3 push + deploy（纯重构、零行为变化、已实机验证）；S4 建议与 S5 分开发
 3. S4/S5 **分开发**，别同一天丢给齐齐两个平衡变化
 4. 等齐齐真机反馈 `stage_2_8` 新冠 Boss 在 6 格下是否如预期变难
 5. 🎴 内容线：**骨骼·钢铁支架**改卡面说明（非 bug，是「骨髓造血」的设计意图）· **S1 海洋深渊季**补 OCEAN 卡（现 11 张→~20，用 `bio-heroes-card-designer` skill 拉齐齐脑暴）
