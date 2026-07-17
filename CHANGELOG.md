@@ -5,6 +5,44 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## PvP 前置地基 + 引擎 de-fork 8/8（2026-07-17）✅ `6cffff1`…`94e3fe3`
+> 🔌 P1 PvP 开工。**de-fork 的起点是 `ARCHITECTURE.md:51` 自己点名的那笔债**：「attack/aiAttack、playToField/aiPlayToField 是两份近重复实现…改战斗规则须两处同步改」。那条规矩本身就是 fork 的伤疤 —— de-fork 是**删掉它**，不是更用力地遵守它。9-agent 设计 + 对抗评审，推翻了三个设计**共同**的假设。
+
+**地基（都是「即使 PvP 明天取消也该做」的）：**
+- [x] `6cffff1` `src/hooks/*.js` 补 `.js` 扩展名 —— **战斗引擎从「不可测」变可测**。Node ESM 不做扩展名补全 → `import('useBattle.js')` 直接 ERR_MODULE_NOT_FOUND。历史上「带扩展名的文件全都有测试、不带的全都没有」不是巧合，是因果
+- [x] `ac1169e` 手牌 uid 补 side 前缀 —— **PvE 既有 bug**：双方共用一个 `attackedThisTurn` Set，同卡同下标就串台。至今没暴雷只因预设卡组恰好不同；公平模式会让它从边缘变默认
+- [x] `4f3eae6` 更正两条「文档写了、代码从来没有」的规则：`QUIZ_CHANCE=0.25` 被 import 后**再没被引用过**（触发是确定性的）；`AWAKEN_PARTIAL` ×1.3 档**引擎从未产生过**
+- [x] `396db5a` sw.js `/api/*` 旁路 + CACHE_NAME v2（必须同 commit —— activate 只删 `k !== CACHE_NAME`，不 bump 则旧缓存永不失效）
+- [x] `8b2c1cc` `DEPLOY.md §4` 从「预案」改写成「已决架构」+ 三条不变量 + 两条会毁数据的部署纪律
+- [x] `0584be3` vite 加 `/api/*` 代理（正则 key `^/api/`，字符串 `/api` 会误伤 `/apidocs`）
+
+**de-fork 8 步：**
+- [x] `614dfa4` **S0** 玩家侧回调收口读 `battleStateRef` —— ★ **fork 的物理成因是「读值来源不同」，不是「gate 被删了」**。三个设计都想直接给 attack 加 side 参数，那样会撞上闭包里恒为 `'enemyTurn'` 的 phase → **AI 静默变哑而 46 个测试全绿**
+- [x] `4cba729` **S1** gate 抽成 side-blind 纯谓词 `engine/rules.js` + `sides.js`（60 真断言）
+- [x] `3e4e606` **S2** 回合标记进 reducer 每侧数组 + 干掉「先标后滚」舞蹈
+- [x] `1fdbed6` **S3** `activeSide` + 每侧 `phase` + `derivePhase` —— ★ 旧枚举把「发生什么」和「谁在做」编码进同一标量，于是 aiPlayToField **即使有人想查 phase 也查不了**（不存在「敌方的 main」）。**缺失的 gate 不是懒，是不可表达**
+- [x] `afd933a` **S4** de-fork `playToField` —— AI 第一次受能量/阵营/槽位约束
+- [x] `afdd136` **S5** de-fork `attack` —— **守护优先第一次由引擎约束 AI**
+- [x] `0a8fb19` **S6** de-fork `playEventCard` + 修 `tryTriggerSp` 的真 SP fork；**ai\* 三兄弟全退役**
+- [x] `f2c4f68` **S7** 镜像测试（462 断言）+ 棘轮（22 断言）
+- [x] `9785d99` `ARCHITECTURE.md` 更正五处过期说法（含它自己点名的那笔债）
+
+**修掉的真 bug（都不是 PvP 引入的，是 PvP 逼出来的）：**
+- `aiAttack` **一行守护检查都没有** —— 「守护优先」是 CLAUDE.md 速查里的核心规则，它至今没暴雷只因 `pickAiTarget` 的 T1 恰好优先挑守护卡 = **规则一直靠「AI 恰好礼貌」维持**
+- `aiPlayToField` 无条件扣能量（**敌方能量可扣成负数**）、覆盖占位者却不送弃牌堆（**弃牌堆是阵营标记的真相源** → 敌方标记长期少算）
+- `aiPlayEventCard` 召不出 SP 时**完全静默**（`getEligibleSpCards` 丢掉了 reason）
+- 「一卡一回合一次」此前**完全由引擎外强制** —— 靠 `useAITurn` 那个 for 循环的形状，而那正是 PvP 要删的代码
+
+**方法论（会再咬人）：**
+- **计划与评审也会错**：Design 1 白纸黑字写「`tryTriggerSp` 已带 side → 不动」（假：带 side 参数 ≠ 没有 fork）；计划说 `BattleScreen:404` 直接换 `preplaceCard`（会静默丢掉 **11/24 张** cost≤1 卡的 onPlay）。**每条都要自己核。**
+- **三个设计一致要把科学家模式搬进引擎并声称「逐字节保持」** —— 全都说错了机制：`calcCardBattle` **根本不读** `opts.damageMultiplier`，搬进去 = 顺手给每次卡牌攻击 +20%，**把难度改动伪装成重构**
+- **de-fork 让五个 grep 测试变红，且都红得有道理** —— 它们在编码「改战斗规则须两处同步改」那条规矩。断言数字变小 ≠ 覆盖变弱：不变式全保留，从「两处都得记着写」变成**结构保证**
+- **新守卫必须配变异测试**（S7 八发全中）：`mirror` 漏翻 `winner` 时**对合测试是结构性瞎的**（winner 是 swap 的不动点，漏翻照样绿，线上后果是**输的那个孩子看到胜利画面**）；把剥注释器改成恒等函数 → 棘轮**静默空转**
+- **实机验证不可省**：S4 我自己引入的「`preplaceCard` 不打日志 → 开局那张敌方卡凭空出现、无任何解释」，47 套全绿，只有看日志开头才发现
+- **浏览器验证前先断言 `window.innerWidth > 0`** —— 无头浏览器会以 0×0 视口起来，卡牌点击**静默失效**、读起来像引擎回归。是「用改动前代码跑同一脚本」的 A/B 对照证伪的
+
+---
+
 ## 直攻主人技能倍率收口（2026-07-17）✅ `57644b7`
 > ⚔️ 起因是 SESSION.md 挂着一条 🔴「虎鲸叠觉醒 34000 秒杀主人」。查下来**那条是假的**，但底下压着三个真缺陷。对抗性验证（3 视角 workflow）两次推翻主 agent 的结论。
 
