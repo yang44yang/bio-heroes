@@ -6,7 +6,7 @@
 //   ① 只 spread 被改的一侧 → 未改子树引用不变（防无谓重渲染/动画抖动）
 //   ② delta 型（powerbank_add/energy/leader/field updater）同 tick 顺序累加
 //   ③ FIELD_UPDATE 的 next===cur 引用相等 bailout
-import { battleReducer, initialBattleState } from '../src/engine/battleReducer.js'
+import { battleReducer, initialBattleState, derivePhase } from '../src/engine/battleReducer.js'
 import { MAX_FIELD_SLOTS } from '../src/data/deckRules.js'
 
 let pass = 0, fail = 0
@@ -16,15 +16,18 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b)
 const fresh = () => JSON.parse(JSON.stringify(initialBattleState))
 
 // ============ 0. 初始态 shape ============
-ok('0 initialBattleState 六组状态齐全', (() => {
+ok('0 initialBattleState 状态齐全（含 S2 的 marks、S3 的 activeSide + 每侧 phase）', (() => {
   const s = initialBattleState
-  return s.turn === 1 && s.phase === 'init' && s.winner === null &&
+  return s.turn === 1 && s.activeSide === 'player' && s.winner === null &&
+    s.phase === undefined &&   // S3：顶层 phase 已废除，真相源是 activeSide + state[side].phase
     ['player', 'enemy'].every(side =>
       s[side].powerBank && Array.isArray(s[side].discard) &&
       typeof s[side].energy === 'number' && typeof s[side].leaderHp === 'number' &&
       // 派生自常量而非写死 —— 这条断言是全仓唯一会因改 MAX_FIELD_SLOTS 变红的，
       // 写死 5 等于让「战场位数量」在测试里又多一个真相源。
-      Array.isArray(s[side].field) && s[side].field.length === MAX_FIELD_SLOTS)
+      Array.isArray(s[side].field) && s[side].field.length === MAX_FIELD_SLOTS &&
+      Array.isArray(s[side].summoned) && Array.isArray(s[side].attacked) &&
+      s[side].phase === 'init')
 })())
 ok('0 未知 action 原样返回同一引用', battleReducer(initialBattleState, { type: 'NOPE' }) === initialBattleState)
 
@@ -111,16 +114,90 @@ ok('② LEADER_DAMAGE 同 tick 多次累减（溢出循环语义）', (() => {
 })())
 ok('reducer 不碰 winner/phase（纯，胜负判定在调用端）', (() => {
   const n = battleReducer(fresh(), { type: 'LEADER_DAMAGE', side: 'player', amount: 99999 })
-  return n.player.leaderHp === 0 && n.winner === null && n.phase === 'init'
+  // 血扣到 0 也不自动判负 —— 胜负由调用端读 battleStateRef 算好再 dispatch GAME_OVER
+  return n.player.leaderHp === 0 && n.winner === null && n.player.phase === 'init'
 })())
 
 // ============ 回合机 turn/phase/winner（E5c-4）============
 ok('TURN_SET', battleReducer(fresh(), { type: 'TURN_SET', value: 8 }).turn === 8)
-ok('PHASE_SET', battleReducer(fresh(), { type: 'PHASE_SET', phase: 'battle' }).phase === 'battle')
+// --- S3：phase 每侧化 + activeSide + 原子交接 ---
+ok('SIDE_PHASE_SET：只改指定侧', (() => {
+  const n = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'battle' })
+  return n.player.phase === 'battle' && n.enemy.phase === 'init'
+})())
+ok('SIDE_PHASE_SET：同值 → 引用不变（no-op bailout，不变式③）', (() => {
+  const a = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'main' })
+  return battleReducer(a, { type: 'SIDE_PHASE_SET', side: 'player', phase: 'main' }) === a
+})())
+
+// ★ TURN_HANDOFF 的**原子性**是 S3 最要命的不变式。
+//   若 activeSide 与两侧 phase 分成多次 dispatch，中间那一帧里 activeSide 已是 enemy
+//   而 enemy.phase 还没到 main → useAITurn 放行并置 aiRunning=true，随后 gate 全拒
+//   → **回合永久锁死**（aiRunning 只在 .finally 复位：抛错会，挂起不会）。
+ok('★ TURN_HANDOFF 原子：一次 dispatch 同时到位 activeSide + 两侧 phase', (() => {
+  let s = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'battle' })
+  const n = battleReducer(s, { type: 'TURN_HANDOFF', from: 'player', to: 'enemy' })
+  return n.activeSide === 'enemy' && n.player.phase === 'ended' && n.enemy.phase === 'main'
+})())
+ok('★ TURN_HANDOFF 反向（敌方→玩家）对称', (() => {
+  let s = battleReducer(fresh(), { type: 'TURN_HANDOFF', from: 'player', to: 'enemy' })
+  s = battleReducer(s, { type: 'SIDE_PHASE_SET', side: 'enemy', phase: 'battle' })
+  const n = battleReducer(s, { type: 'TURN_HANDOFF', from: 'enemy', to: 'player' })
+  return n.activeSide === 'player' && n.enemy.phase === 'ended' && n.player.phase === 'main'
+})())
+ok('★ TURN_HANDOFF 后不存在「activeSide 已换、新行动方还没进 main」的中间态', (() => {
+  // 穷举一整轮交接，每一步都断言：activeSide 指向谁，谁就必须在 main/battle 之一
+  let s = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'main' })
+  const legal = (st) => ['main', 'battle'].includes(st[st.activeSide].phase)
+  const steps = [
+    { type: 'SIDE_PHASE_SET', side: 'player', phase: 'battle' },
+    { type: 'TURN_HANDOFF', from: 'player', to: 'enemy' },
+    { type: 'SIDE_PHASE_SET', side: 'enemy', phase: 'battle' },
+    { type: 'TURN_HANDOFF', from: 'enemy', to: 'player' },
+  ]
+  for (const a of steps) { s = battleReducer(s, a); if (!legal(s)) return false }
+  return true
+})())
 ok('WINNER_SET', battleReducer(fresh(), { type: 'WINNER_SET', winner: 'player' }).winner === 'player')
-ok('GAME_OVER 原子设 winner+phase:over', (() => {
+ok('GAME_OVER 原子设 winner + 两侧 ended（S3：over 不再是相位值，它就是 winner != null）', (() => {
   const n = battleReducer(fresh(), { type: 'GAME_OVER', winner: 'enemy' })
-  return n.winner === 'enemy' && n.phase === 'over'
+  return n.winner === 'enemy' && n.player.phase === 'ended' && n.enemy.phase === 'ended'
+})())
+
+// --- derivePhase：把新形状映射回旧的顶层标量（BattleScreen 20+ 处读取的保险）---
+ok('derivePhase: winner != null → over（压过一切）', (() => {
+  let s = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'main' })
+  s = battleReducer(s, { type: 'GAME_OVER', winner: 'player' })
+  return derivePhase(s) === 'over'
+})())
+ok('derivePhase: init / mulligan 是全局节拍（不看 activeSide）', (() => {
+  const a = fresh()
+  const b = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'mulligan' })
+  return derivePhase(a) === 'init' && derivePhase(b) === 'mulligan'
+})())
+ok('derivePhase: activeSide=player → 直接映射 player.phase', (() => {
+  const m = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'main' })
+  const b = battleReducer(m, { type: 'SIDE_PHASE_SET', side: 'player', phase: 'battle' })
+  return derivePhase(m) === 'main' && derivePhase(b) === 'battle'
+})())
+ok("★ derivePhase: activeSide=enemy → 'enemyTurn'（BattleScreen 的橙色标签 + useAITurn 的触发条件）", (() => {
+  let s = battleReducer(fresh(), { type: 'SIDE_PHASE_SET', side: 'player', phase: 'battle' })
+  s = battleReducer(s, { type: 'TURN_HANDOFF', from: 'player', to: 'enemy' })
+  const atMain = derivePhase(s)
+  // 敌方内部推进到 battle 后，对外仍必须是 'enemyTurn' —— 否则 useAITurn 的 effect 会重入
+  const s2 = battleReducer(s, { type: 'SIDE_PHASE_SET', side: 'enemy', phase: 'battle' })
+  return atMain === 'enemyTurn' && derivePhase(s2) === 'enemyTurn'
+})())
+ok('derivePhase: 全枚举只产出旧模型存在过的值（且绝不产出已删的 animating）', (() => {
+  const seen = new Set()
+  for (const activeSide of ['player', 'enemy'])
+    for (const pp of ['init', 'mulligan', 'main', 'battle', 'ended'])
+      for (const w of [null, 'player', 'enemy']) {
+        const s = { ...fresh(), activeSide, winner: w, player: { ...fresh().player, phase: pp } }
+        seen.add(derivePhase(s))
+      }
+  const legal = new Set(['init', 'mulligan', 'main', 'battle', 'enemyTurn', 'over'])
+  return [...seen].every(v => legal.has(v)) && !seen.has('animating')
 })())
 
 // ============ 战场 field（E5c-5）============

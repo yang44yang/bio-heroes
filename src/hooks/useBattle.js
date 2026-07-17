@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useReducer } from 'react'
 import { useLatestRef } from './useLatestRef.js'
-import { battleReducer, initialBattleState } from '../engine/battleReducer.js'
+import { battleReducer, initialBattleState, derivePhase } from '../engine/battleReducer.js'
 // QUIZ_CHANCE 曾在此 import、但从未被引用 —— 问答触发是确定性的（见 tryQuiz：
 // 首次攻击必触发，之后每 ≥3 回合一次），不是 25% 概率。留着这个 import 会让
 // 「文档写的 25% 概率」看起来像是接了线的，故摘除。常量本身保留在 deckRules
@@ -48,8 +48,10 @@ const PLAY_REJECT_MSG = {
  *   mulligan → main（出牌）→ battle（攻击）→ enemyTurn（AI）→ main …
  */
 export function useBattle() {
-  // === 回合 & 阶段 === turn/phase/winner 于 E5c-4 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
-  // phase: init | mulligan | main | battle | animating | enemyTurn | over
+  // === 回合 & 阶段 === turn/activeSide/每侧 phase/winner 住在 battleReducer（E5c-4 → S3）
+  // 真相源：state.activeSide（轮到谁） + state[side].phase（那一侧的进度：init|mulligan|main|battle|ended）
+  // 对外仍暴露旧的顶层 phase 标量（derivePhase 派生）→ BattleScreen 20+ 处读取与 useAITurn 的
+  // deps [battle.phase] 零改动。'animating' 已删（零消费的幽灵）；'over' 派生自 winner != null。
   // ⚡ 能量 playerEnergy/enemyEnergy 于 E5c-2 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
 
   // === 主人 HP === playerLeaderHp/enemyLeaderHp 于 E5c-3 迁进 battleReducer，派生自 reducer（见下方 battleState 后）
@@ -79,7 +81,9 @@ export function useBattle() {
 
   // === 回合机 turn/phase/winner（E5c-4 迁进 battleReducer，派生自 reducer）===
   const turn = battleState.turn
-  const phase = battleState.phase
+  // 旧形状由纯函数派生（穷举测试 scripts/test-legacy-phase.mjs）——
+  // 内部对称、外部不变，是「BattleScreen 零改动」这个赌注的唯一保险。
+  const phase = derivePhase(battleState)
   const winner = battleState.winner
 
   // === Power Bank 能量储蓄罐（派生自 reducer，供 return 导出 / UI 读取）===
@@ -1396,7 +1400,7 @@ export function useBattle() {
   // ----------------------------------------------------------------
   // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
   const playEventCard = useCallback((card, opts = {}) => {
-    if (battleStateRef.current.phase !== 'main') return { ok: false, msg: '现在不能出牌' }
+    if (derivePhase(battleStateRef.current) !== 'main') return { ok: false, msg: '现在不能出牌' }
     if (card.cost > battleStateRef.current.player.energy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
 
     // 1. Deduct energy
@@ -1661,7 +1665,10 @@ export function useBattle() {
         })
       }
     }
-    dispatch({ type: 'PHASE_SET', phase: 'mulligan' })
+    // 开局：玩家换牌；敌方直接 'ended'（AI 从不换牌 —— 行为与旧代码逐字节一致，
+    // 旧模型下 mulligan 也是全局单相，敌方压根没有换牌的表示）。
+    dispatch({ type: 'SIDE_PHASE_SET', side: 'player', phase: 'mulligan' })
+    dispatch({ type: 'SIDE_PHASE_SET', side: 'enemy', phase: 'ended' })
   }, [])
 
   // ----------------------------------------------------------------
@@ -1669,9 +1676,10 @@ export function useBattle() {
   // ----------------------------------------------------------------
   // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
   const endMulligan = useCallback(() => {
-    if (battleStateRef.current.phase !== 'mulligan') return
+    if (derivePhase(battleStateRef.current) !== 'mulligan') return
     addLog('🔵 你的回合 1（能量 1）')
-    dispatch({ type: 'PHASE_SET', phase: 'main' })
+    // 玩家换牌结束 → 玩家的第一个回合开始。activeSide 开局就是 'player'，这里只推进它自己的相位。
+    dispatch({ type: 'SIDE_PHASE_SET', side: 'player', phase: 'main' })
   }, [addLog])
 
   // ----------------------------------------------------------------
@@ -1741,13 +1749,31 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  结束出牌 → 战斗阶段
   // ----------------------------------------------------------------
-  const endMainPhase = useCallback(() => {
-    if (battleStateRef.current.phase !== 'main') return
-    // 仅清玩家的 attacked。旧代码清的是共用 Set（连敌方的一起清了）—— 无害但语义不清：
-    // 敌方标记的正规清理点是 startPlayerTurn。收成每侧后这里的作用域才是准的。
-    dispatch({ type: 'MARKS_CLEAR', side: 'player', which: 'attacked' })
-    dispatch({ type: 'PHASE_SET', phase: 'battle' })
-    addLog('--- ⚔️ 战斗阶段 ---')
+  /**
+   * 结束出牌 → 战斗阶段。**side 参数化（S3）**。
+   *
+   * ⚠️ 这是 S3 的核心，也是三个设计全都踩空的地方：**敌方此前根本没有 main→battle 转移**
+   *   —— 全项目唯一的 `PHASE_SET 'battle'` 就在本函数，而它是玩家专用的。
+   *   所以 aiPlayToField **即使有人想查 phase 也查不了**：不存在一个「敌方的 main」可查。
+   *   缺失的 gate 不是懒，是**不可表达**。
+   *
+   * ⚠️ 顺序铁律：**先让状态为真，再对它设卡**。S3（本 commit）只负责把敌方的相位真正
+   *   驱动起来、**不设 gate**；S4/S5 才让 gate 去读它（那时条件已被满足）。反过来做 →
+   *   AI 静默变哑，而 47 套测试全绿。
+   *   → 因此「useAITurn 的 diff 必须是 0 行」这个诱人的验收标准是**错的**：它与 gate
+   *     数学上互斥。useAITurn 必须新增这个调用。
+   *
+   * @param {'player'|'enemy'} [side='player'] —— 默认值让 7 个玩家调用点零改动，
+   *        且字面量只活在 React 外壳里、永不进 rules.js（见 sides.js / rules.js 的 side-blind 约定）。
+   */
+  const endMainPhase = useCallback((side = 'player') => {
+    if (battleStateRef.current.activeSide !== side) return
+    if (battleStateRef.current[side].phase !== 'main') return
+    // 只清行动方自己的 attacked（旧代码清的是共用 Set → 连对面的一起清了；无害但语义不清）
+    dispatch({ type: 'MARKS_CLEAR', side, which: 'attacked' })
+    dispatch({ type: 'SIDE_PHASE_SET', side, phase: 'battle' })
+    // 日志前缀沿用既有约定：玩家无前缀、敌方 🔴（BattleScreen 靠它区分双方叙事）
+    addLog(side === 'player' ? '--- ⚔️ 战斗阶段 ---' : '🔴 --- 敌方攻击 ---')
   }, [addLog])
 
   // ----------------------------------------------------------------
@@ -1957,7 +1983,7 @@ export function useBattle() {
   // ----------------------------------------------------------------
   // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
   const endBattlePhase = useCallback(() => {
-    if (battleStateRef.current.phase !== 'battle') return
+    if (derivePhase(battleStateRef.current) !== 'battle') return
     // 玩家回合结束时的 onTurnEnd 技能
     const endEvents = processEndOfTurnEffects('player')
     pushSkillEvents(endEvents)
@@ -1978,7 +2004,11 @@ export function useBattle() {
       }
     }
 
-    dispatch({ type: 'PHASE_SET', phase: 'enemyTurn' })
+    // ★ 原子交接（S3）：一次 dispatch 同时写 activeSide + 两侧 phase。
+    //   拆成多次 → 有一帧 activeSide 已是 enemy 而 enemy.phase 还没到 main：
+    //   useAITurn 放行并置 aiRunning=true，随后 gate 全拒 → 回合永久锁死
+    //   （aiRunning 只在 .finally 复位：抛错会，挂起不会）。
+    dispatch({ type: 'TURN_HANDOFF', from: 'player', to: 'enemy' })
   }, [addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
@@ -2261,7 +2291,8 @@ export function useBattle() {
       return { ...prev, turnsLeft: left }
     })
 
-    dispatch({ type: 'PHASE_SET', phase: 'main' })
+    // ★ 原子交接（S3）：敌方回合结束 → 玩家新回合。理由同 endBattlePhase。
+    dispatch({ type: 'TURN_HANDOFF', from: 'enemy', to: 'player' })
   }
 
   // ----------------------------------------------------------------
@@ -2358,8 +2389,9 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  动画控制
   // ----------------------------------------------------------------
-  const setAnimating = useCallback(() => dispatch({ type: 'PHASE_SET', phase: 'animating' }), [])
-  const restorePhase = useCallback((p) => dispatch({ type: 'PHASE_SET', phase: p }), [])
+  // setAnimating / restorePhase 已删（S3）—— 幽灵：它们曾被导出，但 grep 确认全项目
+  // 零消费，且无人读 phase==='animating'。'animating' 也已从枚举移除。
+  // 在状态形状迁移里驮着一个没人用的相位，是「幽灵变成承重墙」的标准剧本。
 
   // ----------------------------------------------------------------
   //  只读最新值快照（E5b）
@@ -2404,7 +2436,6 @@ export function useBattle() {
     playEventCard, aiPlayEventCard, confirmSpSummon, cancelSpSummon, summonSpCard, dismissEnvEvent,
     getEligibleSpCards,
     tryQuiz, answerQuiz,
-    setAnimating, restorePhase,
     setPlayerField, setEnemyField, addLog,
     pushSkillEvents, clearSkillEvents,
     setHandRefs,  // Sprint 27: BattleScreen 注入手牌引用

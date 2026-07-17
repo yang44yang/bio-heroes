@@ -165,7 +165,13 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
 
       // --- 4. AI 攻击阶段 ---
       await delay(400)
-      battle.addLog('🔴 --- 敌方攻击 ---')
+      // ★ S3：把敌方的相位真正推进到 battle（enemy.phase: 'main' → 'battle'）。
+      //   此前敌方**根本没有 main→battle 转移** —— 唯一的 PHASE_SET 'battle' 在
+      //   endMainPhase 里且是玩家专用的。这正是 aiPlayToField/aiAttack 一道 gate 都没有的
+      //   根因：不存在一个「敌方的 main」可查，gate **不可表达**。
+      //   顺序铁律：S3 只驱动状态、**不设 gate**；S4/S5 才让 gate 读它。反了 → AI 静默变哑。
+      //   （日志「🔴 --- 敌方攻击 ---」已并入 endMainPhase，故此处不再单独 addLog。）
+      battle.endMainPhase('enemy')
       await delay(100)
 
       for (let atkSlot = 0; atkSlot < MAX_FIELD_SLOTS; atkSlot++) {

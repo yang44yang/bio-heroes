@@ -66,7 +66,11 @@ function assertSide(side, fn) {
 export function canPlayCard(state, side, card, slotIdx) {
   assertSide(side, 'canPlayCard')
   if (!card) return no('slot')
-  if (state.phase !== 'main') return no('phase')
+  // S3：phase 每侧化 —— 「轮到我」且「我在出牌阶段」。对 side='player' 与旧的顶层
+  // `state.phase !== 'main'` 逐字等价（旧的 'main' 本就只在玩家回合存在）。
+  // 对 side='enemy' 这句**今天还没有调用方** —— S4 才把 AI 接过来（顺序铁律：
+  // S3 只负责把敌方的 phase 真正驱动起来，S4/S5 才对它设卡）。
+  if (state.activeSide !== side || state[side].phase !== 'main') return no('phase')
   if (card.cost > state[side].energy) return no('energy')
   if (slotIdx < 0 || slotIdx >= MAX_FIELD_SLOTS) return no('slot')
   // 阵营标记的真相源是**弃牌堆**（打出的卡进弃牌堆 → 累积标记）
@@ -91,7 +95,8 @@ export function canPlayCard(state, side, card, slotIdx) {
  */
 export function canAttackFrom(state, side, atkSlot, marks) {
   assertSide(side, 'canAttackFrom')
-  if (state.phase !== 'battle') return no('phase')
+  // S3：同 canPlayCard —— 「轮到我」且「我在战斗阶段」
+  if (state.activeSide !== side || state[side].phase !== 'battle') return no('phase')
   const atkCard = state[side].field[atkSlot]
   if (!atkCard || atkCard.currentHp <= 0) return no('empty')
   const gate = canCardAttack(atkCard, {

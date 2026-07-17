@@ -44,10 +44,21 @@ const byId = (id) => {
 const onField = (card, over = {}) => ({
   ...card, uid: `test_${card.id}`, currentHp: card.hp, maxHp: card.hp, statuses: [], ...over,
 })
-/** 从真的 initialBattleState 深拷贝 —— 不手搓 */
-const freshState = (over = {}) => {
+/**
+ * 从真的 initialBattleState 深拷贝 —— 不手搓。
+ *
+ * S3：phase 每侧化 + 新增 activeSide。`freshState({ phase: 'main' })` 这个旧写法
+ * 会在**顶层**塞一个引擎再也不读的 phase 字段 —— 那正是「fixture 与生产状态形状漂移」
+ * 的经典假绿路径（测试会因为「gate 读不到它以为存在的字段」而红，或更糟：因为某个
+ * 兜底分支恰好放行而绿）。所以这里显式建模新形状：谁在动 + 那一侧的进度。
+ *
+ * @param {{phase?:string, activeSide?:string}} over —— phase 指**行动方**的相位
+ */
+const freshState = ({ phase, activeSide = PLAYER, ...rest } = {}) => {
   const s = structuredClone(initialBattleState)
-  return { ...s, ...over }
+  s.activeSide = activeSide
+  if (phase !== undefined) s[activeSide].phase = phase
+  return { ...s, ...rest }
 }
 
 const WHALE = byId('blue_whale_titan')      // 有 Guard 技能（真守护卡）
@@ -61,9 +72,14 @@ const FLU = byId('flu_virus')                // 普通病原系卡（无守护�
   st.player.energy = 3
 
   // phase
-  for (const p of ['init', 'mulligan', 'battle', 'enemyTurn', 'over']) {
-    eqReason(canPlayCard({ ...st, phase: p }, PLAYER, CHEETAH, 0), 'phase', `① phase='${p}' 不能出牌`)
+  for (const p of ['init', 'mulligan', 'battle', 'ended']) {
+    const bad = { ...st, player: { ...st.player, phase: p } }
+    eqReason(canPlayCard(bad, PLAYER, CHEETAH, 0), 'phase', `① player.phase='${p}' 不能出牌`)
   }
+  // ⚠️ S3 新增的维度：**相位对、但不是我的回合** —— 旧的顶层标量表达不了这个状态，
+  //    而它正是 PvP 里最关键的一条（guest 不能在 host 的回合出牌）。
+  eqReason(canPlayCard({ ...st, activeSide: ENEMY }, PLAYER, CHEETAH, 0), 'phase',
+    '① player.phase=main 但 activeSide=enemy → 不能出牌（不是我的回合）')
   assert(canPlayCard(st, PLAYER, CHEETAH, 0).ok, '① phase=main 可以出牌')
 
   // 能量边界：cost 恰好等于 energy → 可以；cost = energy+1 → 不行
@@ -111,9 +127,12 @@ const FLU = byId('flu_virus')                // 普通病原系卡（无守护�
   st.player.field[0] = onField(WHALE)
   const noMarks = { summonedThisTurn: new Set(), attackedThisTurn: new Set() }
 
-  for (const p of ['init', 'mulligan', 'main', 'enemyTurn', 'over']) {
-    eqReason(canAttackFrom({ ...st, phase: p }, PLAYER, 0, noMarks), 'phase', `② phase='${p}' 不能攻击`)
+  for (const p of ['init', 'mulligan', 'main', 'ended']) {
+    const bad = { ...st, player: { ...st.player, phase: p } }
+    eqReason(canAttackFrom(bad, PLAYER, 0, noMarks), 'phase', `② player.phase='${p}' 不能攻击`)
   }
+  eqReason(canAttackFrom({ ...st, activeSide: ENEMY }, PLAYER, 0, noMarks), 'phase',
+    '② player.phase=battle 但 activeSide=enemy → 不能攻击（不是我的回合）')
   assert(canAttackFrom(st, PLAYER, 0, noMarks).ok, '② phase=battle 可以攻击')
 
   eqReason(canAttackFrom(st, PLAYER, 1, noMarks), 'empty', '② 空位不能攻击')
@@ -187,7 +206,14 @@ const FLU = byId('flu_virus')                // 普通病原系卡（无守护�
 // ---- ④ side 对称性（S7 完整镜像测试的前哨）----
 // 同一份局面镜像后，两侧的判定必须完全一致。今天这条能过，是因为 rules.js 里没有侧别字面量。
 {
-  const mirror = (s) => ({ ...s, player: structuredClone(s.enemy), enemy: structuredClone(s.player) })
+  // ⚠️ mirror 必须翻 activeSide —— 它和 winner 一样是「带侧别语义的顶层标量」。
+  //    漏翻 → 镜像后「轮到谁」还是原来那侧，两侧判定不再对称（S7 的完整镜像测试会更严）。
+  const mirror = (s) => ({
+    ...s,
+    activeSide: s.activeSide === PLAYER ? ENEMY : PLAYER,
+    player: structuredClone(s.enemy),
+    enemy: structuredClone(s.player),
+  })
 
   const base = freshState({ phase: 'battle' })
   base.player.field[0] = onField(CHEETAH)

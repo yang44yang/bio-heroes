@@ -33,9 +33,18 @@ const emptyField = () => Array(MAX_FIELD_SLOTS).fill(null)
 
 export const initialBattleState = {
   // 顶层「回合机」状态（E5c-4）
+  // ⚠️ turn 仍只数**玩家回合**（startPlayerTurn 里 +1）—— 它是环境事件 / 病毒 DoT /
+  //    SP 第 8 回合开闸的节拍器。S3 刻意**不动**它：把它改成「轮」会平移 env 事件节奏，
+  //    直接改闯关手感。PvP 里这意味着节拍只在 host 的半回合跑 —— 是交接事项，不是本次的活。
+  //    ⚠️ 每侧阶段机会让这个不对称**看起来像修好了**，那比现在这种显眼的不对称更危险。
   turn: 1,
-  phase: 'init',   // init|mulligan|main|battle|animating|enemyTurn|over
-  winner: null,    // null|'player'|'enemy'
+  // ★ activeSide（S3）：轮到谁行动。**取代了旧 phase 枚举里的 'enemyTurn' 这一枚值。**
+  //   旧枚举把「发生什么」（main/battle）和「谁在做」（enemyTurn）编码进**同一个标量** ——
+  //   这正是 fork 的成因：main/battle 隐含「玩家的」，于是 aiPlayToField **即使有人想查
+  //   phase 也查不了**（根本不存在一个「敌方的 main」可查）。缺失的 gate 不是懒，是**不可表达**。
+  //   activeSide + 每侧 phase 是同一份信息的正交分解 —— 这就是把阶段机与 de-fork 捆在一起的全部理由。
+  activeSide: 'player',
+  winner: null,    // null|'player'|'enemy'  ⚠️ 带侧别语义的顶层标量 → 将来的 mirror() 必须翻它
   // ★ summoned / attacked（S2）：本回合「已召唤」「已攻击」的 uid，**每侧一份**。
   //   三条独立理由，任一足够：
   //   ① 正确性 —— 此前是 useBattle.js 的两个 useRef(new Set())，**一个 Set 装两侧**。
@@ -50,8 +59,46 @@ export const initialBattleState = {
   //      「靠 React hook 里一个 for 循环维持的规则」在 node 里测不了；
   //      `state.enemy.attacked.includes(uid)` 测得了。**这是让镜像测试成立的那一步。**
   //   用数组不用 Set：JSON 友好；≤6 格，includes() 的开销可忽略。
-  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [] },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [] },
+  //
+  // ★ phase（S3）：**每侧一份**，只描述「那一侧在自己回合里的进度」。
+  //   'init' | 'mulligan' | 'main' | 'battle' | 'ended'
+  //   · 'over' **不在**枚举里 —— 它一直就是 `winner != null`，GAME_OVER 早已原子设两者。派生即可。
+  //   · 'animating' **已删** —— 幽灵：setAnimating/restorePhase 曾被导出但零消费，
+  //     且无人读 phase==='animating'。在状态形状迁移里驮着幽灵，是幽灵变成承重墙的标准剧本。
+  //   · 'ended' = 本回合已结束、等对手行动。
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init' },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init' },
+}
+
+/**
+ * derivePhase —— 把新状态映射回**旧的顶层 phase 标量**。纯函数。
+ *
+ * 存在的理由：BattleScreen 有 20+ 处读 `battle.phase`，useAITurn 的 effect deps 是
+ * `[battle.phase]`。让内部对称、外部保持旧形状 → 那些调用点**零改动**。
+ *
+ * | 旧值 | 新表达 |
+ * |---|---|
+ * | 'init' / 'mulligan' | player.phase 同名（开局是全局节拍，AI 从不换牌） |
+ * | 'main' / 'battle'   | activeSide==='player' && player.phase 同名 |
+ * | 'enemyTurn'         | activeSide==='enemy'（**敌方内部是 main 还是 battle，旧模型丢失了 —— 而那正是 gate 得以存在的信息**） |
+ * | 'over'              | winner != null |
+ * | 'animating'         | 已删（幽灵） |
+ *
+ * ⚠️ `activeSide==='enemy'` 必须映射回 'enemyTurn'：那是 BattleScreen 里**唯一**告诉
+ *    七岁孩子「现在不是你动」的橙色标签，也是 useAITurn 整个回合的触发条件。漏了 →
+ *    不报错、不变红、build 通过，只是 AI 再也不动、标签安静消失。
+ *
+ * 穷举测试见 scripts/test-legacy-phase.mjs。
+ */
+export function derivePhase(state) {
+  if (state.winner) return 'over'
+  // 开局两相是全局的（mulligan 是本局唯一真正并发的时刻，不看 activeSide）
+  if (state.player.phase === 'init') return 'init'
+  if (state.player.phase === 'mulligan') return 'mulligan'
+  if (state.activeSide === 'enemy') return 'enemyTurn'
+  // activeSide==='player' 且 player.phase==='ended' 是非法态（原子交接下不可能出现）；
+  // 映射成 'battle' 是最无害的兜底 —— 不会让 UI 误以为可以出牌。
+  return state.player.phase === 'ended' ? 'battle' : state.player.phase
 }
 
 export function battleReducer(state, action) {
@@ -139,16 +186,49 @@ export function battleReducer(state, action) {
       return { ...state, [side]: { ...state[side], leaderHp: Math.max(0, updater(state[side].leaderHp)) } }
     }
 
-    // --- 回合机 turn / phase / winner（E5c-4）---
+    // --- 回合机 turn / activeSide / 每侧 phase / winner（E5c-4 → S3）---
     case 'TURN_SET':
       return { ...state, turn: action.value }
-    case 'PHASE_SET':
-      return { ...state, phase: action.phase }
+
+    case 'SIDE_PHASE_SET': {
+      // 取代旧的顶层 PHASE_SET。改一侧在自己回合里的进度。
+      const { side, phase } = action
+      if (state[side].phase === phase) return state          // no-op bailout（不变式③）
+      return { ...state, [side]: { ...state[side], phase } }
+    }
+
+    case 'TURN_HANDOFF': {
+      // ★ 回合交接**必须原子** —— 这是 S3 最容易写错、且症状最恶劣的地方。
+      //   若把 activeSide 与两侧 phase 分成多次 dispatch，中间会存在一帧：
+      //   activeSide 已是 'enemy'、而 enemy.phase 还没到 'main'。那一帧里
+      //   useAITurn 的 effect 会放行（它只看 derivePhase → 'enemyTurn'）并把
+      //   aiRunning 置 true，随后所有 gate 拒绝它 → **回合永久锁死**。
+      //   而 aiRunning 只在 .finally 复位 —— 抛错会复位，**挂起不会**。
+      //   一次 dispatch 同时写 activeSide + 两侧 phase。
+      //   from 侧 → 'ended'（回合结束、等对手）；to 侧 → 'main'（新回合从出牌开始）。
+      const { from, to } = action
+      return {
+        ...state,
+        activeSide: to,
+        [from]: { ...state[from], phase: 'ended' },
+        [to]: { ...state[to], phase: 'main' },
+      }
+    }
+
     case 'WINNER_SET':
       return { ...state, winner: action.winner }
+
     case 'GAME_OVER':
-      // 胜负 = winner + phase:'over' 原子设（取代散落的两步式胜负写）
-      return { ...state, winner: action.winner, phase: 'over' }
+      // 胜负原子设。旧版写 phase:'over'；phase 每侧化后 'over' 不再是相位值，
+      // 它就是 `winner != null`（derivePhase 据此派生）。这里同时把两侧钉死在 'ended'：
+      // 对局结束后任何一侧都不该再被判定为「在自己的回合里」。
+      // ⚠️ 这也是 useAITurn 的 .catch 兜底若在对局结束后误触发攻击时，能被安静拒绝的原因。
+      return {
+        ...state,
+        winner: action.winner,
+        player: { ...state.player, phase: 'ended' },
+        enemy: { ...state.enemy, phase: 'ended' },
+      }
 
     // --- 回合标记 summoned / attacked（S2）---
     // 全部幂等：重复 MARK 同一个 uid 不变 state（引用相等 bailout），与 Set.add 语义一致。
