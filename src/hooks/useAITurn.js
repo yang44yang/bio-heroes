@@ -114,9 +114,15 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
           }
 
           if (chosenEvent) {
-            battle.aiPlayEventCard(chosenEvent, {
+            // ★ S6：走统一的 playEventCard（gate 会真的查 activeSide/phase/能量）。
+            //   ⚠️ playCard 必须在 r.ok 之后 —— 同 S4 的手牌蒸发问题。
+            const r = battle.playEventCard(chosenEvent, {
               drawCards: (n) => enemyHand.draw(n),
-            })
+            }, 'enemy')
+            if (!r.ok) {
+              battle.addLog(`🔴 ${chosenEvent.name} 无法打出：${r.msg}`)
+              break
+            }
             enemyHand.playCard(chosenEvent.uid)
             cardsPlayed++
             playSound('cardPlay')

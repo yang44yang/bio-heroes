@@ -1,4 +1,10 @@
-// AI 选靶纯函数 —— 从 useAITurn 的攻击循环抽出（E4 抽 hook 之后又一刀），可单测、与 React/音效解耦。
+// AI 决策纯函数 —— 与 React/音效解耦，可单测。
+//
+// 本文件放的是 AI 的**人格**（怎么选），不是**规则**（能不能）。
+// 规则住 engine/rules.js（side-blind，两侧共用）；人格只属于 AI。
+// de-fork 之后这条界线尤其要守住：引擎不该知道「敌方会挑费用最高的 SP」这种事。
+//
+// 选靶纯函数 —— 从 useAITurn 的攻击循环抽出（E4 抽 hook 之后又一刀）。
 // 五档优先级：
 //   T1 守护强制（有守护卡且攻击者不无视守护 → 必打守护卡）
 //   T2 场上零卡（全员隐身/空场）→ 直攻主人（-1）
@@ -61,4 +67,33 @@ export function pickAiTarget({
   }
   // T5: 随机攻击
   return pAlive[Math.floor(rng() * pAlive.length)].slot
+}
+
+/**
+ * AI 从翻出的 SP 候选里选一张（**人格，不是规则**）。
+ *
+ * 从 useBattle 搬出来（S6 de-fork）。此前这段逻辑内联在引擎的两个地方：
+ *   · `aiPlayEventCard`：`if (Math.random() > 0.20) { candidates.reduce(spCost 最高) } else { 敌方没有触发 SP 召唤 }`
+ *   · `tryTriggerSp`：`if (side === 'player') setPendingSpSummon(...) else { picks.reduce(spCost 最高); summonSpCard(...) }`
+ * 引擎因此「知道」敌方会挑费用最高的 SP、还有 20% 概率忘记 —— 那是 AI 的脾气，不是游戏规则。
+ *
+ * ⚠️ **为什么玩家侧不走这里**：玩家的选择是**异步**的（弹窗等点击），AI 的是**同步**的。
+ *   这个不对称无法在引擎里消除 —— 把敌方也改成异步会撞上 useAITurn 的 IIFE 闭包看不见
+ *   useState 更新的问题（pendingSpSummonRef 也不在 latest 上）。所以引擎里保留一处
+ *   「谁来选」的分叉，但它现在是**具名的、被解释过的**，而不是埋在函数中段的一个 if。
+ *   PvP 里 guest 的真实选择权需要一个可中断的两趟协议 —— 那是 PvP 层的活，不是 de-fork 的。
+ *
+ * @param {Array} candidates - 已经过规则筛选的合格 SP（引擎给的，本函数不判合法性）
+ * @param {Object} [opts]
+ * @param {number} [opts.forgetChance=0.20] - 「忘记召唤」的概率（AI 故意留的手滑空间，让孩子有喘息）
+ * @param {Function} [opts.rng=Math.random] - 注入以便测试喂确定性序列
+ * @returns {Object|null} 选中的 SP；null = 这次不召（忘了）
+ */
+export function pickAiSpCard(candidates, { forgetChance = 0.20, rng = Math.random } = {}) {
+  if (!candidates || candidates.length === 0) return null
+  // ⚠️ 逐字保持旧行为：`Math.random() > 0.20` 才召 —— 即**忘记**的概率是 0.20。
+  //   写成 `rng() < forgetChance → 忘记` 与之等价（连续分布上 P(x>0.2) === P(x>=0.2)），
+  //   但方向更直白：小于阈值 = 忘了。
+  if (rng() < forgetChance) return null
+  return candidates.reduce((best, sp) => (sp.spCost > best.spCost ? sp : best), candidates[0])
 }

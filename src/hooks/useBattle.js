@@ -21,6 +21,9 @@ import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine
 // 本 commit 只把**玩家路径**接过去；ai* 仍是另一份实现，fork 还在（S4/S5 才拆）。
 import { canPlayCard, canAttackFrom, canTargetSlot } from '../engine/rules.js'
 import { SIDES, opp } from '../engine/sides.js'
+// AI 的**人格**（挑哪张 SP / 20% 忘记）住 engine/aiTarget.js —— 与 pickAiTarget 同处，
+// 那里是「AI 怎么选」的家；引擎只管「能不能」（engine/rules.js）。S6 de-fork 的界线。
+import { pickAiSpCard } from '../engine/aiTarget.js'
 import { pickRandomEvent } from '../data/events.js'
 import { getBossMechanic } from '../engine/bossMechanics.js'
 import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill.js'
@@ -1399,54 +1402,105 @@ export function useBattle() {
   //  玩家出事件卡
   // ----------------------------------------------------------------
   // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
-  const playEventCard = useCallback((card, opts = {}) => {
-    if (derivePhase(battleStateRef.current) !== 'main') return { ok: false, msg: '现在不能出牌' }
-    if (card.cost > battleStateRef.current.player.energy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
+  /**
+   * 「翻出 N 张合格 SP → 选 1 张召唤」——**决策**部分。规则部分（谁合格、够不够回合、
+   * 有没有空位）在 getSpSummonOutcome 里，两侧共用、已经对称。
+   *
+   * ⚠️ **这是引擎里唯一一处「谁来选」的合法分叉**，因为它背后是一个真实的、今天消不掉的
+   *   不对称：**玩家的选择是异步的（弹窗等点击），AI 的是同步的**。把敌方也改成异步会撞上
+   *   useAITurn 的 IIFE 闭包看不见 useState 更新的问题（pendingSpSummonRef 也不在 latest 上）。
+   *   所以这个分叉留着 —— 但它现在是**具名的、被解释过的**，而不是埋在 playEventCard /
+   *   tryTriggerSp 函数中段的两个 if。AI 的**人格**（挑 spCost 最高 / 20% 忘记）已经搬去
+   *   engine/aiTarget.js 的 pickAiSpCard，引擎不再知道那些事。
+   *   PvP 里 guest 的真实选择权需要一个可中断的两趟协议 —— 那是 PvP 层的活。
+   */
+  // ⚠️ 日志归调用方，本函数只负责路由 —— 两个触发点（事件卡 / 门控条件）的文案本来就不同
+  //   （「可以召唤 SP 卡！选择一张...」vs「SP 觉醒条件达成！翻开 N 张...」），
+  //   把日志塞进来会让 tryTriggerSp 打出两条。
+  const resolveSpChoice = useCallback((side, candidates, rule) => {
+    if (side === 'player') {
+      // 玩家：交给 UI（BattleScreen 的弹窗只认 side==='player'，见其注释）
+      setPendingSpSummon({ side, candidates, rule })
+      return
+    }
+    // AI：同步决策（人格住 engine/aiTarget.js）
+    const chosen = pickAiSpCard(candidates)
+    if (chosen) summonSpCard(chosen, side)
+    else addLog(`🔴 敌方没有触发 SP 召唤`)
+  }, [addLog, summonSpCard])
+
+  /**
+   * 出事件卡。**唯一的一条路（S6 de-fork）** —— 玩家与 AI/guest 共用。
+   *
+   * 此前 aiPlayEventCard 是另一份实现，差异有三：
+   *   ① **零 gate**（不查 phase、不查能量）
+   *   ② 用 `getEligibleSpCards`（丢掉 reason）而非 `getSpSummonOutcome` → **敌方召不出 SP 时
+   *      静默**。玩家侧那几条「SP 无法召唤：战场已满 / 还差 N 回合」的解释性日志，注释里
+   *      写明了没有它「七岁孩子只会觉得游戏吞了他的卡」—— 敌方一侧从来没有这些日志。
+   *      统一后敌方也有了（带 🔴 前缀）：对齐齐来说，这是第一次能看懂 AI 为什么没放大招。
+   *   ③ 「选哪张 SP」的 AI 人格（20% 忘记 + 挑 spCost 最高）**内联在引擎里** —— 已搬去
+   *      engine/aiTarget.js 的 pickAiSpCard（人格归 AI 模块，规则留引擎）。
+   *
+   * @param {Object} card
+   * @param {Object} [opts] - 透传给 executeEventEffect（如 drawCards）
+   * @param {'player'|'enemy'} [side='player']
+   */
+  const playEventCard = useCallback((card, opts = {}, side = 'player') => {
+    const prefix = side === 'player' ? '' : '🔴 '
+    // gate：事件卡不占战场位 → 只查「轮到我 + 出牌阶段 + 能量够」（不走 canPlayCard，
+    // 那个还要查 slot/阵营需求）。语义与 rules.canPlayCard 的前两道一致。
+    if (battleStateRef.current.activeSide !== side || battleStateRef.current[side].phase !== 'main') {
+      return { ok: false, reason: 'phase', msg: '现在不能出牌' }
+    }
+    if (card.cost > battleStateRef.current[side].energy) {
+      return { ok: false, reason: 'energy', msg: `能量不足（需要 ${card.cost}）` }
+    }
 
     // 1. Deduct energy
-    dispatch({ type: 'ENERGY_SPEND', side: 'player', cost: card.cost })
+    dispatch({ type: 'ENERGY_SPEND', side, cost: card.cost })
 
     // 2. Execute effect
-    executeEventEffect(card, 'player', opts)
+    executeEventEffect(card, side, opts)
     // 事件卡 AOE（全球大流行/感染爆发等）可能击杀卡 → 清理 + 触发其 onDeath。
 
     // 3. Card goes to discard pile
-    dispatch({ type: 'DISCARD_ADD', side: 'player', cards: [card] })
-    addLog(`📜 事件卡 ${card.name} 进入弃牌堆`)
+    dispatch({ type: 'DISCARD_ADD', side, cards: [card] })
+    addLog(`${prefix}📜 事件卡 ${card.name} 进入弃牌堆`)
 
     // 4. Check SP summon
     let spCandidates = []
     if (card.spSummonRule) {
-      let remainEnergy = battleStateRef.current.player.energy
+      let remainEnergy = battleStateRef.current[side].energy
       if (card.spSummonRule.type === 'spend_all_energy') {
-        // Consume all remaining energy
-        remainEnergy = battleStateRef.current.player.energy
-        dispatch({ type: 'ENERGY_SET', side: 'player', value: 0 })
-        addLog(`⚡ 消耗所有剩余能量 ${remainEnergy} 点！`)
+        remainEnergy = battleStateRef.current[side].energy
+        dispatch({ type: 'ENERGY_SET', side, value: 0 })
+        addLog(`${prefix}⚡ 消耗所有剩余能量 ${remainEnergy} 点！`)
       }
-      const outcome = getSpSummonOutcome(card.spSummonRule, 'player', remainEnergy)
+      // ★ 两侧都走 getSpSummonOutcome —— 敌方此前用 getEligibleSpCards，丢掉了 reason。
+      const outcome = getSpSummonOutcome(card.spSummonRule, side, remainEnergy)
       spCandidates = outcome.eligible
       if (spCandidates.length > 0) {
-        // Set pending SP summon for UI to handle selection
-        setPendingSpSummon({ side: 'player', candidates: spCandidates, rule: card.spSummonRule })
-        addLog(`🌟 可以召唤 SP 卡！选择一张...`)
+        if (side === 'player') addLog(`🌟 可以召唤 SP 卡！选择一张...`)
+        resolveSpChoice(side, spCandidates, card.spSummonRule)
       } else {
-        // ★ 召不出来时必须说清为什么。旧版这里什么都不做：能量扣了、卡进弃牌堆了、
-        //   SP 没出来、也没有任何提示 —— 玩家（尤其 7 岁的）只会觉得游戏吞了他的卡。
+        // ★ 召不出来时必须说清为什么。旧版玩家侧才有这段；敌方侧什么都不做 ——
+        //   能量扣了、卡进弃牌堆了、SP 没出来、也没有任何提示。
+        //   （玩家侧的原注释：没有它「玩家尤其 7 岁的只会觉得游戏吞了他的卡」。
+        //     对敌方同样成立，只是被吞的是"AI 为什么没放大招"这个解释。）
         switch (outcome.reason) {
           case 'turn_gate': {
             const wait = outcome.soonestTurn - battleStateRef.current.turn
-            addLog(`⏳ SP 还不能召唤 —— 最早要到第 ${outcome.soonestTurn} 回合（还差 ${wait} 回合）`)
+            addLog(`${prefix}⏳ SP 还不能召唤 —— 最早要到第 ${outcome.soonestTurn} 回合（还差 ${wait} 回合）`)
             break
           }
           case 'no_field_slot':
-            addLog(`🌟 SP 无法召唤：战场已满，先腾出一个位置`)
+            addLog(`${prefix}🌟 SP 无法召唤：战场已满，先腾出一个位置`)
             break
           case 'no_match':
-            addLog(`🌟 SP 无法召唤：SP 卡组里没有符合这张事件卡条件的卡`)
+            addLog(`${prefix}🌟 SP 无法召唤：SP 卡组里没有符合这张事件卡条件的卡`)
             break
           case 'no_deck':
-            addLog(`🌟 SP 无法召唤：SP 卡组已空`)
+            addLog(`${prefix}🌟 SP 无法召唤：SP 卡组已空`)
             break
           default:
             break
@@ -1455,46 +1509,8 @@ export function useBattle() {
     }
 
     return { ok: true, spCandidates }
-  }, [addLog])
+  }, [addLog, resolveSpChoice])
 
-  // ----------------------------------------------------------------
-  //  AI 出事件卡
-  // ----------------------------------------------------------------
-  const aiPlayEventCard = useCallback((card, opts = {}) => {
-    // 1. Deduct energy
-    dispatch({ type: 'ENERGY_SPEND', side: 'enemy', cost: card.cost })
-
-    // 2. Execute effect
-    executeEventEffect(card, 'enemy', opts)
-    // 事件卡 AOE（全球大流行/感染爆发等）可能击杀卡 → 清理 + 触发其 onDeath。
-
-    // 3. Card goes to discard pile
-    dispatch({ type: 'DISCARD_ADD', side: 'enemy', cards: [card] })
-    addLog(`🔴 📜 事件卡 ${card.name} 进入弃牌堆`)
-
-    // 4. Check SP summon
-    if (card.spSummonRule) {
-      let remainEnergy = battleStateRef.current.enemy.energy
-      if (card.spSummonRule.type === 'spend_all_energy') {
-        remainEnergy = battleStateRef.current.enemy.energy
-        dispatch({ type: 'ENERGY_SET', side: 'enemy', value: 0 })
-        addLog(`🔴 ⚡ 消耗所有剩余能量 ${remainEnergy} 点！`)
-      }
-      const candidates = getEligibleSpCards(card.spSummonRule, 'enemy', remainEnergy)
-      if (candidates.length > 0) {
-        // AI: 20% chance to "forget" SP summon
-        if (Math.random() > 0.20) {
-          // Pick highest spCost SP
-          const chosen = candidates.reduce((best, sp) => sp.spCost > best.spCost ? sp : best, candidates[0])
-          summonSpCard(chosen, 'enemy')
-        } else {
-          addLog(`🔴 敌方没有触发 SP 召唤`)
-        }
-      }
-    }
-
-    return { ok: true }
-  }, [addLog, summonSpCard])
 
   // ----------------------------------------------------------------
   //  确认 SP 召唤选择（玩家 UI 回调）
@@ -1538,15 +1554,14 @@ export function useBattle() {
       picks.push(pool.splice(i, 1)[0])
     }
 
-    if (side === 'player') {
-      setPendingSpSummon({ side: 'player', candidates: picks, rule: { type: 'auto', reason } })
-      addLog(`🌟 SP 觉醒条件达成！翻开 ${picks.length} 张 SP，选 1 张召唤！`)
-    } else {
-      // AI：直接选费用最高的一张召唤（与事件卡 AI 路径一致）
-      const chosen = picks.reduce((best, sp) => (sp.spCost > best.spCost ? sp : best), picks[0])
-      summonSpCard(chosen, 'enemy')
-    }
-  }, [addLog, summonSpCard])
+    // ★ S6 de-fork：这里此前是 `if (side === 'player') setPendingSpSummon(...) else
+    //   { picks.reduce(spCost 最高); summonSpCard(chosen, 'enemy') }` —— **门控路径上的真 fork**
+    //   （turn≥8 + HP≤50%）。设计评审里有人断言「tryTriggerSp 已带 side 参数 → 不用动」，
+    //   那是事实错误：带了 side 参数不等于没有 fork，函数体里照样按 side 岔成两套逻辑。
+    //   现在两侧同走 resolveSpChoice：规则一致，只有「谁来选」在那一处具名分叉。
+    if (side === 'player') addLog(`🌟 SP 觉醒条件达成！翻开 ${picks.length} 张 SP，选 1 张召唤！`)
+    resolveSpChoice(side, picks, { type: 'auto', reason })
+  }, [addLog, resolveSpChoice])
 
   // ----------------------------------------------------------------
   //  环境事件 UI 回调
@@ -2430,7 +2445,8 @@ export function useBattle() {
     preplaceCard,               // 作弊入口：绕过规则凭空摆卡（Boss/入侵者/测试场/开局自动出牌）
     breakPowerBank,
     // Event + SP
-    playEventCard, aiPlayEventCard, confirmSpSummon, cancelSpSummon, summonSpCard, dismissEnvEvent,
+    playEventCard,              // aiPlayEventCard 已删（S6 de-fork → playEventCard(card, opts, side)）
+    confirmSpSummon, cancelSpSummon, summonSpCard, dismissEnvEvent,
     getEligibleSpCards,
     tryQuiz, answerQuiz,
     setPlayerField, setEnemyField, addLog,

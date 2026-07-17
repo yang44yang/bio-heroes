@@ -1242,8 +1242,13 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
         document.body
       )}
 
-      {/* SP 召唤选择弹窗 */}
-      {battle.pendingSpSummon && createPortal(
+      {/* SP 召唤选择弹窗 —— **只为玩家自己弹**。
+          ⚠️ `pendingSpSummon` 的形状本来就是 `{ side, candidates }`（useBattle 的注释写着），
+             但这里此前**没读 side**。今天无害（引擎的两个写入点都硬编码 side:'player'），
+             可一旦引擎能为 enemy 设它，齐齐屏幕上就会弹出一个 z-[160] 全屏选择器、
+             让他替 AI 选牌，**而且对局会阻塞在这里等他点**。
+             这道过滤必须先于任何引擎改动落地（S6 的顺序）。 */}
+      {battle.pendingSpSummon?.side === 'player' && createPortal(
         <motion.div
           className="fixed inset-0 z-[160] flex items-center justify-center bg-black/85"
           initial={{ opacity: 0 }}

@@ -35,8 +35,23 @@ ok('50% 阈值 = 15000（标准主人）', LEADER_HP * SP_LEADER_HP_RATIO === 15
 ok("getEligibleSpCards 含 'auto' 规则分支", has("case 'auto':"))
 ok('tryTriggerSp 公共入口存在', has('const tryTriggerSp = useCallback('))
 ok("tryTriggerSp 调 getEligibleSpCards({ type: 'auto' }", has("getEligibleSpCards({ type: 'auto' }"))
-ok('玩家走弹窗 setPendingSpSummon、敌方走 summonSpCard',
-  has("setPendingSpSummon({ side: 'player', candidates: picks") && has("summonSpCard(chosen, 'enemy')"))
+// S6 de-fork（2026-07-17）：tryTriggerSp 里那个
+//   `if (side === 'player') setPendingSpSummon(...) else { picks.reduce(spCost最高); summonSpCard(chosen,'enemy') }`
+// 是**门控路径上的真 fork**，已抽成具名的 resolveSpChoice(side, candidates, rule)。
+// 不变式没变（玩家弹窗选、敌方直接召），但：
+//   · 「选哪张」的 AI 人格（挑 spCost 最高 / 20% 忘记）搬去了 engine/aiTarget.js 的 pickAiSpCard
+//     —— 引擎不该知道敌方的脾气；
+//   · 引擎里只剩**一处**具名的「谁来选」分叉，且它背后是真实且今天消不掉的不对称
+//     （玩家的选择异步、AI 的同步）。
+ok('SP 的「谁来选」收敛到具名的 resolveSpChoice（不再埋在 tryTriggerSp/playEventCard 中段）',
+  has('const resolveSpChoice = useCallback((side, candidates, rule)'))
+ok('resolveSpChoice：玩家 → 弹窗；敌方 → pickAiSpCard 后直接召',
+  has("if (side === 'player') {") && has('setPendingSpSummon({ side, candidates, rule })') &&
+  has('const chosen = pickAiSpCard(candidates)') && has('summonSpCard(chosen, side)'))
+ok('AI 的 SP 人格已搬出引擎（useBattle 不得再内联 spCost 比较）',
+  !/picks\.reduce\(\(best, sp\)/.test(src) && !/candidates\.reduce\(\(best, sp\) => sp\.spCost/.test(src))
+ok('两个触发点都走 resolveSpChoice（事件卡 + 门控条件）',
+  (src.match(/resolveSpChoice\(side,/g) || []).length === 2)
 
 // ===== C. 触发接线（第8回合=门槛 AND 软条件 OR；reason 统一 'gated'）=====
 ok('答题点：turn≥SP_TURN_TRIGGER 且 连对≥SP_QUIZ_STREAK → player/gated',
