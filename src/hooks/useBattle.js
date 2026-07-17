@@ -1911,54 +1911,74 @@ export function useBattle() {
   // ★ 读值一律走 battleStateRef，不读渲染闭包（S0 收口，见文件顶部「读值真相源」注释）。
   //   本函数此前是混合读法：phase/playerField/enemyField 读闭包，而 :1872/:1875/:1890
   //   的 triggerSkills/resolveCardCombat 读 ref —— 同一个函数里两个真相源。
-  const attack = useCallback((atkSlot, defSlot, awakenOpts = {}) => {
-    const atkCard = battleStateRef.current.player.field[atkSlot]
+  /**
+   * 攻击。**唯一的一条路（S5 de-fork）** —— 玩家与 AI/guest 共用。
+   *
+   * 此前 aiAttack 是另一份实现，而它**一道守护检查都没有** —— 「守护优先」是写在
+   * CLAUDE.md 速查里的核心规则，AI 从第一天起就在无视它（attack 查两次：直攻主人一次、
+   * 打卡一次；aiAttack 对应位置一行都没有）。「一卡一回合只能攻击一次」也只靠
+   * useAITurn 那个 for 循环的形状兜着（aiAttack 传 checkAttacked:false 且从不写标记）
+   * —— 而那个循环正是 PvP 要删掉的代码。这是 ARCHITECTURE.md:51 那笔债的另一半。
+   *
+   * @param {number} atkSlot
+   * @param {number} defSlot - -1 = 直攻主人
+   * @param {Object} [awakenOpts={}] - { awakened, damageMultiplier … }。**AI 此前连这个参数都没有**
+   *        → guest 永远无法觉醒。统一后两侧都能带。
+   * @param {'player'|'enemy'} [side='player']
+   * @returns {null | {atkDmg, defDmg, defKilled, atkKilled, leaderHit, gameOver, winner?, ...}}
+   *          被规则拒绝 → **null**（两侧一致；此前 AI 侧返回 {skipped:true}）
+   */
+  const attack = useCallback((atkSlot, defSlot, awakenOpts = {}, side = 'player') => {
+    const foe = opp(side)
+    const isPlayer = side === 'player'
+    const prefix = isPlayer ? '' : '🔴 '
+    const friendlySetter = isPlayer ? setPlayerField : setEnemyField
+    const enemySetter = isPlayer ? setEnemyField : setPlayerField
+
+    const atkCard = battleStateRef.current[side].field[atkSlot]
     // 能否攻击判定走 engine/rules.js（S1）。它内部依次查 phase → 空位 → canCardAttack。
     // ⚠️ 顺序即规则：sleep 先判、confused 的**重定向**夹在中间、fatigue/attacked 后判。
     //   confused 带副作用（随机挑友方 + 扣血）→ 不属于纯谓词 → 留在外壳，靠 reason 交错。
-    const gate = canAttackFrom(battleStateRef.current, 'player', atkSlot, {
-      summonedThisTurn: battleStateRef.current.player.summoned,
-      attackedThisTurn: battleStateRef.current.player.attacked,
+    const gate = canAttackFrom(battleStateRef.current, side, atkSlot, {
+      summonedThisTurn: battleStateRef.current[side].summoned,
+      attackedThisTurn: battleStateRef.current[side].attacked,
     })
     if (gate.reason === 'phase' || gate.reason === 'empty') return null
-    if (gate.reason === 'sleep') { addLog(`${atkCard.name} 正在沉睡中，无法攻击`); return null }
-    // Sprint 26: 混乱状态 — 玩家的卡被操控，自动攻击随机友方
+    if (gate.reason === 'sleep') { addLog(`${prefix}${atkCard.name} 正在沉睡中，无法攻击`); return null }
+    // Sprint 26: 混乱状态 — 卡被操控，自动攻击随机友方
     if (atkCard.statuses?.some(s => s.type === 'confused')) {
-      const friendlyTargets = battleStateRef.current.player.field
+      const friendlyTargets = battleStateRef.current[side].field
         .map((c, i) => ({ c, i }))
-        .filter(({ c, i }) => c && c.currentHp > 0 && c.uid !== atkCard.uid)
+        .filter(({ c }) => c && c.currentHp > 0 && c.uid !== atkCard.uid)
       if (friendlyTargets.length > 0) {
         const pick = friendlyTargets[Math.floor(Math.random() * friendlyTargets.length)]
-        addLog(`🧠 ${atkCard.name} 被操控了！攻击了自己人 ${pick.c.name}！`)
+        addLog(`🧠 ${prefix}${atkCard.name} 被操控了！攻击了自己人 ${pick.c.name}！`)
         const dmg = atkCard.atk
-        setPlayerField(prev => {
+        friendlySetter(prev => {
           const next = prev.map(c => c ? { ...c } : null)
           if (next[pick.i]) next[pick.i].currentHp = Math.max(0, next[pick.i].currentHp - dmg)
           return next
         })
-        dispatch({ type: 'MARK_ATTACKED', side: 'player', uid: atkCard.uid })
+        // ⚠️ 行为变化：AI 的混乱卡此前**不写标记**（可以在同回合继续攻击）。统一后被标记
+        //   —— 与玩家一致，也是正确的（混乱耗掉了这张卡的攻击机会）。
+        dispatch({ type: 'MARK_ATTACKED', side, uid: atkCard.uid })
         return { confusedHit: true }
       }
     }
-    if (gate.reason === 'fatigue') { addLog(`${atkCard.name} 刚上场，不能攻击（召唤疲劳）`); return null }
-    if (gate.reason === 'attacked') { addLog(`${atkCard.name} 本回合已攻击过`); return null }
+    if (gate.reason === 'fatigue') { addLog(`${prefix}${atkCard.name} 刚上场，不能攻击（召唤疲劳）`); return null }
+    if (gate.reason === 'attacked') { addLog(`${prefix}${atkCard.name} 本回合已攻击过`); return null }
 
-    // ★ 先查后标（S2）—— 目标合法性在标记**之前**判完。
-    //   旧写法是「先 add，守护不过再 delete 回滚」。那个舞蹈在 Set 时代能对（同步可见），
-    //   但标记进 reducer 后 dispatch 不 eager，add/delete 得靠队列顺序相消 —— 能对，
-    //   但脆弱且无谓。与其让它排队相消，不如让它不存在。
-    //   这正是 battleReducer.js 既有的处方：「dispatch 前用 battleStateRef 确定性算好」。
-    const targetGate = canTargetSlot(battleStateRef.current, 'player', atkCard, defSlot)
+    // ★ 先查后标（S2）—— 目标合法性在标记**之前**判完，回滚舞蹈因此不存在。
+    const targetGate = canTargetSlot(battleStateRef.current, side, atkCard, defSlot)
     if (targetGate.reason === 'empty') return null
     if (targetGate.reason === 'guard') {
-      addLog(defSlot === -1 ? '对方有守护卡，必须先攻击守护卡！' : '必须先攻击守护卡！')
+      addLog(`${prefix}${defSlot === -1 ? '对方有守护卡，必须先攻击守护卡！' : '必须先攻击守护卡！'}`)
       return null
     }
-    dispatch({ type: 'MARK_ATTACKED', side: 'player', uid: atkCard.uid })
+    dispatch({ type: 'MARK_ATTACKED', side, uid: atkCard.uid })
 
     // === 直攻主人 ===
     if (defSlot === -1) {
-
       // onAttack 技能（Rush 等）
       const atkEvents = triggerSkills('onAttack', {
         attacker: atkCard,
@@ -1966,7 +1986,7 @@ export function useBattle() {
         damageMultiplier: 1,
       })
       for (const evt of atkEvents) {
-        if (evt.message) addLog(evt.message)
+        if (evt.message) addLog(`${prefix}${evt.message}`)
       }
       // 倍率读技能自己声明的 mods.damageMultiplier —— 与「打卡」路径共用 aggregateCombatMods 语义。
       // ⚠️ 旧写法 `if (evt.type === 'RUSH_BOOST') ×= 2` 只认事件 type、从不读 mods → 三张卡全错：
@@ -1982,31 +2002,38 @@ export function useBattle() {
       pushSkillEvents(atkEvents)
 
       const dmg = calcLeaderDamage(atkCard, dmgOpts)
-      dispatch({ type: 'LEADER_DAMAGE', side: 'enemy', amount: dmg })
-      const gameWon = Math.max(0, battleStateRef.current.enemy.leaderHp - dmg) <= 0
-      if (gameWon) { dispatch({ type: 'GAME_OVER', winner: 'player' }) }
-      addLog(`${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
-      battleStatsRef.current.totalDamage += dmg
-      if (!gameWon) checkBossHPThreshold()
-      return { atkDmg: dmg, defDmg: 0, defKilled: false, atkKilled: false, leaderHit: true, gameWon }
+      dispatch({ type: 'LEADER_DAMAGE', side: foe, amount: dmg })
+      // ★ gameOver = **行动方刚赢了**（不是「本侧输了」）。gameWon/gameOver 此前是同一个
+      //   概念的两个名字；唯一消费者是 useAITurn（它只调 attack(...,'enemy')，故
+      //   gameOver=true 时 break 语义不变）。BattleScreen 从不读它（已 grep）。
+      //   ⚠️ 若把它定义成「本侧输」，attack('enemy') 打死玩家主人时会返回 false →
+      //     break 永不触发 → AI 在失败画面上继续挥砍、继续发伤害和音效。
+      const gameOver = Math.max(0, battleStateRef.current[foe].leaderHp - dmg) <= 0
+      if (gameOver) { dispatch({ type: 'GAME_OVER', winner: side }) }
+      addLog(`${prefix}${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
+      if (isPlayer) battleStatsRef.current.totalDamage += dmg
+      // ⚠️ checkBossHPThreshold 硬编码读 enemy.leaderHp + setEnemyField —— 它讲的是 **Boss**
+      //   （永远是敌方）。必须只在玩家打了敌方主人时触发；否则 attack('enemy') 会拿
+      //   错误的主人触发 Boss 台词/阶段转换。
+      if (isPlayer && !gameOver) checkBossHPThreshold()
+      return { atkDmg: dmg, defDmg: 0, defKilled: false, atkKilled: false, leaderHit: true, gameOver, winner: gameOver ? side : null }
     }
 
     // === 打对方场上卡 ===
-    // 目标合法性（空位 / 守护）已在上方标记前统一判完（S2 的「先查后标」）——
-    // canTargetSlot 内部对 defSlot === -1 与 defSlot >= 0 分了两条规则，这里不再重复判。
-    const defCard = battleStateRef.current.enemy.field[defSlot]
+    // 目标合法性（空位 / 守护）已在上方标记前统一判完（S2 的「先查后标」）。
+    const defCard = battleStateRef.current[foe].field[defSlot]
 
     // onAttack / onHit 技能（Discharge Strike 等）
     const preAtkEvents = triggerSkills('onAttack', {
       attacker: atkCard, defender: defCard, target: 'card',
-      defSlot, enemyField: battleStateRef.current.enemy.field,
+      defSlot, enemyField: battleStateRef.current[foe].field,
     })
-    // attackerField = 攻击者(玩家)的场 → onHitCounter 据此定位攻击者 slot，反击才能落到正确目标
-    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: battleStateRef.current.player.field })
+    // attackerField = 攻击者的场 → onHitCounter 据此定位攻击者 slot，反击才能落到正确目标
+    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: battleStateRef.current[side].field })
     const allPreEvents = [...preAtkEvents, ...preHitEvents]
-    applySkillEvents(allPreEvents, setPlayerField, setEnemyField, 'player')
+    applySkillEvents(allPreEvents, friendlySetter, enemySetter, side)
     for (const evt of allPreEvents) {
-      if (evt.message) addLog(evt.message)
+      if (evt.message) addLog(`${prefix}${evt.message}`)
     }
     pushSkillEvents(allPreEvents)
 
@@ -2017,35 +2044,41 @@ export function useBattle() {
       defImmune, atkFactionBonus, defFactionBonus, auraApplied,
     } = resolveCardCombat({
       attacker: atkCard, defender: defCard, awakenOpts, mods,
-      attackerField: battleStateRef.current.player.field, defenderField: battleStateRef.current.enemy.field,
+      attackerField: battleStateRef.current[side].field, defenderField: battleStateRef.current[foe].field,
     })
-    if (defImmune) addLog(`🛡️ ${defCard.name} 免疫了攻击！`)
-    if (atkFactionBonus) addLog(`⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
+    // ⚠️ defImmune / auraApplied 此前**只有玩家侧记日志** —— 统一后敌方的免疫/光环也会
+    //   现身。不是 bug，是敌方一直在静默地享用这些效果。
+    if (defImmune) addLog(`${prefix}🛡️ ${defCard.name} 免疫了攻击！`)
+    if (atkFactionBonus) addLog(`${prefix}⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
     if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
-    if (auraApplied) addLog(`🌀 光环效果生效！`)
+    if (auraApplied) addLog(`${prefix}🌀 光环效果生效！`)
 
-    // 结算落地（双方场扣血 + 护盾 + 战斗日志）走共享 applyCombatOutcome（决策E3）。玩家：def=敌方场、atk=我方场、无前缀。
+    // 结算落地（双方场扣血 + 护盾 + 战斗日志）走共享 applyCombatOutcome（决策E3）。
     const { defKilled, atkKilled } = applyCombatOutcome({
-      defSetter: setEnemyField, atkSetter: setPlayerField, defSlot, atkSlot, defCard, atkCard, mods,
-      outcome: { atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed }, prefix: '',
+      defSetter: enemySetter, atkSetter: friendlySetter, defSlot, atkSlot, defCard, atkCard, mods,
+      outcome: { atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed }, prefix,
     })
 
     // 技能后处理（Overpower / Piercing / onDeath）
-    const postEvents = handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, 'player')
+    // ⚠️ AI 侧此前**丢弃**这个返回（不 pushSkillEvents）→ 敌方的压制/穿透浮字从不出现。
+    //   统一后会第一次被喂进 BattleScreen 的 skillEvents effect（该 effect 只消费
+    //   REVEAL_HAND，且已有 _initiatorSide==='enemy' 的 3 秒自动消失分支）。
+    const postEvents = handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, side)
     pushSkillEvents(postEvents)
 
-    // Stats tracking
-    battleStatsRef.current.totalDamage += atkDmg
-    if (defKilled) battleStatsRef.current.kills++
+    // Stats tracking —— 只记玩家（battleStats 是玩家的战报，不是棋盘状态）
+    if (isPlayer) {
+      battleStatsRef.current.totalDamage += atkDmg
+      if (defKilled) battleStatsRef.current.kills++
+    }
 
     // 清理死亡卡牌
 
     return {
-      atkDmg, defDmg, defKilled, atkKilled, leaderHit: false, gameWon: false,
+      atkDmg, defDmg, defKilled, atkKilled, leaderHit: false, gameOver: false, winner: null,
       atkFactionBonus, defFactionBonus, skillEvents: postEvents,
     }
     // deps 摘掉 phase/playerField/enemyField：函数体已不读它们（全走 battleStateRef）。
-    // 副作用（正向）：attack 不再每次场面变动就换身份 → 少一批无谓重渲染。
   }, [addLog, pushSkillEvents])
 
   // ----------------------------------------------------------------
@@ -2149,103 +2182,6 @@ export function useBattle() {
 
   // ----------------------------------------------------------------
   //  AI 攻击（单次，返回结果）
-  // ----------------------------------------------------------------
-  const aiAttack = useCallback((atkSlot, defSlot) => {
-    let eField = battleStateRef.current.enemy.field
-    let pField = battleStateRef.current.player.field
-    const atkCard = eField[atkSlot]
-    if (!atkCard || atkCard.currentHp <= 0) return null
-
-    // 能否攻击判定（canCardAttack 纯谓词，决策E2；AI 每卡一次由外层 BattleScreen 保证 → checkAttacked:false）。
-    // 混乱是重定向、优先级在 sleep 之后 → 留在下面。
-    const gate = canCardAttack(atkCard, { summonedThisTurn: battleStateRef.current.enemy.summoned, checkAttacked: false })
-    if (gate.reason === 'sleep') { addLog(`🔴 ${atkCard.name} 正在沉睡中，无法攻击`); return { skipped: true } }
-    // Sprint 26: 混乱状态 — 攻击目标改为随机友方（攻击自己人）
-    if (atkCard.statuses?.some(s => s.type === 'confused')) {
-      const friendlyTargets = eField
-        .map((c, i) => ({ c, i }))
-        .filter(({ c, i }) => c && c.currentHp > 0 && c.uid !== atkCard.uid)
-      if (friendlyTargets.length > 0) {
-        const pick = friendlyTargets[Math.floor(Math.random() * friendlyTargets.length)]
-        addLog(`🧠 ${atkCard.name} 被操控了！攻击了自己人 ${pick.c.name}！`)
-        // 简化实现：直接扣友方 HP + 攻击者反击受伤（符合普通卡牌对打规则）
-        const dmg = atkCard.atk
-        setEnemyField(prev => {
-          const next = prev.map(c => c ? { ...c } : null)
-          if (next[pick.i]) next[pick.i].currentHp = Math.max(0, next[pick.i].currentHp - dmg)
-          return next
-        })
-        return { skipped: false, confusedHit: true }
-      }
-    }
-    if (gate.reason === 'fatigue') { addLog(`🔴 ${atkCard.name} 召唤疲劳，无法攻击`); return { skipped: true } }
-
-    // 直攻主人
-    if (defSlot === -1) {
-      // onAttack 技能（Rush）
-      const atkEvents = triggerSkills('onAttack', {
-        attacker: atkCard,
-        target: 'leader',
-        damageMultiplier: 1,
-      })
-      for (const evt of atkEvents) {
-        if (evt.message) addLog(`🔴 ${evt.message}`)
-      }
-      // 同玩家侧：读 mods 而非硬编码 ×2（AI 不答题、无觉醒，但敌方猎豹/猫头鹰/手术刀同样受害）
-      const dmgOpts = { damageMultiplier: aggregateCombatMods(atkEvents).damageMultiplier }
-
-      const dmg = calcLeaderDamage(atkCard, dmgOpts)
-      dispatch({ type: 'LEADER_DAMAGE', side: 'player', amount: dmg })
-      const gameOver = Math.max(0, battleStateRef.current.player.leaderHp - dmg) <= 0
-      if (gameOver) { dispatch({ type: 'GAME_OVER', winner: 'enemy' }) }
-      addLog(`🔴 ${atkCard.name} 直攻主人！造成 ${dmg} 伤害`)
-      return { atkDmg: dmg, defDmg: 0, defKilled: false, atkKilled: false, leaderHit: true, gameOver }
-    }
-
-    // 打玩家场上卡
-    const defCard = pField[defSlot]
-    if (!defCard || defCard.currentHp <= 0) return null
-
-    // onAttack / onHit（Discharge Strike 等）
-    const preAtkEvents = triggerSkills('onAttack', {
-      attacker: atkCard, defender: defCard, target: 'card',
-      defSlot, enemyField: battleStateRef.current.player.field,
-    })
-    // attackerField = 攻击者(敌方)的场 → onHitCounter 据此定位攻击者 slot（友方反击卡的反伤才能打到正确目标）
-    const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: battleStateRef.current.enemy.field })
-    const allPreEvents = [...preAtkEvents, ...preHitEvents]
-    applySkillEvents(allPreEvents, setEnemyField, setPlayerField, 'enemy')
-    for (const evt of allPreEvents) {
-      if (evt.message) addLog(`🔴 ${evt.message}`)
-    }
-
-    const mods = aggregateCombatMods(allPreEvents)
-    const {
-      atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed,
-      atkFactionBonus, defFactionBonus,
-    } = resolveCardCombat({
-      attacker: atkCard, defender: defCard, mods,
-      attackerField: battleStateRef.current.enemy.field, defenderField: battleStateRef.current.player.field,
-    })
-    if (atkFactionBonus) addLog(`🔴 ⚡ ${atkCard.name} 克制 ${defCard.name}！伤害 +20%`)
-    if (defFactionBonus) addLog(`⚡ ${defCard.name} 克制 ${atkCard.name}！反击 +20%`)
-
-    // 结算落地走共享 applyCombatOutcome（决策E3）。敌方：def=我方场、atk=敌方场、日志前缀 🔴。
-    const { defKilled, atkKilled } = applyCombatOutcome({
-      defSetter: setPlayerField, atkSetter: setEnemyField, defSlot, atkSlot, defCard, atkCard, mods,
-      outcome: { atkDmg, defDmg, defActualDmg, atkActualDmg, defShieldAbsorbed, atkShieldAbsorbed }, prefix: '🔴 ',
-    })
-
-    // 技能后处理
-    handlePostAttackSkills(atkCard, defCard, atkDmg, defKilled, 'enemy')
-
-    // 清理死亡卡牌
-
-    return {
-      atkDmg, defDmg, defKilled, atkKilled, leaderHit: false, gameOver: false,
-      atkFactionBonus, defFactionBonus,
-    }
-  }, [addLog])
 
   // ----------------------------------------------------------------
   //  开始玩家新回合
@@ -2489,7 +2425,8 @@ export function useBattle() {
     startBattle, endMulligan, startPlayerTurn,
     playToField, endMainPhase,
     canAttack, attack, endBattlePhase,
-    beginEnemyTurn, aiAttack,   // aiPlayToField 已删（S4 de-fork → playToField(card, slot, side)）
+    beginEnemyTurn,             // aiPlayToField(S4) / aiAttack(S5) 已删 —— de-fork 后只剩
+                                // playToField(card, slot, side) 与 attack(atk, def, opts, side)
     preplaceCard,               // 作弊入口：绕过规则凭空摆卡（Boss/入侵者/测试场/开局自动出牌）
     breakPowerBank,
     // Event + SP

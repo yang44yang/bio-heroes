@@ -121,21 +121,26 @@ function marked(coll, uid) {
  * 判定一张卡能否发起攻击（纯函数，决策E2）。
  * 检查：sleep(沉睡) / fatigue(召唤疲劳，Swift Attack·Silent Dive·swift_boost 免疫) / attacked(本回合已攻击)。
  * ⚠️「混乱(confused)」不在此 —— 它是"攻击重定向到随机友方"、属副作用重定向而非阻断，由调用方(useBattle)处理。
- * 优先级 sleep > fatigue > attacked（reason 返回最高优先的那个）。attack/aiAttack/canAttack(UI) 三处共用。
+ * 优先级 sleep > fatigue > attacked（reason 返回最高优先的那个）。rules.canAttackFrom 唯一调用。
+ *
+ * ⚠️ **checkAttacked 参数已删（S5 de-fork）。** 它存在的唯一理由是让 aiAttack 弃权
+ *   （`checkAttacked:false`）—— 因为 AI 的「一卡一回合一次」不由引擎强制，而是靠
+ *   useAITurn 那个 `for (atkSlot = 0..MAX_FIELD_SLOTS)` 循环的形状兜着，而那个循环
+ *   正是 PvP 要删掉的代码。aiAttack 已删，两侧同走一条路 → 这个「允许某一侧不守规则」
+ *   的开关不该再存在。**删掉它就是 de-fork 在一个签名里的表达。**
  *
  * @param {Object} card
  * @param {Object} opts
  * @param {Set|string[]} [opts.summonedThisTurn]  本回合召唤的 uid（Set 或数组，见 marked）
  * @param {Set|string[]} [opts.attackedThisTurn]  本回合已攻击的 uid（Set 或数组）
- * @param {boolean}[opts.checkAttacked=true] 是否查"本回合已攻击"（AI 由外层保证每卡一次 → 传 false）
  * @returns {{ ok:boolean, reason:'sleep'|'fatigue'|'attacked'|null }}
  */
-export function canCardAttack(card, { summonedThisTurn, attackedThisTurn, checkAttacked = true } = {}) {
+export function canCardAttack(card, { summonedThisTurn, attackedThisTurn } = {}) {
   if (card?.statuses?.some((s) => s.type === 'sleep')) return { ok: false, reason: 'sleep' }
   const hasSwift =
     card?.skills?.some((s) => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive') ||
     card?.statuses?.some((s) => s.type === 'swift_boost')
   if (marked(summonedThisTurn, card.uid) && !hasSwift) return { ok: false, reason: 'fatigue' }
-  if (checkAttacked && marked(attackedThisTurn, card.uid)) return { ok: false, reason: 'attacked' }
+  if (marked(attackedThisTurn, card.uid)) return { ok: false, reason: 'attacked' }
   return { ok: true, reason: null }
 }

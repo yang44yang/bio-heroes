@@ -102,7 +102,6 @@ export function canAttackFrom(state, side, atkSlot, marks) {
   const gate = canCardAttack(atkCard, {
     summonedThisTurn: marks?.summonedThisTurn,
     attackedThisTurn: marks?.attackedThisTurn,
-    checkAttacked: true,
   })
   return gate.ok ? OK : no(gate.reason)
 }

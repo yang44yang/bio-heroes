@@ -45,14 +45,20 @@ ok('② AOE_DAMAGE 按 _side==="attacker" 选 friendlySetter，否则 enemySette
 ok('② AOE_DAMAGE 用 dmgSetter（不再写死 enemySetter）',
   /dmgSetter\(prev\s*=>/.test(aoe))
 
-// ③ 两个 onHit 触发点都传 attackerField（玩家攻击 = playerFieldRef，敌方攻击 = enemyFieldRef）
+// ③ onHit 触发点必须传 attackerField（onHitCounter 据此定位攻击者 slot，反击才落到正确目标）
+//
+// S5 de-fork（2026-07-17）：attack 与 aiAttack 已合并 → onHit 触发点从 **2 处变 1 处**。
+// 本条此前断言「共 2 处」且「一处传 player.field、一处传 enemy.field」—— 它守的正是
+// CLAUDE.md 那条「改战斗规则须玩家/AI 两处同步改」的规矩，而 de-fork 就是在删掉那条规矩。
+// 不变式没变（攻击者的场必须是**行动方自己的**场），但从「两处都得记着写对」变成了
+// **结构保证**：一处 `battleStateRef.current[side].field`，side 参数化，写不错。
 const hitCalls = [...ub.matchAll(/triggerSkills\('onHit',\s*\{[^}]*\}/g)].map(m => m[0])
-ok('③ onHit 触发点共 2 处', hitCalls.length === 2)
+ok('③ onHit 触发点共 1 处（S5 de-fork：玩家/AI 已合并）', hitCalls.length === 1)
 ok('③ 每个 onHit 都传 attackerField', hitCalls.every(c => /attackerField:/.test(c)))
 // E5c-5：field 迁进 reducer → attackerField 读走 battleStateRef.current.<side>.field
-ok('③ 玩家攻击侧传 player.field、敌方攻击侧传 enemy.field',
-  hitCalls.some(c => /attackerField:\s*battleStateRef\.current\.player\.field/.test(c)) &&
-  hitCalls.some(c => /attackerField:\s*battleStateRef\.current\.enemy\.field/.test(c)))
+// S5：side 参数化后不再是「两个写死的调用点」，而是一处按 side 索引 → 两侧必然一致。
+ok('③ attackerField 必须按 side 索引（不得再写死某一侧 —— 那是 fork 复活的征兆）',
+  hitCalls.every(c => /attackerField:\s*battleStateRef\.current\[side\]\.field/.test(c)))
 
 // ④ MRSA·耐药壁垒 反弹路由修复（决策D）—— 与 onHitCounter 同款 _side:'attacker' + ctx.attackerField
 const reg = readFileSync(join(ROOT, 'src/engine/skillRegistry.js'), 'utf8')

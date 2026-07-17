@@ -211,8 +211,14 @@ const nf = neutralA || atkFac // 中立阵营（无克制），用于隔离修�
   eq(canCardAttack(c({ skills: [{ nameEn: 'Swift Attack' }] }), { summonedThisTurn: S(['u1']) }).ok, true, '⑮ Swift Attack 免召唤疲劳')
   eq(canCardAttack(c({ skills: [{ nameEn: 'Silent Dive' }] }), { summonedThisTurn: S(['u1']) }).ok, true, '⑮ Silent Dive 免召唤疲劳')
   eq(canCardAttack(c({ statuses: [{ type: 'swift_boost' }] }), { summonedThisTurn: S(['u1']) }).ok, true, '⑮ swift_boost 免召唤疲劳')
-  eq(canCardAttack(c(), { summonedThisTurn: S([]), attackedThisTurn: S(['u1']), checkAttacked: true }).reason, 'attacked', '⑮ 已攻击 reason=attacked')
-  eq(canCardAttack(c(), { summonedThisTurn: S([]), attackedThisTurn: S(['u1']), checkAttacked: false }).ok, true, '⑮ AI(checkAttacked:false) 不查已攻击')
+  eq(canCardAttack(c(), { summonedThisTurn: S([]), attackedThisTurn: S(['u1']) }).reason, 'attacked', '⑮ 已攻击 reason=attacked')
+  // S5 de-fork（2026-07-17）：`checkAttacked` 参数**已删**。
+  // 它存在的唯一理由是让 aiAttack 弃权（传 false）—— AI 的「一卡一回合一次」不由引擎
+  // 强制，而靠 useAITurn 那个 for 循环的形状兜着，而那个循环正是 PvP 要删的代码。
+  // aiAttack 已删、两侧同走一条路 → 这个「允许某一侧不守规则」的开关不该再存在。
+  // 本条从「AI 可以豁免」改成**反向断言：豁免不了**。
+  eq(canCardAttack(c(), { summonedThisTurn: S([]), attackedThisTurn: S(['u1']), checkAttacked: false }).reason, 'attacked',
+    '⑮ checkAttacked 已删 —— 就算有人硬传 false 也不再能豁免「一卡一回合一次」')
   eq(canCardAttack(c({ statuses: [{ type: 'sleep' }] }), { summonedThisTurn: S(['u1']), attackedThisTurn: S(['u1']) }).reason, 'sleep', '⑮ 优先级 sleep 最高')
   eq(canCardAttack(c(), { summonedThisTurn: S(['u1']), attackedThisTurn: S(['u1']) }).reason, 'fatigue', '⑮ 优先级 fatigue > attacked')
 }

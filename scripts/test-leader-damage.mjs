@@ -137,7 +137,10 @@ const multOf = (c) => aggregateCombatMods(triggerSkills('onAttack', leaderCtx(c)
   // 直接盯生产的调用点。有人补上 friendlyField 时这条会红，把他引到这段说明。
   const src = readFileSync(join(root, 'src/hooks/useBattle.js'), 'utf8')
   const onAttackCalls = [...src.matchAll(/triggerSkills\('onAttack',\s*\{[\s\S]*?\n\s*\}\)/g)].map((m) => m[0])
-  eq(onAttackCalls.length, 4, '⑥ useBattle 应有 4 个 onAttack 调用点（2 直攻主人 + 2 打卡）')
+    // S5 de-fork（2026-07-17）：attack 与 aiAttack 合并 → 调用点 4 → **2**（1 直攻主人 + 1 打卡）。
+    // ⚠️ 这个数字变小**不代表覆盖变弱**：合并前必须「两处都记得传 friendlyField」，
+    //   现在只有一处 —— 哨兵反而更锐利（漏一处的可能性从 2 降到 1）。
+    eq(onAttackCalls.length, 2, '⑥ useBattle 应有 2 个 onAttack 调用点（1 直攻主人 + 1 打卡；S5 de-fork 后玩家/AI 共用）')
   eq(onAttackCalls.filter((c) => c.includes('friendlyField')).length, 0,
     '⑥ 现状快照：没有任何 onAttack 调用点传 friendlyField —— 若你刚补上，请回来更新 ⑥，' +
     '并同时评估平衡：虎鲸满场 5 个自然系友方时 (8500+7500)×2(觉醒) = 32000 ≥ 主人 30000（6 格后才够得着，5 格时是 29000）')
@@ -166,7 +169,11 @@ const multOf = (c) => aggregateCombatMods(triggerSkills('onAttack', leaderCtx(c)
 
   // 正向：两条分支（玩家 + AI）都必须真的调用 aggregateCombatMods
   const leaderBranches = (src.match(/aggregateCombatMods\(atkEvents\)/g) || []).length
-  eq(leaderBranches, 2, '⑤ 玩家与 AI 两条直攻主人分支都要用 aggregateCombatMods(atkEvents)')
+  // S5 de-fork：玩家与 AI 的直攻主人分支已合并 → 2 → **1**。
+  // 不变式没变（倍率必须读事件声明的 mods，不能认 type 硬乘 2），但从「两条分支都得记着写」
+  // 变成了**结构保证**。这正是 CLAUDE.md「改战斗规则须两处同步改」那条规矩被删掉的样子
+  // —— 而那条规矩本身就是这个 fork 的伤疤。
+  eq(leaderBranches, 1, '⑤ 直攻主人分支必须用 aggregateCombatMods(atkEvents)（S5 de-fork 后仅 1 条，两侧共用）')
 }
 
 // ---- 汇总 ----

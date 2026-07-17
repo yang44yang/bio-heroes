@@ -202,10 +202,12 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
           leaderHp: battle.latest.playerLeaderHp ?? battle.playerLeaderHp ?? LEADER_HP,
         })
 
-        const result = battle.aiAttack(atkSlot, defSlot)
-        if (result?.skipped) continue
+        // ★ S5：走统一的 attack（守护/一卡一次/觉醒都由引擎强制，不再靠本循环的形状兜着）。
+        //   ⚠️ 被规则拒绝时返回 **null**（两侧一致）；旧 aiAttack 返回 {skipped:true}。
+        const result = battle.attack(atkSlot, defSlot, {}, 'enemy')
+        if (!result) continue
         // 伤害浮字 + 音效
-        if (result && !result.skipped) {
+        if (result) {
           if (result.leaderHit) {
             playSound('leaderHit')
             showDamageFloat('player', -1, result.atkDmg)
