@@ -28,6 +28,9 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { initialBattleState, battleReducer } from '../src/engine/battleReducer.js'
 import { mirror, PLAYER, ENEMY } from '../src/engine/sides.js'
+// ★ 词表与守卫都从 wire.js 来 —— 本文件初版自带了**第二份**词表，而两份词表必然分叉。
+//   （分叉的方向还是可预测的：加字段的人只会改离他最近的那份。）
+import { PRIVATE_KEYS, findPrivate, SHAPES, PROTOCOL_VERSION } from '../src/engine/wire.js'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 let pass = 0
@@ -36,24 +39,34 @@ const assert = (cond, msg) => { if (cond) pass++; else fails.push(msg) }
 
 // ---- ① reducer 里不得有私有字段 ----
 {
-  // 「私有」= 只有拥有者该看见。命名上覆盖常见的写法，别指望以后的人用同一个词。
-  const PRIVATE = [
-    'hand', 'hands', 'drawPile', 'deck', 'drawpile',
-    'spDeck', 'spDeckCards', 'spdeck',   // ⚠️ SP 卡组**内容**是隐藏的（UI 只显示 .length）
-  ]
-  const walk = (obj, path = '') => {
-    if (!obj || typeof obj !== 'object') return
-    for (const k of Object.keys(obj)) {
-      const here = path ? `${path}.${k}` : k
-      assert(!PRIVATE.includes(k),
-        `① reducer 里出现了私有字段 \`${here}\` —— 它会被 mirror 整棵推给对手。\n` +
-        `      公开通道 = send(mirror(state))，所以**进 reducer 就等于声明公开**。\n` +
-        `      私有数据走 wire 的私有通道（只发给本人）。先问：我愿意让对面小孩看见它吗？`)
-      walk(obj[k], here)
-    }
+  // ☠️ **walk 不能跑在 initialBattleState 上。**
+  //    本文件初版就是那么写的，而它有一个**结构性**的洞：walk 的首行是
+  //    `if (!obj || typeof obj !== 'object') return`，而所有值得担心的私有字段
+  //    （pendingSp.candidates / quiz.correct）在初始树里**都是 null** —— 于是 walk 到那里
+  //    就 return 了，**往词表里加 `candidates` 等于没加**：词永远不可达，测试永远绿。
+  //    → 跑在「最大填充态」上：用 SHAPES 的每条路径把树填满，再挂上第 2 步会加的那些子树。
+  const filled = structuredClone(initialBattleState)
+  for (const side of [PLAYER, ENEMY]) {
+    filled[side].field[0] = { id: 'x', uid: `${side}_x_0`, atk: 1, currentHp: 1, statuses: [] }
+    filled[side].discard = [{ id: 'y', uid: `${side}_y_1` }]
   }
-  walk(initialBattleState)
-  assert(pass > 0, '① 遍历真的跑了')
+  assert(findPrivate(filled).length === 0,
+    `① reducer 里出现了私有字段 ${findPrivate(filled).join(', ')} —— 它会被 mirror 整棵推给对手。\n` +
+    '      公开通道 = send(mirror(state))，所以**进 reducer 就等于声明公开**。\n' +
+    '      私有数据走 wire 的私有通道（只发给本人）。先问：我愿意让对面小孩看见它吗？')
+
+  // ★ **守卫可达性自检** —— 这不是在测生产代码，是在测**守卫本身**。
+  //   没有它，上面那条断言可能只是因为「walk 根本没走到」而绿。
+  assert(findPrivate({ ...filled, player: { ...filled.player, pendingSp: { candidates: [{ uid: 'sp_p_0' }] } } }).length > 0,
+    '① ★ 守卫自检：嵌套两层的 candidates 必须抓得住（变异：把 findPrivate 的递归改成只查顶层 → 本条红）')
+  assert(findPrivate({ ...filled, quiz: { question: 'x', correct: 2 } }).length > 0,
+    '① ★ 守卫自检：quiz.correct 必须抓得住')
+  assert(findPrivate({ a: { playerHand: [] } }).length > 0,
+    '① ★ 守卫自检：**子串**匹配。精确匹配会放行 `playerHand` / `enemySpDeck` —— 而那正是\n' +
+    '      handsRef 与 SP 卡组的**真实键名**。初版的精确匹配对它们是结构性瞎的。')
+  assert(PRIVATE_KEYS.includes('candidates') && PRIVATE_KEYS.includes('correct'),
+    '① 词表覆盖第 2 步会提升的那些（candidates = SP 候选，点选前寄给对面 = 提前剧透；correct = 答案）')
+  assert(SHAPES[PROTOCOL_VERSION].length > 0, '① 形状清单存在（详细的棘轮在 test-wire-envelope ④）')
 }
 
 // ---- ② mirror 的产物必须 JSON-clean（它要上线）----

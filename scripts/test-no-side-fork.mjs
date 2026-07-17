@@ -88,6 +88,11 @@ function stripComments(src) {
   for (const f of [
     'src/engine/combat.js', 'src/engine/aiTarget.js', 'src/engine/statusEffects.js',
     'src/utils/damage.js', 'src/utils/guardSkill.js', 'src/utils/factionMarkers.js',
+    // wire.js 入列（PvP 第 1 步）：**一个不能命名某一侧的模块，在结构上就无法偏袒某一侧** ——
+    // 对 wire 这条尤其要紧，因为它是「座位」这个概念**唯一**的入口。它一旦能写出 'player'，
+    // 「host 恒为 player」就会从**连接的属性**悄悄变成**协议的属性**，而那正是 guest 伪造座位
+    // 的第一块砖。
+    'src/engine/wire.js',
   ]) {
     const h = [...stripComments(read(f)).matchAll(/['"`](player|enemy)['"`]/g)].map((m) => m[0])
     assert(h.length === 0, `(a) ${f} 本来是 side-blind 的，现在出现了 ${h.join(', ')}`)
