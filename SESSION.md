@@ -1,85 +1,107 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-17（**技能倍率收口 → 下一步 PvP**。07-16 四连（存档止血/测试场锁死/SP 重定价/6 格）+ 07-17 直攻主人倍率修复，全部已发布生产（逐字节验证过）。44 套测试绿。PvP 方案已定但未开工。）
+> 更新时间: 2026-07-17（**P1 PvP 开工：地基已发布 + 引擎 de-fork 做到 S2/S7**。前 6 个 commit 已 push + deploy 到生产并逐项验证。de-fork 的 S0-S2 已 commit、**未发布**。48 套测试绿。）
 >
-> ⚠️ **本文件只留「活的交接」**——历史阶段（Sprint 1-33 + 决策/Phase + 引擎重构 + 真机 bug-fix + 特性/内容扩建 + 07-16 四连 + 07-17 倍率收口）已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
+> ⚠️ **本文件只留「活的交接」**——历史阶段已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
 
 ## 项目位置
-- **实际路径**: `/Users/YangYANG/Projects/Bio-heroes/`（Mac mini）
-- **GitHub**: github.com/yang44yang/bio-heroes (main 分支)
+- **实际路径**: `/Users/YangYANG/Projects/Bio-heroes/`（Mac mini）· **GitHub**: yang44yang/bio-heroes (main)
 - **工作流**: 直接在 main 工作和 push
-- **生产**: `bio.socialcontract.capital`（`npm run deploy`）。⚠️ **齐齐现在玩这个**（已从 vercel.app 搬家 + 装主屏 PWA）。Vercel 仍随 git push 自动部署，作海外镜像
+- **生产**: `bio.socialcontract.capital`（`npm run deploy`）。⚠️ **齐齐玩这个**（PWA 主屏）。Vercel 随 push 自动部署，作海外镜像
 - **CI**: `.github/workflows/ci.yml` —— push/PR 到 main 跑 lint→test→build
+
+---
+
+## 🔨 进行中：P1 PvP · 引擎 de-fork（8 步，已完成 3 步）
+
+**已决**（`DEPLOY.md §4` 现在是权威，已改写）：房间码 + VPS 哑中继 + **host 权威** + **WebSocket**（选 WS 不是偏好，是 sw.js 逼的）+ 零依赖 · 公平模式 · 答题中性加成 · 三条不变量。
+**已决**（本次会话，用户裁定）：**de-fork 引擎**（否决「硬化 AI 接缝」）· 相位机与之捆绑 · 答题**各端只记自己的 Leitner**、streak 按方计分、奖励中性 · S4/S5 的平衡变化**先原样上、等齐齐实打再调**。
+
+### 完整 8 步计划（9-agent 设计+对抗评审的产物）
+| | 步骤 | 状态 |
+|---|---|---|
+| S0 | 玩家侧回调收口读 `battleStateRef`（**de-fork 的前提**） | ✅ `614dfa4` |
+| S1 | gate 抽成 side 参数化纯谓词 `engine/rules.js` + `sides.js` | ✅ `4cba729` |
+| S2 | 回合标记进 reducer 每侧数组 + 干掉「先标后滚」舞蹈 | ✅ `3e4e606` |
+| **S3** | `activeSide` + 每侧 `phase` + `derivePhase` + **把敌方阶段真正驱动起来（但不设 gate）** | ⬜ **下一步** |
+| S4 | de-fork `playToField`（**第一个真改 AI 行为的 commit**） | ⬜ |
+| S5 | de-fork `attack` | ⬜ |
+| S6 | de-fork `playEventCard` + **修 tryTriggerSp 的真 SP fork** | ⬜ |
+| S7 | 镜像测试 + 棘轮（让 de-fork 保持 de-forked） | ⬜ |
+
+### ⚠️ 开工 S3 前必读（三个设计全踩空、评审只有一个发现的坑）
+1. **顺序铁律：先让状态为真，再对它设卡。** 今天 useAITurn **没有任何** `endMainPhase` 调用 —— 敌方根本没有 main→battle 转移（唯一的 `PHASE_SET 'battle'` 在 `endMainPhase`，玩家专用）。所以 **S3 负责驱动敌方阶段、不设 gate；S4/S5 才设 gate**。反了 → AI 静默变哑、测试全绿。
+   → 因此「useAITurn diff 必须 0 行」这个诱人的验收标准**必须废掉**：它与 gate 数学上互斥。useAITurn 在 S3 确切新增两个调用（攻击循环前 `endMainPhase('enemy')`、交接处 `endBattlePhase('enemy')`）。
+2. **`TURN_HANDOFF{from,to}` 必须原子。** 分两次 dispatch → 有一帧 `activeSide` 已是 enemy 而 `enemy.phase` 还是 ended → useAITurn 放行、`aiRunning=true` 置位、gate 全拒 → **回合永久锁死**。（`aiRunning` 在 `.finally` 抛错时复位，**挂起时不复位**。）
+3. **`BattleScreen.jsx:869` 的 `battle.phase === 'enemyTurn'`** 是屏幕上**唯一**告诉七岁孩子「现在不是你动」的橙色标签。`derivePhase` 必须把 `activeSide==='enemy'` 映射回 `'enemyTurn'`，否则它恒为 false —— 不报错、不变红、build 通过，只是标签安静消失。
+
+### 🚫 计划裁定的「不要做」（都经源码核实）
+- **不要把科学家模式搬进引擎。** 三个设计全要搬、全声称「逐字节保持」、全都说错了机制：`calcCardBattle`（`damage.js:86`）**根本不读 `opts.damageMultiplier`** → 那 ×1.2 只在直攻主人生效、卡对卡时被静默丢弃。搬进引擎 = **顺手给每次卡牌攻击 +20%，把难度改动伪装成重构**。它今天是玩家专属且正确（AI 不答题，永远赚不到）。卡牌路径的丢失另开平衡单。
+- **不要合并 `beginEnemyTurn` 与 `startPlayerTurn`。** 「能量公式抄了两遍」是幻觉：一个读**递增前**的 `t`、一个读**递增后**的 `newTurn`，对同一轮两者都得 `min(ceil(turn/2)+1, ENERGY_CAP)` —— 它们在两个时刻读同一变量，**正是为了让公式相同**。
+- **不要转发 action / 不要把 action 做成 wire-safe。** `FIELD_UPDATE.value` 与 `LEADER_APPLY.updater` 收**函数**，且注释写明是刻意的。**推 state，不推 action。**
+- **不要把 battleStats 拆成两份。** 累加点今天**没有 side 守卫** → side 化后 AI 出牌会记进齐齐的战绩。最小修法是那四处加 `if (side === 'player')`（S4/S5 内完成，是**前置**不是收尾）。
+- **不要 side-scope quiz/quizStreak/Leitner。** 今天玩家专属且正确（AI 不答题）。guest 的觉醒需要可中断的两趟协议 —— **那是 PvP 层，不是 de-fork**。
+- **不要给 `side` 加必填。** `side = 'player'` 默认值只出现在 hook 边界，字面量活在 React 外壳里，永不进 `rules.js`。真正的守卫是 S7 的棘轮 + 镜像测试。
+- **不要无脑合并 preplaceCard 的三个作弊者**：Boss 预置**加**疲劳、`preplaceEnemyCards` **刻意不加**（注释明写）。必须显式 `{fatigued}`。
 
 ---
 
 ## 最近完成（详见 CHANGELOG）
 | | |
 |---|---|
-| `57644b7` | **直攻主人的技能倍率读 `mods`**（07-17）—— 旧写法只认 `evt.type==='RUSH_BOOST'` 就硬乘 2、从不读事件声明的 `mods.damageMultiplier`。而 RUSH_BOOST 是**被复用的 type**（无视守护/护盾/加伤都用它）。三张卡受害：手术刀（只该无视守护、没声明倍率→白拿 ×2，11000→5500）· 猎豹/猫头鹰（卡面 ×1.5→实际 ×2，10000→7500）。改成复用打卡路径的 `aggregateCombatMods`，两条路径语义对齐。+ 修 `Rush`（靠 mutate ctx 传倍率，改后会变哑弹）+ 新增 `test-leader-damage.mjs`（33 断言） |
-| `c62658b` | **存档止血** —— 导入清空全部卡组 / 导出漏 11 个 key / 版本降级 / resetSave 残留，+ ErrorBoundary（此前全项目零错误边界）+ 38 断言漂移守卫 |
-| `7588f61` | **测试场一张卡攻击就锁死全场** —— 根因 `makeFieldCard` 不发 uid → `has(undefined)` 全场命中。一处兜底修掉 4 个同源 bug |
-| `e679640` | **SP 事件卡按「实际召唤力」重定价**（效率 4000~9333 → 4500~7000）+ 修 SP 静默蒸发 |
-| `344fce5` | **战场位 5→6** —— 12 个文件 / 35 处，收口成单一真相源 + 14 条漂移守卫 |
+| `3e4e606` | **S2** 标记进 reducer 每侧数组（+13 真断言，含 JSON round-trip 护栏）。**「一卡一次」此前完全由 useAITurn 那个 for 循环的形状强制** —— 而那正是 PvP 要删的代码 |
+| `4cba729` | **S1** `rules.js` 纯谓词 + **60 条真断言**（规则第一次可测）。变异测试四发全中，其中「移除守护检查」= `aiAttack` 今天的真实状态 |
+| `614dfa4` | **S0** 玩家侧回调收口读 ref。**fork 的物理成因是「读值来源不同」，不是「gate 被删了」** |
+| `8b2c1cc` | `DEPLOY.md §4` 从「预案」改写成「已决架构」+ 三条不变量 + 两条会毁数据的部署纪律 |
+| `396db5a` | sw.js `/api/*` 旁路 + CACHE_NAME v2（+19 断言，变异测试双向验证） |
+| `4f3eae6` | 更正两条「文档写了、代码从来没有」的规则 + 觉醒倍率接回真相源 |
+| `ac1169e` | 手牌 uid 补 side 前缀 —— 修 **PvE 既有**串台 bug（+21 断言） |
+| `6cffff1` | hooks 补 `.js` —— **战斗引擎从「不可测」变可测**（de-fork 的前提） |
 
-**齐齐的存档已安全**：973 抽的档（16225 金币 / 141 种卡 / 6 副卡组）已导出备份在 `~/Downloads/bio-heroes-save-2026-07-16.json`（**唯一离线备份，勿删**），并已搬到 PWA 主屏（ITP 计时器不再威胁他）。
+⚠️ **`6cffff1`…`8b2c1cc` 已 push + deploy 并逐项验证**（生产 sw.js = v2 + 旁路、bundle hash 与本地一致）。**`614dfa4`/`4cba729`/`3e4e606`（S0/S1/S2）已 commit 但未 push、未 deploy。**
 
 ---
 
 ## 已知问题
-- 🔴 **两张卡的招牌技能 100% 失效**：四个 `triggerSkills('onAttack')` 调用点（`useBattle.js` 1820/1862/2058/2082）**没有一个传 `friendlyField`**，而 `conditionalAtk` 的 `per_ally` 分支读它（`skillTemplates.js:230`）→ **虎鲸·深海霸主「协同猎杀」(8500 SSR)** 与 **神经元·闪电信使「突触传递」(4000 SR)** 从不触发。`test-leader-damage.mjs` ⑥ 放了哨兵，补上时会红
-  - ⚠️ **修它会同时引爆平衡问题**：虎鲸满场 5 个自然系友方 = (8500+7500)×2(觉醒) = **32000 ≥ 主人 30000 → 满血秒杀**。5 格时是 29000（差 1000，设计上是「打残、下回合致死」）—— **是 6 格那次改动把它推过线的**，当时没人回头看 `amount:1500` 这个常量。补 `friendlyField` 前先决定：调低 1500 / 给 allies 数量加 cap / 接受它
-  - 📌 **历史更正**：本条原写作「虎鲸叠觉醒 34000 秒杀主人」——**那是假的**。写它的探针传了生产从不传的 `friendlyField`。真实 ctx 下虎鲸事件数为 0、直攻恒 17000，秒杀路径从未存在。教训记在 `test-leader-damage.mjs` 文件头
-- 🟡 **科学家模式 ×1.2 在「打卡」时被静默丢弃**：`calcCardBattle`（`damage.js:76-131`）不读 `opts.damageMultiplier`，`resolveCardCombat` 只单独消费 `mods` → 连对 3 题的奖励**只在直攻主人生效，对着卡打是 0 收益**
-- ⚠️ **PWA 图标是 SVG**：iOS 的 `apple-touch-icon` 只吃 PNG → 齐齐主屏图标现在是糊的网页截图（功能无影响）。修好需他删掉重装一次
-- Tailwind v4（裸 `@import "tailwindcss"`）会扫 `CHANGELOG.md`/`SESSION.md` —— **文档散文里写到类名会变成生产 CSS 里的死规则**（现 `.grid-cols-5` 59 字节，无害但会累积）
+- 🔴 **两张卡的招牌技能 100% 失效**：四个 `triggerSkills('onAttack')` 调用点**没有一个传 `friendlyField`**，而 `conditionalAtk` 的 `per_ally` 分支读它 → **虎鲸·深海霸主「协同猎杀」** 与 **神经元·闪电信使「突触传递」** 从不触发。`test-leader-damage.mjs` ⑥ 放了哨兵。
+  - ⚠️ **修它会同时引爆平衡**：虎鲸满场 5 个自然系友方 = (8500+7500)×2 = **32000 ≥ 主人 30000 → 满血秒杀**。5 格时是 29000 —— **是 6 格那次改动把它推过线的**。补 `friendlyField` 前先决定：调低 `amount:1500` / 给 allies 加 cap / 接受它
+- 🟡 **科学家模式 ×1.2 在「打卡」时被静默丢弃**（`calcCardBattle` 不读 `opts.damageMultiplier`）→ 连对 3 题的奖励**只在直攻主人生效**。⚠️ 修它 = 全卡牌攻击 +20% 的真实难度变化，**别混进 de-fork**（见上方「不要做」）
+- ⚠️ **PWA 图标是 SVG**：iOS `apple-touch-icon` 只吃 PNG → 齐齐主屏图标是糊的网页截图。修好需他删掉重装一次
+- Tailwind v4 会扫 `CHANGELOG.md`/`SESSION.md` —— **文档散文里写到类名会变成生产 CSS 里的死规则**
 - `starConditions` 文案写「≤12回合」、代码硬编码 `≤10`（`campaignData.js:1046`），且该字段**根本没人读**
-- 死代码：`src/effects/battleAnimations.js` 整 147 行 7 个 export 零引用 · `useAITurn.js:39` `MAX_CARDS_PER_TURN` 零引用（真实上限是 `attempt < 4`）· `useBattle.js` 的 `setAnimating`/`restorePhase`
-- 战斗日志硬编码中文（~240 条，spec 方案 A 不译）
-- Vite dev 偶尔 504；**验证铁律走 `vite preview`(4174) 非 dev**（沙箱 HMR 连不上）
-- 里程碑发放顺序 grant-first vs App.jsx save-first（正常玩不双领，仅 Safari 隐私模式极端边界）
+- 死代码：`src/effects/battleAnimations.js` 整 147 行零引用 · `useAITurn.js:39` `MAX_CARDS_PER_TURN` 零引用 · `useBattle.js` 的 `setAnimating`/`restorePhase`（**S3 会删**，`'animating'` 是零消费的幽灵相位）
+- 战斗日志硬编码中文（~240 条）· 里程碑发放顺序 grant-first vs save-first（仅 Safari 隐私模式极端边界）
 
 ---
 
 ## 下次启动时优先
+1. **接着做 S3**（先读上方「开工 S3 前必读」三条）
+2. 视情况把 S0/S1/S2 push + deploy（三者都是纯重构、零行为变化、已实机验证）
+3. S4/S5 **分开发**，别同一天丢给齐齐两个平衡变化
+4. 等齐齐真机反馈 `stage_2_8` 新冠 Boss 在 6 格下是否如预期变难
+5. 🎴 内容线：**骨骼·钢铁支架**改卡面说明（非 bug，是「骨髓造血」的设计意图）· **S1 海洋深渊季**补 OCEAN 卡（现 11 张→~20，用 `bio-heroes-card-designer` skill 拉齐齐脑暴）
 
-### 🎮 P1 · PvP 对战（方案已定，未开工）
-**已锁定**（详见 `DEPLOY.md` §4 + 本轮讨论）：
-- 场景：齐齐 vs 远方朋友（跨网络）· **实时** · **公平模式**（双方全卡池自由组卡，**不校验所有权** → PvP 不需要服务端收藏）
-- 架构：**房间码 + VPS 哑中继 + host 权威**。host 继续跑现有 `useBattle`（2300 行 React hook，48 处 `Math.random`）—— 因为只有 host 掷骰子，**不需要拆引擎、不需要 RNG 确定性**。guest 是瘦客户端，复用现有 `aiPlayToField`/`aiAttack` 接缝
-- 答题：**(b) 中性加成**（同题抢答，谁先答对拿中性奖：+1能量/抽卡/回血/科学家印记）
-- ⚠️ 最大风险：**player/enemy 视角镜像**（全代码库假设「我是 player」，PvP 里两端都认为自己是 player）
-- **三条不变量**（要写进 DEPLOY.md §4）：① 中继永远不懂游戏规则 ② **PvP 不产生任何持久化收益**（host 是别人家小孩的浏览器，它说「我赢了」就发金币 = 凭空印钱）③ 不校验卡牌所有权
-- **两条部署纪律**：`deploy:api` 必须与 `deploy` 分开（重启 Node = 打断对局）；**存档绝不能放 `/var/www/bio/`**（`npm run deploy` 带 `--delete`）
+### PvP 的另一半（de-fork 之后，**wire 格式冻结前必须先定**）
+- **推送载荷未定义**：reducer state 是 wire-clean 的，但 guest 屏幕上约一半东西**不在 reducer 里**（`currentQuiz`/`pendingSpSummon`/`skillEvents`/`battleLog`/`scientistMode`/`spDecks`/`activeEnvEvent`）。把 `mirror(reducerState)` 推给 guest → 棋盘漂亮对称，但**没问答、没 SP 弹窗、没伤害浮字、没日志**。**提升进 reducer，还是加一棵 JSON-clean 的 `uiState` 兄弟子树？** 定在冻结之前，否则要做第二次状态形状迁移。
+- `attack` 的返回值**意外地是一个完美的 wire 消息** —— `{atkDmg, defDmg, defKilled, atkKilled, leaderHit, atkFactionBonus, defFactionBonus, skillEvents}` 正是驱动每个浮字和音效所需的全部字段。「把 intent 结果回显给发起方」可能是让 guest 看见浮字的最便宜的路。
+- `battleLog` 写入时就烤进了 🔴 前缀与「🔵 你的回合」—— **mirror 换子树，换不掉字符串**。guest 的日志会永远以 host 视角叙事。最终要变成 `{side, key, params}`。
+- `applySkillEvents` 是**最大的未测洞**（setter-based，`_side` 路由有把 debuff 发到错误场的历史）。镜像测试证明**决策**对称，证明不了**执行**。诚实的修法是抽出纯的 `reduceSkillEvents` —— **与本计划体量相当的另一个项目**，塞进 de-fork 会让 de-fork 无法上线。
+- `turn` 只数玩家回合 → 环境事件/病毒 DoT/SP 第 8 回合开闸**只在 host 半回合触发**。本计划不修也不加剧 —— 但每侧阶段机会让它**看起来像修好了**，比现在这种明显的不对称更危险。
+- useAITurn 的 async 编排不可测：7 个硬编码 delay、无取消令牌、`aiRunning` 只在 `.finally` 复位（抛错会、**挂起不会**）。远端 guest 的 intent 到达时机不受 delay 控制。
 
-### ☁️ P2 · 云存档（排在 PvP 之后，**不做密码账号**）
-拆三层：持久化正确性（✅ 已做）/ 云存档+身份（P2）/ 密码认证（**建议永不做** —— <20 人熟人场景零收益、7 岁记不住、且新增丢档路径）。
-- **恢复码 = 4 个中文词**（40bit），**不能用 6 位数字**（20bit 可枚举，而**写路径被枚举 = 存档被覆盖销毁**）
-- **自动推（本地→云）+ 手动拉（云→本地）**，绝不自动双向合并。本地是唯一真相源，云只是镜像 → VPS 全挂时游戏照常
-- 服务端挂进 PvP 同一个 Node 进程；`credentials` 分表预留（日后加密码 = 插一行，saves 表零迁移）
-
-### 🔧 技能引擎欠账（`57644b7` 顺带查出，都没动）
-按「改一次就一起改」的顺序做，别拆开：
-1. **补 `friendlyField`** → 活化虎鲸/神经元两张卡（见「已知问题」🔴），**同时**决定 32000 秒杀怎么办
-2. **`calcCardBattle` 消费 `damageMultiplier`** → 修科学家模式打卡 0 收益（见「已知问题」🟡）
-3. `skillTemplates.js:268` 的 `ratio = (atk+bonus)/atk` 把**固定加伤近似成倍率** —— 只在「乘 ATK」时恰好对，遇到「乘伤害」的修饰符就错（科学家模式叠上去实测 38400）；且 `atk===0` → `Infinity`（cost 0 炮灰卡是 CLAUDE.md 明确允许的）。正解是加 `mods.damageBonus`，在所有乘法**之后**加一次
-
-### 🎴 内容线
-- **骨骼·钢铁支架**：齐齐确认**非 bug**（「骨髓造血」凭空造血是设计意图）→ 待办是**改卡面说明**讲清楚，别再被当 bug 报上来
-- **S1 海洋深渊季**：引擎全就绪，只差补 OCEAN 卡（现 11 张→~20）。用 `bio-heroes-card-designer` skill，拉齐齐一起脑暴
-
-### 🔴 等齐齐真机反馈
-**重点看 `stage_2_8` 新冠 Boss** —— 6 格后唯一变难的关（它每回合 50% 无限刷副本，**唯一刹车是「场上满了」**）。其余 23 关会变简单（AI 受出牌次数/犹豫/卡组张数三重限制，连 5 格都常填不满），18 关的 3 星达成率会上升 —— 已决定不收紧，让齐齐爽。
+### ☁️ P2 云存档（排在 PvP 之后，**不做密码账号**）
+方案已落盘在 `DEPLOY.md §4.5`（恢复码 4 个中文词 / 自动推+手动拉 / SQLite / credentials 分表预留）。
 
 ---
 
 ## 关键文件
-- **战斗引擎**：`src/hooks/useBattle.js`（规则住这，2300 行）+ `src/engine/battleReducer.js`（纯状态容器）· `src/engine/combat.js` · `src/hooks/useAITurn.js` + `src/engine/aiTarget.js` · `src/engine/{skillRegistry,skillTemplates,statusEffects,bossMechanics,stageRules}.js`
-- **独立棋盘（不走 useBattle，改战场位时必须同步）**：`src/components/TutorialScreen.jsx` + `src/data/tutorialData.js` · `src/components/TestArena.jsx`
+- **战斗引擎**：`src/hooks/useBattle.js`（规则住这，~2400 行）+ `src/engine/battleReducer.js`（纯状态容器）· **`src/engine/rules.js`（新，side-blind 纯谓词 —— 规则的守门人）** · **`src/engine/sides.js`（新）** · `src/engine/combat.js` · `src/hooks/useAITurn.js` + `src/engine/aiTarget.js` · `src/engine/{skillRegistry,skillTemplates,statusEffects,bossMechanics,stageRules}.js`
+- **独立棋盘（不走 useBattle，改战场位/标记时必须同步）**：`src/components/TutorialScreen.jsx`（**自带一对 Set**，刻意没动）+ `src/data/tutorialData.js` · `src/components/TestArena.jsx`
 - **数据**：`src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets,gachaBanners,achievements,dailyChallenges}.js`
   - ☠️ `deckRules.js` 里 `MAX_FIELD_SLOTS`(6) / `SP_DECK_SIZE`(5) / `STARTING_HAND`(5) 同居 —— **严禁对该文件做数字查找替换**
 - **存档**：`src/utils/saveManager.js`（`SAVE_KEYS` 单一清单）· `src/components/ErrorBoundary.jsx`
-- **问答**：`src/data/{quizzes(563卡题),quizzesGeneral(242通用题),quizLeitner}.js` —— 总 **805 题**
-- **测试**：`scripts/test-*.mjs`（**44 套**，`npm test` 入口）。漂移守卫：`test-save-manager` / `test-field-slots` / `test-quiz-similarity` / `test-leader-damage`
-  - ⚠️ **写引擎测试的铁律**：ctx 必须与生产调用点**逐字一致**。`test-leader-damage` 初版多传了一个 `friendlyField`，就凭空造出一个假 bug 且断言永远绿 —— 假绿比没测试更危险
-  - `engine/`+`utils/` 的相对 import **必须带 `.js`**（Vite 两种都吃，Node ESM 只吃带的）。历史上带扩展名的文件全都有测试、不带的全都没有 —— 无扩展名 = 自动被挡在测试套件外
-- 部署交接 `DEPLOY.md`；架构总览 `ARCHITECTURE.md`；历史见 `CHANGELOG.md`
+- **测试**：`scripts/test-*.mjs`（**48 套**，`npm test` 入口）。**真测试**（import 真模块）：`test-rules-gates`(60) / `test-battle-reducer`(51) / `test-hand-uid`(21) / `test-sw-api-bypass`(19) / `test-combat-resolve` / `test-leader-damage`
+  - ⚠️ **假绿铁律**：ctx 必须与生产调用点**逐字一致**；fixture 一律从**真的** `initialBattleState` + **真的** `cards.js` 改，**绝不手搓「长得像」的对象**。本项目已被假绿烧过四次（partialAwaken 档 / `test-leader-damage` 初版多传 `friendlyField` 造出假 bug / `test-sw-api-bypass` 初版漏 `location.origin` 导致全部因错误原因通过 / `MARKS_CLEAR` 的 no-op bailout 写错被当场抓住）
+  - ⚠️ **eslint 只开 `no-undef`**，**没有** react-hooks 插件、**没有** `exhaustive-deps` —— 别以为「lint 干净」证明了 deps 正确
+  - `engine/`+`utils/`+**`hooks/`** 的相对 import **必须带 `.js`**（`6cffff1` 起 hooks 也已补齐 → useBattle/useAITurn/useHand 现在 Node 可 import）
+- **⚠️ 浏览器验证铁律**：走 `vite preview`(4174) 非 dev。**先断言 `window.innerWidth > 0`** —— 无头浏览器会以 0×0 视口起来，此时所有卡牌点击静默失效、读起来像引擎回归（我为此白跑了一轮 stash/rebuild/重测；是「用改动前代码跑同一脚本」的 A/B 对照证伪的）。测试场家长门是 `window.prompt`（答 `56`），无头下需 `window.prompt = () => '56'` 打桩。**本局首次攻击必弹问答并挂起攻击**（`tryQuiz` 确定性）—— 不答题就会误判「攻击没发生」。
+- 部署交接 `DEPLOY.md`（§4 = PvP 权威）；架构总览 `ARCHITECTURE.md`；历史见 `CHANGELOG.md`
