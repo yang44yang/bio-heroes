@@ -5,6 +5,32 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 直攻主人技能倍率收口（2026-07-17）✅ `57644b7`
+> ⚔️ 起因是 SESSION.md 挂着一条 🔴「虎鲸叠觉醒 34000 秒杀主人」。查下来**那条是假的**，但底下压着三个真缺陷。对抗性验证（3 视角 workflow）两次推翻主 agent 的结论。
+
+**修掉的（真实 ctx 下全卡池就这三张能在直攻主人时拿到倍率）：**
+- [x] ★ 根因：两条直攻主人分支写 `if (evt.type === 'RUSH_BOOST') dmgOpts.damageMultiplier *= 2`，**只认事件 type、从不读 `evt.mods.damageMultiplier`**。而 `RUSH_BOOST` 是个**被复用的 type**——无视守护 / 无视护盾 / 加伤全用它，拿 type 当「要翻倍」的信号从一开始就错
+- [x] **手术刀·精准之刃**「精准切除」只是「无视守护」、事件根本没 `mods` → 白拿 ×2（11000 → **5500**）
+- [x] **猎豹·闪电猎手** / **猫头鹰·暗夜猎手** 卡面写「首次攻击 ×1.5」→ 实际执行 ×2，**日志说 ×1.5 手却打 ×2**（10000 → **7500**）。猫头鹰是穷举全卡池才补上的漏网
+- [x] 改法：复用「打卡」路径既有的 `aggregateCombatMods`（倍率相乘、无 mods 的事件忽略）→ 两条路径语义对齐。AI 侧（`:2058`）同样受害，一并修
+- [x] 连带修 `Rush`：靠 mutate `ctx.damageMultiplier` 传倍率，而 `triggerSkills` 传给 handler 的是 `{...context}` 拷贝、改动被丢弃；返回事件又不带 mods → 调用方改读 mods 后会**静默变哑弹**。补 `mods:{damageMultiplier:2}`（当前零卡使用，但 CLAUDE.md 把「突进」列为通用技能）
+- [x] `engine/`+`utils/` 4 处相对 import 补 `.js` —— **带扩展名的文件全都有测试、不带的全都没有**，正是它把 `skillTriggers`/`skillRegistry` 挡在 Node 测试套件外
+
+**新增 `test-leader-damage.mjs`（33 断言）**：驱动真 registry + 真卡牌 + 与 `useBattle:1820` 逐字一致的 ctx。三种漂移逐一验证会红（回退代码 / 抽掉 Rush 的 mods / 补上 friendlyField）。
+
+**🩹 主 agent 自己造的假 bug（记在此以免重演）：**
+- SESSION.md 那条 🔴 说「虎鲸 8500 ×2(硬编码) ×2(觉醒) = 34000 > 30000 满血秒杀」。主 agent 先是确认了它、还算出「一张卡秒杀」的表格，**并把这段虚构因果写进了代码注释和测试文件头**
+- 真相：`conditionalAtk` 的 `per_ally` 分支读 `ctx.friendlyField`，而**四个 `triggerSkills('onAttack')` 调用点一个都不传**。真实 ctx 下虎鲸事件数 = 0，改前改后都是 17000。**探针自己传了生产从不传的字段**，凭空造出一条不存在的路径
+- 由 workflow 的 regression / balance 两个 agent 独立揪出。教训：**引擎测试的 ctx 必须与生产调用点逐字一致，多传一个字段就是假绿**
+
+**查出但未修（欠账，见 SESSION.md）：**
+- 🔴 `friendlyField` 缺失 → **虎鲸·深海霸主「协同猎杀」(8500 SSR) 与神经元·闪电信使「突触传递」(4000 SR) 100% 失效**。补它会同时引爆：虎鲸满场 5 友方 = (8500+7500)×2 = **32000 ≥ 30000 秒杀**，而 5 格时是 29000 —— **是 6 格那次改动把它推过线的**
+- 🟡 `calcCardBattle` 不读 `opts.damageMultiplier` → **科学家模式 ×1.2 只在直攻主人生效，对着卡打是 0 收益**
+- `skillTemplates.js:268` 用 `ratio=(atk+bonus)/atk` 把固定加伤近似成倍率 —— 只在「乘 ATK」时恰好对；`atk===0` → `Infinity`
+- Tailwind v4 裸 `@import` 会扫 `CHANGELOG.md` —— **文档散文里写到类名会变成生产 CSS 死规则**（本文件已贡献一条 `.grid-cols-5`）
+
+---
+
 ## 存档止血 + 真机 bug-fix + SP/战场位重构（2026-07-16）✅
 > 🩹 齐齐真机反馈驱动的四连。多智能体审计两次纠正主 agent 的错误判断，全部改动真机验证后上线。
 
