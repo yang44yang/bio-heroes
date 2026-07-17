@@ -401,7 +401,18 @@ export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSp
           let slotIdx = i
           while (slotIdx < enemyField.length && enemyField[slotIdx]) slotIdx++
           if (slotIdx < enemyField.length) {
-            battle.aiPlayToField(c, slotIdx)
+            // S4：aiPlayToField 已删（de-fork）。这里**不能**走统一的 playToField ——
+            // 它跑在玩家的相位里（activeSide='player'、enemy.phase='ended'），
+            // 会被 gate 正确地拒掉。它本就是个作弊者：绕过规则凭空摆一张卡。
+            // ⚠️ triggerOnPlay:true 是为了**逐字节保持既有行为** —— 旧的 aiPlayToField
+            //   会触发 onPlay，而 cost≤1 的生物卡 24 张里有 11 张带 onPlay 技能。
+            // ⚠️ fatigued:true 同理（旧路径无条件 MARK_SUMMONED）。
+            battle.preplaceCard('enemy', c, slotIdx, { fatigued: true, triggerOnPlay: true })
+            // ⚠️ 日志由调用方负责（作弊者的叙述归调用方 —— 同 startBattle 里 Conundrum
+            //   入侵者那句「🦠 等待期间…」的约定）。**逐字保持旧 aiPlayToField 的文案**：
+            //   漏了它，这张卡就凭空出现在敌方场上、没有任何日志解释 —— 对七岁孩子就是
+            //   「这卡哪来的」。实机验证时确实漏过一次，是看日志开头才发现的。
+            battle.addLog(`🔴 敌方出牌：${c.name}（费用 ${c.cost}）→ 位置 ${slotIdx + 1}`)
             enemyHand.playCard(c.uid)
           }
         })

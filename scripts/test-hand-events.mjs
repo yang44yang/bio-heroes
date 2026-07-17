@@ -43,8 +43,17 @@ ok('③ 消费 _reviveToHand → addToHand 取回', /addToHand\(\[evt\._reviveTo
 // E5c-1：弃牌堆迁进 battleReducer，按引用移除 → 按 uid dispatch DISCARD_REMOVE_UID（语义等价：唯一 uid）
 ok('③ 取回后从权威弃牌堆移除（dispatch DISCARD_REMOVE_UID by uid）',
   /dispatch\(\{\s*type:\s*'DISCARD_REMOVE_UID',\s*side,\s*uid:\s*evt\._reviveToHand\.uid\s*\}\)/.test(ub))
-ok('③ playToField 调 applyHandEvents(player)', /applyHandEvents\(playEvents,\s*'player'\)/.test(ub))
-ok('③ aiPlayToField 调 applyHandEvents(enemy)', /applyHandEvents\(playEvents,\s*'enemy'\)/.test(ub))
+// S4 de-fork（2026-07-17）：playToField 与 aiPlayToField 已合并成一条 side 参数化的路径。
+// 本断言此前检查两个字面量 `applyHandEvents(playEvents, 'player')` 和 `..., 'enemy')` 都存在
+// —— 它守的是 CLAUDE.md 那条「改战斗规则须玩家/AI 两处同步改」的项目规矩。
+// **de-fork 就是在删掉那条规矩**：现在只有一处 `applyHandEvents(playEvents, side)`，
+// 「两侧都消费手牌事件」从「两个调用点都得记着写」变成了**结构保证**。
+// 这比原来强：原来那条规矩本身就是这个 fork 的伤疤。
+ok('③ 出牌路径调 applyHandEvents(side)（de-fork 后只有一处，两侧结构上必然一致）',
+  /applyHandEvents\(playEvents,\s*side\)/.test(ub))
+ok('③ 不得再出现按侧别写死的 applyHandEvents（那是 fork 复活的征兆）',
+  !/applyHandEvents\(playEvents,\s*'(player|enemy)'\)/.test(ub))
+ok('③ aiPlayToField 已不存在（S4 de-fork）', !/const aiPlayToField\s*=/.test(ub))
 
 // ④ 接线：BattleScreen 把手牌变更函数按 side 注入
 const bs = readFileSync(join(ROOT, 'src/components/BattleScreen.jsx'), 'utf8')

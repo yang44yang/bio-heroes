@@ -20,7 +20,7 @@ import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine
 // S1: 规则守门人抽成 side 参数化的纯谓词（Node 可直测 → scripts/test-rules-gates.mjs）。
 // 本 commit 只把**玩家路径**接过去；ai* 仍是另一份实现，fork 还在（S4/S5 才拆）。
 import { canPlayCard, canAttackFrom, canTargetSlot } from '../engine/rules.js'
-import { SIDES } from '../engine/sides.js'
+import { SIDES, opp } from '../engine/sides.js'
 import { pickRandomEvent } from '../data/events.js'
 import { getBossMechanic } from '../engine/bossMechanics.js'
 import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill.js'
@@ -1687,61 +1687,131 @@ export function useBattle() {
   // ----------------------------------------------------------------
   // ★ 读值一律走 battleStateRef，不读渲染闭包（S0 收口）。此前 phase/playerEnergy 读闭包，
   //   而下面 :1667/:1673/:1686 的 discard/field 读 ref —— 同一函数两个真相源，隔了五行。
-  const playToField = useCallback((card, slotIdx) => {
+  /**
+   * 触发一张卡的 onPlay 技能并把事件落地。**一份实现，两个调用方**（S4）：
+   *   · playToField —— 正常出牌
+   *   · preplaceCard({ triggerOnPlay: true }) —— 开局自动出牌那个作弊者
+   * 抽出来是为了让第二个调用方**不必为了绕过 phase gate 而丢掉 onPlay**：
+   * cost≤1 的生物卡有 24 张，其中 **11 张带 onPlay 技能**（蚂蚁「信息素召集」、
+   * 血小板「凝血屏障」、红细胞「氧气输送」…），静默丢掉近一半开局卡的技能是真回归。
+   *
+   * @param {'player'|'enemy'} side - 出牌方
+   * @param {Object} card - 原始卡（内部自己 makeFieldCard）
+   * @returns {Array} playEvents
+   */
+  const runOnPlaySkills = useCallback((side, card) => {
+    const foe = opp(side)
+    const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
+    const enemySetter = side === 'player' ? setEnemyField : setPlayerField
+    const prefix = side === 'player' ? '' : '🔴 '
+    // ⚠️ ctx 里的 playerHand/enemyHand 语义是「行动方的手牌 / 对面的手牌」，不是字面的
+    //   玩家/敌方 —— 沿用 aiPlayToField 既有的对调写法，别按名字直觉「修正」。
+    const playEvents = triggerSkills('onPlay', {
+      card: makeFieldCard(card),
+      friendlyField: battleStateRef.current[side].field.filter(Boolean),
+      enemyField: battleStateRef.current[foe].field.filter(Boolean),
+      playerHand: side === 'player' ? handsRef.current.playerHand : handsRef.current.enemyHand,
+      enemyHand: side === 'player' ? handsRef.current.enemyHand : handsRef.current.playerHand,
+      discardPile: battleStateRef.current[side].discard,
+      turn,
+    })
+    applySkillEvents(playEvents, friendlySetter, enemySetter, side)
+    applyHandEvents(playEvents, side)
+    for (const evt of playEvents) {
+      if (evt.message) addLog(`${prefix}${evt.message}`)
+    }
+    // ★ 敌方此前不 push —— 于是 BattleScreen:71 的 `initiator === 'enemy'` 分支
+    //   （REVEAL_HAND 弹窗 3 秒自动消失）一直是**死代码**。de-fork 激活它。
+    //   安全：_initiatorSide 由 applySkillEvents 用 side 打标，敌方事件一直带着正确的
+    //   标记，只是从没被推出去过。（battle.skillEvents 只被 REVEAL_HAND 监听器消费；
+    //   伤害浮字走的是 playToField/attack 的**返回值**，不是这个。）
+    pushSkillEvents(playEvents)
+    return playEvents
+  }, [addLog, pushSkillEvents])
+
+  /**
+   * 出牌到战场。**唯一的一条路（S4 de-fork）** —— 玩家与 AI/guest 共用。
+   *
+   * 此前是两份近重复实现，而 aiPlayToField 那份**一道检查都没有**（ARCHITECTURE.md:51
+   * 点名的债）。合并一次修掉三个已验证的真 bug：
+   *   ① 无条件 ENERGY_SPEND → **敌方能量可以扣成负数**（没人查 cost > energy）
+   *   ② 覆盖占位者却**不送弃牌堆** → 弃牌堆是**阵营标记的真相源** → 敌方标记长期少算
+   *      → 敌方的 factionRequirement 卡（SSR）打不出来
+   *   ③ 无 factionRequirement 检查 → 敌方能无视需求直接摆 SSR
+   *
+   * @param {Object} card
+   * @param {number} slotIdx
+   * @param {'player'|'enemy'} [side='player'] —— 默认值让玩家调用点零改动，且侧别字面量
+   *        只活在 React 外壳里、永不进 rules.js（side-blind 约定见 engine/rules.js）
+   * @returns {{ok:boolean, reason?:string, msg?:string, replaced?:Object, skillEvents?:Array}}
+   */
+  const playToField = useCallback((card, slotIdx, side = 'player') => {
     // gate 走 engine/rules.js 的纯谓词（S1）。文案留在这里 —— 它是表现层
     // （要拼 FACTIONS 名字、将来要走 i18n），rules.js 只返回 reason code。
-    const gate = canPlayCard(battleStateRef.current, 'player', card, slotIdx)
+    const gate = canPlayCard(battleStateRef.current, side, card, slotIdx)
     if (!gate.ok) {
-      return { ok: false, msg: PLAY_REJECT_MSG[gate.reason](card) }
+      return { ok: false, reason: gate.reason, msg: PLAY_REJECT_MSG[gate.reason](card) }
     }
 
+    const foe = opp(side)
+    const friendlySetter = side === 'player' ? setPlayerField : setEnemyField
+    const enemySetter = side === 'player' ? setEnemyField : setPlayerField
+    // 日志前缀沿用既有约定：玩家无前缀、敌方 🔴（BattleScreen 靠它区分双方叙事）
+    const prefix = side === 'player' ? '' : '🔴 '
+
     // E5c-5：被替换下场的卡在 dispatch 前用 battleStateRef 确定性取（updater 闭包读回失效）
-    const prevOccupant = battleStateRef.current.player.field[slotIdx]
+    const prevOccupant = battleStateRef.current[side].field[slotIdx]
     const replaced = (prevOccupant && prevOccupant.currentHp > 0) ? prevOccupant : null
-    setPlayerField(prev => {
+    friendlySetter(prev => {
       const next = [...prev]
       next[slotIdx] = makeFieldCard(card)
       return next
     })
 
-    dispatch({ type: 'ENERGY_SPEND', side: 'player', cost: card.cost })
+    dispatch({ type: 'ENERGY_SPEND', side, cost: card.cost })
 
     // Consume faction markers if needed
     if (card.factionRequirement?.type === 'consume') {
       const { updatedPile } = consumeFactionMarkers(
-        battleStateRef.current.player.discard,
+        battleStateRef.current[side].discard,
         card.factionRequirement.faction,
         card.factionRequirement.count
       )
-      dispatch({ type: 'DISCARD_SET', side: 'player', pile: updatedPile })
+      dispatch({ type: 'DISCARD_SET', side, pile: updatedPile })
     }
 
-    dispatch({ type: 'MARK_SUMMONED', side: 'player', uid: card.uid })
-    battleStatsRef.current.cardsPlayed++
+    dispatch({ type: 'MARK_SUMMONED', side, uid: card.uid })
+    // ⚠️ battleStats 是**玩家的战报**（结算界面 + 成就），不是棋盘状态 → 只记玩家侧。
+    //   这四处 side 守卫是 side 化的**前置**不是收尾：漏了 → AI 每出一张牌就给齐齐的
+    //   cardsPlayed +1。PvP 铁律是零持久化收益，第二份 stats 没有消费者。
+    if (side === 'player') battleStatsRef.current.cardsPlayed++
 
-    if (replaced) addLog(`${replaced.name} 被替换下场`)
+    // ★ 被替换的卡进弃牌堆 —— 敌方此前**没有**这一步。弃牌堆是阵营标记的真相源，
+    //   所以这既是修 bug，也是**真实的平衡变化**：敌方标记不再少算 → 从没打出来过的
+    //   敌方 SSR factionRequirement 卡可能开始上场（详见本函数顶部注释）。
     if (replaced) {
-      dispatch({ type: 'DISCARD_ADD', side: 'player', cards: [replaced] })
+      addLog(`${prefix}${replaced.name} 被替换下场`)
+      dispatch({ type: 'DISCARD_ADD', side, cards: [replaced] })
     }
-    addLog(`出牌：${card.name}（费用 ${card.cost}）→ 位置 ${slotIdx + 1}`)
+    addLog(`${side === 'player' ? '出牌' : '🔴 敌方出牌'}：${card.name}（费用 ${card.cost}）→ 位置 ${slotIdx + 1}`)
 
-    // onPlay 技能触发（Oxygen Delivery, Clotting Shield 等）
-    const playEvents = triggerSkills('onPlay', {
-      card: makeFieldCard(card),
-      friendlyField: battleStateRef.current.player.field.filter(Boolean),
-      enemyField: battleStateRef.current.enemy.field.filter(Boolean),
-      playerHand: handsRef.current.playerHand,
-      enemyHand: handsRef.current.enemyHand,
-      discardPile: battleStateRef.current.player.discard,
-      turn,
-    })
-    applySkillEvents(playEvents, setPlayerField, setEnemyField, 'player')
-    applyHandEvents(playEvents, 'player')
-    for (const evt of playEvents) {
-      if (evt.message) addLog(evt.message)
+    const playEvents = runOnPlaySkills(side, card)
+    // onPlay AOE（声纳震荡/古老瘟疫等）可能击杀对方卡 → 清理 + 触发其 onDeath。
+
+    // 关卡特殊规则：敌方出牌后触发（丛林迷雾隐身等）—— 玩家侧无对应钩子
+    if (side === 'enemy' && stageRuleRef.current?.onEnemyCardPlayed) {
+      const fieldCard = battleStateRef.current.enemy.field[slotIdx]
+      if (fieldCard) {
+        const ruleEvents = stageRuleRef.current.onEnemyCardPlayed({
+          card: fieldCard,
+          setEnemyField,
+          addLog,
+        })
+        if (ruleEvents?.length > 0) {
+          setBossMechanicEvents(prev => [...prev, ...ruleEvents])
+        }
+      }
     }
-    pushSkillEvents(playEvents)
-    // onPlay AOE（声纳震荡/古老瘟疫等）可能击杀敌方卡 → 清理 + 触发其 onDeath。
 
     return { ok: true, replaced, skillEvents: playEvents }
   }, [addLog, pushSkillEvents])
@@ -2036,63 +2106,46 @@ export function useBattle() {
   }, [addLog, tryTriggerSp])
 
   // ----------------------------------------------------------------
-  //  AI 出牌到场上
+  //  预置卡（作弊入口）—— 不是出牌，是「凭空摆一张卡上场」
   // ----------------------------------------------------------------
-  const aiPlayToField = useCallback((card, slotIdx) => {
-    setEnemyField(prev => {
+  /**
+   * 把一张卡直接摆到场上，**绕过全部规则**（不扣能量、不查阵营需求、不触发 onPlay）。
+   * 只给三个「作弊者」用：Boss 预置 / Conundrum 入侵者 / 测试场。
+   *
+   * ⚠️ **fatigued 必须显式传，没有默认值** —— 这三个作弊者的疲劳语义**刻意不同**：
+   *   · Boss 预置        → fatigued: true （回合 1 不能直接打脸齐齐）
+   *   · preplaceEnemyCards → fatigued: false（注释明写「不加入 summonedThisTurn →
+   *     它们可以立刻攻击」，那是 Conundrum 入侵者的设计意图）
+   *   · 测试场           → fatigued: false（「摆下的卡无召唤疲劳、可立刻攻击」）
+   *   无脑合并会静默翻转其一：要么开局那张敌方卡回合 1 就能打脸，要么抽掉入侵者的设计意图。
+   *
+   * ⚠️ **triggerOnPlay 也必须显式传** —— 四个作弊者在这一点上也不同：
+   *   · 开局自动出牌（BattleScreen 的起手 effect）→ true。它语义上**就是「敌方出了一张牌」**，
+   *     只是发生在玩家的相位里、过不了 gate。cost≤1 的生物卡 24 张里 **11 张带 onPlay**，
+   *     悄悄丢掉它们的技能是真回归 —— 这一点计划没标出来。
+   *   · Boss 预置 / Conundrum 入侵者 / 测试场 → false（它们本来就不触发 onPlay，
+   *     改成触发 = 平衡变化，不在 de-fork 的范围里）。
+   *
+   * @param {'player'|'enemy'} side
+   * @param {Object} card - 原始卡（makeFieldCard 内部处理，uid 有兜底）
+   * @param {number} slotIdx
+   * @param {{fatigued: boolean, triggerOnPlay: boolean}} opts - **两个都必填**，理由见上
+   */
+  const preplaceCard = useCallback((side, card, slotIdx, opts) => {
+    if (!opts || typeof opts.fatigued !== 'boolean' || typeof opts.triggerOnPlay !== 'boolean') {
+      throw new Error('preplaceCard: opts.fatigued 与 opts.triggerOnPlay 必须显式传 —— 各作弊者语义刻意不同，不能有默认值')
+    }
+    const setter = side === 'player' ? setPlayerField : setEnemyField
+    const fieldCard = makeFieldCard(card)
+    setter(prev => {
       const next = [...prev]
-      next[slotIdx] = makeFieldCard(card)
+      next[slotIdx] = fieldCard
       return next
     })
-    dispatch({ type: 'ENERGY_SPEND', side: 'enemy', cost: card.cost })
-
-    // Consume faction markers if needed
-    if (card.factionRequirement?.type === 'consume') {
-      const { updatedPile } = consumeFactionMarkers(
-        battleStateRef.current.enemy.discard,
-        card.factionRequirement.faction,
-        card.factionRequirement.count
-      )
-      dispatch({ type: 'DISCARD_SET', side: 'enemy', pile: updatedPile })
-    }
-
-    dispatch({ type: 'MARK_SUMMONED', side: 'enemy', uid: card.uid })
-    addLog(`🔴 敌方出牌：${card.name}（费用 ${card.cost}）→ 位置 ${slotIdx + 1}`)
-
-    // onPlay 技能触发（Oxygen Delivery, Clotting Shield 等）
-    const playEvents = triggerSkills('onPlay', {
-      card: makeFieldCard(card),
-      friendlyField: battleStateRef.current.enemy.field.filter(Boolean),
-      enemyField: battleStateRef.current.player.field.filter(Boolean),
-      playerHand: handsRef.current.enemyHand,
-      enemyHand: handsRef.current.playerHand,
-      discardPile: battleStateRef.current.enemy.discard,
-      turn,
-    })
-    applySkillEvents(playEvents, setEnemyField, setPlayerField, 'enemy')
-    applyHandEvents(playEvents, 'enemy')
-    for (const evt of playEvents) {
-      if (evt.message) addLog(`🔴 ${evt.message}`)
-    }
-    // onPlay AOE 可能击杀玩家卡 → 清理 + 触发其 onDeath。
-
-    // 关卡特殊规则：敌方出牌后触发（丛林迷雾隐身等）
-    if (stageRuleRef.current?.onEnemyCardPlayed) {
-      const fieldCard = battleStateRef.current.enemy.field[slotIdx]
-      if (fieldCard) {
-        const ruleEvents = stageRuleRef.current.onEnemyCardPlayed({
-          card: fieldCard,
-          setEnemyField,
-          addLog,
-        })
-        if (ruleEvents?.length > 0) {
-          setBossMechanicEvents(prev => [...prev, ...ruleEvents])
-        }
-      }
-    }
-
-    return playEvents
-  }, [addLog])
+    if (opts.fatigued) dispatch({ type: 'MARK_SUMMONED', side, uid: fieldCard.uid })
+    if (opts.triggerOnPlay) runOnPlaySkills(side, card)
+    return fieldCard
+  }, [runOnPlaySkills])
 
   // ----------------------------------------------------------------
   //  AI 攻击（单次，返回结果）
@@ -2405,6 +2458,12 @@ export function useBattle() {
     get playerLeaderHp() { return battleStateRef.current.player.leaderHp },
     get enemyLeaderHp() { return battleStateRef.current.enemy.leaderHp },
     get enemyPowerBank() { return battleStateRef.current.enemy.powerBank },
+    // S4：AI 的能量真相源。此前 useAITurn 自己维护一个局部 `remainEnergy`（第二真相源），
+    // 而它**已经在漂移**：beginEnemyTurn 手工把 ENERGY_BOOST 折进返回值，
+    // aiPlayEventCard 的 spend_all_energy 把引擎 energy 清零却不动 remainEnergy。
+    // 一旦 gate 真的查能量（S4），AI 会在「自以为有钱」时被拒 → 出牌变少甚至归零，
+    // 而且不报错。删 remainEnergy 是 S4 的**前提**，不是顺手。
+    get enemyEnergy() { return battleStateRef.current.enemy.energy },
     get enemySpDeck() { return enemySpDeckRef.current },
     get enemyDiscard() { return battleStateRef.current.enemy.discard },
     get battleStats() { return battleStatsRef.current },
@@ -2430,7 +2489,8 @@ export function useBattle() {
     startBattle, endMulligan, startPlayerTurn,
     playToField, endMainPhase,
     canAttack, attack, endBattlePhase,
-    beginEnemyTurn, aiPlayToField, aiAttack,
+    beginEnemyTurn, aiAttack,   // aiPlayToField 已删（S4 de-fork → playToField(card, slot, side)）
+    preplaceCard,               // 作弊入口：绕过规则凭空摆卡（Boss/入侵者/测试场/开局自动出牌）
     breakPowerBank,
     // Event + SP
     playEventCard, aiPlayEventCard, confirmSpSummon, cancelSpSummon, summonSpCard, dismissEnvEvent,

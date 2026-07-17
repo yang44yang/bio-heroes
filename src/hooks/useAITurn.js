@@ -26,8 +26,14 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
       if (drawn.length > 0) battle.addLog(`🔴 敌方抽了 1 张牌（手牌 ${enemyHand.hand.length + 1}）`)
 
       // --- 2. 刷新能量 ---
-      const eEnergy = battle.beginEnemyTurn()
-      let remainEnergy = eEnergy
+      // ⚠️ beginEnemyTurn 的返回值仍然要（它把 ENERGY_BOOST 折进 gain 并 dispatch），
+      //    但**不再拿它维护一个局部 remainEnergy**（S4）：那是 AI 能量的第二真相源，
+      //    且已经在漂移 —— aiPlayEventCard 的 spend_all_energy 把引擎 energy 清零却
+      //    不动 remainEnergy。gate 真查能量之后，第二真相源 = AI 静默少出牌。
+      //    改为每次现读 `battle.latest.enemyEnergy`（getter 直读 battleStateRef）。
+      //    时序安全：本 IIFE 每个决策点之前都有 await（delay 100/600/500），
+      //    React 已提交 → ref 是新鲜的。
+      battle.beginEnemyTurn()
 
       // AI 强度参数（0.0-1.0，越高越聪明）
       const aiStr = campaignConfig?.aiStrength ?? 0.5
@@ -48,7 +54,7 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         const aiHand = enemyHand.hand
         const highCostCards = aiHand.filter(c => c.cost >= 4)
         const aiLeaderHP = battle.latest.enemyLeaderHp
-        const totalWithBank = remainEnergy + aiPB.stored
+        const totalWithBank = battle.latest.enemyEnergy + aiPB.stored
 
         let shouldBreak = false
         // 条件1：血量低于 30% 且有高费卡能出
@@ -64,7 +70,6 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
 
         if (shouldBreak) {
           const released = battle.breakPowerBank('enemy')
-          remainEnergy += released
           battle.addLog(`🔴 💥 敌方打破 Power Bank！释放 ${released} 能量！`)
           playSound('bankBreak')
           await delay(600)
@@ -88,7 +93,7 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         if (aiHand.length === 0) break
 
         // Try event cards first (buff/heal when field has cards, damage when enemy has cards)
-        const eventCards = aiHand.filter(c => c.type === 'event' && c.cost <= remainEnergy)
+        const eventCards = aiHand.filter(c => c.type === 'event' && c.cost <= battle.latest.enemyEnergy)
         if (eventCards.length > 0 && attempt < 2) {
           // Pick best event card based on situation
           const aiField = battle.latest.enemyField
@@ -113,7 +118,6 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
               drawCards: (n) => enemyHand.draw(n),
             })
             enemyHand.playCard(chosenEvent.uid)
-            remainEnergy -= chosenEvent.cost
             cardsPlayed++
             playSound('cardPlay')
             await delay(600)
@@ -127,7 +131,7 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         if (emptySlots.length === 0) break
 
         const playable = aiHand
-          .filter(c => c.type !== 'event' && c.cost <= remainEnergy && canPlayWithMarkers(c, battle.latest.enemyDiscard))
+          .filter(c => c.type !== 'event' && c.cost <= battle.latest.enemyEnergy && canPlayWithMarkers(c, battle.latest.enemyDiscard))
           .sort((a, b) => (b.atk + b.hp) - (a.atk + a.hp))
 
         if (playable.length === 0) break
@@ -154,9 +158,17 @@ export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showF
         }
 
         const slotIdx = emptySlots[0]
-        battle.aiPlayToField(chosen, slotIdx)
+        // ★ S4：走统一的 playToField（gate 会真的查能量/阵营需求/槽位）。
+        //   ⚠️ playCard 必须在 r.ok **之后** —— 旧写法无条件调它，一旦出牌能被拒，
+        //     那张卡就从手牌消失、从未上场、也不进弃牌堆：AI 凭空少一张牌，没人看得出来。
+        const r = battle.playToField(chosen, slotIdx, 'enemy')
+        if (!r.ok) {
+          // 出牌被拒 = AI 的决策与引擎规则不一致 → 记日志（不静默）并停止本回合出牌，
+          // 避免拿同一张卡在循环里反复撞墙。
+          battle.addLog(`🔴 ${chosen.name} 无法打出：${r.msg}`)
+          break
+        }
         enemyHand.playCard(chosen.uid)
-        remainEnergy -= chosen.cost
         cardsPlayed++
         playSound('cardPlay')
 
