@@ -360,5 +360,68 @@ ok('★ findNonJson 自检：它真的抓得住混进来的 Set（否则上面�
          findNonJson(fresh()).length === 0
 })())
 
+// ============ 7. quizStreak / scientistMode（PvP 第 2 步：提进每侧子树）============
+//
+// ☠️ 这一组守的是一个**活的 latent fork**，不是理论风险：
+//    这两个此前是 useBattle 的全局单份（quizStreakRef + 两个 useState）。今天全对，
+//    只因 **AI 从不答题** —— 那个全局计数器天然就是玩家的。换成一个会答题的真人对手：
+//    **guest 连对 3 题 → host 全队 ATK +20%、host 被召 SP**。
+//    「每侧一份」不是洁癖，它就是修复本身。
+
+ok('7 初始态：两侧各有自己的 quizStreak / scientistMode', (() => {
+  const s = initialBattleState
+  return s.player.quizStreak === 0 && s.enemy.quizStreak === 0 &&
+         eq(s.player.scientistMode, { active: false, turnsLeft: 0 }) &&
+         eq(s.enemy.scientistMode, { active: false, turnsLeft: 0 })
+})())
+
+ok('7 ★ QUIZ_STREAK_SET 只动指定的一侧 —— **敌方答对不给玩家加 streak**', (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'QUIZ_STREAK_SET', side: 'enemy', value: 3 })
+  // 变异：reducer 里把 [side] 写成 'player'（或忘了用 side 索引）→ 本条红
+  return s.enemy.quizStreak === 3 && s.player.quizStreak === 0
+})())
+
+ok('7 ★ SCIENTIST_SET 只动指定的一侧 —— **guest 连对 3 题不给 host 加 buff**', (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'SCIENTIST_SET', side: 'enemy', active: true, turnsLeft: 2 })
+  return s.enemy.scientistMode.active === true && s.player.scientistMode.active === false
+})())
+
+ok('7 ★ 两侧独立并存（同时激活、互不覆盖）', (() => {
+  // ☠️ 只测「敌方设了玩家不变」漏得掉「后设的把先设的整个替换」这类实现。
+  //    双方同时持有各自的状态，是 PvP 里真会发生的局面（两个小孩都在答题）。
+  let s = fresh()
+  s = battleReducer(s, { type: 'SCIENTIST_SET', side: 'player', active: true, turnsLeft: 2 })
+  s = battleReducer(s, { type: 'SCIENTIST_SET', side: 'enemy', active: true, turnsLeft: 1 })
+  s = battleReducer(s, { type: 'QUIZ_STREAK_SET', side: 'player', value: 5 })
+  s = battleReducer(s, { type: 'QUIZ_STREAK_SET', side: 'enemy', value: 2 })
+  return s.player.scientistMode.turnsLeft === 2 && s.enemy.scientistMode.turnsLeft === 1 &&
+         s.player.quizStreak === 5 && s.enemy.quizStreak === 2
+})())
+
+ok('7 no-op bailout：设成相同的值不换引用（不变式③）', (() => {
+  let s = fresh()
+  const before = s.player
+  s = battleReducer(s, { type: 'QUIZ_STREAK_SET', side: 'player', value: 0 })
+  const mid = s.player === before
+  s = battleReducer(s, { type: 'SCIENTIST_SET', side: 'player', active: false, turnsLeft: 0 })
+  return mid && s.player === before
+})())
+
+ok('7 未改的一侧引用不变（不变式①）', (() => {
+  const s0 = fresh()
+  const enemyBefore = s0.enemy
+  const s1 = battleReducer(s0, { type: 'QUIZ_STREAK_SET', side: 'player', value: 1 })
+  return s1.enemy === enemyBefore && s1.player !== s0.player
+})())
+
+ok('7 SCIENTIST_SET 的 active/turnsLeft 一起设（不出现「active 但 turnsLeft=0」的中间帧）', (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'SCIENTIST_SET', side: 'player', active: true, turnsLeft: 2 })
+  s = battleReducer(s, { type: 'SCIENTIST_SET', side: 'player', active: false, turnsLeft: 0 })
+  return eq(s.player.scientistMode, { active: false, turnsLeft: 0 })
+})())
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} battle-reducer 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

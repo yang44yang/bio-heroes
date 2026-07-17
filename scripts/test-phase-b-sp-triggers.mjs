@@ -54,9 +54,18 @@ ok('两个触发点都走 resolveSpChoice（事件卡 + 门控条件）',
   (src.match(/resolveSpChoice\(side,/g) || []).length === 2)
 
 // ===== C. 触发接线（第8回合=门槛 AND 软条件 OR；reason 统一 'gated'）=====
-ok('答题点：turn≥SP_TURN_TRIGGER 且 连对≥SP_QUIZ_STREAK → player/gated',
+// ★ PvP 第 2 步（2026-07-17）：答题点的 `tryTriggerSp('player', 'gated')` 已改成
+//   `tryTriggerSp(side, 'gated')` —— 那个 'player' 是**硬编码字面量**，而 answerQuiz 现在
+//   带 side 参数（guest 的 answer intent 会以 side='enemy' 重放）。
+//
+// ☠️ **这条断言此前是「为错误的理由通过」的**：它查 `has("tryTriggerSp('player', 'gated')")`，
+//    而 `has` 是**全文件子串查找、不知道位置** —— 我把答题点改成 side 参数化之后，
+//    这条断言**照样绿**，因为那个字面量在 HP useEffect 和玩家回合点还各有一处。
+//    断言的名字说的是「答题点」，查的却是「整个文件里任何地方」。
+//    → 改成锚定**答题点自己的那一行**（newStreak 只在 answerQuiz 里出现）。
+ok('答题点：turn≥SP_TURN_TRIGGER 且 连对≥SP_QUIZ_STREAK → side/gated（side 参数化，不再硬编码 player）',
   has('battleStateRef.current.turn >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK') &&
-  has("tryTriggerSp('player', 'gated')"))
+  /newStreak >= SP_QUIZ_STREAK\) \{\s*\n\s*tryTriggerSp\(side, 'gated'\)/.test(src))
 ok('HP useEffect：第8回合前提前返回（battleStateRef.current.turn < SP_TURN_TRIGGER）',
   has('battleStateRef.current.turn < SP_TURN_TRIGGER'))
 ok('HP useEffect：玩家/敌方 HP≤阈值 → gated',
@@ -64,9 +73,12 @@ ok('HP useEffect：玩家/敌方 HP≤阈值 → gated',
   has('enemyLeaderHp <= enemyInitLeaderHpRef.current * SP_LEADER_HP_RATIO') &&
   has("tryTriggerSp('player', 'gated')") && has("tryTriggerSp('enemy', 'gated')"))
 // E5c-3：leaderHp 迁进 battleReducer → 读 battleStateRef.current.<side>.leaderHp（init 阈值 ref 不动）
+// PvP 第 2 步：quizStreak 从 quizStreakRef（一个全局 ref）提进 reducer 的每侧子树
+// → 读取路径变成 battleStateRef.current.player.quizStreak。软条件的**语义没变**，只是真相源
+// 从「一个 ref + 一个只喂 UI 的 useState」（两份，必然分叉）收成了一份。
 ok('玩家回合点：newTurn≥SP_TURN_TRIGGER 且（连对2题 OR HP≤阈值）→ player/gated',
   has('newTurn >= SP_TURN_TRIGGER') &&
-  has('quizStreakRef.current >= SP_QUIZ_STREAK ||') &&
+  has('battleStateRef.current.player.quizStreak >= SP_QUIZ_STREAK ||') &&
   has('battleStateRef.current.player.leaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO'))
 ok('敌方回合点：t≥SP_TURN_TRIGGER 且 HP≤阈值 → enemy/gated',
   has('t >= SP_TURN_TRIGGER') &&

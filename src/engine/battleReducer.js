@@ -66,8 +66,21 @@ export const initialBattleState = {
   //   · 'animating' **已删** —— 幽灵：setAnimating/restorePhase 曾被导出但零消费，
   //     且无人读 phase==='animating'。在状态形状迁移里驮着幽灵，是幽灵变成承重墙的标准剧本。
   //   · 'ended' = 本回合已结束、等对手行动。
-  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init' },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init' },
+  //
+  // ★ quizStreak / scientistMode（PvP 第 2 步）：**每侧一份**。
+  //   它们此前是 useBattle 的「一个 ref + 一个 useState」和「一个 useState」——
+  //   **穿着全局外衣的每侧状态**。今天正确只因 **AI 从不答题**：那个全局计数器天然就是玩家的。
+  //   ☠️ scientistMode 是个**活的 latent fork**：PvP 里双方抢答同一道题 →
+  //      guest 答对 3 题会给 **host** 加 buff。不是理论风险，是「换个对手就触发」。
+  //   ⚠️ quizStreak 此前**同时**有 quizStreakRef（真相源，规则读它）和 quizStreak state
+  //      （只喂 UI 的 🧠×N 角标）。两份必然分叉，且分叉时 UI 是对的、规则是错的 ——
+  //      最难发现的那种。收进 reducer 后只剩一份。
+  //   · scientistMode 的倒计时**每侧在自己的回合起点 tick**（player 在 startPlayerTurn、
+  //     enemy 在 beginEnemyTurn）。enemy 那个 tick 今天是 no-op（AI 拿不到科学家模式），
+  //     但它是 PvP 里唯一正确的挂法 —— 且「turn 只数玩家回合」那笔账不受影响：
+  //     tick 挂的是**各自的回合起点**，不是 turn 计数器。
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 } },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 } },
 }
 
 /**
@@ -275,6 +288,27 @@ export function battleReducer(state, action) {
       if (clearSummoned) next.summoned = []
       if (clearAttacked) next.attacked = []
       return { ...state, [side]: next }
+    }
+
+    // --- 问答连对 / 科学家模式（PvP 第 2 步）---
+    // 两个都是 SET 型（调用方 dispatch 前用 battleStateRef 确定性算好新值）。
+    // ⚠️ 不做 INC 型：answerQuiz 需要 newStreak 的**值**（写日志 + 判 SP 门控 + 判科学家模式），
+    //    而 useReducer 的 dispatch **不 eager 计算** → INC 之后同步读不回来。这是本文件顶部
+    //    那条不变式的直接后果，不是懒。
+    case 'QUIZ_STREAK_SET': {
+      const { side, value } = action
+      if (state[side].quizStreak === value) return state   // no-op bailout（不变式③）
+      return { ...state, [side]: { ...state[side], quizStreak: value } }
+    }
+
+    case 'SCIENTIST_SET': {
+      // active/turnsLeft 一起设 —— 它们是一个状态的两半，分开设会出现「active 但 turnsLeft=0」的中间帧。
+      // ⚠️ 日志归调用方：旧版把 addLog('🔬 科学家模式结束') 写在 setScientistMode 的 **updater 闭包里**，
+      //    那是副作用混进纯更新函数（StrictMode 下会打两遍）。reducer 保持纯。
+      const { side, active, turnsLeft } = action
+      const cur = state[side].scientistMode
+      if (cur.active === active && cur.turnsLeft === turnsLeft) return state
+      return { ...state, [side]: { ...state[side], scientistMode: { active, turnsLeft } } }
     }
 
     // --- 战场 field（E5c-5）---

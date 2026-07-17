@@ -143,6 +143,46 @@ function stripComments(src) {
   }
 }
 
+// ---- (e) side 参数化的函数，**函数体**也必须 side-blind（PvP 第 2 步）----
+//
+// ☠️ 这条是**变异测试逼出来的**，不是想出来的。
+//    第 2 步给 answerQuiz 加了 side 参数、把 streak/scientistMode 提进每侧子树之后，
+//    我跑变异验证守卫：把函数体里的 `battleStateRef.current[side].scientistMode.active`
+//    改回 `battleStateRef.current.player.scientistMode.active` —— **54 套全绿，一条都没红。**
+//
+//    而那是个真 bug：guest 连对 3 题时，代码会去查 **host** 有没有科学家模式 →
+//    host 有 → guest 拿不到；host 没有 → guest 答题**给自己刷新 host 的 buff**。
+//
+//    教训是 (d) 的局限：**签名带了 side ≠ 函数体用了 side**。这正是本文件开头那句
+//    「棘轮证明不了『拿了 side 又忽略它』」在 useBattle 侧的翻版 —— 只不过那边靠镜像测试补，
+//    而 answerQuiz 活在 React hook 里、node 里驱动不了。**用「函数体不得命名某一侧」补上。**
+//
+// ⚠️ 只覆盖**已经完成 side 参数化**的函数。没列进来的（endBattlePhase / endMulligan）
+//    今天连 side 都表达不了 —— 那是后续步骤的账，不是这条守卫的失败。
+{
+  const ub = stripComments(read('src/hooks/useBattle.js'))
+  // 抓函数体：从签名到下一个 `}, [` 结尾的 useCallback 收尾（本仓库的一致写法）
+  const bodyOf = (name) => {
+    const m = ub.match(new RegExp(`const ${name} = useCallback\\(\\([\\s\\S]*?\\n  \\}, \\[`))
+    return m ? m[0] : null
+  }
+  for (const fn of ['answerQuiz', 'tryQuiz', 'tickScientistMode']) {
+    const body = bodyOf(fn)
+    assert(body !== null, `(e) 找不到 ${fn} 的函数体 —— 它改名/改写法了？这条守卫已失效，请修它而不是删它`)
+    if (!body) continue
+    // 读某一侧的具名子树：battleStateRef.current.player.xxx / state.enemy.xxx
+    const hits = [...body.matchAll(/\.\s*(player|enemy)\s*\./g)].map((m) => m[0].trim())
+    assert(hits.length === 0,
+      `(e) ${fn} 的函数体里出现了 ${hits.join(', ')} —— **签名带了 side ≠ 函数体用了 side**。\n` +
+      `      要读「这一侧」请用 [side] 索引，读「对面」用 opp(side)。\n` +
+      `      这条守卫是变异测试逼出来的：把 [side] 改回 .player. 时，54 套测试**一条都没红**。`)
+    // 裸字面量（'player' / 'enemy'）—— 默认值请用 sides.js 的 PLAYER/ENEMY 常量
+    const lits = [...body.matchAll(/['"`](player|enemy)['"`]/g)].map((m) => m[0])
+    assert(lits.length === 0,
+      `(e) ${fn} 的函数体里出现了侧别字面量 ${lits.join(', ')} —— 请用 sides.js 的 PLAYER / ENEMY 常量。`)
+  }
+}
+
 // ---- 汇总 ----
 if (fails.length) {
   console.error(`❌ test-no-side-fork: ${fails.length} 条失败`)

@@ -20,7 +20,7 @@ import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine
 // S1: 规则守门人抽成 side 参数化的纯谓词（Node 可直测 → scripts/test-rules-gates.mjs）。
 // 本 commit 只把**玩家路径**接过去；ai* 仍是另一份实现，fork 还在（S4/S5 才拆）。
 import { canPlayCard, canAttackFrom, canTargetSlot } from '../engine/rules.js'
-import { SIDES, opp } from '../engine/sides.js'
+import { SIDES, PLAYER, ENEMY, opp } from '../engine/sides.js'
 // AI 的**人格**（挑哪张 SP / 20% 忘记）住 engine/aiTarget.js —— 与 pickAiTarget 同处，
 // 那里是「AI 怎么选」的家；引擎只管「能不能」（engine/rules.js）。S6 de-fork 的界线。
 import { pickAiSpCard } from '../engine/aiTarget.js'
@@ -164,11 +164,13 @@ export function useBattle() {
   const playerInitLeaderHpRef = useRef(LEADER_HP)
   const enemyInitLeaderHpRef = useRef(LEADER_HP)
 
-  // === 问答连续答对次数（用于难度升级 + 科学家模式）===
-  const quizStreakRef = useRef(0)
-  const [quizStreak, setQuizStreak] = useState(0)
-  // === 科学家模式（连续答对3题触发，持续2回合）===
-  const [scientistMode, setScientistMode] = useState({ active: false, turnsLeft: 0 })
+  // === 问答连对 / 科学家模式 —— **已提进 reducer 的每侧子树**（PvP 第 2 步）===
+  //   旧形状：quizStreakRef(真相源) + quizStreak state(只喂 UI) + scientistMode state。
+  //   三个都是**穿着全局外衣的每侧状态**，今天正确只因 AI 从不答题。
+  //   现在读 battleStateRef.current[side].quizStreak / .scientistMode，写走 dispatch。
+  //   对外仍暴露 `quizStreak` / `scientistMode` 两个**派生**标量（= player 侧），
+  //   于是 BattleScreen 的 battle.quizStreak / battle.scientistMode.active **零改动**
+  //   —— 同 derivePhase 的手法：内部对称，外部保持旧形状。
   // === 环境事件 ===
   const [activeEnvEvent, setActiveEnvEvent] = useState(null) // { event, turnsLeft }
   const [pendingEnvEvent, setPendingEnvEvent] = useState(null) // event to show in UI
@@ -1535,6 +1537,29 @@ export function useBattle() {
   //  复用事件卡管线：玩家 → setPendingSpSummon 弹「翻牌选1」；敌方 → 直接召唤。
   //  「翻2选1」：从合格候选里随机翻 2 张。每条件本局只触发一次（spTriggeredRef 去重）。
   // ----------------------------------------------------------------
+  /**
+   * 科学家模式倒计时 —— **每侧在自己的回合起点 tick 一次**（PvP 第 2 步）。
+   *
+   * ⚠️ 旧版是 `setScientistMode(prev => { …; addLog('🔬 科学家模式结束'); … })` ——
+   *    **addLog 写在 state updater 的闭包里**，那是副作用混进纯更新函数（React StrictMode
+   *    的 dev 双调用会让它打两遍日志）。现在：读 battleStateRef 确定性算 → addLog → dispatch。
+   *
+   * ⚠️ 挂在**各自的回合起点**，不是挂在 turn 计数器上 —— 所以「turn 只数玩家回合」那笔
+   *    既有的账不受影响，也不被这次改动加剧。enemy 侧今天恒 no-op（AI 拿不到科学家模式），
+   *    但它是 PvP 里唯一正确的挂法：guest 的 2 回合得按 guest 自己的回合数。
+   */
+  const tickScientistMode = useCallback((side) => {
+    const cur = battleStateRef.current[side].scientistMode
+    if (!cur.active) return
+    const left = cur.turnsLeft - 1
+    if (left <= 0) {
+      addLog('🔬 科学家模式结束')
+      dispatch({ type: 'SCIENTIST_SET', side, active: false, turnsLeft: 0 })
+      return
+    }
+    dispatch({ type: 'SCIENTIST_SET', side, active: true, turnsLeft: left })
+  }, [addLog])
+
   const tryTriggerSp = useCallback((side, reason) => {
     const key = `${side}:${reason}`
     if (spTriggeredRef.current.has(key)) return
@@ -1608,9 +1633,11 @@ export function useBattle() {
     battleStatsRef.current = { totalDamage: 0, kills: 0, quizCorrect: 0, quizTotal: 0, spSummons: 0, powerBankMax: 0, cardsPlayed: 0, eventsTriggered: 0 }
     // 开局：两侧的两种标记全清（对齐旧的两个共用 Set 各 .clear() 一次）
     for (const s of SIDES) dispatch({ type: 'MARKS_CLEAR', side: s, which: 'both' })
-    quizStreakRef.current = 0
-    setQuizStreak(0)
-    setScientistMode({ active: false, turnsLeft: 0 })
+    // 开局：两侧的 streak / 科学家模式全清（对齐旧的「一个全局清一次」，现在是每侧一次）
+    for (const s of SIDES) {
+      dispatch({ type: 'QUIZ_STREAK_SET', side: s, value: 0 })
+      dispatch({ type: 'SCIENTIST_SET', side: s, active: false, turnsLeft: 0 })
+    }
     firstAttackDone.current = false
     lastQuizTurn.current = 0
     resetQuizHistory()
@@ -2138,6 +2165,9 @@ export function useBattle() {
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
     dispatch({ type: 'ENERGY_SET', side: 'enemy', value: gain })
     addLog(`\n🔴 敌方回合（能量 ${gain}）`)
+    // 科学家模式倒计时（敌方侧）—— 与 startPlayerTurn 里玩家侧那个对称。
+    // 今天恒 no-op（AI 不答题 → 拿不到科学家模式），但缺了它 PvP 里 guest 的 buff 永不过期。
+    tickScientistMode(ENEMY)
     // onTurnStart 技能（向日葵/线粒体充能、蚁后召唤、变形虫、肝/肾、超算）
     const tsEvents = processTurnStartEffects('enemy')
     // 充能须反映到 AI 本回合可用能量：applySkillEvents 已更新 enemyEnergy state，
@@ -2229,7 +2259,7 @@ export function useBattle() {
     // Phase B：第8回合"开闸"——此刻若已连对2题 或 主人HP≤50%（软条件 OR），立即召玩家 SP
     // （满血且没连对2题则不召；这是"撑到第8回合也不一定召"的关键判断点）
     if (newTurn >= SP_TURN_TRIGGER &&
-        (quizStreakRef.current >= SP_QUIZ_STREAK ||
+        (battleStateRef.current.player.quizStreak >= SP_QUIZ_STREAK ||
          battleStateRef.current.player.leaderHp <= playerInitLeaderHpRef.current * SP_LEADER_HP_RATIO)) {
       tryTriggerSp('player', 'gated')
     }
@@ -2284,16 +2314,8 @@ export function useBattle() {
       // 效果在 UI 弹窗关闭后由 BattleScreen 调用 applyPendingEnvEvent
     }
 
-    // 科学家模式倒计时
-    setScientistMode(prev => {
-      if (!prev.active) return prev
-      const left = prev.turnsLeft - 1
-      if (left <= 0) {
-        addLog('🔬 科学家模式结束')
-        return { active: false, turnsLeft: 0 }
-      }
-      return { ...prev, turnsLeft: left }
-    })
+    // 科学家模式倒计时（玩家侧 —— 敌方侧的那个在 beginEnemyTurn，各 tick 各的回合起点）
+    tickScientistMode(PLAYER)
 
     // ★ 原子交接（S3）：敌方回合结束 → 玩家新回合。理由同 endBattlePhase。
     dispatch({ type: 'TURN_HANDOFF', from: 'enemy', to: 'player' })
@@ -2302,7 +2324,11 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  问答觉醒
   // ----------------------------------------------------------------
-  const tryQuiz = useCallback(() => {
+  // side 参数化（PvP 第 2 步）：streak 决定出题难度，而 streak 现在是每侧一份。
+  // ⚠️ firstAttackDone / lastQuizTurn 仍是**全局**的 —— 那是刻意的：问答的节拍是**这一局**的
+  //    （「本局首次攻击必触发、之后每 ≥3 回合一次」），不是每人一套。抢答语义（谁答到了那道题）
+  //    是第 4 步的账，形状已经定好了（state[side].quizAnswered，落每侧子树 → mirror 天然对）。
+  const tryQuiz = useCallback((side = PLAYER) => {
     const currentTurn = battleStateRef.current.turn
 
     // 首次攻击必触发
@@ -2316,51 +2342,66 @@ export function useBattle() {
 
     lastQuizTurn.current = currentTurn
 
-    // 收集当前战场上所有卡牌的 id
-    const battleCardIds = [
-      ...battleStateRef.current.player.field.filter(Boolean).map(c => c.id),
-      ...battleStateRef.current.enemy.field.filter(Boolean).map(c => c.id),
-    ]
-    const quiz = getRandomQuiz({ battleCardIds, streak: quizStreakRef.current, mode: getQuizMode() })
+    // 收集**双方**战场上所有卡牌的 id（出题优先出跟场上生物相关的）
+    // ⚠️ 遍历 SIDES 而不是手写 player/enemy 两行：这里读两侧是**对称**的、不是偏袒 ——
+    //    让代码把这个意思说出来，顺带满足 test-no-side-fork (e) 的「函数体 side-blind」。
+    const battleCardIds = SIDES.flatMap(s =>
+      battleStateRef.current[s].field.filter(Boolean).map(c => c.id))
+    const quiz = getRandomQuiz({ battleCardIds, streak: battleStateRef.current[side].quizStreak, mode: getQuizMode() })
     setCurrentQuiz(quiz)
     return quiz
   }, [])
 
-  const answerQuiz = useCallback((chosenIdx) => {
+  /**
+   * 答题。**side 参数化**（PvP 第 2 步）。
+   *
+   * ☠️ 这里此前有一个**活的 latent fork**：streak 和 scientistMode 都是全局单份，且
+   *    `tryTriggerSp('player', 'gated')` 里的 'player' 是**硬编码的字面量**。
+   *    今天全对，只因 AI 从不答题 —— 换成一个会答题的真人对手，**guest 连对 3 题会给
+   *    host 加 buff、给 host 召 SP**。不是理论风险：它是「接上第二个人就触发」。
+   *
+   * ⚠️ 默认 side = PLAYER：今天唯一的调用点是 BattleScreen 的问答弹窗（那就是玩家）。
+   *    guest 的 answer intent 到达时以 side = ENEMY 重放（第 4 步）。
+   */
+  const answerQuiz = useCallback((chosenIdx, side = PLAYER) => {
     if (!currentQuiz) return {}
     const correct = chosenIdx === currentQuiz.correct
     recordQuizResult(currentQuiz._qid, correct) // Leitner：答对升盒(下次隔更久)、答错回 Box1(明天再考)
     setCurrentQuiz(null)
-    battleStatsRef.current.quizTotal++
+    // ⚠️ battleStats 是**玩家的**成绩单（结算界面用），不是每侧的 —— 只在玩家答题时记。
+    //    与 attack 里 `if (isPlayer)` 才记 totalDamage/kills 同一条纪律。
+    const isPlayer = side === PLAYER
+    if (isPlayer) battleStatsRef.current.quizTotal++
 
     if (correct) {
-      battleStatsRef.current.quizCorrect++
-      quizStreakRef.current += 1
-      const newStreak = quizStreakRef.current
-      setQuizStreak(newStreak)
+      if (isPlayer) battleStatsRef.current.quizCorrect++
+      // ★ dispatch 不 eager → newStreak 在 dispatch **前**用 battleStateRef 确定性算好，
+      //   不靠闭包读回（本文件的既有纪律，见 battleReducer 顶部的不变式）。
+      const newStreak = battleStateRef.current[side].quizStreak + 1
+      dispatch({ type: 'QUIZ_STREAK_SET', side, value: newStreak })
       addLog(`🌟 觉醒！ATK ×2.0！(连续答对 ${newStreak} 题)${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
 
-      // Phase B：第8回合起"开闸"，连对 ≥ SP_QUIZ_STREAK 题（软条件之一）即召玩家 SP
+      // Phase B：第8回合起"开闸"，连对 ≥ SP_QUIZ_STREAK 题（软条件之一）即召该侧的 SP
       // （软条件 OR：连对2题 或 主人HP≤50% 任一即可；HP 那半在 HP useEffect / 回合点）
       if (battleStateRef.current.turn >= SP_TURN_TRIGGER && newStreak >= SP_QUIZ_STREAK) {
-        tryTriggerSp('player', 'gated')
+        tryTriggerSp(side, 'gated')
       }
 
-      // 连续答对3题 → 触发科学家模式（全队 ATK +20% 持续2回合）
+      // 连续答对3题 → 触发科学家模式（该侧全队 ATK +20% 持续2回合）
       let scientistTriggered = false
-      if (newStreak >= 3 && !scientistMode.active) {
-        setScientistMode({ active: true, turnsLeft: 2 })
+      if (newStreak >= 3 && !battleStateRef.current[side].scientistMode.active) {
+        dispatch({ type: 'SCIENTIST_SET', side, active: true, turnsLeft: 2 })
         addLog('🔬 科学家模式激活！全队 ATK +20%，持续 2 回合！')
         scientistTriggered = true
       }
 
       return { awakened: true, fact: currentQuiz.fact, streak: newStreak, scientistTriggered }
     }
-    quizStreakRef.current = 0
-    setQuizStreak(0)
+    dispatch({ type: 'QUIZ_STREAK_SET', side, value: 0 })
     addLog(`❌ 答错了，正常攻击${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
     return { fact: currentQuiz.fact, streak: 0 }
-  }, [currentQuiz, addLog, scientistMode.active, tryTriggerSp])
+    // deps 摘掉 scientistMode.active：函数体已不读渲染闭包（全走 battleStateRef）。
+  }, [currentQuiz, addLog, tryTriggerSp])
 
   // ----------------------------------------------------------------
   //  Phase B 软条件：主人 HP 降至初始值的 50% 以下（监听双方 HP；阈值用各自初始 HP，
@@ -2429,7 +2470,11 @@ export function useBattle() {
     skillEvents,
     playerPowerBank, enemyPowerBank,
     playerDiscard, enemyDiscard,
-    quizStreak, scientistMode,
+    // ★ 派生标量（= player 侧）：BattleScreen 的 battle.quizStreak / battle.scientistMode.active
+    //   **零改动**。同 derivePhase 的手法 —— 内部对称、外部保持旧形状。
+    //   PvP 里 guest 收到的是 mirror 后的快照 → 他的 `player` 就是他自己 → 这两个自动正确。
+    quizStreak: battleState.player.quizStreak,
+    scientistMode: battleState.player.scientistMode,
     // SP system
     playerSpDeck, enemySpDeck, pendingSpSummon,
     // Environment events

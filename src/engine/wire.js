@@ -48,7 +48,7 @@ import { MAX_FIELD_SLOTS } from '../data/deckRules.js'
  * 光有版本号不是棘轮（`1 === 1` 恒绿，最小修复是「把清单改一行」）。真正的棘轮是
  * SHAPES[PROTOCOL_VERSION] —— **版本编进形状本身，不 bump 就绿不了**。
  */
-export const PROTOCOL_VERSION = 1
+export const PROTOCOL_VERSION = 2
 
 /**
  * 事件环封顶。**测试从这里 import，不写字面量**（写死 = 让「环有多长」多一个真相源）。
@@ -222,6 +222,29 @@ export const SHAPES = Object.freeze({
     '<side>.phase',
     '<side>.powerBank.intact',
     '<side>.powerBank.stored',
+    '<side>.summoned',
+    'activeSide',
+    'turn',
+    'winner',
+  ]),
+  // v2（PvP 第 2 步）：quizStreak / scientistMode 从 useBattle 的 ref+useState 提进每侧子树。
+  // 它们**天然是公开的**：BattleScreen 今天就把 🧠×N 和「🔬 科学家模式！」渲染在屏幕上给对手看，
+  // 且科学家模式的 +20% 会体现在伤害数字里 —— 藏它没有意义，藏了反而让对手算不明白挨了多少。
+  //
+  // ★ 这条版本就是棘轮生效的实证：加字段的那一刻 assertPublicShape 当场抛错，报错里直接列出了
+  //   新形状。**绕不过、也不用谁记得** —— 这正是「版本编进形状本身」买到的东西。
+  2: Object.freeze([
+    '<side>.attacked',
+    '<side>.discard',
+    '<side>.energy',
+    '<side>.field',
+    '<side>.leaderHp',
+    '<side>.phase',
+    '<side>.powerBank.intact',
+    '<side>.powerBank.stored',
+    '<side>.quizStreak',
+    '<side>.scientistMode.active',
+    '<side>.scientistMode.turnsLeft',
     '<side>.summoned',
     'activeSide',
     'turn',
