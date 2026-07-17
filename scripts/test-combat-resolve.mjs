@@ -222,6 +222,12 @@ const nf = neutralA || atkFac // 中立阵营（无克制），用于隔离修�
 // 这里钉死的是**陷阱**，不是修复：canCardAttack 按 uid 在 Set 里查，uid 为 undefined 时
 // 全场塌缩成同一个键。修复在 useBattle.makeFieldCard 的 uid 兜底（由 test-test-arena ⑥ 守卫）。
 // 保留这两条是为了：① 记录这个坑为什么存在；② 万一 combat.js 侧被改坏，仍能咬住语义。
+//
+// ⚠️ 同一个 Set 的**第二种**碰撞见 scripts/test-hand-uid.mjs：uid 不为 undefined、
+//    但**双方各自铸出同一个字符串**。注意下面那句「uid 唯一时」用的例子 'whale_shark_wall_0'
+//    恰好就是旧 useHand 的格式 `${id}_${index}` —— 而那个格式跨方并不唯一（双方卡组同下标
+//    放同一张卡就撞）。即：本段断言的「唯一」是手写常量给的，产地当时并不保证。
+//    产地的保证现在由 useHand.mintHandUid 的 side 前缀提供。
 {
   const collided = new Set([undefined])
   assert(

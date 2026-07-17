@@ -32,8 +32,8 @@ import { useLanguage } from '../i18n/LanguageContext'
 export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit }) {
   const { t, lang, cardName, localName } = useLanguage()
   const battle = useBattle()
-  const playerHand = useHand(playerDeckCards)
-  const enemyHand = useHand(enemyDeckCards)
+  const playerHand = useHand(playerDeckCards, 'player')
+  const enemyHand = useHand(enemyDeckCards, 'enemy')
 
   // 即时提示系统 (Sprint 21)
   const { showHint, activeHint, dismissHint } = useBattleHints(lang)

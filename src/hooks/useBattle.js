@@ -205,7 +205,11 @@ export function useBattle() {
     // 注意 atk 已经可能被 antibiotic_weakened 减半，baseAtk 仍取 card.atk(更"原始"的数据层值)
     //
     // ★ uid 兜底：这里是「上场的卡必有唯一 uid」这个不变式的唯一收口点。
-    //   cards.js 的原始卡不带 uid（uid 的产地只有 useHand.js:25 的「卡组→手牌」）。
+    //   cards.js 的原始卡不带 uid。带 uid 的卡来自若干个产地：useHand.js（卡组→手牌，
+    //   uid 带 player_/enemy_ 前缀）、本文件 1556-1557（SP 卡组，sp_p_/sp_e_）、
+    //   skillTemplates/skillRegistry/bossMechanics/stageRules（召唤/复活/分裂，各自现铸）。
+    //   ⚠️ 凡新增产地：uid 必须能区分双方，否则双方同名卡在共用的 summonedThisTurn /
+    //   attackedThisTurn Set 里串台（那正是 useHand 漏 side 前缀导致的既有 bug）。
     //   测试场把原始卡直接摆上场、绕过 useHand → uid 全是 undefined，而引擎里大量
     //   逻辑按 uid 做 Set 去重 / find 定位，undefined 会让它们全部塌缩成"同一张卡"：
     //     · combat.js:124/125  attackedThisTurn/summonedThisTurn.has(undefined) → 一张卡攻击=全场锁死

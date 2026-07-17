@@ -14,15 +14,43 @@ function shuffle(arr) {
 }
 
 /**
+ * mintHandUid — 「卡组 → 手牌」这条路的 uid 产地。纯函数，供 useHand 与测试共用。
+ *
+ * ★ uid 必须带 side 前缀 —— 这是「双方同名卡不会互相串台」的唯一保证。
+ *   BattleScreen 跑两个 useHand 实例（player/enemy），而引擎里 summonedThisTurn /
+ *   attackedThisTurn 是**双方共用一个 Set**（useBattle.js:42-43），combat.js:124-125
+ *   纯按 card.uid 查表、不带 side 参数。所以不带前缀时，两副卡组只要在同一下标上有
+ *   同一张卡（uid 都会是 `whale_3`），一方召唤 → 另一方那张立刻被误判召唤疲劳/已攻击。
+ *
+ *   同侧参照：SP 卡组的 uid 早就带方前缀（useBattle.js:1556-1557 的 sp_p_/sp_e_）——
+ *   手牌这条路是**漏的，不是取舍**。过去没暴雷只因 PvE 双方卡组恰好不同；公平模式
+ *   （双方全卡池自由组卡、大概率互抄卡表）让「双方卡组高度重合」从边缘变默认。
+ *
+ *   提成具名纯函数而非内联，是为了让 scripts/test-hand-uid.mjs 能真断言这条不变式
+ *   （React hook 在 Node 里跑不了 → 内联就只能靠正则匹配源码文本，那是假绿的温床）。
+ *
+ * @param {string} cardId - 卡牌 id（cards.js 的 id 字段）
+ * @param {number} index  - 在卡组中的下标
+ * @param {'player'|'enemy'} side - 归属方
+ * @returns {string} 全局唯一的手牌 uid
+ */
+export function mintHandUid(cardId, index, side) {
+  if (side !== 'player' && side !== 'enemy') {
+    throw new Error(`mintHandUid: side 必须是 'player' 或 'enemy'，收到 ${JSON.stringify(side)}`)
+  }
+  return `${side}_${cardId}_${index}`
+}
+
+/**
  * useHand — 管理卡组、手牌、弃牌堆
  *
- * @param {Array} deckCards - 20 张卡牌数组（原始数据）
+ * @param {Array} deckCards - 卡牌数组（原始数据）
+ * @param {'player'|'enemy'} side - 归属方。**必填**，理由见 mintHandUid。
  * @returns hand/deck/discard 状态 + 操作函数
  */
-export function useHand(deckCards) {
-  // 给每张卡加 uid 以区分同名卡
+export function useHand(deckCards, side) {
   const initDeck = useRef(
-    deckCards.map((c, i) => ({ ...c, uid: `${c.id}_${i}` }))
+    deckCards.map((c, i) => ({ ...c, uid: mintHandUid(c.id, i, side) }))
   )
 
   const [drawPile, setDrawPile] = useState([])   // 抽牌堆
@@ -130,10 +158,12 @@ export function useHand(deckCards) {
     if (!extraCards || extraCards.length === 0) return
     const stamped = extraCards.map((c, i) => ({
       ...c,
-      uid: `bonus_${c.id}_${Date.now()}_${i}`,
+      // side 前缀同 initDeck：Date.now() 隔不开双方（同一毫秒内双方各拿一张同名奖励卡
+      // 就撞）。理由见本文件顶部 useHand 的 uid 注释。
+      uid: `bonus_${side}_${c.id}_${Date.now()}_${i}`,
     }))
     setHand(prev => [...prev, ...stamped])
-  }, [])
+  }, [side])
 
   return {
     hand,
