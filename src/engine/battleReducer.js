@@ -36,8 +36,22 @@ export const initialBattleState = {
   turn: 1,
   phase: 'init',   // init|mulligan|main|battle|animating|enemyTurn|over
   winner: null,    // null|'player'|'enemy'
-  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField() },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField() },
+  // ★ summoned / attacked（S2）：本回合「已召唤」「已攻击」的 uid，**每侧一份**。
+  //   三条独立理由，任一足够：
+  //   ① 正确性 —— 此前是 useBattle.js 的两个 useRef(new Set())，**一个 Set 装两侧**。
+  //      它至今没炸只因为 ac1169e 给 uid 加了 player_/enemy_ 前缀 —— 那是在 **uid 层**
+  //      打的补丁，容器层的缺陷还在（makeFieldCard 自己的注释就警告过：凡新增 uid 产地
+  //      都必须能区分双方，否则串台）。每侧一份，容器层就不再依赖 uid 的自律。
+  //   ② 可上线 —— Set 不过 JSON（`JSON.stringify(new Set(['a'])) === '{}'`）。棋盘权威
+  //      的其余部分都已在这棵 JSON-clean 的树里，这两个纯属历史意外。
+  //   ③ 可证明（最重要）—— 「一卡一回合只能攻击一次」今天**完全由引擎外强制**：
+  //      靠 useAITurn.js 那个 `for (atkSlot = 0..MAX_FIELD_SLOTS)` 循环的形状
+  //      （这正是 aiAttack 传 checkAttacked:false 且从不写 Set 的原因）。
+  //      「靠 React hook 里一个 for 循环维持的规则」在 node 里测不了；
+  //      `state.enemy.attacked.includes(uid)` 测得了。**这是让镜像测试成立的那一步。**
+  //   用数组不用 Set：JSON 友好；≤6 格，includes() 的开销可忽略。
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [] },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [] },
 }
 
 export function battleReducer(state, action) {
@@ -135,6 +149,53 @@ export function battleReducer(state, action) {
     case 'GAME_OVER':
       // 胜负 = winner + phase:'over' 原子设（取代散落的两步式胜负写）
       return { ...state, winner: action.winner, phase: 'over' }
+
+    // --- 回合标记 summoned / attacked（S2）---
+    // 全部幂等：重复 MARK 同一个 uid 不变 state（引用相等 bailout），与 Set.add 语义一致。
+    // ⚠️ 与旧 Set 的唯一差异：dispatch **不 eager** —— `marks.add(uid)` 对下一行立即可见，
+    //    这里要等提交。所以攻击路径已改成「先算 gate、通过才 MARK」（回滚 delete 消失），
+    //    调用方不再需要「标记后同步读回」。详见 useBattle 的 attack。
+    case 'MARK_SUMMONED': {
+      const { side, uid } = action
+      if (uid == null) return state              // uid 兜底：绝不把 undefined 塞进标记
+      const cur = state[side].summoned
+      if (cur.includes(uid)) return state
+      return { ...state, [side]: { ...state[side], summoned: [...cur, uid] } }
+    }
+    case 'MARK_ATTACKED': {
+      const { side, uid } = action
+      if (uid == null) return state
+      const cur = state[side].attacked
+      if (cur.includes(uid)) return state
+      return { ...state, [side]: { ...state[side], attacked: [...cur, uid] } }
+    }
+    case 'UNMARK_SUMMONED': {
+      // 蚁后/进化等会把卡从场上换掉 → 该 uid 的召唤疲劳一并撤销（对齐旧 Set.delete）
+      const { side, uid } = action
+      const cur = state[side].summoned
+      if (!cur.includes(uid)) return state
+      return { ...state, [side]: { ...state[side], summoned: cur.filter(u => u !== uid) } }
+    }
+    case 'MARKS_CLEAR': {
+      // which: 'summoned' | 'attacked' | 'both'
+      // ⚠️ 清理拓扑必须与旧 Set 逐处对齐（改错会静默改变「一卡一次」的作用域）：
+      //   startBattle → both，两侧；endMainPhase → 仅 attacked，仅该侧；
+      //   startPlayerTurn → both，**两侧**（这是敌方标记每轮被清掉的地方 ——
+      //   beginEnemyTurn 一个都不清，多位 judge 曾误判「敌方标记无人清理」，实为假）。
+      const { side, which = 'both' } = action
+      const cur = state[side]
+      // ⚠️ 只在「真的有东西要清」时才造新数组 —— 无条件 `next.summoned = []` 会让引用
+      //    恒变，bailout 永不触发（本文件顶部的不变式③要求 no-op 不得换引用，否则
+      //    死亡扫场 effect 的 deps 会无谓抖动）。这个 bug 本来就写出来过，被
+      //    test-battle-reducer 的 no-op 断言当场抓住。
+      const clearSummoned = (which === 'summoned' || which === 'both') && cur.summoned.length > 0
+      const clearAttacked = (which === 'attacked' || which === 'both') && cur.attacked.length > 0
+      if (!clearSummoned && !clearAttacked) return state
+      const next = { ...cur }
+      if (clearSummoned) next.summoned = []
+      if (clearAttacked) next.attacked = []
+      return { ...state, [side]: next }
+    }
 
     // --- 战场 field（E5c-5）---
     // value 是「updater 函数」或「新数组」。updater 在 reducer 内跑 → 同 tick 多次 dispatch

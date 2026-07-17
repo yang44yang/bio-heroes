@@ -162,5 +162,101 @@ ok('组合：卡打卡结算序列（双方场扣血 + 各自 delta 都落地）
   return s.enemy.field[0].currentHp === 0 && s.player.field[0].currentHp === 0
 })())
 
+// ============ 回合标记 summoned / attacked（S2）============
+// 此前是 useBattle 的两个 useRef(new Set())，**一个 Set 装两侧**。收进 reducer 的
+// 每侧数组之后，「一卡一回合只能攻击一次」第一次成为 state 的性质，而不是
+// 「useAITurn 里那个 for 循环的形状」的副产品 —— 这是镜像测试成立的前提。
+
+ok('MARK_SUMMONED：只标记指定侧', (() => {
+  const s = battleReducer(fresh(), { type: 'MARK_SUMMONED', side: 'player', uid: 'player_whale_3' })
+  return s.player.summoned.includes('player_whale_3') && s.enemy.summoned.length === 0
+})())
+
+ok('MARK_ATTACKED：只标记指定侧（旧共用 Set 的核心缺陷）', (() => {
+  const s = battleReducer(fresh(), { type: 'MARK_ATTACKED', side: 'player', uid: 'player_ant_0' })
+  return s.player.attacked.includes('player_ant_0') && s.enemy.attacked.length === 0
+})())
+
+ok('MARK_*：两侧同 uid 互不干扰（uid 前缀之外的第二道保险）', (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'MARK_ATTACKED', side: 'player', uid: 'whale_3' })
+  // 就算 uid 层的 side 前缀哪天被人改回去了，容器层也必须挡住串台
+  return s.enemy.attacked.length === 0 && s.player.attacked.length === 1
+})())
+
+ok('MARK_*：幂等 —— 重复标记同一 uid 返回同一个 state 引用（对齐 Set.add）', (() => {
+  const a = battleReducer(fresh(), { type: 'MARK_SUMMONED', side: 'player', uid: 'x' })
+  const b = battleReducer(a, { type: 'MARK_SUMMONED', side: 'player', uid: 'x' })
+  return a === b && a.player.summoned.length === 1
+})())
+
+ok('MARK_*：uid 为 null/undefined 时不写入（防 has(undefined) 全场塌缩的老坑）', (() => {
+  const a = battleReducer(fresh(), { type: 'MARK_ATTACKED', side: 'player', uid: undefined })
+  const b = battleReducer(fresh(), { type: 'MARK_SUMMONED', side: 'player', uid: null })
+  return a.player.attacked.length === 0 && b.player.summoned.length === 0
+})())
+
+ok('UNMARK_SUMMONED：撤销单个 uid（蚁后/进化换卡时对齐旧 Set.delete）', (() => {
+  let s = battleReducer(fresh(), { type: 'MARK_SUMMONED', side: 'enemy', uid: 'a' })
+  s = battleReducer(s, { type: 'MARK_SUMMONED', side: 'enemy', uid: 'b' })
+  s = battleReducer(s, { type: 'UNMARK_SUMMONED', side: 'enemy', uid: 'a' })
+  return !s.enemy.summoned.includes('a') && s.enemy.summoned.includes('b')
+})())
+
+ok('UNMARK_SUMMONED：不存在的 uid → 引用不变（no-op bailout）', (() => {
+  const a = battleReducer(fresh(), { type: 'MARK_SUMMONED', side: 'player', uid: 'x' })
+  return battleReducer(a, { type: 'UNMARK_SUMMONED', side: 'player', uid: 'nope' }) === a
+})())
+
+ok("MARKS_CLEAR which:'attacked' 只清 attacked，不动 summoned（endMainPhase 的语义）", (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'MARK_SUMMONED', side: 'player', uid: 's1' })
+  s = battleReducer(s, { type: 'MARK_ATTACKED', side: 'player', uid: 'a1' })
+  s = battleReducer(s, { type: 'MARKS_CLEAR', side: 'player', which: 'attacked' })
+  return s.player.attacked.length === 0 && s.player.summoned.includes('s1')
+})())
+
+ok("MARKS_CLEAR which:'both' 两种都清（startBattle / startPlayerTurn 的语义）", (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'MARK_SUMMONED', side: 'enemy', uid: 's1' })
+  s = battleReducer(s, { type: 'MARK_ATTACKED', side: 'enemy', uid: 'a1' })
+  s = battleReducer(s, { type: 'MARKS_CLEAR', side: 'enemy', which: 'both' })
+  return s.enemy.summoned.length === 0 && s.enemy.attacked.length === 0
+})())
+
+ok('MARKS_CLEAR：只清指定侧 —— 未改的另一侧**引用不变**（不变式①）', (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'MARK_ATTACKED', side: 'enemy', uid: 'e1' })
+  const before = s.enemy
+  const next = battleReducer(s, { type: 'MARKS_CLEAR', side: 'player', which: 'both' })
+  return next.enemy === before && next.enemy.attacked.includes('e1')
+})())
+
+ok('MARKS_CLEAR：本来就空 → 整个 state 引用不变（no-op bailout）', (() => {
+  const s = fresh()
+  return battleReducer(s, { type: 'MARKS_CLEAR', side: 'player', which: 'both' }) === s
+})())
+
+// ⚠️ 这一条是「棋盘状态能整棵推给 PvP guest」的护栏。Set 不过 JSON
+//    （JSON.stringify(new Set(['a'])) === '{}'）—— 将来谁把 Set/Map/函数塞进这棵树，这里红。
+ok('★ state 全树 JSON 干净（wire-clean）—— round-trip 后深等自身', (() => {
+  let s = fresh()
+  s = battleReducer(s, { type: 'MARK_SUMMONED', side: 'player', uid: 'player_whale_3' })
+  s = battleReducer(s, { type: 'MARK_ATTACKED', side: 'enemy', uid: 'enemy_ant_0' })
+  s = battleReducer(s, { type: 'LEADER_DAMAGE', side: 'enemy', amount: 5000 })
+  s = battleReducer(s, { type: 'DISCARD_ADD', side: 'player', cards: [{ id: 'ant_soldier', uid: 'player_ant_0' }] })
+  const round = JSON.parse(JSON.stringify(s))
+  return JSON.stringify(round) === JSON.stringify(s) &&
+         round.player.summoned[0] === 'player_whale_3' &&
+         round.enemy.attacked[0] === 'enemy_ant_0'
+})())
+
+ok('★ 标记若仍是 Set 就会在 JSON 里蒸发 —— 反向证明本护栏有效', (() => {
+  // 不是测生产代码，是证明上面那条断言真的抓得住「有人把 Set 塞回来」
+  const withSet = { ...fresh(), player: { ...fresh().player, summoned: new Set(['x']) } }
+  const round = JSON.parse(JSON.stringify(withSet))
+  return JSON.stringify(round.player.summoned) === '{}' && round.player.summoned.x === undefined
+})())
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} battle-reducer 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

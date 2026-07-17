@@ -104,6 +104,20 @@ export function resolveCardCombat({ attacker, defender, awakenOpts = {}, attacke
 }
 
 /**
+ * 回合标记里有没有这个 uid。**同时吃 Set 与数组** —— 这不是为了灵活，是有两个真实调用方：
+ *   · useBattle 走 battleReducer 的 state[side].summoned/.attacked，那里是**数组**
+ *     （S2：Set 不过 JSON.stringify —— `JSON.stringify(new Set(['a'])) === '{}'` ——
+ *      而棋盘状态要能整棵推给 PvP 的 guest）；
+ *   · TutorialScreen.jsx:42-43 是**独立棋盘**（不走 useBattle），它自己那对 useState
+ *     仍是 Set，且没有序列化需求 → 没理由为了统一去动教学关。
+ * 两者共用本文件的 canCardAttack，所以判定必须对两种容器都成立。
+ */
+function marked(coll, uid) {
+  if (!coll) return false
+  return typeof coll.has === 'function' ? coll.has(uid) : coll.includes(uid)
+}
+
+/**
  * 判定一张卡能否发起攻击（纯函数，决策E2）。
  * 检查：sleep(沉睡) / fatigue(召唤疲劳，Swift Attack·Silent Dive·swift_boost 免疫) / attacked(本回合已攻击)。
  * ⚠️「混乱(confused)」不在此 —— 它是"攻击重定向到随机友方"、属副作用重定向而非阻断，由调用方(useBattle)处理。
@@ -111,8 +125,8 @@ export function resolveCardCombat({ attacker, defender, awakenOpts = {}, attacke
  *
  * @param {Object} card
  * @param {Object} opts
- * @param {Set}    [opts.summonedThisTurn]  本回合召唤的 uid 集合
- * @param {Set}    [opts.attackedThisTurn]  本回合已攻击的 uid 集合
+ * @param {Set|string[]} [opts.summonedThisTurn]  本回合召唤的 uid（Set 或数组，见 marked）
+ * @param {Set|string[]} [opts.attackedThisTurn]  本回合已攻击的 uid（Set 或数组）
  * @param {boolean}[opts.checkAttacked=true] 是否查"本回合已攻击"（AI 由外层保证每卡一次 → 传 false）
  * @returns {{ ok:boolean, reason:'sleep'|'fatigue'|'attacked'|null }}
  */
@@ -121,7 +135,7 @@ export function canCardAttack(card, { summonedThisTurn, attackedThisTurn, checkA
   const hasSwift =
     card?.skills?.some((s) => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive') ||
     card?.statuses?.some((s) => s.type === 'swift_boost')
-  if (summonedThisTurn?.has(card.uid) && !hasSwift) return { ok: false, reason: 'fatigue' }
-  if (checkAttacked && attackedThisTurn?.has(card.uid)) return { ok: false, reason: 'attacked' }
+  if (marked(summonedThisTurn, card.uid) && !hasSwift) return { ok: false, reason: 'fatigue' }
+  if (checkAttacked && marked(attackedThisTurn, card.uid)) return { ok: false, reason: 'attacked' }
   return { ok: true, reason: null }
 }

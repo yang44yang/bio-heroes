@@ -39,11 +39,20 @@ ok("① startPlayerTurn 调用 processTurnStartEffects('player')",
 ok("① beginEnemyTurn 调用 processTurnStartEffects('enemy')",
   /processTurnStartEffects\(\s*['"]enemy['"]\s*\)/.test(ub))
 
-// 召唤疲劳边界：玩家 onTurnStart 必须在 summonedThisTurn.clear() 之后调用，
-// 否则蚁后新召唤的蚂蚁会被 clear 抹掉疲劳标记 → 当回合即可攻击（错误）
-const clearIdx = ub.indexOf('summonedThisTurn.current.clear()')
+// 召唤疲劳边界：玩家 onTurnStart 必须在「清标记」之后调用，
+// 否则蚁后新召唤的蚂蚁会被清理抹掉疲劳标记 → 当回合即可攻击（错误）
+//
+// 锚点更新（S2，2026-07-17）：标记从 useRef(new Set()) 收进 battleReducer 的每侧数组
+// （state[side].summoned/.attacked），`summonedThisTurn.current.clear()` 这行不复存在，
+// 现在是 startPlayerTurn 里的 `MARKS_CLEAR ... which: 'both'`。
+// **不变式没变，理由变了**：不再靠「clear() 同步生效」，而靠 dispatch 按入队顺序结算
+// —— MARKS_CLEAR 先入队，processTurnStartEffects 触发的 MARK_SUMMONED 后入队。
+// ⚠️ 这仍是 source-grep 守卫，不是真测试：被守的顺序活在 startPlayerTurn（React hook
+//    回调）里，Node 没有 renderer 就 invoke 不了。grep 在这里是诚实的工具选择，
+//    但它只能证明「文本顺序对」，证明不了运行时顺序 —— 别把它当行为测试用。
+const clearIdx = ub.indexOf("dispatch({ type: 'MARKS_CLEAR', side: s, which: 'both' })")
 const playerCallIdx = ub.indexOf("processTurnStartEffects('player')")
-ok('① 玩家 onTurnStart 在 summonedThisTurn.clear() 之后（保留新召唤物的召唤疲劳）',
+ok('① 玩家 onTurnStart 在清标记之后（保留新召唤物的召唤疲劳）',
   clearIdx >= 0 && playerCallIdx > clearIdx)
 
 // 敌方能量增益反映到 AI 可用能量（beginEnemyTurn 把 ENERGY_BOOST 累加进 gain）

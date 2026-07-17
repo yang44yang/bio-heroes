@@ -20,6 +20,7 @@ import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine
 // S1: 规则守门人抽成 side 参数化的纯谓词（Node 可直测 → scripts/test-rules-gates.mjs）。
 // 本 commit 只把**玩家路径**接过去；ai* 仍是另一份实现，fork 还在（S4/S5 才拆）。
 import { canPlayCard, canAttackFrom, canTargetSlot } from '../engine/rules.js'
+import { SIDES } from '../engine/sides.js'
 import { pickRandomEvent } from '../data/events.js'
 import { getBossMechanic } from '../engine/bossMechanics.js'
 import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill.js'
@@ -470,7 +471,7 @@ export function useBattle() {
           })
           // 标记召唤疲劳
           if (evt.card && evt.card.uid) {
-            summonedThisTurn.current.add(evt.card.uid)
+            dispatch({ type: 'MARK_SUMMONED', side, uid: evt.card.uid })
           }
           break
         }
@@ -612,7 +613,7 @@ export function useBattle() {
             }
             return next
           })
-          for (const revived of revivedCards) summonedThisTurn.current.add(revived.uid)
+          for (const revived of revivedCards) dispatch({ type: 'MARK_SUMMONED', side, uid: revived.uid })
           if (evt.message) addLog(evt.message)
           break
         }
@@ -743,7 +744,7 @@ export function useBattle() {
         if (evt.slot >= 0 && evt.slot < nextField.length && (!nextField[evt.slot] || nextField[evt.slot].currentHp <= 0)) {
           nextField[evt.slot] = evt.card
         }
-        if (evt.card?.uid) summonedThisTurn.current.add(evt.card.uid)
+        if (evt.card?.uid) dispatch({ type: 'MARK_SUMMONED', side, uid: evt.card.uid })
         addLog(evt.message)
       }
       allEvents.push(evt)
@@ -1094,7 +1095,7 @@ export function useBattle() {
               next[emptySlot] = revived
               return next
             })
-            summonedThisTurn.current.add(revived.uid)
+            dispatch({ type: 'MARK_SUMMONED', side, uid: revived.uid })
             dispatch({ type: 'DISCARD_REMOVE_UID', side, uid: chosen.uid })
             addLog(`💫 ${card.name}：${chosen.name} 从弃牌堆复活到战场！(50% HP)`)
           } else {
@@ -1256,7 +1257,7 @@ export function useBattle() {
     const hasSwift = spCard.skills?.some(s => s.nameEn === 'Swift Attack' || s.nameEn === 'Silent Dive')
       || fieldCard.statuses?.some(s => s.type === 'swift_boost')
     if (!hasSwift) {
-      summonedThisTurn.current.add(fieldCard.uid)
+      dispatch({ type: 'MARK_SUMMONED', side, uid: fieldCard.uid })
     }
 
     addLog(`🌟 SP 觉醒！${spCard.name} 降临战场！`)
@@ -1328,7 +1329,7 @@ export function useBattle() {
       const fField = battleStateRef.current[side].field
       fField.forEach(c => {
         if (c && c.currentHp > 0) {
-          summonedThisTurn.current.delete(c.uid)
+          dispatch({ type: 'UNMARK_SUMMONED', side, uid: c.uid })
         }
       })
     }
@@ -1586,8 +1587,8 @@ export function useBattle() {
     recentEventsRef.current = []
     virusOutbreakRef.current = { playerAffected: false, enemyAffected: false, turnsLeft: 0 }
     battleStatsRef.current = { totalDamage: 0, kills: 0, quizCorrect: 0, quizTotal: 0, spSummons: 0, powerBankMax: 0, cardsPlayed: 0, eventsTriggered: 0 }
-    summonedThisTurn.current.clear()
-    attackedThisTurn.current.clear()
+    // 开局：两侧的两种标记全清（对齐旧的两个共用 Set 各 .clear() 一次）
+    for (const s of SIDES) dispatch({ type: 'MARKS_CLEAR', side: s, which: 'both' })
     quizStreakRef.current = 0
     setQuizStreak(0)
     setScientistMode({ active: false, turnsLeft: 0 })
@@ -1617,7 +1618,10 @@ export function useBattle() {
         next[0] = bossCard
         return next
       })
-      summonedThisTurn.current.add(bossCard.uid)
+      // ⚠️ Boss 预置卡**加**召唤疲劳；下面的 preplaceEnemyCards **刻意不加**（见其注释）。
+      //    两者语义不同，别合并 —— 无脑统一会让开局那张敌方卡回合 1 就能打脸，
+      //    或抽掉 Conundrum 入侵者「立刻可攻击」的设计意图。
+      dispatch({ type: 'MARK_SUMMONED', side: 'enemy', uid: bossCard.uid })
     }
     // Sprint 30b: preplaceEnemyCards (Conundrum enemyExtraTurns 等价实现)
     // 等待期间病毒扩散 → 战场上已经有 N 个敌方单位，且无召唤疲劳（可以立刻攻击）
@@ -1704,7 +1708,7 @@ export function useBattle() {
       dispatch({ type: 'DISCARD_SET', side: 'player', pile: updatedPile })
     }
 
-    summonedThisTurn.current.add(card.uid)
+    dispatch({ type: 'MARK_SUMMONED', side: 'player', uid: card.uid })
     battleStatsRef.current.cardsPlayed++
 
     if (replaced) addLog(`${replaced.name} 被替换下场`)
@@ -1739,7 +1743,9 @@ export function useBattle() {
   // ----------------------------------------------------------------
   const endMainPhase = useCallback(() => {
     if (battleStateRef.current.phase !== 'main') return
-    attackedThisTurn.current.clear()
+    // 仅清玩家的 attacked。旧代码清的是共用 Set（连敌方的一起清了）—— 无害但语义不清：
+    // 敌方标记的正规清理点是 startPlayerTurn。收成每侧后这里的作用域才是准的。
+    dispatch({ type: 'MARKS_CLEAR', side: 'player', which: 'attacked' })
     dispatch({ type: 'PHASE_SET', phase: 'battle' })
     addLog('--- ⚔️ 战斗阶段 ---')
   }, [addLog])
@@ -1758,8 +1764,8 @@ export function useBattle() {
     // 与 attack 同一个谓词（S1）—— 此前两处各写一遍 phase/空位/canCardAttack，
     // 是「UI 说能点、引擎说不行」这类不一致的温床。
     return canAttackFrom(battleStateRef.current, 'player', slotIdx, {
-      summonedThisTurn: summonedThisTurn.current,
-      attackedThisTurn: attackedThisTurn.current,
+      summonedThisTurn: battleStateRef.current.player.summoned,
+      attackedThisTurn: battleStateRef.current.player.attacked,
     }).ok
   }, [])
 
@@ -1815,8 +1821,8 @@ export function useBattle() {
     // ⚠️ 顺序即规则：sleep 先判、confused 的**重定向**夹在中间、fatigue/attacked 后判。
     //   confused 带副作用（随机挑友方 + 扣血）→ 不属于纯谓词 → 留在外壳，靠 reason 交错。
     const gate = canAttackFrom(battleStateRef.current, 'player', atkSlot, {
-      summonedThisTurn: summonedThisTurn.current,
-      attackedThisTurn: attackedThisTurn.current,
+      summonedThisTurn: battleStateRef.current.player.summoned,
+      attackedThisTurn: battleStateRef.current.player.attacked,
     })
     if (gate.reason === 'phase' || gate.reason === 'empty') return null
     if (gate.reason === 'sleep') { addLog(`${atkCard.name} 正在沉睡中，无法攻击`); return null }
@@ -1834,24 +1840,28 @@ export function useBattle() {
           if (next[pick.i]) next[pick.i].currentHp = Math.max(0, next[pick.i].currentHp - dmg)
           return next
         })
-        attackedThisTurn.current.add(atkCard.uid)
+        dispatch({ type: 'MARK_ATTACKED', side: 'player', uid: atkCard.uid })
         return { confusedHit: true }
       }
     }
     if (gate.reason === 'fatigue') { addLog(`${atkCard.name} 刚上场，不能攻击（召唤疲劳）`); return null }
     if (gate.reason === 'attacked') { addLog(`${atkCard.name} 本回合已攻击过`); return null }
 
-    attackedThisTurn.current.add(atkCard.uid)
+    // ★ 先查后标（S2）—— 目标合法性在标记**之前**判完。
+    //   旧写法是「先 add，守护不过再 delete 回滚」。那个舞蹈在 Set 时代能对（同步可见），
+    //   但标记进 reducer 后 dispatch 不 eager，add/delete 得靠队列顺序相消 —— 能对，
+    //   但脆弱且无谓。与其让它排队相消，不如让它不存在。
+    //   这正是 battleReducer.js 既有的处方：「dispatch 前用 battleStateRef 确定性算好」。
+    const targetGate = canTargetSlot(battleStateRef.current, 'player', atkCard, defSlot)
+    if (targetGate.reason === 'empty') return null
+    if (targetGate.reason === 'guard') {
+      addLog(defSlot === -1 ? '对方有守护卡，必须先攻击守护卡！' : '必须先攻击守护卡！')
+      return null
+    }
+    dispatch({ type: 'MARK_ATTACKED', side: 'player', uid: atkCard.uid })
 
     // === 直攻主人 ===
     if (defSlot === -1) {
-      // 守护判定走 rules.canTargetSlot（S1）。⚠️ 回滚 delete 仍在：本 commit 不动
-      // 「先标记后检查」这个结构 —— 那是 S2 的活（届时改成先查后标，回滚舞蹈整个消失）。
-      if (!canTargetSlot(battleStateRef.current, 'player', atkCard, -1).ok) {
-        addLog('对方有守护卡，必须先攻击守护卡！')
-        attackedThisTurn.current.delete(atkCard.uid)
-        return null
-      }
 
       // onAttack 技能（Rush 等）
       const atkEvents = triggerSkills('onAttack', {
@@ -1886,16 +1896,9 @@ export function useBattle() {
     }
 
     // === 打对方场上卡 ===
+    // 目标合法性（空位 / 守护）已在上方标记前统一判完（S2 的「先查后标」）——
+    // canTargetSlot 内部对 defSlot === -1 与 defSlot >= 0 分了两条规则，这里不再重复判。
     const defCard = battleStateRef.current.enemy.field[defSlot]
-    // 空位与守护两条都在 canTargetSlot 里（S1）。注意打卡这条比直攻主人多一个
-    // `!isGuardCard(defCard)` —— 守护卡自己永远可以被打，否则有守护卡时谁都打不了。
-    const targetGate = canTargetSlot(battleStateRef.current, 'player', atkCard, defSlot)
-    if (targetGate.reason === 'empty') return null
-    if (targetGate.reason === 'guard') {
-      addLog('必须先攻击守护卡！')
-      attackedThisTurn.current.delete(atkCard.uid)
-      return null
-    }
 
     // onAttack / onHit 技能（Discharge Strike 等）
     const preAtkEvents = triggerSkills('onAttack', {
@@ -2023,7 +2026,7 @@ export function useBattle() {
       dispatch({ type: 'DISCARD_SET', side: 'enemy', pile: updatedPile })
     }
 
-    summonedThisTurn.current.add(card.uid)
+    dispatch({ type: 'MARK_SUMMONED', side: 'enemy', uid: card.uid })
     addLog(`🔴 敌方出牌：${card.name}（费用 ${card.cost}）→ 位置 ${slotIdx + 1}`)
 
     // onPlay 技能触发（Oxygen Delivery, Clotting Shield 等）
@@ -2072,7 +2075,7 @@ export function useBattle() {
 
     // 能否攻击判定（canCardAttack 纯谓词，决策E2；AI 每卡一次由外层 BattleScreen 保证 → checkAttacked:false）。
     // 混乱是重定向、优先级在 sleep 之后 → 留在下面。
-    const gate = canCardAttack(atkCard, { summonedThisTurn: summonedThisTurn.current, checkAttacked: false })
+    const gate = canCardAttack(atkCard, { summonedThisTurn: battleStateRef.current.enemy.summoned, checkAttacked: false })
     if (gate.reason === 'sleep') { addLog(`🔴 ${atkCard.name} 正在沉睡中，无法攻击`); return { skipped: true } }
     // Sprint 26: 混乱状态 — 攻击目标改为随机友方（攻击自己人）
     if (atkCard.statuses?.some(s => s.type === 'confused')) {
@@ -2176,11 +2179,17 @@ export function useBattle() {
     dispatch({ type: 'TURN_SET', value: newTurn })
     dispatch({ type: 'ENERGY_SET', side: 'player', value: gain })
     addLog(`\n🔵 你的回合 ${newTurn}（能量 ${gain}）`)
-    summonedThisTurn.current.clear()
-    attackedThisTurn.current.clear()
+    // ⚠️ 两侧都清 —— beginEnemyTurn 一个都不清，敌方标记正是在这里每轮被清掉的。
+    //    （多位评审曾断言「敌方 attacked 无人清理→每张敌方卡一局只能攻击一次」，实为假。）
+    for (const s of SIDES) dispatch({ type: 'MARKS_CLEAR', side: s, which: 'both' })
 
     // onTurnStart 技能（向日葵/线粒体充能、蚁后召唤、变形虫、肝/肾、超算）
-    // 必须在 summonedThisTurn.clear() 之后：蚁后新召唤的蚂蚁需保留召唤疲劳（本回合不能攻击）
+    // ⚠️ 必须在上面那句 MARKS_CLEAR **之后**：蚁后在 onTurnStart 新召唤的蚂蚁需要保留
+    //    召唤疲劳（本回合不能攻击）。顺序反了 → 清理会把刚打上的疲劳标记抹掉。
+    //    标记收进 reducer 后（S2）这条仍成立，但**理由变了**：不再是「clear() 同步生效」，
+    //    而是 dispatch 按**入队顺序**结算 —— MARKS_CLEAR 先入队，本行触发的 MARK_SUMMONED
+    //    后入队，reducer 依次跑 → 先清后标，结果与旧 Set 一致。
+    //    （守卫：scripts/test-onturnstart-skills.mjs ①）
     processTurnStartEffects('player')
 
     // Phase B：第8回合"开闸"——此刻若已连对2题 或 主人HP≤50%（软条件 OR），立即召玩家 SP
