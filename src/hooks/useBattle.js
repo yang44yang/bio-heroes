@@ -17,6 +17,9 @@ import { getQuizMode } from '../utils/settings.js'
 import { triggerSkills } from '../engine/skillTriggers.js'
 import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects.js'
 import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine/combat.js'
+// S1: 规则守门人抽成 side 参数化的纯谓词（Node 可直测 → scripts/test-rules-gates.mjs）。
+// 本 commit 只把**玩家路径**接过去；ai* 仍是另一份实现，fork 还在（S4/S5 才拆）。
+import { canPlayCard, canAttackFrom, canTargetSlot } from '../engine/rules.js'
 import { pickRandomEvent } from '../data/events.js'
 import { getBossMechanic } from '../engine/bossMechanics.js'
 import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill.js'
@@ -25,6 +28,17 @@ import { getStageRule } from '../engine/stageRules.js'
 // 上场卡的 uid 兜底序号 —— 见 makeFieldCard。
 // 模块级而非 useRef：uid 只需全局唯一，跨 hook 实例/跨对局单调递增即可。
 let __fieldUidSeq = 0
+
+// 出牌被拒时给玩家看的文案。rules.canPlayCard 只返回 reason code（它是 side-blind 的
+// 纯谓词，不该知道「标记」这个词怎么写），文案在这里拼 —— 与 reason 一一对应。
+// ⚠️ 文案逐字保持抽取前的原样，别顺手改措辞：scripts/test-* 里有文案锚点。
+const PLAY_REJECT_MSG = {
+  phase: () => '现在不能出牌',
+  energy: (card) => `能量不足（需要 ${card.cost}）`,
+  slot: () => '无效位置',
+  markers: (card) =>
+    `需要弃牌堆中有 ${card.factionRequirement.count} 个${FACTIONS[card.factionRequirement.faction]?.name}标记`,
+}
 
 /**
  * useBattle — Sprint 3 技能触发框架版
@@ -1662,15 +1676,11 @@ export function useBattle() {
   // ★ 读值一律走 battleStateRef，不读渲染闭包（S0 收口）。此前 phase/playerEnergy 读闭包，
   //   而下面 :1667/:1673/:1686 的 discard/field 读 ref —— 同一函数两个真相源，隔了五行。
   const playToField = useCallback((card, slotIdx) => {
-    if (battleStateRef.current.phase !== 'main') return { ok: false, msg: '现在不能出牌' }
-    if (card.cost > battleStateRef.current.player.energy) return { ok: false, msg: `能量不足（需要 ${card.cost}）` }
-    if (slotIdx < 0 || slotIdx >= MAX_FIELD_SLOTS) return { ok: false, msg: '无效位置' }
-
-    // Check faction requirement (SSR/high-cost cards need markers)
-    if (card.factionRequirement) {
-      if (!canPlayWithMarkers(card, battleStateRef.current.player.discard)) {
-        return { ok: false, msg: `需要弃牌堆中有 ${card.factionRequirement.count} 个${FACTIONS[card.factionRequirement.faction]?.name}标记` }
-      }
+    // gate 走 engine/rules.js 的纯谓词（S1）。文案留在这里 —— 它是表现层
+    // （要拼 FACTIONS 名字、将来要走 i18n），rules.js 只返回 reason code。
+    const gate = canPlayCard(battleStateRef.current, 'player', card, slotIdx)
+    if (!gate.ok) {
+      return { ok: false, msg: PLAY_REJECT_MSG[gate.reason](card) }
     }
 
     // E5c-5：被替换下场的卡在 dispatch 前用 battleStateRef 确定性取（updater 闭包读回失效）
@@ -1745,11 +1755,12 @@ export function useBattle() {
   //    那两处调用随之重新执行。已核实它没有被塞进任何 useMemo 的 deps（若将来有人这么做，
   //    稳定身份会让 memo 永不重算 → 卡牌永远灰着）。
   const canAttack = useCallback((slotIdx) => {
-    if (battleStateRef.current.phase !== 'battle') return false
-    const card = battleStateRef.current.player.field[slotIdx]
-    if (!card || card.currentHp <= 0) return false
-    // sleep/fatigue/attacked 走 canCardAttack 纯谓词（决策E2，与 attack/aiAttack 同一真相源）
-    return canCardAttack(card, { summonedThisTurn: summonedThisTurn.current, attackedThisTurn: attackedThisTurn.current, checkAttacked: true }).ok
+    // 与 attack 同一个谓词（S1）—— 此前两处各写一遍 phase/空位/canCardAttack，
+    // 是「UI 说能点、引擎说不行」这类不一致的温床。
+    return canAttackFrom(battleStateRef.current, 'player', slotIdx, {
+      summonedThisTurn: summonedThisTurn.current,
+      attackedThisTurn: attackedThisTurn.current,
+    }).ok
   }, [])
 
   // ----------------------------------------------------------------
@@ -1799,13 +1810,15 @@ export function useBattle() {
   //   本函数此前是混合读法：phase/playerField/enemyField 读闭包，而 :1872/:1875/:1890
   //   的 triggerSkills/resolveCardCombat 读 ref —— 同一个函数里两个真相源。
   const attack = useCallback((atkSlot, defSlot, awakenOpts = {}) => {
-    if (battleStateRef.current.phase !== 'battle') return null
     const atkCard = battleStateRef.current.player.field[atkSlot]
-    if (!atkCard || atkCard.currentHp <= 0) return null
-
-    // 能否攻击判定（sleep/fatigue/attacked 抽到 canCardAttack 纯谓词，决策E2）。
-    // 混乱是"重定向而非阻断"、优先级在 sleep 之后 fatigue 之前 → 留在下面（gate 先算好，纯函数无副作用）。
-    const gate = canCardAttack(atkCard, { summonedThisTurn: summonedThisTurn.current, attackedThisTurn: attackedThisTurn.current, checkAttacked: true })
+    // 能否攻击判定走 engine/rules.js（S1）。它内部依次查 phase → 空位 → canCardAttack。
+    // ⚠️ 顺序即规则：sleep 先判、confused 的**重定向**夹在中间、fatigue/attacked 后判。
+    //   confused 带副作用（随机挑友方 + 扣血）→ 不属于纯谓词 → 留在外壳，靠 reason 交错。
+    const gate = canAttackFrom(battleStateRef.current, 'player', atkSlot, {
+      summonedThisTurn: summonedThisTurn.current,
+      attackedThisTurn: attackedThisTurn.current,
+    })
+    if (gate.reason === 'phase' || gate.reason === 'empty') return null
     if (gate.reason === 'sleep') { addLog(`${atkCard.name} 正在沉睡中，无法攻击`); return null }
     // Sprint 26: 混乱状态 — 玩家的卡被操控，自动攻击随机友方
     if (atkCard.statuses?.some(s => s.type === 'confused')) {
@@ -1832,7 +1845,9 @@ export function useBattle() {
 
     // === 直攻主人 ===
     if (defSlot === -1) {
-      if (hasGuard(battleStateRef.current.enemy.field) && !attackerBypassesGuard(atkCard, null)) {
+      // 守护判定走 rules.canTargetSlot（S1）。⚠️ 回滚 delete 仍在：本 commit 不动
+      // 「先标记后检查」这个结构 —— 那是 S2 的活（届时改成先查后标，回滚舞蹈整个消失）。
+      if (!canTargetSlot(battleStateRef.current, 'player', atkCard, -1).ok) {
         addLog('对方有守护卡，必须先攻击守护卡！')
         attackedThisTurn.current.delete(atkCard.uid)
         return null
@@ -1872,9 +1887,11 @@ export function useBattle() {
 
     // === 打对方场上卡 ===
     const defCard = battleStateRef.current.enemy.field[defSlot]
-    if (!defCard || defCard.currentHp <= 0) return null
-
-    if (hasGuard(battleStateRef.current.enemy.field) && !isGuardCard(defCard) && !attackerBypassesGuard(atkCard, defCard)) {
+    // 空位与守护两条都在 canTargetSlot 里（S1）。注意打卡这条比直攻主人多一个
+    // `!isGuardCard(defCard)` —— 守护卡自己永远可以被打，否则有守护卡时谁都打不了。
+    const targetGate = canTargetSlot(battleStateRef.current, 'player', atkCard, defSlot)
+    if (targetGate.reason === 'empty') return null
+    if (targetGate.reason === 'guard') {
       addLog('必须先攻击守护卡！')
       attackedThisTurn.current.delete(atkCard.uid)
       return null
