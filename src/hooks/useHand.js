@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
-import { STARTING_HAND, MAX_HAND, DRAW_PER_TURN } from '../data/deckRules'
+import { STARTING_HAND, MAX_HAND, DRAW_PER_TURN } from '../data/deckRules.js'
 
 /**
  * 洗牌（Fisher-Yates）

@@ -1,7 +1,7 @@
 import { useCallback } from 'react'
-import cards from '../data/cards'
-import eventCards from '../data/eventCards'
-import spCards from '../data/spCards'
+import cards from '../data/cards.js'
+import eventCards from '../data/eventCards.js'
+import spCards from '../data/spCards.js'
 
 // 普通卡池（不含 SP）
 const regularCards = [...cards, ...eventCards]

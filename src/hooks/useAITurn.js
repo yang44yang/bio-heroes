@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react'
-import { playSound } from '../audio/soundManager'
-import { pickAiTarget } from '../engine/aiTarget'
-import { MAX_FIELD_SLOTS, LEADER_HP } from '../data/deckRules'
-import { canPlayWithMarkers } from '../utils/factionMarkers'
+import { playSound } from '../audio/soundManager.js'
+import { pickAiTarget } from '../engine/aiTarget.js'
+import { MAX_FIELD_SLOTS, LEADER_HP } from '../data/deckRules.js'
+import { canPlayWithMarkers } from '../utils/factionMarkers.js'
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms))
 

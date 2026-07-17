@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   getDailyChallenge, localDateStr, computeStreakUpdate, computeReward,
-} from '../data/dailyChallenges'
+} from '../data/dailyChallenges.js'
 
 // 每日挑战状态 — 独立 localStorage，不污染 economy / campaign / decks
 const STORAGE_KEY = 'bio-heroes-daily'

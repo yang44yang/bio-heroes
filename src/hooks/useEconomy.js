@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { getEvolutionTarget } from '../data/evolutions'
-import { migrateData } from '../utils/saveManager'
+import { getEvolutionTarget } from '../data/evolutions.js'
+import { migrateData } from '../utils/saveManager.js'
 
 const STORAGE_KEY = 'bio-heroes-economy'
 const INITIAL_COINS = 3000 // 新玩家初始金币（够30次单抽或3次十连）

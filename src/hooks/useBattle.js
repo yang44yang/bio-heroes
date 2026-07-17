@@ -1,22 +1,22 @@
 import { useState, useCallback, useRef, useEffect, useReducer } from 'react'
-import { useLatestRef } from './useLatestRef'
-import { battleReducer, initialBattleState } from '../engine/battleReducer'
+import { useLatestRef } from './useLatestRef.js'
+import { battleReducer, initialBattleState } from '../engine/battleReducer.js'
 import {
   ENERGY_CAP, LEADER_HP, QUIZ_CHANCE, MAX_FIELD_SLOTS, FACTIONS, spEarliestSummonTurn,
   SP_QUIZ_STREAK, SP_LEADER_HP_RATIO, SP_TURN_TRIGGER,
-} from '../data/deckRules'
-import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers'
-import { calcLeaderDamage } from '../utils/damage'
-import { getRandomQuiz, resetQuizHistory } from '../data/quizzes'
-import { recordQuizResult } from '../data/quizLeitner'
-import { getQuizMode } from '../utils/settings'
-import { triggerSkills } from '../engine/skillTriggers'
-import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects'
-import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine/combat'
-import { pickRandomEvent } from '../data/events'
-import { getBossMechanic } from '../engine/bossMechanics'
-import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
-import { getStageRule } from '../engine/stageRules'
+} from '../data/deckRules.js'
+import { canPlayWithMarkers, consumeFactionMarkers, getFactionMarkers } from '../utils/factionMarkers.js'
+import { calcLeaderDamage } from '../utils/damage.js'
+import { getRandomQuiz, resetQuizHistory } from '../data/quizzes.js'
+import { recordQuizResult } from '../data/quizLeitner.js'
+import { getQuizMode } from '../utils/settings.js'
+import { triggerSkills } from '../engine/skillTriggers.js'
+import { processStatuses, applyShieldAbsorb } from '../engine/statusEffects.js'
+import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine/combat.js'
+import { pickRandomEvent } from '../data/events.js'
+import { getBossMechanic } from '../engine/bossMechanics.js'
+import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill.js'
+import { getStageRule } from '../engine/stageRules.js'
 
 // 上场卡的 uid 兜底序号 —— 见 makeFieldCard。
 // 模块级而非 useRef：uid 只需全局唯一，跨 hook 实例/跨对局单调递增即可。
