@@ -49,29 +49,87 @@ scp "/Users/YangYANG/Projects/Personal website dev/spacev/deploy/Caddyfile" root
 ssh root@67.230.186.254 "caddy validate --config /etc/caddy/Caddyfile && systemctl reload caddy"
 ```
 
-## 4. 未来:账号系统 + 对战系统预案
+## 4. PvP 对战 + 云存档:已决架构
+
+> 状态(2026-07-17):架构**已定**,引擎 de-fork 进行中,中继尚未开工。
+> 本节此前是"预案"并列了 Supabase 作为选项 B —— 那个选择**已经关闭**(见下)。
 
 **容量结论:同时 10 人在线,当前 VPS 绰绰有余。** 回合制卡牌对战的消息量是 KB/s 级,
-一个 Node WebSocket 服务 + SQLite 常驻内存 <50MB;静态托管本身近乎零负载。
+一个 Node 服务 + SQLite 常驻内存 <50MB;静态托管本身近乎零负载。
 
-- **方案 A(推荐,国内友好)**:自托管,照抄主站 counter 模式——
-  Node 服务(WebSocket + better-sqlite3)监听 `127.0.0.1:3002`,systemd 常驻,
-  Caddyfile 的 bio block 里加:
+### 4.1 已决方案:房间码 + 哑中继 + host 权威
 
-  ```caddy
-  handle /api/* {
-      reverse_proxy 127.0.0.1:3002
-  }
-  ```
+- **自托管**,照抄主站 counter 模式:Node 服务监听 `127.0.0.1:3002`,systemd 常驻。
+  (**不选 Supabase**:国内直连不稳,与"国内可玩"这个刻意决策直接冲突。此路已关闭,
+  别再把它当活选项讨论。)
+- **传输用 WebSocket**,不用 SSE / 轮询。理由不是偏好,是 `public/sw.js`:
+  它只对 navigate/text-html 走 network-first,**其余 GET 全部落进 cache-first** ——
+  轮询会被永久重放(客户端冻在第一帧),SSE 会把无限流 tee 进 `cache.put`。
+  WS 握手根本不触发 SW 的 fetch 事件,天然免疫。
+  (已另外加了 `/api/*` 旁路 + CACHE_NAME v2 作为云存档的保险,见 commit `396db5a`;
+   守卫在 `scripts/test-sw-api-bypass.mjs`。)
+- **零依赖**:中继可以只用 `node:http`/`node:crypto`/`node:net` 手写 WS upgrade。
+  这既贴合本仓库(前端零服务端依赖),也绕开 CI 的坑 —— `ci.yml` 只在根目录跑
+  `npm ci`,中继若自带 `package.json` 则它的依赖**根本不会被安装**。
+- **host 权威**:只有 host 挂载 `useBattle` 并掷骰(全项目 52 处 `Math.random`,
+  `BattleScreen` 里 0 处)。所以**不需要拆引擎、不需要 RNG 确定性**。
+- 场景:齐齐 vs 远方朋友(跨网络)· 实时 · **公平模式**(双方全卡池自由组卡)。
+- 答题:同题抢答,**中性加成**(先答对者拿 +1能量/抽卡/回血/科学家印记)。
+  streak 按方计分,奖励中性;**各端只把自己的答题结果写进本地 Leitner**
+  (host 不得替双方写 —— 那会用朋友的答题污染齐齐的间隔重复计划表)。
 
-  账号起步用"房间码 + 昵称"即可(亲子/朋友对战不需要真账号);
-  真要密码登录时用成熟方案(argon2 哈希),HTTPS 已就位。
+### 4.2 三条不变量(违反任何一条 = 设计错了,不是 bug)
 
-- **方案 B(CLAUDE.md 原计划)**:Supabase Auth + Realtime——开发省事,
-  但国内直连 Supabase 不稳,与"国内可玩"目标冲突,选它之前先在无梯子环境实测。
+1. **中继永远不懂游戏规则**。它只转发字节。它不知道什么是卡、什么是回合。
+2. **PvP 不产生任何持久化收益**。host 是别人家小孩的浏览器 —— 它说"我赢了"就发
+   金币 = 凭空印钱。
+   ⚠️ 现成的正确样板在 `App.jsx:135`(测试场的零收益守卫),**照抄它的 ref 写法**:
+   它读的是 `testArenaConfigRef.current`(`App.jsx:89-90` 在 deps 外镜像),因为
+   `handleExitBattle` 的 deps 只有 `[economy]`(`App.jsx:295`)。
+   **PvP 守卫若写成普通 state 会是 stale 的,然后静默不触发** —— 不报错、战斗照常
+   结束、金币照发,而且在 dev 里看不出来,除非真打完一局 PvP。
+   另外注意:走 deckBuilder 漏斗进来的 PvP **默认落在 `App.jsx:283-286`**
+   (calculateBattleReward + claimBattleReward)—— 那是 fall-through 分支,不是边缘情况。
+3. **不校验卡牌所有权**(公平模式)。因此 PvP 不需要服务端收藏系统。
+   `DeckBuilder.jsx:75` 已经免费支持:`collection` 传 `undefined` 即给出全卡池。
 
-- **注意**:数据库用 SQLite,别上 Postgres(小内存 VPS 没必要);
-  上了对战服务后给 VPS 加每日备份(参考主站 counter/backup.sh 模式)。
+### 4.3 两条部署纪律(会毁数据的那种)
+
+- ☠️ **存档/房间数据绝不能放 `/var/www/bio/`**。
+  `npm run deploy` = `rsync -az --delete dist/ …:/var/www/bio/` —— `--delete` 让那个
+  目录成为 `dist/` 的**精确镜像**。任何放在那儿的 DB 会被下一次前端热修**静默销毁**,
+  无报错、无备份。且 bio 的 deploy 不像主站(`spacev/Makefile:30`)有 pre-delete 检查。
+  正确样板:`counter/server.ts:14` 的 `DB_PATH = resolve(HERE, "views.db")` —— 相对
+  **服务端文件**解析,落在 `/var/www` 之外。
+- **`deploy:api` 必须与 `deploy` 分开**。重启 Node = 打断正在进行的对局。前端热修
+  不该踢掉两个正在打的小孩。
+
+### 4.4 开工前必须知道的三件事
+
+- **Caddy 的改动在另一个仓库**:bio 的 server block 写在
+  `Personal website dev/spacev/deploy/Caddyfile`,用 scp + `caddy validate && systemctl reload`
+  发布 —— **`npm run deploy` 两头都不管**,PvP 的部署跨两个仓库。
+- **今天 `GET /api/rooms` 返回的是 index.html + HTTP 200**,不是 404、不是 502。
+  bio block 用裸 `root`/`try_files {path} /index.html`/`file_server`,没有 `handle` 块。
+  → 第一次调试会看到**误导性的 JSON 解析错误**,不是连接失败。
+  加 `/api/*` 需要先把该 block 重构成 `handle` 块(主站 block 里有现成模板)。
+  ⚠️ 因此第 5 节"以后 /api/* 502"那一行描述的现象,在重构之前**不可能发生**。
+- **dev 下 `/api/*` 会 404**:`vite.config.js` 没有 `server.proxy`。PvP 在本地跑起来
+  之前必须先加 —— 否则会重演"在 localhost 上不工作"的老戏码(那次是 dev 配置问题,
+  不是真 bug)。
+
+### 4.5 云存档(P2,排在 PvP 之后)
+
+服务端挂进 PvP 同一个 Node 进程。**不做密码账号**(<20 人熟人场景零收益、7 岁记不住、
+且新增丢档路径);`credentials` 分表预留 —— 日后要加密码 = 插一行,saves 表零迁移。
+
+- **恢复码 = 4 个中文词**(40bit),**不能用 6 位数字**(20bit 可枚举,而
+  **写路径被枚举 = 存档被覆盖销毁**)。
+- **自动推(本地→云)+ 手动拉(云→本地)**,绝不自动双向合并。本地是唯一真相源,
+  云只是镜像 → VPS 全挂时游戏照常。脏判定用 hash 比对,不用 setItem 触发。
+  LWW 冲突时**默认按钮必须是无损选项**。
+- 数据库用 SQLite,别上 Postgres(小内存 VPS 没必要);上线后加每日备份
+  (参考主站 `counter/backup.sh`)。
 
 ## 5. 排障速查
 
@@ -80,4 +138,4 @@ ssh root@67.230.186.254 "caddy validate --config /etc/caddy/Caddyfile && systemc
 | 打不开 / 证书错误 | Cloudflare 里 bio 的 A 记录必须是灰云;VPS 80/443 放行;`journalctl -u caddy -n 50` |
 | 部署了但页面没变 | PWA 缓存:强刷 / 等 5 分钟;确认 rsync 无报错 |
 | rsync 报 Permission denied | root 密码错或没配 ssh-copy-id |
-| 以后 /api/* 502 | 对战服务没起:`systemctl status <服务名>` |
+| 以后 /api/* 502 | 对战服务没起:`systemctl status <服务名>`。⚠️ **在 Caddy 的 bio block 重构成 `handle` 块之前,这个 502 不可能出现** —— 现在 `/api/*` 会被 `try_files` 兜成 index.html + 200,症状是客户端 JSON 解析报错。详见 §4.4 |
