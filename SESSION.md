@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新时间: 2026-07-17（**P1 PvP：地基已发布 + 引擎 de-fork 做到 S5/S7**。前 6 个 commit 已 push + deploy 并逐项验证。de-fork 的 S0-S5 已 commit、**未发布**。47 套测试绿。）
+> 更新时间: 2026-07-17（**P1 PvP：地基已发布；引擎 de-fork ✅ 8/8 全部完成**。地基 6 个 commit 已 push+deploy 并逐项验证；**de-fork 的 S0-S7 已 commit、未发布**。49 套测试绿。下一步是 PvP 的另一半：wire 格式 + 中继。）
 >
 > ⚠️ **本文件只留「活的交接」**——历史阶段已归档到 `CHANGELOG.md`，逐 commit 细节在 git。别再让它膨胀（精简纪律见 CLAUDE.md）。
 
@@ -11,44 +11,47 @@
 
 ---
 
-## 🔨 进行中：P1 PvP · 引擎 de-fork（8 步，已完成 6 步）
+## ✅ 已完成：P1 PvP · 引擎 de-fork（8/8）
 
 **已决**（`DEPLOY.md §4` 现在是权威，已改写）：房间码 + VPS 哑中继 + **host 权威** + **WebSocket**（选 WS 不是偏好，是 sw.js 逼的）+ 零依赖 · 公平模式 · 答题中性加成 · 三条不变量。
 **已决**（本次会话，用户裁定）：**de-fork 引擎**（否决「硬化 AI 接缝」）· 相位机与之捆绑 · 答题**各端只记自己的 Leitner**、streak 按方计分、奖励中性 · S4/S5 的平衡变化**先原样上、等齐齐实打再调**。
 
-### 完整 8 步计划（9-agent 设计+对抗评审的产物）
-| | 步骤 | 状态 |
+### 8 步全部落地（9-agent 设计 + 对抗评审的产物）
+| | 步骤 | commit |
 |---|---|---|
-| S0 | 玩家侧回调收口读 `battleStateRef`（**de-fork 的前提**） | ✅ `614dfa4` |
-| S1 | gate 抽成 side 参数化纯谓词 `engine/rules.js` + `sides.js` | ✅ `4cba729` |
-| S2 | 回合标记进 reducer 每侧数组 + 干掉「先标后滚」舞蹈 | ✅ `3e4e606` |
-| S3 | `activeSide` + 每侧 `phase` + `derivePhase` + 驱动敌方阶段（不设 gate） | ✅ `1fdbed6` |
-| S4 | de-fork `playToField` —— AI 第一次受能量/阵营/槽位约束 | ✅ `afd933a` |
-| S5 | de-fork `attack` —— **守护优先第一次由引擎约束 AI** | ✅ `afdd136` |
-| **S6** | de-fork `playEventCard` + **修 tryTriggerSp 的真 SP fork** | ⬜ **下一步** |
-| S7 | 镜像测试 + 棘轮（让 de-fork 保持 de-forked） | ⬜ |
+| S0 | 玩家侧回调收口读 `battleStateRef`（**fork 的物理成因是读值来源不同，不是 gate 被删了**） | `614dfa4` |
+| S1 | gate 抽成 side-blind 纯谓词 `engine/rules.js` + `sides.js`（60 真断言） | `4cba729` |
+| S2 | 回合标记进 reducer 每侧数组 + 干掉「先标后滚」舞蹈 | `3e4e606` |
+| S3 | `activeSide` + 每侧 `phase` + `derivePhase`；**敌方第一次有了相位机** | `1fdbed6` |
+| S4 | de-fork `playToField` —— AI 第一次受能量/阵营/槽位约束 | `afd933a` |
+| S5 | de-fork `attack` —— **守护优先第一次由引擎约束 AI** | `afdd136` |
+| S6 | de-fork `playEventCard` + 修 `tryTriggerSp` 的真 SP fork；**ai\* 三兄弟全退役** | `0a8fb19` |
+| S7 | **镜像测试（462 断言）+ 棘轮（22 断言）** —— 让 de-fork 保持 de-forked | `f2c4f68` |
+| — | `ARCHITECTURE.md` 更正五处过期说法（含它自己点名的那笔债） | `9785d99` |
 
-### ⚠️ 开工 S6 前必读
-1. **`tryTriggerSp:~1519-1528` 就是那个真 fork**：`if (side === 'player') setPendingSpSummon({...}) else { picks.reduce(spCost 最高); summonSpCard(chosen, 'enemy') }`。它在**门控路径**上（turn≥8 + HP≤50%），且 `answerQuiz` 硬编码 `tryTriggerSp('player','gated')`。
-2. ☠️ **同 commit 必须先给 `BattleScreen.jsx:~1235` 加 `.side === 'player'` 过滤** —— 它是 `{battle.pendingSpSummon && createPortal(`，**零 side 过滤**。引擎一旦为 enemy 设 pendingSpSummon，齐齐屏幕上就会弹出一个 z-[160] 全屏 SP 选择器让他替 AI 选牌，**且对局阻塞在那里**。先加过滤，再动引擎。
-3. **别把敌方 SP 召唤改成异步**：`pendingSpSummon` 是 useState，useAITurn 的 IIFE 闭包看不到它的更新，`pendingSpSummonRef` 也不在 `latest` 上。保持同步（引擎只为玩家设 side-scoped pendingSpSummon，敌方直接召唤）。guest 的真实选择权是 PvP 层的问题。
-4. **第二个藏着的 fork**：玩家 SP 路径用 `getSpSummonOutcome`（返回 reason code → 「SP 无法召唤：战场已满」那几条日志，注释说明没有它七岁孩子会以为游戏吞了他的卡）；AI 路径用 `getEligibleSpCards`（丢掉 reason）。
-5. **AI 人格搬去 useAITurn、规则留引擎**：`aiPlayEventCard` 里那个 20% 「忘记 SP」掷骰（`Math.random() > 0.20`）和「挑 spCost 最高」是**人格**不是规则。
+**成果**：引擎里只剩一条 side 参数化的路（`playToField(card,slot,side)` / `attack(atk,def,opts,side)` / `playEventCard(card,opts,side)` / `endMainPhase(side)`）。规则（能不能）住 `engine/rules.js`（side-blind，**不得出现侧别字面量**）；人格（怎么选）住 `engine/aiTarget.js`（`pickAiTarget`/`pickAiSpCard`）；侧别字面量只活在 React 外壳里。
+**唯一保留的具名分叉**：`resolveSpChoice` —— 背后是真实且今天消不掉的不对称（玩家的 SP 选择异步、AI 的同步）。
 
-### 📌 S0-S5 的经验（会再咬人）
-- **实机验证不可省**：S4 我自己引入过一个回归 —— `preplaceCard` 不打日志 → 开局那张敌方卡**凭空出现、无任何日志解释**。47 套测试全绿，只有看日志开头才发现。
-- **计划也会错**：它说 `BattleScreen:404` 直接改指向 `preplaceCard` —— 但旧路径会触发 onPlay，而 cost≤1 生物卡 24 张里 **11 张带 onPlay**。照做会静默丢掉近一半开局卡的技能。正解是抽 `runOnPlaySkills`：一份实现、两个调用方。
-- **eslint 的 `no-undef` 真的有用**：S4 当场抓住我漏 import 的 `opp`。
-- **de-fork 会让一批 grep 测试变红，而它们红得有道理**：`test-hand-events`(S4) / `test-leader-damage ⑤⑥` / `test-counter-routing ③` / `test-combat-resolve ⑮`(S5) 都在编码「改战斗规则须玩家/AI 两处同步改」那条规矩 —— **而 de-fork 就是在删掉那条规矩**。断言数字变小≠覆盖变弱：不变式全保留，只是从「两处都得记着写」变成结构保证。改写时务必保住哨兵（如 `test-leader-damage ⑥` 的虎鲸 friendlyField 哨兵）。
+### ⚠️ 这 8 步修掉的真 bug（都不是 PvP 引入的，是 PvP 逼出来的）
+- `aiAttack` **一行守护检查都没有** —— 「守护优先」是 CLAUDE.md 速查里的核心规则，它至今没暴雷只因 `pickAiTarget` 的 T1 恰好优先挑守护卡 = **规则一直靠「AI 恰好礼貌」维持**
+- `aiPlayToField` 无条件扣能量（**敌方能量可扣成负数**）、覆盖占位者却不送弃牌堆（**弃牌堆是阵营标记的真相源** → 敌方标记长期少算）、无阵营需求检查
+- `aiPlayEventCard` 召不出 SP 时**完全静默**（用 `getEligibleSpCards` 丢掉了 reason）
+- 「一卡一回合一次」此前**完全由引擎外强制** —— 靠 `useAITurn` 那个 for 循环的形状，而那正是 PvP 要删的代码
+
+### 🔴 已发布/未发布（重要）
+- **地基 6 个已 push + deploy**（`6cffff1`…`8b2c1cc`），生产逐项验证过
+- **de-fork 的 S0-S7 + 文档（8 个 commit）已 commit、未 push、未 deploy**
+  - S0-S3 + S7 是**纯重构 / 纯测试**，零行为变化
+  - ⚠️ **S4 与 S5 各自都是真实平衡变化，必须分开发、分开试玩**（用户已裁定「先原样上，等齐齐实打再调」；`aiStrength` 旋钮在 `useAITurn.js:33`）
+    - AI 变弱：守护第一次约束它、不能再超支能量、不能再无视阵营需求
+    - AI 可能变强：被替换的敌方卡终于进弃牌堆 → 阵营标记不再少算 → 从没打出来过的敌方 SSR 可能开始上场
 
 ### 🚫 计划裁定的「不要做」（都经源码核实）
 - **不要把科学家模式搬进引擎。** 三个设计全要搬、全声称「逐字节保持」、全都说错了机制：`calcCardBattle`（`damage.js:86`）**根本不读 `opts.damageMultiplier`** → 那 ×1.2 只在直攻主人生效、卡对卡时被静默丢弃。搬进引擎 = **顺手给每次卡牌攻击 +20%，把难度改动伪装成重构**。它今天是玩家专属且正确（AI 不答题，永远赚不到）。卡牌路径的丢失另开平衡单。
 - **不要合并 `beginEnemyTurn` 与 `startPlayerTurn`。** 「能量公式抄了两遍」是幻觉：一个读**递增前**的 `t`、一个读**递增后**的 `newTurn`，对同一轮两者都得 `min(ceil(turn/2)+1, ENERGY_CAP)` —— 它们在两个时刻读同一变量，**正是为了让公式相同**。
 - **不要转发 action / 不要把 action 做成 wire-safe。** `FIELD_UPDATE.value` 与 `LEADER_APPLY.updater` 收**函数**，且注释写明是刻意的。**推 state，不推 action。**
-- **不要把 battleStats 拆成两份。** 累加点今天**没有 side 守卫** → side 化后 AI 出牌会记进齐齐的战绩。最小修法是那四处加 `if (side === 'player')`（S4/S5 内完成，是**前置**不是收尾）。
 - **不要 side-scope quiz/quizStreak/Leitner。** 今天玩家专属且正确（AI 不答题）。guest 的觉醒需要可中断的两趟协议 —— **那是 PvP 层，不是 de-fork**。
-- **不要给 `side` 加必填。** `side = 'player'` 默认值只出现在 hook 边界，字面量活在 React 外壳里，永不进 `rules.js`。真正的守卫是 S7 的棘轮 + 镜像测试。
-- **不要无脑合并 preplaceCard 的三个作弊者**：Boss 预置**加**疲劳、`preplaceEnemyCards` **刻意不加**（注释明写）。必须显式 `{fatigued}`。
+- ✅ 以下四条已在 S4-S7 落实，留作记录：battleStats 四处已加 `if (side === 'player')`；`side = 'player'` 默认值只在 hook 边界（棘轮守着 `rules.js` 零侧别字面量）；`preplaceCard` 的 `fatigued`/`triggerOnPlay` 两个都必填无默认值（四个作弊者语义刻意不同）。
 
 ---
 
@@ -85,11 +88,19 @@
 ---
 
 ## 下次启动时优先
-1. **接着做 S6**（先读上方「开工 S6 前必读」五条 —— 尤其第 2 条：不先加 SP 弹窗的 side 过滤会**阻塞对局**）
-2. 视情况把 S0-S3 push + deploy（纯重构、零行为变化、已实机验证）；**S4 与 S5 必须分开发**（各自都是真实平衡变化）
-3. S4/S5 **分开发**，别同一天丢给齐齐两个平衡变化
-4. 等齐齐真机反馈 `stage_2_8` 新冠 Boss 在 6 格下是否如预期变难
-5. 🎴 内容线：**骨骼·钢铁支架**改卡面说明（非 bug，是「骨髓造血」的设计意图）· **S1 海洋深渊季**补 OCEAN 卡（现 11 张→~20，用 `bio-heroes-card-designer` skill 拉齐齐脑暴）
+
+### 1️⃣ 先决定怎么发（S0-S7 还都在本地）
+- S0-S3 + S7 是**纯重构/纯测试，零行为变化**，已实机验证 → 可以直接 push + deploy
+- **S4 与 S5 各自都是真实平衡变化 → 分开发、分开让齐齐试玩**（用户已裁定「先原样上，等实打再调」）
+- 发布口诀：`git push origin main`（触发 Vercel）+ `npm run deploy`（VPS = 齐齐玩的那份），然后**逐项验证**（`curl -sI`、比对 bundle hash，别只看命令没报错）
+
+### 2️⃣ PvP 的另一半 —— **wire 格式冻结前必须先定**（见下节）
+引擎已经就绪：棋盘状态 JSON-clean、规则 side-blind、镜像交换是 ~5 行纯函数。
+缺的是「推什么」和「怎么推」。
+
+### 3️⃣ 其它
+- 等齐齐真机反馈 `stage_2_8` 新冠 Boss 在 6 格下是否如预期变难
+- 🎴 内容线：**骨骼·钢铁支架**改卡面说明（非 bug，是「骨髓造血」的设计意图）· **S1 海洋深渊季**补 OCEAN 卡（现 11 张→~20，用 `bio-heroes-card-designer` skill 拉齐齐脑暴）
 
 ### PvP 的另一半（de-fork 之后，**wire 格式冻结前必须先定**）
 - **推送载荷未定义**：reducer state 是 wire-clean 的，但 guest 屏幕上约一半东西**不在 reducer 里**（`currentQuiz`/`pendingSpSummon`/`skillEvents`/`battleLog`/`scientistMode`/`spDecks`/`activeEnvEvent`）。把 `mirror(reducerState)` 推给 guest → 棋盘漂亮对称，但**没问答、没 SP 弹窗、没伤害浮字、没日志**。**提升进 reducer，还是加一棵 JSON-clean 的 `uiState` 兄弟子树？** 定在冻结之前，否则要做第二次状态形状迁移。
@@ -105,12 +116,13 @@
 ---
 
 ## 关键文件
-- **战斗引擎**：`src/hooks/useBattle.js`（规则住这，~2400 行）+ `src/engine/battleReducer.js`（纯状态容器）· **`src/engine/rules.js`（新，side-blind 纯谓词 —— 规则的守门人）** · **`src/engine/sides.js`（新）** · `src/engine/combat.js` · `src/hooks/useAITurn.js` + `src/engine/aiTarget.js` · `src/engine/{skillRegistry,skillTemplates,statusEffects,bossMechanics,stageRules}.js`
+- **战斗引擎**：`src/hooks/useBattle.js`（**只剩 React 外壳 + 编排**，~2400 行）+ `src/engine/battleReducer.js`（纯状态容器）· **`src/engine/rules.js`（规则的守门人 —— side-blind 纯谓词，棘轮守着它零侧别字面量）** · **`src/engine/sides.js`（PLAYER/ENEMY/opp）** · `src/engine/aiTarget.js`（**AI 人格**：pickAiTarget / pickAiSpCard —— 引擎不该知道 AI 的脾气） · `src/engine/combat.js` · `src/hooks/useAITurn.js` + `src/engine/aiTarget.js` · `src/engine/{skillRegistry,skillTemplates,statusEffects,bossMechanics,stageRules}.js`
 - **独立棋盘（不走 useBattle，改战场位/标记时必须同步）**：`src/components/TutorialScreen.jsx`（**自带一对 Set**，刻意没动）+ `src/data/tutorialData.js` · `src/components/TestArena.jsx`
 - **数据**：`src/data/{cards,eventCards,spCards,campaignData,deckRules,dexSets,gachaBanners,achievements,dailyChallenges}.js`
   - ☠️ `deckRules.js` 里 `MAX_FIELD_SLOTS`(6) / `SP_DECK_SIZE`(5) / `STARTING_HAND`(5) 同居 —— **严禁对该文件做数字查找替换**
 - **存档**：`src/utils/saveManager.js`（`SAVE_KEYS` 单一清单）· `src/components/ErrorBoundary.jsx`
-- **测试**：`scripts/test-*.mjs`（**47 套**，`npm test` 入口）。**真测试**（import 真模块）：`test-rules-gates`(60) / `test-battle-reducer`(51) / `test-hand-uid`(21) / `test-sw-api-bypass`(19) / `test-combat-resolve` / `test-leader-damage`
+- **测试**：`scripts/test-*.mjs`（**49 套**，`npm test` 入口）。**真测试**（import 真模块）：**`test-side-symmetry`(462，镜像对称)** / **`test-no-side-fork`(22，棘轮)** / `test-combat-resolve`(68) / `test-rules-gates`(60) / `test-battle-reducer`(60) / `test-leader-damage`(33) / `test-hand-uid`(21) / `test-sw-api-bypass`(19)
+  - ☠️ **de-fork 的两个守卫必须一起在**：棘轮只能证明 `rules.js` **不能命名**某一侧；证明不了它「拿了 side 又忽略它」（如 `state[总是player的变量]`）—— 那个由镜像测试覆盖。**缺一个就是剧场。**
   - ⚠️ **假绿铁律**：ctx 必须与生产调用点**逐字一致**；fixture 一律从**真的** `initialBattleState` + **真的** `cards.js` 改，**绝不手搓「长得像」的对象**。本项目已被假绿烧过四次（partialAwaken 档 / `test-leader-damage` 初版多传 `friendlyField` 造出假 bug / `test-sw-api-bypass` 初版漏 `location.origin` 导致全部因错误原因通过 / `MARKS_CLEAR` 的 no-op bailout 写错被当场抓住）
   - ⚠️ **eslint 只开 `no-undef`**，**没有** react-hooks 插件、**没有** `exhaustive-deps` —— 别以为「lint 干净」证明了 deps 正确
   - `engine/`+`utils/`+**`hooks/`** 的相对 import **必须带 `.js`**（`6cffff1` 起 hooks 也已补齐 → useBattle/useAITurn/useHand 现在 Node 可 import）
