@@ -26,4 +26,22 @@ export default [
       'no-undef': 'error',
     },
   },
+  {
+    // 中继（PvP 第 3 步）：服务端崩一次掐断所有对局 → 比前端更需要 no-undef。
+    // ⚠️ **只给 node globals，不给 browser** —— 比上面的 block 更严：中继误用 window /
+    //    document / localStorage 会当场红。中继是纯 Node，没有浏览器环境。
+    // no-undef 不解析 import → `import { WebSocketServer } from 'ws'` 是绑定不是未定义全局
+    //    → 即使 CI 没装 ws 也能过，server.js 的 no-undef 白拿。
+    files: ['relay/**/*.js'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-undef': 'error',
+    },
+  },
 ];

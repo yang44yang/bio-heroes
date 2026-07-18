@@ -1,0 +1,29 @@
+# Bio Heroes PvP 中继 —— systemd unit
+# 装到 VPS 的 /etc/systemd/system/bio-relay.service，然后：
+#   systemctl daemon-reload && systemctl enable --now bio-relay
+#
+# ☠️ WorkingDirectory 不是 /var/www/bio —— 那个目录是 `npm run deploy` 的 rsync --delete 镜像，
+#    放这里的任何东西会被下一次前端热修静默销毁（DEPLOY.md §4.3）。中继住 /opt/bio-relay。
+#    （中继本步零数据文件，但代码目录也绝不能落 /var/www/bio。）
+
+[Unit]
+Description=Bio Heroes PvP relay
+After=network.target
+# 防疯狂重启循环（60s 内最多重启 5 次，超了就停手等人工介入）
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# 建议专用非特权用户：useradd --system --no-create-home --shell /usr/sbin/nologin biorelay
+User=biorelay
+Group=biorelay
+WorkingDirectory=/opt/bio-relay
+ExecStart=/usr/bin/node /opt/bio-relay/server.js
+Environment=RELAY_PORT=3002
+Restart=on-failure
+RestartSec=3
+# 崩溃时 server.js 自己 process.exit(1)（let it crash）→ systemd 按上面策略重启。
+
+[Install]
+WantedBy=multi-user.target

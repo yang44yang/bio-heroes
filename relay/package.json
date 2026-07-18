@@ -1,0 +1,17 @@
+{
+  "name": "bio-heroes-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bio Heroes PvP 哑中继 —— host↔guest 盲转字节，零游戏逻辑（DEPLOY.md §4）",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "smoke": "node smoke/run.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
