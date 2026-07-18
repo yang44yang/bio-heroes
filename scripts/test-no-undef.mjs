@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const PATTERNS = ['src/engine/**/*.js', 'src/hooks/**/*.js', 'relay/**/*.js'];
+const PATTERNS = ['src/engine/**/*.js', 'src/hooks/**/*.js', 'src/net/**/*.js', 'relay/**/*.js'];
 
 const eslint = new ESLint({ cwd: ROOT });
 const results = await eslint.lintFiles(PATTERNS);

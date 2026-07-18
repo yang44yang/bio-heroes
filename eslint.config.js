@@ -13,7 +13,7 @@ import globals from 'globals';
 
 export default [
   {
-    files: ['src/engine/**/*.js', 'src/hooks/**/*.js'],
+    files: ['src/engine/**/*.js', 'src/hooks/**/*.js', 'src/net/**/*.js'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
