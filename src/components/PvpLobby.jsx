@@ -8,6 +8,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createRelayClient, STATUS } from '../net/relayClient'
 import PvpHostBattleScreen from './PvpHostBattleScreen'
+import GuestBattleScreen from './GuestBattleScreen'
 
 // 中继 WS 端点：同源 /api/relay（dev/preview 经 vite 的 ^/api/ 代理 ws:true 到 127.0.0.1:3002；
 // 生产经 Caddy 反代）。
@@ -42,9 +43,11 @@ export default function PvpLobby({ onExit }) {
   const [joinCode, setJoinCode] = useState('')
   const [battleOn, setBattleOn] = useState(false)   // 4c：host 点「开始对战」后进战斗
   const clientRef = useRef(null)
-  // ★ 4c：游戏帧转发 ref —— client 建在大厅、处理器装在战斗侧（usePvpHost），
+  // ★ 4c：游戏帧转发 ref —— client 建在大厅、处理器装在战斗侧（usePvpHost / useGuestBattle），
   //   用一个稳定的 ref 中转（onGame 在 createRelayClient 时就得给定）。
   const gameFrameRef = useRef(null)
+  // ★ 4d：guest 缓存最近一帧 sync —— 消掉「战斗组件挂载前那帧丢了」的竞态
+  const lastSyncRef = useRef(null)
 
   const teardown = useCallback(() => {
     if (clientRef.current) { clientRef.current.close(); clientRef.current = null }
@@ -82,7 +85,11 @@ export default function PvpLobby({ onExit }) {
         else if (f.t === 'relay.peer-left') setPeerPresent(false)
         else if (f.t === 'relay.error') setError(f.reason)
       },
-      onGame: () => {},
+      // ★ 4d：guest 收到第一帧 sync = host 开战了 → 自动进战斗（缓存该帧防竞态）
+      onGame: (f) => {
+        if (f?.t === 'sync') { lastSyncRef.current = f; setBattleOn(true) }
+        gameFrameRef.current?.(f)
+      },
     })
   }, [joinCode])
 
@@ -91,13 +98,21 @@ export default function PvpLobby({ onExit }) {
   const connected = status === STATUS.CONNECTED
   const ready = connected && peerPresent
 
-  // ★ 4c：host 开战 → 渲染 PvP 战斗（大厅保持挂载 = 连接不断；onExit 回大厅）。
+  // ★ 4c/4d：开战 → 渲染 PvP 战斗（大厅保持挂载 = 连接不断；onExit 回大厅）。
+  //   host = 点「开始对战」；guest = 收到第一帧 sync 自动进。
   //   在所有 hook 之后 early return，不违反 hook 规则。
   if (battleOn && clientRef.current) {
-    return (
+    return mode === 'host' ? (
       <PvpHostBattleScreen
         client={clientRef.current}
         gameFrameRef={gameFrameRef}
+        onExit={() => setBattleOn(false)}
+      />
+    ) : (
+      <GuestBattleScreen
+        client={clientRef.current}
+        gameFrameRef={gameFrameRef}
+        initialSyncRef={lastSyncRef}
         onExit={() => setBattleOn(false)}
       />
     )
