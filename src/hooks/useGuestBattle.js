@@ -22,16 +22,23 @@
 //     （host 拒了 = 状态不变 = 手牌里那张卡还在，天然一致）
 
 import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
-import { PLAYER } from '../engine/sides.js'
+import { PLAYER, ENEMY } from '../engine/sides.js'
 import { derivePhase } from '../engine/battleReducer.js'
 import { canAttackFrom } from '../engine/rules.js'
-import { decodeSync, encodeIntent, seedN, MSG } from '../engine/wire.js'
+import { decodeSync, encodeIntent, seedN, MSG, readEvents } from '../engine/wire.js'
 
 const noop = () => {}
 const EMPTY = []
 const EMPTY_STATS = { totalDamage: 0, kills: 0, quizCorrect: 0, quizTotal: 0 }
 
-export function useGuestBattle({ client, gameFrameRef, initialSyncRef }) {
+// tone（wire 的语义 token）→ UI 色 class。表现层映射住这儿，**不进协议**（wire 的裁定：
+// Tailwind v4 扫全项目，class 字面量写进协议/测试会变成生产 CSS 死规则——所以映射只在 UI 层）。
+const TONE_CLASS = {
+  damage: 'text-red-400', heal: 'text-green-400', buff: 'text-yellow-300',
+  shield: 'text-blue-400', info: 'text-cyan-400', boss: 'text-purple-400',
+}
+
+export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBridgeRef }) {
   const [dec, setDec] = useState(() => {
     // 大厅缓存的首帧 sync（消掉「处理器装好前那帧丢了」的竞态）
     const raw = initialSyncRef?.current
@@ -46,23 +53,48 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef }) {
   if (dec && nRef.current === null) nRef.current = seedN(dec.ack)
 
   const [guestLog, setGuestLog] = useState([])
+  // ---- 4e：事件环消费游标（readEvents 的 lastSeen/lastG，缺口/换局语义在 wire 里）----
+  const lastSeenRef = useRef(0)
+  const lastGRef = useRef(null)
 
   // 装游戏帧处理器（同 usePvpHost 的 gameFrameRef 机制）
   useEffect(() => {
     if (!gameFrameRef) return
     gameFrameRef.current = (raw) => {
       try {
-        if (raw?.t !== MSG.SYNC) return          // resume/事件环 = 后续步骤
+        if (raw?.t !== MSG.SYNC) return
         const d = decodeSync(raw)
         if (!d.ok) return                        // 版本闸门：吃不下的快照直接拒（decodeSync 管）
         if (nRef.current === null) nRef.current = seedN(d.ack)
         setDec(d)
+
+        // ---- 4e：事件环 → 浮字 + 日志 ----
+        // 事件的 side 已被 host 侧 toViewEvent 翻成**我的视角**（我=player）。
+        // resync（缺口/换局）→ render 为空 = 跳过动画直接吃快照（「环是装饰，快照是真相」）。
+        const rd = readEvents(lastSeenRef.current, lastGRef.current,
+          { events: d.events, ringBase: d.ringBase, g: d.g })
+        lastSeenRef.current = rd.lastSeen
+        lastGRef.current = rd.g
+        if (rd.render.length > 0) {
+          const logs = []
+          for (const evt of rd.render) {
+            if (evt.kind === 'float') {
+              floatBridgeRef?.current?.showFloat(evt.side, evt.slot, evt.text, TONE_CLASS[evt.tone] || 'text-red-400')
+            } else if (evt.kind === 'log') {
+              // 观看者视角前缀：side 已翻 → player=我 🔵、enemy=对方 🔴、null=中立
+              const prefix = evt.side === ENEMY ? '🔴 ' : evt.side === PLAYER ? '🔵 ' : ''
+              logs.push(prefix + evt.text)
+            }
+            // fx / reveal / boss：里程碑暂不渲染
+          }
+          if (logs.length > 0) setGuestLog((p) => [...p, ...logs])
+        }
       } catch (err) {
         console.error('[guestBattle] sync 处理异常:', err)
       }
     }
     return () => { gameFrameRef.current = null }
-  }, [gameFrameRef])
+  }, [gameFrameRef, floatBridgeRef])
 
   const send = useCallback((kind, payload) => {
     const d = decRef.current

@@ -29,7 +29,7 @@ import { useLanguage } from '../i18n/LanguageContext'
  *   敌方主人HP → 敌方战场(5位) → VS → 玩家战场(5位) → 玩家主人HP
  *   → 手牌区 → 操作按钮 → 日志
  */
-export default function BattleScreen({ battle, playerHand, enemyHand, playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit, remoteEnemy = false }) {
+export default function BattleScreen({ battle, playerHand, enemyHand, playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit, remoteEnemy = false, floatBridgeRef = null }) {
   const { t, lang, cardName, localName } = useLanguage()
   // ★ 4b：battle / playerHand / enemyHand 现从 prop 收（HostBattleScreen 供）。playerDeckCards /
   //   enemyDeckCards 仍作 prop 保留（本组件别处可能用；HostBattleScreen 也用它们建手牌）。
@@ -126,6 +126,14 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   const showDamageFloat = useCallback((side, slot, dmg) => {
     showFloat(side, slot, `-${dmg}`, 'text-red-400')
   }, [showFloat])
+
+  // ★ PvP 第 4e 步：把 showFloat 借给 PvP 适配器（host 给 guest 攻击放浮字 / guest 渲染事件环）。
+  //   单机不传该 prop → 整段惰性。同 gameFrameRef 的稳定 ref 中转模式。
+  useEffect(() => {
+    if (!floatBridgeRef) return
+    floatBridgeRef.current = { showFloat }
+    return () => { floatBridgeRef.current = null }
+  }, [floatBridgeRef, showFloat])
 
   /**
    * 显示技能事件浮字

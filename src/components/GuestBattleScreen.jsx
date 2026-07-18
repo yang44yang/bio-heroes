@@ -4,11 +4,14 @@
 // 渲染**同一个** BattleScreen —— 这正是 4b 把 battle 提成 prop 买到的东西。
 // remoteEnemy：guest 视角的「敌方」是远端 host（真人）→ 关 AI + 关开局替敌方摆卡。
 
+import { useRef } from 'react'
 import { useGuestBattle } from '../hooks/useGuestBattle'
 import BattleScreen from './BattleScreen'
 
 export default function GuestBattleScreen({ client, gameFrameRef, initialSyncRef, onExit }) {
-  const { battle, playerHand, enemyHand } = useGuestBattle({ client, gameFrameRef, initialSyncRef })
+  // 4e：BattleScreen 把 showFloat 借出来，事件环的浮字经它渲染
+  const floatBridgeRef = useRef(null)
+  const { battle, playerHand, enemyHand } = useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBridgeRef })
   if (!battle) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
@@ -24,6 +27,7 @@ export default function GuestBattleScreen({ client, gameFrameRef, initialSyncRef
       playerDeckCards={[]}
       enemyDeckCards={[]}
       remoteEnemy
+      floatBridgeRef={floatBridgeRef}
       onExit={onExit}
     />
   )

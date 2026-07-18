@@ -1,11 +1,13 @@
-// usePvpHost.js —— host 侧的 PvP 适配器（PvP 第 4c 步）。
+// usePvpHost.js —— host 侧的 PvP 适配器（PvP 第 4c 步；4e 加事件环）。
 //
-// host 权威：引擎（useBattle）只在 host 浏览器跑。本 hook 做三件事：
+// host 权威：引擎（useBattle）只在 host 浏览器跑。本 hook 做四件事：
 //   ① **推送**：每次 reducer 提交后 buildSync → 经 relayClient 发给 guest（「提交后的 effect 推」——
 //      死亡在 attack() 返回之后才结算，同步取快照会推出带 0HP 僵尸卡的半结算棋盘）
 //   ② **收 intent**：decodeIntent(raw, ENEMY) → acceptIntent 去重 → 照 useAITurn 的调用约定重放
-//   ③ **敌方回合起点 bootstrap**：AI 回合的步骤 1-2（draw + beginEnemyTurn），去掉 delay ——
-//      AI 的其余部分（决策）由远端真人取代
+//   ③ **敌方回合起点 bootstrap**：AI 回合的步骤 1-2（draw + beginEnemyTurn），去掉 delay
+//   ④ **事件环（4e）**：把 battle 包一层 —— play/attack 出结果时铸 floatEvent/logEvent 进环，
+//      host 自己的动作和 guest 重放**走同一个包装** → 一条发射路径。返回包装后的 pvpBattle
+//      给 BattleScreen 渲染。guest 经 readEvents 消费（边不是值：浮字用的是死前的数字）。
 //
 // ## ☠️ 重放约定 = 逐字照抄 useAITurn（那是今天合法执行敌方动作的唯一样板）
 //   · 出牌：playToField/playEventCard 的 r.ok **之后**才 enemyHand.playCard —— 否则出牌被拒时
@@ -16,57 +18,117 @@
 //
 // ## ☠️ ack = 消费即确认，不是「引擎已应用」（wire.js buildSync JSDoc 的 C-2 裁定）
 //   attack() 有多条日常规则拒绝路径（召唤疲劳等）。若 ack 只在规则接受时推进：guest 永远重传
-//   同一个 n → host 恒答 dup → 界面永久卡死。被拒的 intent 不需要重传，它需要的是结果反馈
-//   （通道① 快照里棋盘没变）。
+//   同一个 n → host 恒答 dup → 界面永久卡死。
 //
-// ## 里程碑简化（4d「能对战」，诚实记录，后续步骤补）
-//   · ring: []（浮字/日志事件环 = 4e）· guest 不换牌（同今天的 AI）· guest 的 SP 由 AI 人格
-//     代选（resolveSpChoice enemy 分支现状）· guest 攻击不触发问答（同今天的 AI；抢答 = 后续）
-//   · answer / mulligan / spChoose intent 到达时安静忽略（引擎侧还没有对应的 side 化入口）
+// ## ☠️ since = host 自己的已发水位（cursorRef），不是 guest 报来的 lastSeen（C-2 裁定）
+//   send 成功才推进游标 → 掉线期间的事件下次连上补发。事件只随状态变更产生（拒绝路径不进环）
+//   → 推送 effect 的 [battleState] deps 总能把新事件捎上，无环单独变化的推送缺口。
+//
+// ## 里程碑简化（诚实记录，后续步骤补）
+//   · guest 不换牌（同今天 AI）· guest SP 由 AI 人格代选 · guest 攻击不触发问答
+//   · answer / mulligan / spChoose intent 安静忽略（ack 仍推进，guest 不卡重传）
+//   · 拒绝类反馈不进环（guest 看快照没变自然明白）· fx 事件暂不发（浮字+日志先行）
 
-import { useEffect, useRef } from 'react'
-import { PLAYER, ENEMY } from '../engine/sides.js'
-import { buildSync, decodeIntent, acceptIntent, mintMatchId, MSG } from '../engine/wire.js'
+import { useEffect, useRef, useMemo, useCallback } from 'react'
+import { PLAYER, ENEMY, opp } from '../engine/sides.js'
+import {
+  buildSync, decodeIntent, acceptIntent, mintMatchId, MSG,
+  appendEvents, floatEvent, logEvent,
+} from '../engine/wire.js'
 import { playSound } from '../audio/soundManager.js'
 
-export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, enemyHand }) {
-  // matchId：每次挂载铸一个（PvP 对局跟着组件生命周期走；重开一局 = 重挂 = 新 g）。
-  // 熵走 crypto（浏览器必有）；mintMatchId 刻意不自己调 Date.now（wire.js 的可测性纪律）。
+export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef }) {
   const gRef = useRef(null)
   if (enabled && gRef.current === null) {
     gRef.current = mintMatchId(crypto.getRandomValues(new Uint32Array(1))[0])
   }
-  // guest 的 intent 去重游标（lastN）。ack = 它的当前值（消费即推进）。
   const lastNRef = useRef(0)
-  // 敌方回合 bootstrap 去重（每个 enemyTurn 相位只 draw+begin 一次）
   const bootstrappedRef = useRef(false)
+  // ---- 4e：事件环 + 已发水位 ----
+  const ringRef = useRef([])
+  const cursorRef = useRef(0)
 
-  // ★ 渲染期镜像最新的 battle/hands —— intent 处理器安装一次，闭包读这个 ref 拿最新值。
-  //   （项目既有纪律：App.jsx:90 的 testArenaConfigRef 同款写法。）
+  const emitRing = useCallback((events) => {
+    if (events.length === 0) return
+    ringRef.current = appendEvents(ringRef.current, events)
+  }, [])
+
+  /**
+   * 攻击结果 → 环事件（绝对座位；guest 侧由 buildSync 的 toViewEvent 翻）。
+   * side = 攻击方。guest 发起（side===ENEMY）时顺带给 **host 自己的 UI** 放浮字 ——
+   * host 是 player 座位，绝对座位即 host 视角，直接喂 showFloat。
+   * （host 自己攻击的本地浮字 BattleScreen 既有代码在放，这里只进环、不重复放。）
+   */
+  const emitAttackEvents = useCallback((side, atkSlot, defSlot, result) => {
+    if (!result) return
+    const foe = opp(side)
+    const evts = []
+    if (result.leaderHit) {
+      evts.push(floatEvent(foe, -1, `-${result.atkDmg}`, 'damage'))
+    } else {
+      evts.push(floatEvent(foe, defSlot, `-${result.atkDmg}`, 'damage'))
+      if (result.defDmg > 0) evts.push(floatEvent(side, atkSlot, `-${result.defDmg}`, 'damage'))
+    }
+    emitRing(evts)
+    if (side === ENEMY && floatBridgeRef?.current) {
+      const f = floatBridgeRef.current
+      if (result.leaderHit) f.showFloat(PLAYER, -1, `-${result.atkDmg}`, 'text-red-400')
+      else {
+        f.showFloat(PLAYER, defSlot, `-${result.atkDmg}`, 'text-red-400')
+        if (result.defDmg > 0) f.showFloat(ENEMY, atkSlot, `-${result.defDmg}`, 'text-red-400')
+      }
+    }
+  }, [emitRing, floatBridgeRef])
+
+  // ---- 4e：包装 battle —— host 动作与 guest 重放同一条发射路径 ----
+  const pvpBattle = useMemo(() => {
+    if (!enabled) return battle
+    return {
+      ...battle,
+      playToField: (card, slotIdx, side = PLAYER) => {
+        const r = battle.playToField(card, slotIdx, side)
+        if (r.ok) emitRing([logEvent(side, `出牌：${card.name}（费用 ${card.cost}）→ 位置 ${slotIdx + 1}`)])
+        return r
+      },
+      playEventCard: (card, opts = {}, side = PLAYER) => {
+        const r = battle.playEventCard(card, opts, side)
+        if (r.ok) emitRing([logEvent(side, `打出事件卡：${card.name}`)])
+        return r
+      },
+      attack: (atkSlot, defSlot, awakenOpts = {}, side = PLAYER) => {
+        const result = battle.attack(atkSlot, defSlot, awakenOpts, side)
+        emitAttackEvents(side, atkSlot, defSlot, result)
+        return result
+      },
+    }
+  }, [enabled, battle, emitRing, emitAttackEvents])
+
+  // ★ 渲染期镜像最新对象 —— intent 处理器安装一次，闭包读 ref 拿最新（App.jsx:90 同款纪律）。
+  //   存**包装后的** pvpBattle：guest 重放也走发射路径。
   const latestRef = useRef(null)
-  latestRef.current = { battle, playerHand, enemyHand }
+  latestRef.current = { battle: pvpBattle, playerHand, enemyHand }
 
-  // ---- ① 推送快照（提交后的 effect）----
-  // deps 含双手牌：draw/playCard 改手牌但不动 reducer 树，漏了 guest 就看不到自己的新手牌。
+  // ---- ① 推送快照（提交后的 effect；4e 起带事件环）----
   useEffect(() => {
     if (!enabled || !client) return
     try {
+      const ring = ringRef.current
       const sync = buildSync({
         state: battle.battleState,
         sources: {
           [PLAYER]: { hand: playerHand.hand, drawPileCount: playerHand.drawPileCount, spChoice: null },
           [ENEMY]: { hand: enemyHand.hand, drawPileCount: enemyHand.drawPileCount, spChoice: null },
         },
-        ring: [],                 // 事件环 = 4e
+        ring,
         to: ENEMY,
-        since: 0,
+        since: cursorRef.current,       // ☠️ host 自己的已发水位（C-2），不是 guest 的 lastSeen
         ack: lastNRef.current,
         g: gRef.current,
       })
-      client.send(sync)
+      const sent = client.send(sync)
+      // send 成功才推进游标：掉线期间的事件留在窗口里，下次连上随快照补发
+      if (sent && ring.length > 0) cursorRef.current = ring[ring.length - 1].seq
     } catch (err) {
-      // buildSync 抛错 = 公开性守门（assertPublicShape）逮住了脏状态 —— 记日志，别让它
-      // 炸掉 host 的对局（守门的意义是"第 2 步的人第一次真机就炸"，不是炸玩家）。
       console.error('[pvpHost] buildSync 失败（公开性守门？）:', err)
     }
   }, [enabled, client, battle.battleState, playerHand.hand, enemyHand.hand])
@@ -75,15 +137,14 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
   useEffect(() => {
     if (!enabled || !gameFrameRef) return
     gameFrameRef.current = (raw) => {
-      // 每帧独立 try/catch：一条坏 intent 不拖垮对局（对称于中继的每消息 try/catch）
       try {
-        if (raw?.t !== MSG.INTENT) return          // resume 等 = 后续步骤
-        const dec = decodeIntent(raw, ENEMY)       // ☠️ seat 由座位给死：guest 永远是 enemy
+        if (raw?.t !== MSG.INTENT) return
+        const dec = decodeIntent(raw, ENEMY)
         if (!dec.ok) return
-        if (dec.g !== gRef.current) return         // 旧局的迟到 intent（换局判据）
+        if (dec.g !== gRef.current) return
         const acc = acceptIntent(lastNRef.current, dec.n)
-        if (!acc.ok) return                        // dup/reset：忽略（ack 已随快照带回）
-        lastNRef.current = dec.n                   // ☠️ 消费即 ack（见文件头 C-2）
+        if (!acc.ok) return
+        lastNRef.current = dec.n                   // ☠️ 消费即 ack
         replayIntent(dec.intent, latestRef.current)
       } catch (err) {
         console.error('[pvpHost] intent 处理异常:', err)
@@ -103,13 +164,15 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
     if (drawn.length > 0) b.addLog(`🔴 对手抽了 1 张牌`)
     b.beginEnemyTurn()
   }, [enabled, battle.phase])
+
+  return pvpBattle
 }
 
 // 重放一条已去重的 intent。约定逐字照抄 useAITurn（见文件头）。
+// battle 是**包装后的** pvpBattle → play/attack 自动进事件环 + host UI 浮字。
 function replayIntent(intent, { battle, playerHand, enemyHand }) {
   switch (intent.kind) {
     case 'play': {
-      // uid 在 guest 自己的手牌（enemyHand）里找 —— 别人的 uid 天然找不到 → no-op（wire.js 裁定 B）
       const card = enemyHand.hand.find((c) => c.uid === intent.uid && c.type !== 'event')
       if (!card) return
       const r = battle.playToField(card, intent.slot, ENEMY)
@@ -128,7 +191,6 @@ function replayIntent(intent, { battle, playerHand, enemyHand }) {
       break
     }
     case 'attack': {
-      // 被规则拒绝返回 null —— 不重试、不报错：结果反馈在快照里（guest 看到棋盘没变）
       const result = battle.attack(intent.atkSlot, intent.defSlot, {}, ENEMY)
       if (result?.leaderHit) playSound('leaderHit')
       else if (result) playSound('attack')
@@ -144,15 +206,12 @@ function replayIntent(intent, { battle, playerHand, enemyHand }) {
       break
     }
     case 'endTurn':
-      // AI 步骤 5 原样：guest 回合结束 → host 玩家抽牌 + 新回合
       if (battle.phase !== 'over') {
         playerHand.draw(1)
         battle.startPlayerTurn()
         playSound('turnStart')
       }
       break
-    // answer / mulligan / spChoose：里程碑后补（见文件头「里程碑简化」）。安静忽略 ——
-    // ack 已推进（消费即确认），guest 不会卡在重传。
     default:
       break
   }

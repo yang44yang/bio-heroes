@@ -181,7 +181,7 @@ export default function PvpLobby({ onExit }) {
           <p className="text-gray-400">房间码：<span className="font-bold tracking-widest">{joinCode}</span></p>
           <p className="text-sm">{STATUS_TEXT[status]}</p>
           {error && <p className="text-red-400">{ERROR_TEXT[error] || error}</p>}
-          {ready && <p className="text-green-400 font-bold text-lg">✅ 已加入！（对战接入在下一步）</p>}
+          {ready && <p className="text-green-400 font-bold text-lg">✅ 已加入！等待对方开始对战…</p>}
           <button onClick={backToChoose} className="mt-2 text-gray-400 hover:text-white">← 返回</button>
         </div>
       )}
