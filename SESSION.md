@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新: 2026-07-18（**🎯 PvP「能对战」里程碑达成**：第 1-4d 步全部完成并 push。两个浏览器 tab 经真中继完整对战验证过。下一步等齐齐手感反馈定 4e-4g。）
+> 更新: 2026-07-18（**🎯 PvP 能对战 + 浮字/日志上 wire**：第 1-4e 步全部完成并 push。两 tab 经真中继完整对战、浮字+日志双向验证过。下一步等齐齐手感反馈定 4f-4g。）
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -10,7 +10,7 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = `eafe770`**，全部已 push。链：`ebe7c00`(第2步)→`acc034d`(第3步中继)→`f3fdb5e`(4a核心)→`254b939`(4a UI)→`a57519c`(4b)→`e0eeb6c`(4c)→`eafe770`(4d)。
+- **HEAD = origin/main = `4008a00`**，全部已 push。链：…→`e0eeb6c`(4c)→`eafe770`(4d)→`c374ed5`(交接)→`4008a00`(4e 事件环)。
 - **生产 VPS = 旧版本**（wire 第 1 步之前）。`npm run deploy` 一直没跑 —— 何时推给齐齐待用户定。
   部署 PvP 到生产还需：中继上 VPS（relay/README + deploy:api）+ Caddy bio block 加 `/api/*` handle（spacev 仓库）。
 - 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」。
@@ -27,8 +27,11 @@
 - **4d** `useGuestBattle`：同形状 battle 适配器（快照渲染 + intent 方法 + canAttack 用真 rules.canAttackFrom 跑快照）+ `GuestBattleScreen`；guest 收首帧 sync 自动进战斗
 - **里程碑实测**：两 tab 建房/加入/开战 → guest 亲手出牌（intent→host 重放→快照回流：手牌 6→5、能量 2→1）→ 回合双向交接 → host 回合 2。host 手牌全程零泄漏（脚本断言）。
 
+- **4e 已完成**：浮字 + 日志上 wire（floatEvent/logEvent→环→readEvents→showFloat/带视角前缀日志）。
+  两 tab 验证：host 攻击→guest 见 -5000/-1000 浮字；出牌日志双向（🔴对方/🔵我方前缀）。
+  剩 fx/reveal/boss 事件暂不渲染、拒绝类反馈不进环（guest 看快照没变自明）。
+
 **里程碑简化（诚实债，按齐齐反馈排优先级）**：
-- 浮字/战斗日志不上 wire（= **4e** 事件环接线；guest 只见 HP 变化无浮字，host 侧 guest 攻击也无浮字）
 - guest 不答题（tryQuiz→null）/ 不换牌（同今天 AI）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）
 - 对手手牌数显示 0（handCount 上 wire 要 bump SHAPES 版本）· PvpLobby guest「对战接入在下一步」文案过时
 - PvP 卡组固定测试卡组（host=playerTestDeck，guest=enemyTestDeck；卡组选择漏斗后续）
@@ -59,7 +62,7 @@
 ---
 
 ## 下次启动时优先
-1. **给齐齐试玩 PvP**（本地两窗口即可）→ 手感反馈决定 4e-4g 优先级（浮字缺失大概率最先被小孩发现）
+1. **给齐齐试玩 PvP**（本地两窗口即可）→ 手感反馈决定 4f-4g 优先级（浮字/日志现已上 wire）
 2. 或先部署：中继上 VPS + Caddy handle 块 + `npm run deploy`（前端含 wire 1-4d 全部）——三件分开做，`deploy:api` 已在 package.json
-3. 4e（事件环/浮字/日志上 wire）是体验补全的大头；4f 零收益 ref 守卫是上生产前的硬门槛
+3. **4f 零收益 ref 守卫是上生产前的硬门槛**（照 `App.jsx:135` testArenaConfigRef 写法）；4g host 迁移（手动确认接管）
 4. 历史债：虎鲸/神经元平衡决定 · DEPLOY.md §4.1「零依赖」表述更正为 ws 选型（§4.6 已写，§4.1 原文未动）
