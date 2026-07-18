@@ -29,6 +29,7 @@ const BATTLE_QUIZ_POOL = [...BATTLE_ACHIEVEMENTS, ...QUIZ_ACHIEVEMENTS]
 
 // 懒加载重型组件 — 代码分割
 const BattleScreen = lazy(() => import('./components/BattleScreen'))
+const PvpLobby = lazy(() => import('./components/PvpLobby'))
 const GachaScreen = lazy(() => import('./components/GachaScreen'))
 const DeckBuilder = lazy(() => import('./components/DeckBuilder'))
 const Collection = lazy(() => import('./components/Collection'))
@@ -352,6 +353,7 @@ export default function App() {
           onOpenCampaign={() => setScreen('campaign')}
           onOpenDailyChallenge={() => setScreen('daily')}
           onOpenTestArena={() => setScreen('testArena')}
+          onOpenPvp={() => setScreen('pvp')}
           daily={daily}
           economy={economy}
         />
@@ -368,6 +370,10 @@ export default function App() {
             onExit={handleExitBattle}
           />
         )}
+        {screen === 'pvp' && (
+          <PvpLobby onExit={() => setScreen('title')} />
+        )}
+
         {screen === 'testArena' && (
           <TestArena
             onBack={() => setScreen('title')}

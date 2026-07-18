@@ -5,7 +5,7 @@ import { getQuizMode, setQuizMode } from '../utils/settings'
 import { ownedDexCount } from '../data/dexSets'
 import { useLanguage } from '../i18n/LanguageContext'
 
-export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, onOpenTestArena, daily, economy }) {
+export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, onOpenTestArena, onOpenPvp, daily, economy }) {
   const { t, lang, toggleLang } = useLanguage()
   const [showSettings, setShowSettings] = useState(false)
   const [importMsg, setImportMsg] = useState(null)
@@ -134,6 +134,19 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
           onClick={onStartBattle}
         >
           {t('menu.freeBattle')}
+        </motion.button>
+
+        {/* PvP 联机对战（第 4a 步）—— i18n 键待打磨阶段补，本步内联中文 */}
+        <motion.button
+          className="w-full py-2.5 sm:py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.27 }}
+          onClick={onOpenPvp}
+        >
+          🔗 联机对战
         </motion.button>
 
         <motion.button
