@@ -28,7 +28,9 @@ const SP_UNLOCK_MAP = {
 const BATTLE_QUIZ_POOL = [...BATTLE_ACHIEVEMENTS, ...QUIZ_ACHIEVEMENTS]
 
 // 懒加载重型组件 — 代码分割
-const BattleScreen = lazy(() => import('./components/BattleScreen'))
+// ★ 4b：改懒加载 HostBattleScreen（它调 useBattle/useHand 后把 battle 作 prop 传给 BattleScreen）。
+//   BattleScreen 被 HostBattleScreen 普通 import，仍在同一代码分割块里。
+const HostBattleScreen = lazy(() => import('./components/HostBattleScreen'))
 const PvpLobby = lazy(() => import('./components/PvpLobby'))
 const GachaScreen = lazy(() => import('./components/GachaScreen'))
 const DeckBuilder = lazy(() => import('./components/DeckBuilder'))
@@ -360,7 +362,7 @@ export default function App() {
       )}
       <Suspense fallback={<LoadingFallback />}>
         {screen === 'battle' && (
-          <BattleScreen
+          <HostBattleScreen
             playerDeckCards={selectedDeck?.mainCards || playerTestDeck}
             enemyDeckCards={campaignEnemy?.deck || enemyTestDeck}
             playerSpDeckCards={selectedDeck?.spCards}

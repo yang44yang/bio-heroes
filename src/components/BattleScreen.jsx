@@ -4,8 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 import CardDetailModal from './CardDetailModal'
 import QuizModal from './QuizModal'
-import { useBattle } from '../hooks/useBattle'
-import { useHand } from '../hooks/useHand'
+// ★ PvP 第 4b 步：useBattle / useHand 上移到 HostBattleScreen wrapper，battle/playerHand/enemyHand
+//   改从 prop 收 —— 让 guest（4d）能换成 useGuestBattle 供同形状的 battle。
 import { useAITurn } from '../hooks/useAITurn'
 import { cardHasGuard, attackerBypassesGuard } from '../utils/guardSkill'
 // MAX_FIELD_SLOTS 曾在此 import 但全文未使用（死 import）。删掉不是洁癖：
@@ -29,11 +29,10 @@ import { useLanguage } from '../i18n/LanguageContext'
  *   敌方主人HP → 敌方战场(5位) → VS → 玩家战场(5位) → 玩家主人HP
  *   → 手牌区 → 操作按钮 → 日志
  */
-export default function BattleScreen({ playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit }) {
+export default function BattleScreen({ battle, playerHand, enemyHand, playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit }) {
   const { t, lang, cardName, localName } = useLanguage()
-  const battle = useBattle()
-  const playerHand = useHand(playerDeckCards, 'player')
-  const enemyHand = useHand(enemyDeckCards, 'enemy')
+  // ★ 4b：battle / playerHand / enemyHand 现从 prop 收（HostBattleScreen 供）。playerDeckCards /
+  //   enemyDeckCards 仍作 prop 保留（本组件别处可能用；HostBattleScreen 也用它们建手牌）。
 
   // 即时提示系统 (Sprint 21)
   const { showHint, activeHint, dismissHint } = useBattleHints(lang)
