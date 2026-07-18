@@ -29,7 +29,7 @@ import { useLanguage } from '../i18n/LanguageContext'
  *   敌方主人HP → 敌方战场(5位) → VS → 玩家战场(5位) → 玩家主人HP
  *   → 手牌区 → 操作按钮 → 日志
  */
-export default function BattleScreen({ battle, playerHand, enemyHand, playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit }) {
+export default function BattleScreen({ battle, playerHand, enemyHand, playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit, remoteEnemy = false }) {
   const { t, lang, cardName, localName } = useLanguage()
   // ★ 4b：battle / playerHand / enemyHand 现从 prop 收（HostBattleScreen 供）。playerDeckCards /
   //   enemyDeckCards 仍作 prop 保留（本组件别处可能用；HostBattleScreen 也用它们建手牌）。
@@ -371,6 +371,9 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   // Boss 预置卡跳过正常出牌（已在 useBattle.startBattle 中放置）
   const enemyPlaced = useRef(false)
   useEffect(() => {
+    // ★ PvP 第 4c 步：对手是远端真人时**不替他出牌**。这个 effect 是替 AI 摆起手卡的
+    //   （preplaceCard 作弊者路径）—— PvP 里 host 替 guest 打出他手里的牌 = 偷走他的选择。
+    if (remoteEnemy) return
     if (enemyHand.hand.length > 0 && !enemyPlaced.current) {
       enemyPlaced.current = true
 
@@ -420,7 +423,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   }, [enemyHand.hand])
 
   // 敌方 AI 完整回合（出牌 → 攻击 → 结束）抽到 useAITurn（决策E4）。触发 battle.phase === "enemyTurn"。
-  useAITurn({ battle, enemyHand, playerHand, campaignConfig, showFloat, showDamageFloat, t })
+  useAITurn({ battle, enemyHand, playerHand, campaignConfig, showFloat, showDamageFloat, t, disabled: remoteEnemy })
 
   // === 出牌（从手牌到战场位 or 事件卡直接打出）===
   const handlePlayCard = useCallback((slotIdx) => {

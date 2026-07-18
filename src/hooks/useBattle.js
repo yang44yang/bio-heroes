@@ -2462,6 +2462,10 @@ export function useBattle() {
   }
 
   return {
+    // ★ PvP 第 4c 步：暴露**原始 reducer 状态**（整棵树）。host adapter 的推送 effect 用它做
+    //   buildSync 的 state 入参（「公开通道 = mirror(reducerState) 整棵推」）。
+    //   ⚠️ 它就是 useReducer 的 state —— 只在 dispatch 后换引用，作 effect deps 正确。
+    battleState,
     turn, phase, winner,
     playerEnergy, enemyEnergy,
     playerLeaderHp, enemyLeaderHp,

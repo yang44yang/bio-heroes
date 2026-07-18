@@ -12,10 +12,15 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms))
 //  决策E4：从 BattleScreen（1861 行 god component）抽出到独立 hook。
 //  触发：battle.phase === 'enemyTurn'。deps 仍 [battle.phase]，与原内联 effect 逐字节一致。
 // ================================================================
-export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showFloat, showDamageFloat, t }) {
+export function useAITurn({ battle, enemyHand, playerHand, campaignConfig, showFloat, showDamageFloat, t, disabled = false }) {
   const aiRunning = useRef(false)
 
   useEffect(() => {
+    // ★ PvP 第 4c 步：disabled = 对手是远端真人（remoteEnemy）。敌方回合由 usePvpHost 驱动
+    //   （guest 的 intent 重放），AI 一步都不能碰 —— 否则 host 会替真人出牌/攻击。
+    //   ⚠️ 它的 .catch 兜底会「强行把回合交还玩家」，PvP 里那是静默偷走 guest 的回合 ——
+    //   disabled 时整个 effect 不进场，连兜底也不存在。
+    if (disabled) return
     if (battle.phase !== 'enemyTurn' || aiRunning.current) return
     aiRunning.current = true
 

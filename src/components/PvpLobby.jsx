@@ -7,6 +7,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createRelayClient, STATUS } from '../net/relayClient'
+import PvpHostBattleScreen from './PvpHostBattleScreen'
 
 // 中继 WS 端点：同源 /api/relay（dev/preview 经 vite 的 ^/api/ 代理 ws:true 到 127.0.0.1:3002；
 // 生产经 Caddy 反代）。
@@ -39,7 +40,11 @@ export default function PvpLobby({ onExit }) {
   const [peerPresent, setPeerPresent] = useState(false)
   const [error, setError] = useState(null)
   const [joinCode, setJoinCode] = useState('')
+  const [battleOn, setBattleOn] = useState(false)   // 4c：host 点「开始对战」后进战斗
   const clientRef = useRef(null)
+  // ★ 4c：游戏帧转发 ref —— client 建在大厅、处理器装在战斗侧（usePvpHost），
+  //   用一个稳定的 ref 中转（onGame 在 createRelayClient 时就得给定）。
+  const gameFrameRef = useRef(null)
 
   const teardown = useCallback(() => {
     if (clientRef.current) { clientRef.current.close(); clientRef.current = null }
@@ -60,7 +65,7 @@ export default function PvpLobby({ onExit }) {
         else if (f.t === 'relay.peer-left') setPeerPresent(false)
         else if (f.t === 'relay.error') setError(f.reason)
       },
-      onGame: () => {},   // 游戏帧接入 = 第 4c/4d 步
+      onGame: (f) => gameFrameRef.current?.(f),   // 4c：转给 usePvpHost 装的处理器
     })
   }, [])
 
@@ -85,6 +90,18 @@ export default function PvpLobby({ onExit }) {
 
   const connected = status === STATUS.CONNECTED
   const ready = connected && peerPresent
+
+  // ★ 4c：host 开战 → 渲染 PvP 战斗（大厅保持挂载 = 连接不断；onExit 回大厅）。
+  //   在所有 hook 之后 early return，不违反 hook 规则。
+  if (battleOn && clientRef.current) {
+    return (
+      <PvpHostBattleScreen
+        client={clientRef.current}
+        gameFrameRef={gameFrameRef}
+        onExit={() => setBattleOn(false)}
+      />
+    )
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-6 text-white">
@@ -128,9 +145,17 @@ export default function PvpLobby({ onExit }) {
           </div>
           <p className="text-sm">{STATUS_TEXT[status]}</p>
           {error && <p className="text-red-400">{ERROR_TEXT[error] || error}</p>}
-          {ready
-            ? <p className="text-green-400 font-bold text-lg">✅ 对手已就位！（对战接入在下一步）</p>
-            : connected && <p className="text-yellow-300">等待对手加入…</p>}
+          {ready ? (
+            <>
+              <p className="text-green-400 font-bold text-lg">✅ 对手已就位！</p>
+              <button
+                onClick={() => setBattleOn(true)}
+                className="py-4 px-10 rounded-xl bg-red-600 hover:bg-red-500 font-bold text-xl"
+              >
+                ⚔️ 开始对战
+              </button>
+            </>
+          ) : connected && <p className="text-yellow-300">等待对手加入…</p>}
           <button onClick={backToChoose} className="mt-2 text-gray-400 hover:text-white">← 返回</button>
         </div>
       )}
