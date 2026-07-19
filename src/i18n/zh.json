@@ -31,6 +31,7 @@
   "battle.playPhase": "出牌",
   "battle.battlePhase": "战斗",
   "battle.enemyTurn": "敌方...",
+  "battle.waitingOpponent": "对方回合，请稍候…",
   "battle.endPlay": "结束出牌 →",
   "battle.endTurn": "结束回合",
   "battle.selectTarget": "选目标",

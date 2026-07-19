@@ -596,6 +596,9 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   const isMulliganPhase = battle.phase === 'mulligan'
   const isMainPhase = battle.phase === 'main'
   const isBattlePhase = battle.phase === 'battle'
+  // PvP：现在不是自己回合、在等远端真人。guest 首回合是 'init'（host 那侧 enemy.phase 还没被驱动过），
+  //   之后等待轮是 'enemyTurn'；host 等 guest 时也是 'enemyTurn'。单机 remoteEnemy=false → 永不显示。
+  const isWaitingRemote = remoteEnemy && !battle.winner && (battle.phase === 'init' || battle.phase === 'enemyTurn')
 
   // === 即时提示触发（Sprint 21）===
   const hintTurnRef = useRef(0)
@@ -890,6 +893,21 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
           {battle.phase === 'enemyTurn' && <span className="text-orange-400 font-bold animate-pulse text-[10px] sm:text-sm">{t('battle.enemyTurn')}</span>}
         </div>
       </div>
+
+      {/* PvP：非自己回合的等待横幅（board 仍可见 → guest 能看着对方出牌，不阻断） */}
+      <AnimatePresence>
+        {isWaitingRemote && (
+          <motion.div
+            className="flex-none mb-1 px-2 py-1 sm:px-3 sm:py-1.5 rounded-xl text-center text-[10px] sm:text-sm font-bold animate-pulse"
+            style={{ background: 'rgba(217, 119, 6, 0.15)', border: '1px solid rgba(217, 119, 6, 0.45)' }}
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+          >
+            <span className="text-orange-300">⏳ {t('battle.waitingOpponent')}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* 科学家模式横幅 */}
       <AnimatePresence>

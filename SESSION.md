@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新: 2026-07-19（**🎯 PvP 能对战 + 浮字/日志上 wire + 4f 零收益守卫**：第 1-4e 步已 push；4f 已改好（未提交）。下一步等齐齐手感反馈定 4g / 决定部署。）
+> 更新: 2026-07-19（**🎯 PvP 能对战 + 浮字/日志 + 4f 零收益守卫 + 等待横幅**：全部已 push。齐齐真机试玩过：turn 交接确认通（#2 非 bug），补了「对方回合，请稍候」横幅。下一步 guest 换牌 / 4g / 部署。）
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -31,11 +31,13 @@
   两 tab 验证：host 攻击→guest 见 -5000/-1000 浮字；出牌日志双向（🔴对方/🔵我方前缀）。
   剩 fx/reveal/boss 事件暂不渲染、拒绝类反馈不进环（guest 看快照没变自明）。
 
+- ✅ **4f 零收益守卫已 push（`0871a17`）**：`pvpActiveRef.current=screen==='pvp'`（镜像不漂移）+ handleExitBattle 顶部早退兜底。今天仍结构性零收益（onExit 回大厅不走此函数），4f 防未来重构接进 handleExitBattle 污染经济；当前 screen 互斥 → guard 恒不触发，单机结算逐字节不变
+- ✅ **等待横幅已 push**：`isWaitingRemote=remoteEnemy && !winner && phase∈{init,enemyTurn}` → PvP 非自己回合显示「⏳ 对方回合，请稍候…」（非阻断，board 仍可见）。补掉齐齐反馈的「guest 回合1 死板零反馈」（那是 init 相位没被任何相位提示覆盖，不是回合交接坏 —— 无头 sim + 双 tab 已证交接通）。host 等 guest 时同样显示，对称。单机 remoteEnemy=false 永不触发
+
 **里程碑简化（诚实债，按齐齐反馈排优先级）**：
-- guest 不答题（tryQuiz→null）/ 不换牌（同今天 AI）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）
+- guest **不换牌**（host 换牌时 guest 现显示等待横幅 = 可接受；真给 guest 换牌 = host 要处理现被「安静忽略」的 mulligan intent，未做）/ 不答题（tryQuiz→null）/ SP 由 AI 人格代选
 - 对手手牌数显示 0（handCount 上 wire 要 bump SHAPES 版本）· PvpLobby guest「对战接入在下一步」文案过时
 - PvP 卡组固定测试卡组（host=playerTestDeck，guest=enemyTestDeck；卡组选择漏斗后续）
-- ✅ **4f 零收益守卫（未提交）**：`pvpActiveRef.current = screen==='pvp'`（镜像不漂移）+ handleExitBattle 顶部早退兜底。今天仍结构性零收益（onExit 回大厅不走此函数），4f 是防未来重构接进 handleExitBattle 污染经济的兜底。当前架构下 guard 恒不触发（screen 互斥），单机结算逐字节不变
 - **4g** host 迁移（快照热备+手动确认接管，用户已裁定手动）· 断线重连的游戏级补播（resume/lastSeen，wire 已留位）
 - guest 的 enemyTurn 期间 intent 是「host 敌方相位」下唯一入口；guest 若在非自己回合发 intent，引擎 gate 拒（已验证安全）
 
@@ -44,7 +46,7 @@
 ## 已知问题（历史债，与 PvP 无关的照旧）
 - 🔴 **虎鲸/神经元招牌技能 100% 失效**（`friendlyField` 未传参；修复引爆满血秒杀平衡，先决定数值再修）
 - 🟡 科学家模式 ×1.2 打卡时被静默丢弃（只在直攻主人生效）
-- 🟡 `derivePhase` 硬编码读 `state.player.phase` 判 init/mulligan —— guest 侧表现为 host 换牌期间显示「敌方回合」（可接受，与 guest 不换牌的简化一致；真修 = 后续）
+- 🟡 `derivePhase` 硬编码读 `state.player.phase` 判 init/mulligan —— guest 回合1 派生为 `init`（host 侧 enemy.phase 还没被驱动过）。已用等待横幅兜住表现（不再是零反馈死板）；相位派生本身没「真修」，但现在无碍
 - PWA 图标 SVG（iOS 糊）· Tailwind v4 扫 md 文档
 
 ---
