@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新: 2026-07-19（**🎯 PvP 已上生产**：零收益+等待横幅+guest 换牌+handCount 全部 push；**首次部署到 `bio.socialcontract.capital`**（relay systemd + Caddy /api handle + 前端），生产 wss 实测通，齐齐可玩。4g host 迁移用户定「部署后单独做」。）
+> 更新: 2026-07-19（**🎯 PvP 已上生产 + 选卡组**：零收益+横幅+换牌+handCount 已部署到 `bio.socialcontract.capital`（生产 wss 实测通）；**PvP 选卡组已实现**（4 套预设+存档卡组+全卡池解锁，双 tab 实测手牌来自所选队），**待部署 + 待和齐齐调预设平衡**。4g host 迁移仍挂起。）
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -36,10 +36,17 @@
 - ✅ **等待横幅已 push**：`isWaitingRemote=remoteEnemy && !winner && phase∈{init,enemyTurn}` → PvP 非自己回合显示「⏳ 对方回合，请稍候…」（非阻断，board 仍可见）。补掉齐齐反馈的「guest 回合死板零反馈」（那是 enemyTurn 只有 "敌方..." 迷你标签，不是回合交接坏 —— 无头 sim + 双 tab 已证交接通）。host 等 guest 时同样显示，对称。单机 remoteEnemy=false 永不触发
 - ✅ **guest 换牌已实现**（齐齐反馈 #1）：wire mulligan intent 本就在协议里（无需改协议）。startBattle `enemyMulligan:remoteEnemy` → PvP 敌方进 mulligan 相位；endMulligan 加 side 参数；useGuestBattle 发 mulligan intent；usePvpHost replayIntent 加 case（enemyHand.mulligan + endMulligan(ENEMY)，enemyMulliganedRef 幂等防双击）。**双 tab 实测**：guest 得换牌屏 → 选卡确认 → host 应用（日志"对手换了1张牌/换牌完毕"、guest 手牌真变）→ guest 转等待；双方并发换牌互不干扰。单机字节不变（sim + 58 测试）。**边缘 case**：host 若在 guest 换牌前就结束回合1 → guest 丢换牌（休闲对局可忽略，未加 gate）
 
+- ✅ **PvP 选卡组已实现**（齐齐反馈：对战前能选卡组）：`PvpDeckPicker`（4 套阵营预设 + 存档卡组 + 编辑入口）。
+  guest 选卡经**大厅帧**（`src/net/lobbyProtocol.js` 的 `encodeDeckFrame`/`decodeDeckFrame`，**刻意不进 wire.js** →
+  wire 测试不动、版本不 bump）发给 host（host 权威握双方牌）；开战门控 `我已选 && 对手就位 && 对手卡组已到`。
+  `PvpHostBattleScreen` 弃测试卡组、收 `playerDeck`/`enemyDeck`（`resolveDeck` 解析），SP 传 `|| []` 屏蔽测试 SP 兜底。
+  **全卡池解锁**：编辑入口挂 `<DeckBuilder>` 不传 collection → 复用其「无 collection ⇒ 全卡池」，齐齐不用刷抽卡随便组。
+  **双 tab 实测**：host 选自然队 / guest 选科技队 → 各自手牌真来自所选队（非旧测试卡组）；预设 4 套合法（test-preset-decks）。
+  新文件：`deckResolve.js` `presetDecks.js` `PvpDeckPicker.jsx` `lobbyProtocol.js` + 2 测试。共享存储取舍：解锁池建的卡组单机也可用（亲子可接受）。
+
 **里程碑简化（诚实债，按齐齐反馈排优先级）**：
-- guest 不答题（tryQuiz→null）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）
-- 对手手牌数显示 0（handCount 上 wire 要 bump SHAPES 版本）· PvpLobby guest「对战接入在下一步」文案过时
-- PvP 卡组固定测试卡组（host=playerTestDeck，guest=enemyTestDeck；卡组选择漏斗后续）
+- guest 不答题（tryQuiz→null）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）· guest 侧对手 SP 数显示 0（cosmetic）
+- 预设卡组为生成式初版，平衡性待和齐齐一起调（buildFactionDeck 按 cost 曲线填，合法但未手工调优）
 - **4g** host 迁移（快照热备+手动确认接管，用户已裁定手动）· 断线重连的游戏级补播（resume/lastSeen，wire 已留位）
 - guest 的 enemyTurn 期间 intent 是「host 敌方相位」下唯一入口；guest 若在非自己回合发 intent，引擎 gate 拒（已验证安全）
 

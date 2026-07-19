@@ -1,17 +1,22 @@
-// PvpLobby.jsx —— PvP 房间码大厅（PvP 第 4a 步）。
+// PvpLobby.jsx —— PvP 房间码大厅 + 选卡组（PvP 第 4a 步；选卡组步）。
 //
-// 建房 / 加入 / 连接状态。它只负责**建立连接**（经 relayClient 到中继），拿到「对手已就位」。
-// ⚠️ **真正的对战接入（把连接交给 battle 适配器）是第 4c/4d 步** —— 本步到「已连接」为止。
+// 建房 / 加入 / 连接 / **各自选卡组** / 开战。连接经 relayClient 到中继。
+// 选卡组：双方各选一套（预设主题队 或 自己存的卡组），guest 的选择**在大厅阶段经中继发给 host**
+//   （host 权威握双方牌）。开战按钮门控 `我已选 && 对手已就位 && 对手卡组已到`，防 host 挂载时
+//   guest 卡组为 null 崩 useHand。
 //
-// i18n：本步先用内联中文（项目中文为主）；i18n 键留到打磨阶段（避免在此改 zh/en.json）。
-
+// i18n：内联中文（同既有约定）。
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createRelayClient, STATUS } from '../net/relayClient'
+import { encodeDeckFrame, decodeDeckFrame } from '../net/lobbyProtocol'
+import { resolveDeck } from '../data/deckResolve'
+import { DECK_SIZE } from '../data/deckRules'
 import PvpHostBattleScreen from './PvpHostBattleScreen'
 import GuestBattleScreen from './GuestBattleScreen'
+import PvpDeckPicker from './PvpDeckPicker'
+import DeckBuilder from './DeckBuilder'
 
-// 中继 WS 端点：同源 /api/relay（dev/preview 经 vite 的 ^/api/ 代理 ws:true 到 127.0.0.1:3002；
-// 生产经 Caddy 反代）。
+// 中继 WS 端点：同源 /api/relay（dev/preview 经 vite ^/api/ 代理 ws:true 到 3002；生产经 Caddy 反代）。
 function relayUrl() {
   const proto = window.location.protocol === 'https:' ? 'wss' : 'ws'
   return `${proto}://${window.location.host}/api/relay`
@@ -32,6 +37,7 @@ const ERROR_TEXT = {
   'bad-token': '重连凭证失效，请重新加入',
   'no-code': '服务器繁忙，请重试',
   'handshake-error': '握手失败，请重试',
+  'deck-invalid': '卡组已失效，请重新选择',
 }
 
 export default function PvpLobby({ onExit }) {
@@ -41,13 +47,19 @@ export default function PvpLobby({ onExit }) {
   const [peerPresent, setPeerPresent] = useState(false)
   const [error, setError] = useState(null)
   const [joinCode, setJoinCode] = useState('')
-  const [battleOn, setBattleOn] = useState(false)   // 4c：host 点「开始对战」后进战斗
+  const [battleOn, setBattleOn] = useState(false)   // host 点「开始对战」/ guest 收首帧 sync 后进战斗
+  const [editingDecks, setEditingDecks] = useState(false) // 进 DeckBuilder 建/改卡组（全卡池）
+  const [myPick, setMyPick] = useState(null)        // 本方选中的卡组 { id, main:[ids], sp:[ids] }
+  const [guestDeckReady, setGuestDeckReady] = useState(false) // host 侧：已收到 guest 卡组
   const clientRef = useRef(null)
-  // ★ 4c：游戏帧转发 ref —— client 建在大厅、处理器装在战斗侧（usePvpHost / useGuestBattle），
-  //   用一个稳定的 ref 中转（onGame 在 createRelayClient 时就得给定）。
+  // ★ 游戏帧转发 ref —— client 建在大厅、处理器装在战斗侧（usePvpHost / useGuestBattle）。
   const gameFrameRef = useRef(null)
-  // ★ 4d：guest 缓存最近一帧 sync —— 消掉「战斗组件挂载前那帧丢了」的竞态
+  // ★ guest 缓存最近一帧 sync —— 消掉「战斗组件挂载前那帧丢了」的竞态。
   const lastSyncRef = useRef(null)
+  // ★ host 侧：guest 经中继发来的卡组（{main,sp} ID 数组）；开战时 resolveDeck 成对象喂 useHand。
+  const guestDeckRef = useRef(null)
+  // ★ guest 侧：本方卡组，重连时重发（掉线中继会保槽位等重连）。
+  const myDeckRef = useRef(null)
 
   const teardown = useCallback(() => {
     if (clientRef.current) { clientRef.current.close(); clientRef.current = null }
@@ -65,10 +77,16 @@ export default function PvpLobby({ onExit }) {
       onControl: (f) => {
         if (f.t === 'relay.created') setRoomCode(f.code)
         else if (f.t === 'relay.peer-joined') setPeerPresent(true)
-        else if (f.t === 'relay.peer-left') setPeerPresent(false)
+        else if (f.t === 'relay.peer-left') { setPeerPresent(false); setGuestDeckReady(false); guestDeckRef.current = null }
         else if (f.t === 'relay.error') setError(f.reason)
       },
-      onGame: (f) => gameFrameRef.current?.(f),   // 4c：转给 usePvpHost 装的处理器
+      // ★ 先拦「卡组帧」（大厅阶段，gameFrameRef 还没装）：存进 ref，标记 guest 卡组已到。
+      //   其余（sync/intent）转给 usePvpHost 装的处理器（战斗挂载后）。
+      onGame: (f) => {
+        const d = decodeDeckFrame(f)
+        if (d.ok) { guestDeckRef.current = { main: d.main, sp: d.sp }; setGuestDeckReady(true); return }
+        gameFrameRef.current?.(f)
+      },
     })
   }, [])
 
@@ -85,7 +103,7 @@ export default function PvpLobby({ onExit }) {
         else if (f.t === 'relay.peer-left') setPeerPresent(false)
         else if (f.t === 'relay.error') setError(f.reason)
       },
-      // ★ 4d：guest 收到第一帧 sync = host 开战了 → 自动进战斗（缓存该帧防竞态）
+      // ★ guest 收到第一帧 sync = host 开战了 → 自动进战斗（缓存该帧防竞态）。
       onGame: (f) => {
         if (f?.t === 'sync') { lastSyncRef.current = f; setBattleOn(true) }
         gameFrameRef.current?.(f)
@@ -93,19 +111,58 @@ export default function PvpLobby({ onExit }) {
     })
   }, [joinCode])
 
-  const backToChoose = useCallback(() => { teardown(); setMode('choose'); setJoinCode('') }, [teardown])
+  // 选卡组：本方记住；guest 还要经中继发给 host。
+  const handlePick = useCallback((deck) => {
+    setMyPick(deck)
+    if (mode === 'guest') {
+      myDeckRef.current = { main: deck.main, sp: deck.sp }
+      clientRef.current?.send(encodeDeckFrame({ main: deck.main, sp: deck.sp }))
+    }
+  }, [mode])
+
+  // 从 DeckBuilder「对战」按钮回来（选中一副）：对象→ID，当作一次 pick；null（如"用默认测试卡组"）忽略。
+  const handleEditSelect = useCallback((deck) => {
+    setEditingDecks(false)
+    if (!deck) return
+    handlePick({
+      id: 'custom',
+      main: (deck.mainCards || []).map((c) => c.id),
+      sp: (deck.spCards || []).map((c) => c.id),
+    })
+  }, [handlePick])
+
+  // guest 重连时重发卡组（status 回到 CONNECTED 且已选过）。
+  useEffect(() => {
+    if (mode === 'guest' && status === STATUS.CONNECTED && myDeckRef.current) {
+      clientRef.current?.send(encodeDeckFrame(myDeckRef.current))
+    }
+  }, [status, mode])
+
+  // host 开战：先校验双方卡组都能解析出满 DECK_SIZE（防不可解析 ID 发短牌），再进战斗。
+  const handleStart = useCallback(() => {
+    const pd = resolveDeck(myPick)
+    const ed = resolveDeck(guestDeckRef.current)
+    if (pd.mainCards.length !== DECK_SIZE || ed.mainCards.length !== DECK_SIZE) { setError('deck-invalid'); return }
+    setError(null); setBattleOn(true)
+  }, [myPick])
+
+  const backToChoose = useCallback(() => {
+    teardown(); setMode('choose'); setJoinCode('')
+    setMyPick(null); setGuestDeckReady(false); setEditingDecks(false)
+    myDeckRef.current = null; guestDeckRef.current = null
+  }, [teardown])
 
   const connected = status === STATUS.CONNECTED
   const ready = connected && peerPresent
 
-  // ★ 4c/4d：开战 → 渲染 PvP 战斗（大厅保持挂载 = 连接不断；onExit 回大厅）。
-  //   host = 点「开始对战」；guest = 收到第一帧 sync 自动进。
-  //   在所有 hook 之后 early return，不违反 hook 规则。
+  // ★ 开战 → 渲染 PvP 战斗（大厅保持挂载 = 连接不断；onExit 回大厅）。在所有 hook 之后 early return。
   if (battleOn && clientRef.current) {
     return mode === 'host' ? (
       <PvpHostBattleScreen
         client={clientRef.current}
         gameFrameRef={gameFrameRef}
+        playerDeck={resolveDeck(myPick)}
+        enemyDeck={resolveDeck(guestDeckRef.current)}
         onExit={() => setBattleOn(false)}
       />
     ) : (
@@ -116,6 +173,11 @@ export default function PvpLobby({ onExit }) {
         onExit={() => setBattleOn(false)}
       />
     )
+  }
+
+  // ★ 建/改卡组（全卡池）：不传 collection → DeckBuilder 走「无 collection ⇒ 全卡池」。连接不断（本组件仍挂载）。
+  if (editingDecks) {
+    return <DeckBuilder onBack={() => setEditingDecks(false)} onSelectDeck={handleEditSelect} />
   }
 
   return (
@@ -151,37 +213,48 @@ export default function PvpLobby({ onExit }) {
         </div>
       )}
 
-      {/* —— host：显示房间码，等待对手 —— */}
+      {/* —— host：房间码 + 选卡组 + 开战门控 —— */}
       {mode === 'host' && (
         <div className="flex flex-col items-center gap-4 w-full max-w-sm">
           <p className="text-gray-400">把房间码念给朋友：</p>
           <div className="text-5xl font-bold tracking-[0.3em] bg-gray-800 px-8 py-6 rounded-2xl">
             {roomCode || '····'}
           </div>
-          <p className="text-sm">{STATUS_TEXT[status]}</p>
+          <p className="text-sm">{STATUS_TEXT[status]}{peerPresent ? ' · 对手已就位' : ''}</p>
           {error && <p className="text-red-400">{ERROR_TEXT[error] || error}</p>}
-          {ready ? (
-            <>
-              <p className="text-green-400 font-bold text-lg">✅ 对手已就位！</p>
-              <button
-                onClick={() => setBattleOn(true)}
-                className="py-4 px-10 rounded-xl bg-red-600 hover:bg-red-500 font-bold text-xl"
-              >
-                ⚔️ 开始对战
-              </button>
-            </>
-          ) : connected && <p className="text-yellow-300">等待对手加入…</p>}
+
+          {connected && (
+            <PvpDeckPicker onPick={handlePick} onEditDecks={() => setEditingDecks(true)} selectedId={myPick?.id} />
+          )}
+
+          {/* 开战门控 */}
+          {connected && !myPick && <p className="text-yellow-300 text-sm">先选一套你的卡组 ↑</p>}
+          {myPick && !peerPresent && <p className="text-yellow-300 text-sm">等待对手加入…</p>}
+          {myPick && peerPresent && !guestDeckReady && <p className="text-yellow-300 text-sm">等对方选卡组…</p>}
+          {myPick && peerPresent && guestDeckReady && (
+            <button
+              onClick={handleStart}
+              className="py-4 px-10 rounded-xl bg-red-600 hover:bg-red-500 font-bold text-xl"
+            >
+              ⚔️ 开始对战
+            </button>
+          )}
           <button onClick={backToChoose} className="mt-2 text-gray-400 hover:text-white">← 返回</button>
         </div>
       )}
 
-      {/* —— guest：连接中 / 已加入 —— */}
+      {/* —— guest：选卡组，选中即发给房主 —— */}
       {mode === 'guest' && (
         <div className="flex flex-col items-center gap-4 w-full max-w-sm">
           <p className="text-gray-400">房间码：<span className="font-bold tracking-widest">{joinCode}</span></p>
           <p className="text-sm">{STATUS_TEXT[status]}</p>
           {error && <p className="text-red-400">{ERROR_TEXT[error] || error}</p>}
-          {ready && <p className="text-green-400 font-bold text-lg">✅ 已加入！等待对方开始对战…</p>}
+
+          {ready && (
+            <PvpDeckPicker onPick={handlePick} onEditDecks={() => setEditingDecks(true)} selectedId={myPick?.id} />
+          )}
+          {ready && myPick && <p className="text-green-400 font-bold">✅ 已就位（可重选），等房主开始…</p>}
+          {ready && !myPick && <p className="text-yellow-300 text-sm">选一套卡组 ↑</p>}
           <button onClick={backToChoose} className="mt-2 text-gray-400 hover:text-white">← 返回</button>
         </div>
       )}
