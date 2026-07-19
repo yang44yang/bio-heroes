@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新: 2026-07-19（**🎯 PvP 能对战 + 浮字/日志 + 4f 零收益 + 等待横幅 + guest 换牌**：全部已 push。齐齐真机试玩：#2(不能操作)非 bug→补等待横幅；#1(不能换牌)→已实现 guest 换牌，双 tab 实测通。下一步 handCount / 4g / 部署。）
+> 更新: 2026-07-19（**🎯 PvP 已上生产**：零收益+等待横幅+guest 换牌+handCount 全部 push；**首次部署到 `bio.socialcontract.capital`**（relay systemd + Caddy /api handle + 前端），生产 wss 实测通，齐齐可玩。4g host 迁移用户定「部署后单独做」。）
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -10,9 +10,10 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = `b7187bf`**（干净树，全部已 push）。链：…→`eafe770`(4d)→`4008a00`(4e 事件环)→`b7187bf`(4e 交接)。
-- **生产 VPS = 旧版本**（wire 第 1 步之前）。`npm run deploy` 一直没跑 —— 何时推给齐齐待用户定。
-  部署 PvP 到生产还需：中继上 VPS（relay/README + deploy:api）+ Caddy bio block 加 `/api/*` handle（spacev 仓库）。
+- **HEAD = origin/main = `785b383`**（干净树，全部已 push）。链：…→`02391e3`(等待横幅)→`fbed30a`(guest 换牌)→`785b383`(handCount v3)。
+- ✅ **生产 = 最新（2026-07-19 已首次部署 PvP）**：relay 上 VPS（systemd `bio-relay`，`biorelay` 用户，`/opt/bio-relay`，3002）+ Caddy bio block 加了 `/api/*` handle（scp+validate+reload，主站 `HTTP/2 200` 未受影响）+ `npm run deploy` 前端。生产 wss 握手实测通（房间码铸出）。齐齐可玩 `bio.socialcontract.capital`（**发版后强刷过 SW**）。
+  - ⚠️ **Caddyfile 改动只在磁盘**（`Personal website dev/spacev/deploy/Caddyfile`，那目录**无 git**）—— 已部署但没版本控制，下次谁改 spacev 别覆盖掉 bio 的 `/api/*` handle。
+  - 后续 relay 更新用 `npm run deploy:api`（首次的建用户/装 systemd 已完成，之后它够用）；前端更新 `npm run deploy`（两者必须分开跑，DEPLOY.md §4.3）。
 - 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」。
 
 ---
@@ -65,7 +66,7 @@
 ---
 
 ## 下次启动时优先
-1. **给齐齐试玩 PvP**（本地两窗口即可）→ 手感反馈决定 4f-4g 优先级（浮字/日志现已上 wire）
-2. 或先部署：中继上 VPS + Caddy handle 块 + `npm run deploy`（前端含 wire 1-4d 全部）——三件分开做，`deploy:api` 已在 package.json
-3. ~~4f 零收益守卫~~ ✅ 已改（待提交）→ 提交后上生产前硬门槛已扫清；4g host 迁移（手动确认接管）
-4. 历史债：虎鲸/神经元平衡决定 · DEPLOY.md §4.1「零依赖」表述更正为 ws 选型（§4.6 已写，§4.1 原文未动）
+1. **收齐齐生产试玩反馈**（`bio.socialcontract.capital` 已上新版：换牌+横幅+零收益+handCount）→ 定后续优先级
+2. **4g host 迁移**（掉线韧性，用户裁定「手动确认接管」；relay/README 末尾有思路，中继零改动）—— 用户已定「部署后单独做」，soak 测试后再发。这是 PvP 剩下最大的一块
+3. 历史债：🔴 虎鲸/神经元平衡决定（等用户拍板数值）· DEPLOY.md §4.1「零依赖」表述更正为 ws 选型（§4.6 已写，§4.1 原文未动）
+4. 其余里程碑简化（guest 不答题/SP 由 AI 代选/卡组固定测试卡组）按反馈排
