@@ -56,6 +56,9 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
   // ---- 4e：事件环消费游标（readEvents 的 lastSeen/lastG，缺口/换局语义在 wire 里）----
   const lastSeenRef = useRef(0)
   const lastGRef = useRef(null)
+  // 换牌：BattleScreen 先调 playerHand.mulligan(uids) 暂存选中卡，再调 battle.endMulligan() 铸 intent。
+  //   「不换」路径只调 endMulligan（不调 mulligan）→ uids 保持 [] → 发空换牌，语义正确。
+  const mulliganUidsRef = useRef([])
 
   // 装游戏帧处理器（同 usePvpHost 的 gameFrameRef 机制）
   useEffect(() => {
@@ -136,7 +139,7 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
       setBossMechanicEvents: noop,
 
       startBattle: noop,        // 真的对局在 host 上
-      endMulligan: noop,
+      endMulligan: () => { send('mulligan', { uids: mulliganUidsRef.current }) },  // host 收后 enemyHand.mulligan + endMulligan(ENEMY)
       startPlayerTurn: noop,
       beginEnemyTurn: noop,
       preplaceCard: noop,
@@ -187,7 +190,10 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
     discard: EMPTY,
     drawPileCount: dec?.self.drawPileCount ?? 0,
     initHand: noop, draw: () => EMPTY, playCard: noop, discardCard: noop,
-    mulligan: noop, trimHand: noop, addToHand: noop,
+    // 暂存选中 uid 给 endMulligan 铸 intent；返回 uids 让 BattleScreen 的「换掉 N 张」日志数目正确
+    //   （真实换牌在 host 上跑，新手牌随下一帧快照回来）。
+    mulligan: (uids) => { mulliganUidsRef.current = uids; return uids },
+    trimHand: noop, addToHand: noop,
   }), [dec])
 
   // 对手手牌：内容是隐私（永不上 wire）；数量暂不可得（handCount = 后续 bump 版本一并）

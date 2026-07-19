@@ -252,6 +252,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
       enemyLeaderHP: (campaignConfig?.leaderHP || 0) + (eff.enemyLeaderHpBonus || 0) || campaignConfig?.leaderHP,
       playerLeaderHP: eff.playerLeaderHpBonus ? LEADER_HP + eff.playerLeaderHpBonus : undefined,
       campaignConfig,
+      enemyMulligan: remoteEnemy,   // PvP：敌方是真人 guest → 也进换牌相位（单机 remoteEnemy=false → 敌方 'ended'）
       bossPreplaced: bossPreplacedCard,
       preplaceEnemyCards,
       globalEffects,
@@ -341,6 +342,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
       enemy: enemySp,
       enemyLeaderHP: campaignConfig?.leaderHP,
       campaignConfig,
+      enemyMulligan: remoteEnemy,   // PvP：敌方是真人 guest → 也进换牌相位（单机 remoteEnemy=false → 敌方 'ended'）
       bossPreplaced: bossPreplacedCard,
     })
     if (campaignConfig?.dialogue?.before) {
@@ -596,8 +598,9 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   const isMulliganPhase = battle.phase === 'mulligan'
   const isMainPhase = battle.phase === 'main'
   const isBattlePhase = battle.phase === 'battle'
-  // PvP：现在不是自己回合、在等远端真人。guest 首回合是 'init'（host 那侧 enemy.phase 还没被驱动过），
-  //   之后等待轮是 'enemyTurn'；host 等 guest 时也是 'enemyTurn'。单机 remoteEnemy=false → 永不显示。
+  // PvP：现在不是自己回合、在等远端真人。guest 等待轮派生为 'enemyTurn'（startBattle 把 enemy.phase
+  //   设 'ended' → mirror 后 activeSide=enemy → derivePhase='enemyTurn'）；host 等 guest 时同为 'enemyTurn'。
+  //   'init' 分支留作防御（开局早于 startBattle 那一帧），实际 guest 命中的是 'enemyTurn'。单机 remoteEnemy=false → 永不显示。
   const isWaitingRemote = remoteEnemy && !battle.winner && (battle.phase === 'init' || battle.phase === 'enemyTurn')
 
   // === 即时提示触发（Sprint 21）===

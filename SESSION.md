@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新: 2026-07-19（**🎯 PvP 能对战 + 浮字/日志 + 4f 零收益守卫 + 等待横幅**：全部已 push。齐齐真机试玩过：turn 交接确认通（#2 非 bug），补了「对方回合，请稍候」横幅。下一步 guest 换牌 / 4g / 部署。）
+> 更新: 2026-07-19（**🎯 PvP 能对战 + 浮字/日志 + 4f 零收益 + 等待横幅 + guest 换牌**：全部已 push。齐齐真机试玩：#2(不能操作)非 bug→补等待横幅；#1(不能换牌)→已实现 guest 换牌，双 tab 实测通。下一步 handCount / 4g / 部署。）
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -32,10 +32,11 @@
   剩 fx/reveal/boss 事件暂不渲染、拒绝类反馈不进环（guest 看快照没变自明）。
 
 - ✅ **4f 零收益守卫已 push（`0871a17`）**：`pvpActiveRef.current=screen==='pvp'`（镜像不漂移）+ handleExitBattle 顶部早退兜底。今天仍结构性零收益（onExit 回大厅不走此函数），4f 防未来重构接进 handleExitBattle 污染经济；当前 screen 互斥 → guard 恒不触发，单机结算逐字节不变
-- ✅ **等待横幅已 push**：`isWaitingRemote=remoteEnemy && !winner && phase∈{init,enemyTurn}` → PvP 非自己回合显示「⏳ 对方回合，请稍候…」（非阻断，board 仍可见）。补掉齐齐反馈的「guest 回合1 死板零反馈」（那是 init 相位没被任何相位提示覆盖，不是回合交接坏 —— 无头 sim + 双 tab 已证交接通）。host 等 guest 时同样显示，对称。单机 remoteEnemy=false 永不触发
+- ✅ **等待横幅已 push**：`isWaitingRemote=remoteEnemy && !winner && phase∈{init,enemyTurn}` → PvP 非自己回合显示「⏳ 对方回合，请稍候…」（非阻断，board 仍可见）。补掉齐齐反馈的「guest 回合死板零反馈」（那是 enemyTurn 只有 "敌方..." 迷你标签，不是回合交接坏 —— 无头 sim + 双 tab 已证交接通）。host 等 guest 时同样显示，对称。单机 remoteEnemy=false 永不触发
+- ✅ **guest 换牌已实现**（齐齐反馈 #1）：wire mulligan intent 本就在协议里（无需改协议）。startBattle `enemyMulligan:remoteEnemy` → PvP 敌方进 mulligan 相位；endMulligan 加 side 参数；useGuestBattle 发 mulligan intent；usePvpHost replayIntent 加 case（enemyHand.mulligan + endMulligan(ENEMY)，enemyMulliganedRef 幂等防双击）。**双 tab 实测**：guest 得换牌屏 → 选卡确认 → host 应用（日志"对手换了1张牌/换牌完毕"、guest 手牌真变）→ guest 转等待；双方并发换牌互不干扰。单机字节不变（sim + 58 测试）。**边缘 case**：host 若在 guest 换牌前就结束回合1 → guest 丢换牌（休闲对局可忽略，未加 gate）
 
 **里程碑简化（诚实债，按齐齐反馈排优先级）**：
-- guest **不换牌**（host 换牌时 guest 现显示等待横幅 = 可接受；真给 guest 换牌 = host 要处理现被「安静忽略」的 mulligan intent，未做）/ 不答题（tryQuiz→null）/ SP 由 AI 人格代选
+- guest 不答题（tryQuiz→null）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）
 - 对手手牌数显示 0（handCount 上 wire 要 bump SHAPES 版本）· PvpLobby guest「对战接入在下一步」文案过时
 - PvP 卡组固定测试卡组（host=playerTestDeck，guest=enemyTestDeck；卡组选择漏斗后续）
 - **4g** host 迁移（快照热备+手动确认接管，用户已裁定手动）· 断线重连的游戏级补播（resume/lastSeen，wire 已留位）

@@ -1707,21 +1707,23 @@ export function useBattle() {
         })
       }
     }
-    // 开局：玩家换牌；敌方直接 'ended'（AI 从不换牌 —— 行为与旧代码逐字节一致，
-    // 旧模型下 mulligan 也是全局单相，敌方压根没有换牌的表示）。
+    // 开局：玩家换牌。敌方 —— 单机 AI 从不换牌 → 直接 'ended'（与旧代码逐字节一致）；
+    // PvP guest 是真人 → 'mulligan'，让双方对称换牌（endMulligan(ENEMY) 由 host 收 guest 的 mulligan intent 后推进）。
     dispatch({ type: 'SIDE_PHASE_SET', side: 'player', phase: 'mulligan' })
-    dispatch({ type: 'SIDE_PHASE_SET', side: 'enemy', phase: 'ended' })
+    dispatch({ type: 'SIDE_PHASE_SET', side: 'enemy', phase: spDecks.enemyMulligan ? 'mulligan' : 'ended' })
   }, [])
 
   // ----------------------------------------------------------------
   //  结束换卡 → 进入出牌阶段
   // ----------------------------------------------------------------
   // ★ 读值走 battleStateRef，不读渲染闭包（S0 收口）
-  const endMulligan = useCallback(() => {
-    if (derivePhase(battleStateRef.current) !== 'mulligan') return
-    addLog('🔵 你的回合 1（能量 1）')
-    // 玩家换牌结束 → 玩家的第一个回合开始。activeSide 开局就是 'player'，这里只推进它自己的相位。
-    dispatch({ type: 'SIDE_PHASE_SET', side: 'player', phase: 'main' })
+  // side 默认 'player' → 7 个玩家调用点零改动（同 endMainPhase 的 side-blind 约定）。
+  //   'enemy' 分支由 usePvpHost 收到 guest 的 mulligan intent 后调用。守卫读 [side].phase
+  //   （不能读 derivePhase —— 它只认 player.phase 的 mulligan，enemy 换牌它看不见）。
+  const endMulligan = useCallback((side = 'player') => {
+    if (battleStateRef.current[side].phase !== 'mulligan') return
+    addLog(side === 'player' ? '🔵 你的回合 1（能量 1）' : '🔴 对手换牌完毕')
+    dispatch({ type: 'SIDE_PHASE_SET', side, phase: 'main' })
   }, [addLog])
 
   // ----------------------------------------------------------------

@@ -44,6 +44,9 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
   }
   const lastNRef = useRef(0)
   const bootstrappedRef = useRef(false)
+  // guest 换牌只应用一次：同步 ref 守卫，免得 dispatch 异步下两条 mulligan intent（guest 双击）都读到
+  //   enemy.phase 还是 'mulligan' → enemyHand 被换两次。
+  const enemyMulliganedRef = useRef(false)
   // ---- 4e：事件环 + 已发水位 ----
   const ringRef = useRef([])
   const cursorRef = useRef(0)
@@ -106,7 +109,7 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
   // ★ 渲染期镜像最新对象 —— intent 处理器安装一次，闭包读 ref 拿最新（App.jsx:90 同款纪律）。
   //   存**包装后的** pvpBattle：guest 重放也走发射路径。
   const latestRef = useRef(null)
-  latestRef.current = { battle: pvpBattle, playerHand, enemyHand }
+  latestRef.current = { battle: pvpBattle, playerHand, enemyHand, enemyMulliganedRef }
 
   // ---- ① 推送快照（提交后的 effect；4e 起带事件环）----
   useEffect(() => {
@@ -170,8 +173,16 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
 
 // 重放一条已去重的 intent。约定逐字照抄 useAITurn（见文件头）。
 // battle 是**包装后的** pvpBattle → play/attack 自动进事件环 + host UI 浮字。
-function replayIntent(intent, { battle, playerHand, enemyHand }) {
+function replayIntent(intent, { battle, playerHand, enemyHand, enemyMulliganedRef }) {
   switch (intent.kind) {
+    case 'mulligan': {
+      if (enemyMulliganedRef.current) break            // 幂等：已换过 → 忽略重复 intent（防 guest 双击双换）
+      enemyMulliganedRef.current = true
+      enemyHand.mulligan(intent.uids)                  // 换掉选中 uid、重洗重抽（uids=[] → useHand 里直接返回，无操作）
+      battle.addLog(intent.uids.length > 0 ? `🔴 对手换了 ${intent.uids.length} 张牌` : '🔴 对手不换牌')
+      battle.endMulligan(ENEMY)                         // enemy.phase: 'mulligan' → 'main'
+      break
+    }
     case 'play': {
       const card = enemyHand.hand.find((c) => c.uid === intent.uid && c.type !== 'event')
       if (!card) return
