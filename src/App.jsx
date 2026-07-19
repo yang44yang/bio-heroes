@@ -91,6 +91,8 @@ export default function App() {
   const [dailyResult, setDailyResult] = useState(null) // 每日挑战刚完成的奖励结果（供 DailyChallenge 弹窗）
   const testArenaConfigRef = useRef(null)
   testArenaConfigRef.current = testArenaConfig // 供 handleExitBattle 判断是否测试场对战（不进 deps）
+  const pvpActiveRef = useRef(false)
+  pvpActiveRef.current = screen === 'pvp' // 🔗 PvP 期间为 true，供 handleExitBattle 拒发收益（镜像 screen，不会漂移，不进 deps）
 
   // === 闯关战役状态 ===
   const campaignStageRef = useRef(null) // 当前战斗的关卡配置
@@ -134,6 +136,12 @@ export default function App() {
   }, [])
 
   const handleExitBattle = useCallback((battleResult) => {
+    // 🔗 PvP 对战：绝不计战绩/成就/金币 —— 防止未来把 PvP 结算接进本函数污染单机经济。
+    //    今天 PvP 结构上就零收益（onExit 回大厅、不经此函数），这是完整版兜底守卫，照 testArena 写法。
+    if (pvpActiveRef.current) {
+      setScreen('title')
+      return
+    }
     // 🧪 测试场对战：不计战绩/成就，直接清配置回主菜单
     if (testArenaConfigRef.current) {
       setTestArenaConfig(null)

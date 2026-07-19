@@ -1,5 +1,5 @@
 # Bio Heroes Session State
-> 更新: 2026-07-18（**🎯 PvP 能对战 + 浮字/日志上 wire**：第 1-4e 步全部完成并 push。两 tab 经真中继完整对战、浮字+日志双向验证过。下一步等齐齐手感反馈定 4f-4g。）
+> 更新: 2026-07-19（**🎯 PvP 能对战 + 浮字/日志上 wire + 4f 零收益守卫**：第 1-4e 步已 push；4f 已改好（未提交）。下一步等齐齐手感反馈定 4g / 决定部署。）
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -10,7 +10,7 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = `4008a00`**，全部已 push。链：…→`e0eeb6c`(4c)→`eafe770`(4d)→`c374ed5`(交接)→`4008a00`(4e 事件环)。
+- **HEAD = origin/main = `b7187bf`**（干净树，全部已 push）。链：…→`eafe770`(4d)→`4008a00`(4e 事件环)→`b7187bf`(4e 交接)。
 - **生产 VPS = 旧版本**（wire 第 1 步之前）。`npm run deploy` 一直没跑 —— 何时推给齐齐待用户定。
   部署 PvP 到生产还需：中继上 VPS（relay/README + deploy:api）+ Caddy bio block 加 `/api/*` handle（spacev 仓库）。
 - 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」。
@@ -35,7 +35,7 @@
 - guest 不答题（tryQuiz→null）/ 不换牌（同今天 AI）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）
 - 对手手牌数显示 0（handCount 上 wire 要 bump SHAPES 版本）· PvpLobby guest「对战接入在下一步」文案过时
 - PvP 卡组固定测试卡组（host=playerTestDeck，guest=enemyTestDeck；卡组选择漏斗后续）
-- PvP 零收益 = 结构性（onExit 回大厅不走 handleExitBattle）；**4f** 补 App.jsx ref 守卫完整版（照 `testArenaConfigRef` :89-90 写法）
+- ✅ **4f 零收益守卫（未提交）**：`pvpActiveRef.current = screen==='pvp'`（镜像不漂移）+ handleExitBattle 顶部早退兜底。今天仍结构性零收益（onExit 回大厅不走此函数），4f 是防未来重构接进 handleExitBattle 污染经济的兜底。当前架构下 guard 恒不触发（screen 互斥），单机结算逐字节不变
 - **4g** host 迁移（快照热备+手动确认接管，用户已裁定手动）· 断线重连的游戏级补播（resume/lastSeen，wire 已留位）
 - guest 的 enemyTurn 期间 intent 是「host 敌方相位」下唯一入口；guest 若在非自己回合发 intent，引擎 gate 拒（已验证安全）
 
@@ -64,5 +64,5 @@
 ## 下次启动时优先
 1. **给齐齐试玩 PvP**（本地两窗口即可）→ 手感反馈决定 4f-4g 优先级（浮字/日志现已上 wire）
 2. 或先部署：中继上 VPS + Caddy handle 块 + `npm run deploy`（前端含 wire 1-4d 全部）——三件分开做，`deploy:api` 已在 package.json
-3. **4f 零收益 ref 守卫是上生产前的硬门槛**（照 `App.jsx:135` testArenaConfigRef 写法）；4g host 迁移（手动确认接管）
+3. ~~4f 零收益守卫~~ ✅ 已改（待提交）→ 提交后上生产前硬门槛已扫清；4g host 迁移（手动确认接管）
 4. 历史债：虎鲸/神经元平衡决定 · DEPLOY.md §4.1「零依赖」表述更正为 ws 选型（§4.6 已写，§4.1 原文未动）
