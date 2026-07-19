@@ -1726,6 +1726,11 @@ export function useBattle() {
     dispatch({ type: 'SIDE_PHASE_SET', side, phase: 'main' })
   }, [addLog])
 
+  // 把某侧手牌张数同步进公开棋盘树（PvP：host 调，随快照 mirror 给 guest）。reducer 有 no-op bailout。
+  const setHandCount = useCallback((side, value) => {
+    dispatch({ type: 'HANDCOUNT_SET', side, value })
+  }, [])
+
   // ----------------------------------------------------------------
   //  出牌（Main Phase）
   // ----------------------------------------------------------------
@@ -2488,7 +2493,7 @@ export function useBattle() {
     // Boss mechanics
     bossMechanicEvents, setBossMechanicEvents,
 
-    startBattle, endMulligan, startPlayerTurn,
+    startBattle, endMulligan, setHandCount, startPlayerTurn,
     playToField, endMainPhase,
     canAttack, attack, endBattlePhase,
     beginEnemyTurn,             // aiPlayToField(S4) / aiAttack(S5) 已删 —— de-fork 后只剩

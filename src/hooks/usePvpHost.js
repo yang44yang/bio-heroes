@@ -136,6 +136,15 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
     }
   }, [enabled, client, battle.battleState, playerHand.hand, enemyHand.hand])
 
+  // ---- handCount：把双方手牌张数同步进公开棋盘树 → 随快照 mirror 给 guest ----
+  //   guest 的 enemyHand.hand 是空的（隐私），对手手牌数只能读这个公开字段（此前恒 0）。
+  //   reducer 有 no-op bailout → 张数没变不会多推快照。
+  useEffect(() => {
+    if (!enabled) return
+    battle.setHandCount(PLAYER, playerHand.hand.length)
+    battle.setHandCount(ENEMY, enemyHand.hand.length)
+  }, [enabled, battle, playerHand.hand.length, enemyHand.hand.length])
+
   // ---- ② 收 intent → 重放 ----
   useEffect(() => {
     if (!enabled || !gameFrameRef) return

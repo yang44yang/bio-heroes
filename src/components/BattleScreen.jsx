@@ -602,6 +602,9 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   //   设 'ended' → mirror 后 activeSide=enemy → derivePhase='enemyTurn'）；host 等 guest 时同为 'enemyTurn'。
   //   'init' 分支留作防御（开局早于 startBattle 那一帧），实际 guest 命中的是 'enemyTurn'。单机 remoteEnemy=false → 永不显示。
   const isWaitingRemote = remoteEnemy && !battle.winner && (battle.phase === 'init' || battle.phase === 'enemyTurn')
+  // 对手手牌数：PvP 读公开树的 handCount（guest 的 enemyHand.hand 是空的 → 否则恒显示 0；host 侧 handCount 也已同步）。
+  //   单机直接读 enemyHand.hand.length（AI 手牌对 host 可见，且不同步 handCount）。
+  const enemyHandCount = remoteEnemy ? (battle.battleState?.enemy?.handCount ?? 0) : enemyHand.hand.length
 
   // === 即时提示触发（Sprint 21）===
   const hintTurnRef = useRef(0)
@@ -890,7 +893,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
           {battle.quizStreak > 0 && (
             <span className="text-yellow-300 font-bold">🧠×{battle.quizStreak}</span>
           )}
-          <span className="text-red-400/60 hidden sm:inline">{t('battle.enemyHand')}{enemyHand.hand.length}</span>
+          <span className="text-red-400/60 hidden sm:inline">{t('battle.enemyHand')}{enemyHandCount}</span>
           {isMainPhase && <span className="text-green-400 font-bold animate-pulse text-[10px] sm:text-sm">{t('battle.playPhase')}</span>}
           {isBattlePhase && <span className="text-red-400 font-bold animate-pulse text-[10px] sm:text-sm">{t('battle.battlePhase')}</span>}
           {battle.phase === 'enemyTurn' && <span className="text-orange-400 font-bold animate-pulse text-[10px] sm:text-sm">{t('battle.enemyTurn')}</span>}

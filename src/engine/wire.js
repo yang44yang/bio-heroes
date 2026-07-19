@@ -48,7 +48,7 @@ import { MAX_FIELD_SLOTS } from '../data/deckRules.js'
  * 光有版本号不是棘轮（`1 === 1` 恒绿，最小修复是「把清单改一行」）。真正的棘轮是
  * SHAPES[PROTOCOL_VERSION] —— **版本编进形状本身，不 bump 就绿不了**。
  */
-export const PROTOCOL_VERSION = 2
+export const PROTOCOL_VERSION = 3
 
 /**
  * 事件环封顶。**测试从这里 import，不写字面量**（写死 = 让「环有多长」多一个真相源）。
@@ -238,6 +238,27 @@ export const SHAPES = Object.freeze({
     '<side>.discard',
     '<side>.energy',
     '<side>.field',
+    '<side>.leaderHp',
+    '<side>.phase',
+    '<side>.powerBank.intact',
+    '<side>.powerBank.stored',
+    '<side>.quizStreak',
+    '<side>.scientistMode.active',
+    '<side>.scientistMode.turnsLeft',
+    '<side>.summoned',
+    'activeSide',
+    'turn',
+    'winner',
+  ]),
+  // v3（handCount 步）：手牌张数提进每侧子树。内容仍是隐私（PRIVATE_KEYS 挡 hand/hands），
+  // 张数是公开事实（PUBLIC_ALLOW 已列 handCount，privacy 检查放行）。guest 的 enemyHand.hand 是空的
+  // → 对手手牌数只能读这个公开字段（此前恒显示 0）。
+  3: Object.freeze([
+    '<side>.attacked',
+    '<side>.discard',
+    '<side>.energy',
+    '<side>.field',
+    '<side>.handCount',
     '<side>.leaderHp',
     '<side>.phase',
     '<side>.powerBank.intact',

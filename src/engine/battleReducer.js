@@ -79,8 +79,11 @@ export const initialBattleState = {
   //     enemy 在 beginEnemyTurn）。enemy 那个 tick 今天是 no-op（AI 拿不到科学家模式），
   //     但它是 PvP 里唯一正确的挂法 —— 且「turn 只数玩家回合」那笔账不受影响：
   //     tick 挂的是**各自的回合起点**，不是 turn 计数器。
-  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 } },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 } },
+  // ★ handCount（PvP handCount 步）：**每侧一份**。手牌内容是隐私（永不上 wire），但张数是公开事实
+  //   （BattleScreen 一直把「🔴 手牌 N」渲染给对手看）。host 持双方手牌，把 hand.length 同步进这里 →
+  //   随公开快照 mirror 给 guest（guest 的 enemyHand.hand 是空的，只能读这个）。单机不读它（直接读 enemyHand.hand.length）。
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 }, handCount: 0 },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 }, handCount: 0 },
 }
 
 /**
@@ -208,6 +211,13 @@ export function battleReducer(state, action) {
       const { side, phase } = action
       if (state[side].phase === phase) return state          // no-op bailout（不变式③）
       return { ...state, [side]: { ...state[side], phase } }
+    }
+
+    case 'HANDCOUNT_SET': {
+      // host 把某侧手牌张数同步进公开树（随快照 mirror 给对手）。no-op bailout 免多余快照推送。
+      const { side, value } = action
+      if (state[side].handCount === value) return state
+      return { ...state, [side]: { ...state[side], handCount: value } }
     }
 
     case 'TURN_HANDOFF': {
