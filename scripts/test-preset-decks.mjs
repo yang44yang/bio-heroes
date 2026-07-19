@@ -21,6 +21,10 @@ for (const d of PRESET_DECKS) {
   const r = resolveDeck(d)
   assert(r.mainCards.length === DECK_SIZE, `${d.name} 主卡全部可解析（实 ${r.mainCards.length}）`)
   assert(r.spCards.length === d.sp.length, `${d.name} SP 全部可解析`)
+  // 生物+事件混编：每套应含事件卡（A 的修复：找回玩法维度/知识点），且都是该阵营的
+  const evts = r.mainCards.filter((c) => c.type === 'event')
+  assert(evts.length >= 4, `${d.name} 含事件卡（实 ${evts.length}）`)
+  assert(evts.every((c) => c.faction === d.faction), `${d.name} 事件卡都是本阵营`)
 }
 
 if (fails.length) {

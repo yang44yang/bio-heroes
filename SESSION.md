@@ -46,7 +46,7 @@
 
 **里程碑简化（诚实债，按齐齐反馈排优先级）**：
 - guest 不答题（tryQuiz→null）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）· guest 侧对手 SP 数显示 0（cosmetic）
-- 预设卡组为生成式初版，平衡性待和齐齐一起调（buildFactionDeck 按 cost 曲线填，合法但未手工调优）
+- ✅ 预设卡组已补事件卡（A）：每套 18 生物 + 7 事件（同测试卡组比例，含该系全部 4 张主题事件=找回玩法+知识点）。平衡仍待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多——见对话分析）
 - **4g** host 迁移（快照热备+手动确认接管，用户已裁定手动）· 断线重连的游戏级补播（resume/lastSeen，wire 已留位）
 - guest 的 enemyTurn 期间 intent 是「host 敌方相位」下唯一入口；guest 若在非自己回合发 intent，引擎 gate 拒（已验证安全）
 
