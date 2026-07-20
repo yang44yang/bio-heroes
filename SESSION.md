@@ -1,5 +1,6 @@
 # Bio Heroes Session State
-> 更新: 2026-07-19（**🎯 PvP 已上生产 + 选卡组**：零收益+横幅+换牌+handCount 已部署到 `bio.socialcontract.capital`（生产 wss 实测通）；**PvP 选卡组已实现**（4 套预设+存档卡组+全卡池解锁，双 tab 实测手牌来自所选队），**待部署 + 待和齐齐调预设平衡**。4g host 迁移仍挂起。）
+> 更新: 2026-07-20（**🎯 PvP 全量上线**：选卡组 + 预设队事件卡已部署，生产 = HEAD **字节验证过**。
+> PvP 主线功能齐了，下一步是 **guest 答题**（发现真问题，见下）或 **4g host 迁移**。）
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -10,70 +11,83 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = `785b383`**（干净树，全部已 push）。链：…→`02391e3`(等待横幅)→`fbed30a`(guest 换牌)→`785b383`(handCount v3)。
-- ✅ **生产 = 最新（2026-07-19 已首次部署 PvP）**：relay 上 VPS（systemd `bio-relay`，`biorelay` 用户，`/opt/bio-relay`，3002）+ Caddy bio block 加了 `/api/*` handle（scp+validate+reload，主站 `HTTP/2 200` 未受影响）+ `npm run deploy` 前端。生产 wss 握手实测通（房间码铸出）。齐齐可玩 `bio.socialcontract.capital`（**发版后强刷过 SW**）。
-  - ⚠️ **Caddyfile 改动只在磁盘**（`Personal website dev/spacev/deploy/Caddyfile`，那目录**无 git**）—— 已部署但没版本控制，下次谁改 spacev 别覆盖掉 bio 的 `/api/*` handle。
-  - 后续 relay 更新用 `npm run deploy:api`（首次的建用户/装 systemd 已完成，之后它够用）；前端更新 `npm run deploy`（两者必须分开跑，DEPLOY.md §4.3）。
+- **HEAD = origin/main = `1d6343b`**，干净树，全部已 push。测试 **60/60 绿**。
+- ✅ **生产 = HEAD（2026-07-20 部署并字节验证）**：拉生产 `index-C1CLiN-b.js` / `PvpLobby-BlvKBBS2.js`
+  与本地 dist **md5 逐一相同**。构建可复现（同 commit 重建出同一 hash）。
+  - ☠️ **部署要验字节**：`npm run deploy` 的回执不算数 —— 上次「跑完 deploy」实际没落地，
+    生产在 `index-DK2dzqjA.js` 停了一整晚（齐齐玩到的预设队还是纯 25 生物、无事件卡），
+    是拉生产 bundle 比对才发现的。**以后每次 deploy 完拉 bundle 对 md5**。
+  - 旧 chunk URL 仍返回 200 —— 那是 **SPA fallback 吐的 index.html**（`content-type: text/html`），
+    不是残留文件。sw.js 对导航是 network-first → 刷新即自愈；仍建议发版后强刷（Cmd+Shift+R）。
+- ⚠️ **Caddyfile 改动只在磁盘**（`Personal website dev/spacev/deploy/Caddyfile`，那目录**无 git**）——
+  已部署但没版本控制，下次谁改 spacev 别覆盖掉 bio 的 `/api/*` handle。
+- relay 更新用 `npm run deploy:api`；前端用 `npm run deploy`（**两者必须分开跑**，DEPLOY.md §4.3）。
 - 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」。
 
 ---
 
-## 🎯 PvP 现状（host 权威 + 哑中继；架构定案见 DEPLOY.md §4 + §4.6 备查）
-**已完成（全部真机验证）**：
-- **wire 协议**（`src/engine/wire.js`，PROTOCOL_VERSION=2）：三通道 sync + intent + resume；形状棘轮 SHAPES[]
-- **哑中继**（`relay/`）：零 wire import、盲转字节、纯核心+IO外壳；房间码 4 位（去 O/0/I/1）
-- **4a** `src/net/relayClient.js`（分流 relay.*/游戏帧、重连带 token）+ `PvpLobby`（建房/加入）
-- **4b** battle 提成 prop：`HostBattleScreen` wrapper，BattleScreen 表现层化（单机逐帧一致验证过）
-- **4c** `usePvpHost`：提交后推 buildSync / decodeIntent(raw,ENEMY)→acceptIntent(**消费即 ack**)→照 useAITurn 约定重放 / 敌方回合 bootstrap；`remoteEnemy` 关 AI + 关开局替敌方摆卡
-- **4d** `useGuestBattle`：同形状 battle 适配器（快照渲染 + intent 方法 + canAttack 用真 rules.canAttackFrom 跑快照）+ `GuestBattleScreen`；guest 收首帧 sync 自动进战斗
-- **里程碑实测**：两 tab 建房/加入/开战 → guest 亲手出牌（intent→host 重放→快照回流：手牌 6→5、能量 2→1）→ 回合双向交接 → host 回合 2。host 手牌全程零泄漏（脚本断言）。
+## 🎯 PvP 现状（host 权威 + 哑中继；架构定案见 DEPLOY.md §4 + §4.6）
+**主线已全部完成并上线** —— 分步细节（4a-4f / 换牌 / handCount / 选卡组）已归档进 `CHANGELOG.md`。
+今天能玩的：建房加入 → 双方各选卡组 → 双方换牌 → 出牌/攻击/事件卡 → 浮字与日志双向 → 回合交接。
 
-- **4e 已完成**：浮字 + 日志上 wire（floatEvent/logEvent→环→readEvents→showFloat/带视角前缀日志）。
-  两 tab 验证：host 攻击→guest 见 -5000/-1000 浮字；出牌日志双向（🔴对方/🔵我方前缀）。
-  剩 fx/reveal/boss 事件暂不渲染、拒绝类反馈不进环（guest 看快照没变自明）。
+**剩下的真问题（按价值排）：**
 
-- ✅ **4f 零收益守卫已 push（`0871a17`）**：`pvpActiveRef.current=screen==='pvp'`（镜像不漂移）+ handleExitBattle 顶部早退兜底。今天仍结构性零收益（onExit 回大厅不走此函数），4f 防未来重构接进 handleExitBattle 污染经济；当前 screen 互斥 → guard 恒不触发，单机结算逐字节不变
-- ✅ **等待横幅已 push**：`isWaitingRemote=remoteEnemy && !winner && phase∈{init,enemyTurn}` → PvP 非自己回合显示「⏳ 对方回合，请稍候…」（非阻断，board 仍可见）。补掉齐齐反馈的「guest 回合死板零反馈」（那是 enemyTurn 只有 "敌方..." 迷你标签，不是回合交接坏 —— 无头 sim + 双 tab 已证交接通）。host 等 guest 时同样显示，对称。单机 remoteEnemy=false 永不触发
-- ✅ **guest 换牌已实现**（齐齐反馈 #1）：wire mulligan intent 本就在协议里（无需改协议）。startBattle `enemyMulligan:remoteEnemy` → PvP 敌方进 mulligan 相位；endMulligan 加 side 参数；useGuestBattle 发 mulligan intent；usePvpHost replayIntent 加 case（enemyHand.mulligan + endMulligan(ENEMY)，enemyMulliganedRef 幂等防双击）。**双 tab 实测**：guest 得换牌屏 → 选卡确认 → host 应用（日志"对手换了1张牌/换牌完毕"、guest 手牌真变）→ guest 转等待；双方并发换牌互不干扰。单机字节不变（sim + 58 测试）。**边缘 case**：host 若在 guest 换牌前就结束回合1 → guest 丢换牌（休闲对局可忽略，未加 gate）
+### 🔴 A. guest 结构性拿不到问答 —— 既是**不公平**也是**教育机制缺失**
+- 现状：`useGuestBattle` 里 `tryQuiz: () => null`、`answerQuiz: () => ({})`、`currentQuiz: null`；
+  host 重放 guest 攻击时写死 `battle.attack(atkSlot, defSlot, {}, ENEMY)`（`usePvpHost.js:214`，空 awakenOpts）。
+- 后果：**host 答对能 ×2 ATK，guest 永远 ×1** → PvP 系统性偏袒 host（主人 30000 HP，×2 是大摆动）；
+  且 guest 整局看不到任何知识卡 —— 直接违背 CLAUDE.md「玩法即学习」。
+- ✅ **地基早就铺好了**（当初就是照这个设计的，不是新架构）：
+  - `answer` intent 已在 `INTENT_KINDS`，形状 `['qid','choice']` + 校验器（`wire.js:110,716`）
+  - `wire.js:83` 已裁定：**tryQuiz 不是 intent，是 attack intent 的服务端副作用，host 自己判**
+  - `wire.js:99-100` 已裁定：guest **传不进**倍率（参数根本不存在）→ host 按自己权威的 quiz 结果重算
+  - `PRIVATE_KEYS` 已挡 `correct`/`answer` → 题目能发、答案不发
+- 缺的三块：① `currentQuiz`（脱敏后）进公开树 → **需 `SHAPES[4]` + PROTOCOL_VERSION=4**（棘轮会当场拦你，照做即可）
+  ② guest 侧渲染 QuizModal + 发 `answer` intent ③ host 把 guest 的 attack **挂起**等 answer 到达再结算
+  （host 自己那侧今天就是这个模式 —— 「首攻必弹问答挂起攻击」）。
+- ⚠️ 注意 `tryQuiz` 的节流 ref（`firstAttackDone`/`lastQuizTurn`）是**单实例共享**的 —— 两侧共用一套触发节奏，
+  要先决定是「双方共享冷却」还是「每侧独立」，这是设计决策不是实现细节。
 
-- ✅ **PvP 选卡组已实现**（齐齐反馈：对战前能选卡组）：`PvpDeckPicker`（4 套阵营预设 + 存档卡组 + 编辑入口）。
-  guest 选卡经**大厅帧**（`src/net/lobbyProtocol.js` 的 `encodeDeckFrame`/`decodeDeckFrame`，**刻意不进 wire.js** →
-  wire 测试不动、版本不 bump）发给 host（host 权威握双方牌）；开战门控 `我已选 && 对手就位 && 对手卡组已到`。
-  `PvpHostBattleScreen` 弃测试卡组、收 `playerDeck`/`enemyDeck`（`resolveDeck` 解析），SP 传 `|| []` 屏蔽测试 SP 兜底。
-  **全卡池解锁**：编辑入口挂 `<DeckBuilder>` 不传 collection → 复用其「无 collection ⇒ 全卡池」，齐齐不用刷抽卡随便组。
-  **双 tab 实测**：host 选自然队 / guest 选科技队 → 各自手牌真来自所选队（非旧测试卡组）；预设 4 套合法（test-preset-decks）。
-  新文件：`deckResolve.js` `presetDecks.js` `PvpDeckPicker.jsx` `lobbyProtocol.js` + 2 测试。共享存储取舍：解锁池建的卡组单机也可用（亲子可接受）。
+### 🟡 B. 4g host 迁移（掉线韧性）
+用户已裁定「快照热备 + **手动确认接管**」。relay 零改动，思路在 `relay/README` 末尾。
+断线重连的游戏级补播（resume/lastSeen）wire 已留位。这是 PvP 基建剩下最大的一块。
 
-**里程碑简化（诚实债，按齐齐反馈排优先级）**：
-- guest 不答题（tryQuiz→null）/ SP 由 AI 人格代选（resolveSpChoice enemy 分支现状）· guest 侧对手 SP 数显示 0（cosmetic）
-- ✅ 预设卡组已补事件卡（A）：每套 18 生物 + 7 事件（同测试卡组比例，含该系全部 4 张主题事件=找回玩法+知识点）。平衡仍待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多——见对话分析）
-- **4g** host 迁移（快照热备+手动确认接管，用户已裁定手动）· 断线重连的游戏级补播（resume/lastSeen，wire 已留位）
-- guest 的 enemyTurn 期间 intent 是「host 敌方相位」下唯一入口；guest 若在非自己回合发 intent，引擎 gate 拒（已验证安全）
+### 🟡 C. 其余里程碑简化
+- guest 的 SP 由 AI 人格代选（`resolveSpChoice` enemy 分支）· guest 侧对手 SP 数显示 0（cosmetic）
+- 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）
+- 边缘 case：host 若在 guest 换牌前就结束回合 1 → guest 丢换牌（休闲对局可忽略，未加 gate）
 
 ---
 
 ## 已知问题（历史债，与 PvP 无关的照旧）
-- 🔴 **虎鲸/神经元招牌技能 100% 失效**（`friendlyField` 未传参；修复引爆满血秒杀平衡，先决定数值再修）
+- 🔴 **虎鲸/神经元招牌技能 100% 失效**（`friendlyField` 未传参；修复引爆满血秒杀平衡，**先决定数值再修**，等用户拍板）
 - 🟡 科学家模式 ×1.2 打卡时被静默丢弃（只在直攻主人生效）
-- 🟡 `derivePhase` 硬编码读 `state.player.phase` 判 init/mulligan —— guest 回合1 派生为 `init`（host 侧 enemy.phase 还没被驱动过）。已用等待横幅兜住表现（不再是零反馈死板）；相位派生本身没「真修」，但现在无碍
+- 🟡 `derivePhase` 硬编码读 `state.player.phase` 判 init/mulligan → guest 回合 1 派生为 `init`。
+  已用等待横幅兜住表现；相位派生本身没「真修」，但现在无碍
+- DEPLOY.md §4.1「零依赖」表述该更正为 ws 选型（§4.6 已写，§4.1 原文未动）
 - PWA 图标 SVG（iOS 糊）· Tailwind v4 扫 md 文档
 
 ---
 
 ## 关键文件
-- **引擎**：`src/hooks/useBattle.js`（暴露 battleState）· `src/engine/{battleReducer,rules,sides,wire,aiTarget}.js` · `src/hooks/useAITurn.js`（加 disabled）
-- **PvP**：`src/net/relayClient.js` · `src/hooks/{usePvpHost,useGuestBattle}.js` · `src/components/{PvpLobby,PvpHostBattleScreen,GuestBattleScreen,HostBattleScreen}.jsx` · `relay/`（server.js + lib/ 纯核心 + smoke + deploy/bio-relay.service）
-- **UI**：`src/components/BattleScreen.jsx`（battle/hands 从 prop 收 + remoteEnemy 门控）· `src/App.jsx`（HostBattleScreen + screen==='pvp'）
-- **测试**：`scripts/test-*.mjs`（**58 套**）。PvP 侧：test-wire-{envelope,intent,events} / test-wire-privacy / test-no-side-fork / test-side-symmetry / test-relay-{roomcode,rooms,control,client}
-  - ☠️ **假绿铁律**：fixture 从真模块改绝不手搓 · **新守卫必须配变异测试**（已烧六次，四次靠变异抓）· 相对 import 带 `.js` · eslint 只开 no-undef（覆盖 engine+hooks+**net+relay**）
+- **引擎**：`src/hooks/useBattle.js`（暴露 battleState，`tryQuiz` 在 2338 行）· `src/engine/{battleReducer,rules,sides,wire,aiTarget}.js` · `src/hooks/useAITurn.js`
+- **PvP**：`src/net/{relayClient,lobbyProtocol}.js` · `src/hooks/{usePvpHost,useGuestBattle}.js` ·
+  `src/components/{PvpLobby,PvpDeckPicker,PvpHostBattleScreen,GuestBattleScreen,HostBattleScreen}.jsx` ·
+  `src/data/{presetDecks,deckResolve}.js` · `relay/`（server.js + lib/ 纯核心 + smoke + deploy/bio-relay.service）
+- **UI**：`src/components/BattleScreen.jsx`（battle/hands 从 prop 收 + `remoteEnemy` 门控）· `src/App.jsx`
+- **测试**：`scripts/test-*.mjs`（**60 套**）。PvP 侧：test-wire-{envelope,intent,events} / test-wire-privacy /
+  test-no-side-fork / test-side-symmetry / test-relay-{roomcode,rooms,control,client} / test-preset-decks
+  - ☠️ **假绿铁律**：fixture 从真模块改绝不手搓 · **新守卫必须配变异测试**（已烧六次，四次靠变异抓）·
+    相对 import 带 `.js` · eslint 只开 no-undef（覆盖 engine+hooks+**net+relay**）
 - **⚠️ 浏览器验证铁律**：`vite preview`(4174)。**先 resize 视口**（无头 0×0 点击静默失效）。家长门 prompt 答 56。首攻必弹问答挂起攻击
-- **⚠️ 通道纪律**（血账）：工具输出重复回显/空结果/凭空内容 = 通道不可信 → 停下用 `git status`/`rev-parse`/`wc -l` 独立回验，绝不信「成功」回执。本会话曾整段产出未落盘、伪造 commit SHA，靠独立核验抓回
-- 部署 `DEPLOY.md`（§4 PvP 权威 + §4.6 服务器权威备查/翻案条件）· 历史 `CHANGELOG.md`
+- **⚠️ 通道纪律**（血账）：工具输出重复回显/空结果/凭空内容 = 通道不可信 → 停下用 `git status`/`rev-parse`/`md5` 独立回验，绝不信「成功」回执
+- 部署 `DEPLOY.md`（§4 PvP 权威 + §4.6 服务器权威备查）· 历史 `CHANGELOG.md`
 
 ---
 
 ## 下次启动时优先
-1. **收齐齐生产试玩反馈**（`bio.socialcontract.capital` 已上新版：换牌+横幅+零收益+handCount）→ 定后续优先级
-2. **4g host 迁移**（掉线韧性，用户裁定「手动确认接管」；relay/README 末尾有思路，中继零改动）—— 用户已定「部署后单独做」，soak 测试后再发。这是 PvP 剩下最大的一块
-3. 历史债：🔴 虎鲸/神经元平衡决定（等用户拍板数值）· DEPLOY.md §4.1「零依赖」表述更正为 ws 选型（§4.6 已写，§4.1 原文未动）
-4. 其余里程碑简化（guest 不答题/SP 由 AI 代选/卡组固定测试卡组）按反馈排
+1. **收齐齐生产试玩反馈**（生产已是最新：选卡组 + 预设队带事件卡）→ 定后续优先级
+2. **A. guest 答题**（上面 🔴）—— 这是我认为最该做的：修掉 host/guest 的公平性偏差，
+   同时把「玩法即学习」还给 guest 侧。地基齐、边界清楚，需要一次 PROTOCOL_VERSION=4
+3. **B. 4g host 迁移**（掉线韧性）—— 用户已定「部署后单独做」，soak 测试后再发
+4. 历史债：🔴 虎鲸/神经元平衡数值（等用户拍板）· DEPLOY.md §4.1 表述更正

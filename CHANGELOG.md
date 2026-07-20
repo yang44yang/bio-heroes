@@ -5,6 +5,34 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## PvP 能对战 → 上生产 + 选卡组（2026-07-18~20）✅ `f3fdb5e`…`1d6343b`
+> 🎯 **两个浏览器真能对战，并已在 `bio.socialcontract.capital` 上线**。架构：**host 权威 + 哑中继**（relay 零 wire import、盲转字节 → 中继永远不需要跟着游戏规则升级）。
+
+**协议与传输：**
+- [x] `wire.js` PROTOCOL_VERSION 1→3，**形状棘轮 `SHAPES[]`**：版本编进形状本身，加字段不 bump 就绿不了（v2 quizStreak/scientistMode、v3 handCount 都是被它当场拦下来才加对的）
+- [x] 隐私词表 `PRIVATE_KEYS` 子串匹配 + `PUBLIC_ALLOW` 白名单 —— **误伤是好对话，不是麻烦**：`handCount` 撞词表 → 逼人显式声明「张数是公开的」才放行
+- [x] `SIDE_VALUED_PATHS` 让「顶层侧别标量」自动红。那个例子不是假想：`state.quiz.answeredBy` 曾是被裁定的设计，直到发现 mirror 根本不翻它 → 双方 UI 会**同时**显示「是我抢到的」
+
+**分步接线（每步都真机验证）：**
+- [x] `f3fdb5e`/`254b939` **4a** `relayClient` + `PvpLobby`（房间码 4 位，去掉 O/0/I/1）
+- [x] `a57519c` **4b** battle 提成 prop（`HostBattleScreen` wrapper，BattleScreen 表现层化，零行为变化）
+- [x] `e0eeb6c` **4c** `usePvpHost`：buildSync 推 / decodeIntent→acceptIntent / 照 useAITurn 约定重放
+- [x] `eafe770` **4d** `useGuestBattle` 同形状适配器（快照渲染 + intent 方法 + canAttack 跑**真** `rules.canAttackFrom`）
+- [x] `4008a00` **4e** 事件环：浮字 + 日志上 wire（host 自己的动作与 guest 重放走**同一条发射路径**）
+- [x] `0871a17` **4f** 零收益守卫（`pvpActiveRef` 镜像不漂移 + handleExitBattle 早退兜底）
+- [x] `02391e3` 等待横幅 · `fbed30a` **guest 换牌**（协议本就留位 → 无需 bump）· `785b383` handCount 上 wire
+- [x] `dc3e9a7`/`1d6343b` **对战前选卡组**：4 套阵营预设（各 18 生物 + 7 事件）+ 存档卡组 + 全卡池解锁。guest 选卡走**大厅帧**（`lobbyProtocol.js`，**刻意不进 wire.js** → wire 测试不动、版本不 bump）
+- [x] 生产部署：relay 上 VPS（systemd `bio-relay`，3002）+ Caddy bio block 加 `/api/*` handle + 前端 rsync
+
+**血账（会再咬人）：**
+- **ack = 消费即确认，不是「引擎已应用」**：attack 有多条日常规则拒绝路径（召唤疲劳等）。若 ack 只在规则接受时推进 → guest 永远重传同一个 n、host 恒答 dup → **界面永久卡死**
+- **since = host 自己的已发水位（cursorRef），不是 guest 报来的 lastSeen**
+- **出牌必须 `r.ok` 之后才 `enemyHand.playCard`** —— 否则被拒的那张卡从手牌蒸发、从未上场、也不进弃牌堆（S4 血账复发）
+- **通道纪律**：工具输出重复回显/空结果/凭空内容 = 通道不可信 → 用 `git status`/`rev-parse`/`md5` 独立回验，**绝不信「成功」回执**。本阶段曾整段产出未落盘、伪造 commit SHA，全靠独立核验抓回
+- **部署要验字节**：`npm run deploy` 跑完不等于生产变了 —— 拉生产 bundle 跟本地 `md5` 对，才算数
+
+---
+
 ## PvP 前置地基 + 引擎 de-fork 8/8（2026-07-17）✅ `6cffff1`…`94e3fe3`
 > 🔌 P1 PvP 开工。**de-fork 的起点是 `ARCHITECTURE.md:51` 自己点名的那笔债**：「attack/aiAttack、playToField/aiPlayToField 是两份近重复实现…改战斗规则须两处同步改」。那条规矩本身就是 fork 的伤疤 —— de-fork 是**删掉它**，不是更用力地遵守它。9-agent 设计 + 对抗评审，推翻了三个设计**共同**的假设。
 
