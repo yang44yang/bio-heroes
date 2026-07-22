@@ -51,6 +51,13 @@ export default function PvpLobby({ onExit }) {
   const [editingDecks, setEditingDecks] = useState(false) // 进 DeckBuilder 建/改卡组（全卡池）
   const [myPick, setMyPick] = useState(null)        // 本方选中的卡组 { id, main:[ids], sp:[ids] }
   const [guestDeckReady, setGuestDeckReady] = useState(false) // host 侧：已收到 guest 卡组
+  // ★ 「通路刚恢复」的计数器 —— 每次 relay.resumed（自己重连回来）或 relay.peer-joined
+  //   （对手重连回来）就 +1，向下传给 usePvpHost 触发**强制重推一帧全量 sync**。
+  //   没有它，修好握手也只恢复了「传输」：usePvpHost 的推送 effect 依赖
+  //   [enabled, client, battleState, 双方手牌]，重连前后这四个引用**一个都不变**
+  //   （client 是同一个闭包对象、battleState 是 useReducer 状态）→ effect 不重跑
+  //   → guest 屏幕一直冻着，直到 host 下一次真的动棋盘。
+  const [resumeTick, setResumeTick] = useState(0)
   const clientRef = useRef(null)
   // ★ 游戏帧转发 ref —— client 建在大厅、处理器装在战斗侧（usePvpHost / useGuestBattle）。
   const gameFrameRef = useRef(null)
@@ -76,7 +83,16 @@ export default function PvpLobby({ onExit }) {
       onStatus: setStatus,
       onControl: (f) => {
         if (f.t === 'relay.created') setRoomCode(f.code)
-        else if (f.t === 'relay.peer-joined') setPeerPresent(true)
+        // 对手（重）加入 / 自己重连回来 —— 两者都意味着通路刚恢复，要给对面补一帧全量快照
+        else if (f.t === 'relay.peer-joined') { setPeerPresent(true); setResumeTick((n) => n + 1) }
+        // ☠️ peerPresent 读中继给的真相，不猜：掉线期间的 peer-joined/peer-left 是**净丢失**的
+        //   （对端不在线时 applyEffects 直接 no-op），回来时本地那份认知已经过期。
+        else if (f.t === 'relay.resumed') {
+          setError(null)
+          setPeerPresent(!!f.peerPresent)
+          if (!f.peerPresent) { setGuestDeckReady(false); guestDeckRef.current = null }
+          setResumeTick((n) => n + 1)
+        }
         else if (f.t === 'relay.peer-left') { setPeerPresent(false); setGuestDeckReady(false); guestDeckRef.current = null }
         else if (f.t === 'relay.error') setError(f.reason)
       },
@@ -100,6 +116,9 @@ export default function PvpLobby({ onExit }) {
       onControl: (f) => {
         if (f.t === 'relay.joined') { setRoomCode(code); setPeerPresent(true) }
         else if (f.t === 'relay.peer-joined') setPeerPresent(true)
+        // 自己重连成功 → 清掉重连过程中可能挂上的红字错误（否则对局好好的、屏幕上还挂着报错）。
+        // peerPresent 同样读中继给的真相，不猜（理由见 host 分支）。
+        else if (f.t === 'relay.resumed') { setError(null); setPeerPresent(!!f.peerPresent) }
         else if (f.t === 'relay.peer-left') setPeerPresent(false)
         else if (f.t === 'relay.error') setError(f.reason)
       },
@@ -163,6 +182,7 @@ export default function PvpLobby({ onExit }) {
         gameFrameRef={gameFrameRef}
         playerDeck={resolveDeck(myPick)}
         enemyDeck={resolveDeck(guestDeckRef.current)}
+        resumeTick={resumeTick}
         onExit={() => setBattleOn(false)}
       />
     ) : (

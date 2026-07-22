@@ -9,7 +9,13 @@
 //     （sync/intent/resume，交给上层的 onGame —— 第 4c/4d 的 battle 适配器接）
 //   · 收发：send(obj) 把游戏帧 JSON 发出去（guest 发 intent、host 发 sync）
 //   · 状态：connecting / connected / reconnecting / closed，回调 onStatus
-//   · 重连：意外断开自动重连（guest 带 token 走 reconnect；host 迁移的 host 重连是后话）
+//   · 重连：意外断开自动重连（**host / guest 对称**：都带 room+token 走中继的 reconnect 分支。
+//     凭证从 relay.created / relay.joined 截获 → fullUrl 组装时**不看 role、只看凭证在不在**。
+//     ⚠️ 这里覆盖的是「同一页面内的 socket 闪断」；host **刷新页面**会丢掉内存里的凭证，
+//     那属于 host 迁移（4g）的范畴，仍是后话。）
+//   · 有界重试：收到 relay.error（握手拒绝）时**不清零重连计数** —— 拒绝发生在 WS 握手**之后**，
+//     onopen 照样先触发，无条件清零会让 MAX_RECONNECT 永远够不着（每 500ms 一次的永久循环）。
+//     不用「一见错就永久停手」，是因为 `full` / `bad-token` 是**时变**的、会自己好转。
 //
 // ## ☠️ 注入 WebSocket 实现 + scheduler（同 roomCode 注入熵的纪律）
 // 浏览器用全局 `WebSocket` + `setTimeout`；node 测试注入 `ws` 的 `WebSocket` + 可控 scheduler。
@@ -46,7 +52,7 @@ const defaultScheduler = (ms, cb) => { const id = setTimeout(cb, ms); return () 
  * @param {(frame:object)=>void} [opts.onControl] 收到 relay.* 控制帧
  * @param {(frame:object)=>void} [opts.onGame]    收到游戏帧（sync/intent/resume）
  * @param {(status:string)=>void} [opts.onStatus] 状态变化
- * @returns {{ send:Function, close:Function, getStatus:Function, getToken:Function }}
+ * @returns {{ send:Function, close:Function, getStatus:Function, getToken:Function, getCode:Function }}
  */
 export function createRelayClient(opts) {
   const {
@@ -62,7 +68,9 @@ export function createRelayClient(opts) {
   let ws = null
   let status = STATUS.CLOSED
   let token = null            // 从 relay.created/relay.joined 收到，重连用
+  let roomCode = code ?? null // host 建房时为 null，从 relay.created 学到；guest 是用户输入的
   let closedByUs = false      // 主动 close 不触发重连
+  let sawReject = false       // 上一轮连接被中继拒了（见 onopen 的计数器纪律）
   let reconnectAttempts = 0
   let cancelReconnect = null  // scheduler 返回的 cancel
 
@@ -72,13 +80,17 @@ export function createRelayClient(opts) {
     onStatus(s)
   }
 
-  // 组装带 query 的完整 URL。guest 重连带上 token → 中继走 reconnect 分支。
+  // 组装带 query 的完整 URL。带上 token → 中继走 reconnect 分支。
+  //
+  // ☠️ **不看 role，只看凭证在不在** —— 这是本函数最重要的一行纪律。
+  //   旧版是 `if (role === 'guest') { ... }`：host 重连时带不出 room/token → 中继把它当新 host
+  //   → 静默铸新房，原房里的 guest 从此收不到任何帧（真机实测 4BZU → 闪断 → QWJV）。
+  //   把凭证组装写成 role-blind，整类 bug 在结构上就不存在了 —— 不需要谁记得「host 也要带」。
+  //   host 首连时 roomCode/token 都还是 null → URL 仍是 `?role=host`（建房语义不变）。
   function fullUrl() {
     const q = new URLSearchParams({ role })
-    if (role === 'guest') {
-      q.set('room', code)
-      if (token) q.set('token', token)
-    }
+    if (roomCode) q.set('room', roomCode)
+    if (token) q.set('token', token)
     return `${url}?${q.toString()}`
   }
 
@@ -87,7 +99,14 @@ export function createRelayClient(opts) {
     ws = new WebSocketImpl(fullUrl())
 
     ws.onopen = () => {
-      reconnectAttempts = 0
+      // ☠️ **被拒的那一轮不许清零计数器** —— 中继的拒绝是应用层的，发生在 WS 握手**之后**：
+      //   onopen 照样先触发。无条件清零 → reconnectAttempts 永远回到 0 → MAX_RECONNECT
+      //   够不着 → 每 500ms 敲一次中继的永久循环（真机实测 12 秒 24 次，还每次在中继侧漏个表项）。
+      //   只跳过这一次清零，退避与上限就自然生效：最多 8 次、约 40 秒后落 closed。
+      //   这样既杀掉无限循环，又**保留了对时变拒绝的自愈能力** —— `full`（旧 socket 还占着槽位，
+      //   中继要等 30s 心跳才判死）和 `bad-token`（槽位被抢后旧凭证作废）都会随时间自己好转，
+      //   一见 relay.error 就永久停手会把这些场景一枪打死。
+      if (!sawReject) reconnectAttempts = 0
       setStatus(STATUS.CONNECTED)
     }
 
@@ -102,10 +121,25 @@ export function createRelayClient(opts) {
       }
       const t = frame?.t
       if (typeof t === 'string' && t.startsWith('relay.')) {
-        // 控制帧：截获 token（重连要用），再交给 lobby
+        // 控制帧：截获重连凭证（token + 房间码），再交给 lobby
         if (t === 'relay.created' || t === 'relay.joined') {
-          if (typeof frame.token === 'string') token = frame.token
+          // ☠️ 凭证**只认第一次**（latch）。中继是设计上的哑中继：它把对端发的任何 JSON 原样盲转
+          //   过来，而这里只按 `t` 前缀就认成「中继 author 的可信控制帧」。若允许覆盖，房间里的
+          //   对端发一帧伪造的 relay.created 就能改写我的重连目标 —— 我闪断后会重连进**他指定的
+          //   房间**，并把棋盘快照推给那边。latch 之后，对端最多只能在真凭证到达前抢跑（毫秒级）。
+          //   合法路径本来也只发一次：code 只在 relay.created 里回来、token 只在 created/joined 里回来，
+          //   重连成功回的是 relay.resumed（不带凭证）。所以 latch 不会挡掉任何正常流程。
+          if (token === null && typeof frame.token === 'string') token = frame.token
+          if (roomCode === null && typeof frame.code === 'string') roomCode = frame.code
         }
+        // 握手被接受 → 这一轮是健康的：清掉拒绝标记和重连预算
+        if (t === 'relay.created' || t === 'relay.joined' || t === 'relay.resumed') {
+          sawReject = false
+          reconnectAttempts = 0
+        }
+        // 握手被拒（no-room / bad-token / full / bad-room…），紧跟着就 close。
+        // 记下它，让下一次 onopen **不要**清零重连计数（理由见 onopen 处的长注释）。
+        if (t === 'relay.error') sawReject = true
         onControl(frame)
       } else {
         onGame(frame)   // 游戏帧交给上层（第 4c/4d 的 battle 适配器）
@@ -114,7 +148,8 @@ export function createRelayClient(opts) {
 
     ws.onclose = () => {
       if (closedByUs) { setStatus(STATUS.CLOSED); return }
-      // 意外断开 → 重连（带退避）。超过上限就停手，报 closed。
+      // 意外断开 / 被拒 → 重连（带退避）。超过上限就停手，报 closed。
+      // 被拒的那一轮没清零计数（见 onopen）→ 连续被拒最多 MAX_RECONNECT 次就落 closed。
       if (reconnectAttempts >= MAX_RECONNECT) { setStatus(STATUS.CLOSED); return }
       const delay = DEFAULT_BACKOFF[Math.min(reconnectAttempts, DEFAULT_BACKOFF.length - 1)]
       reconnectAttempts += 1
@@ -147,5 +182,7 @@ export function createRelayClient(opts) {
     },
     getStatus() { return status },
     getToken() { return token },
+    /** 当前房间码（host 建房后从 relay.created 学到；guest 是加入时输入的）。重连凭证之一。 */
+    getCode() { return roomCode },
   }
 }

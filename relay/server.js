@@ -122,14 +122,30 @@ wss.on('connection', (ws, req) => {
   })
   ws.on('pong', () => { ws.isAlive = true })
 
+  // ☠️ close 处理器必须在**握手之前**挂上 —— sockets 表项在上面就 set 了，而所有 reject
+  //   早退路径都在这一行之前 return。挂晚了 = 被拒的连接永远留在 sockets 里：真机实测
+  //   一个打错的房间码把 conns 顶到 24 且**主动断开后仍是 24**（内存泄漏 + /api/health 失真
+  //   + 心跳每轮空转遍历死 socket）。
+  //   对被拒的连接，dropConn 是文档化的 no-op（byConn 里根本没有它的反查项，rooms.js 早返回）。
+  ws.on('close', () => {
+    sockets.delete(connId)
+    try {
+      applyEffects(dropConn(reg, connId, now()).effects)   // 通知对端 peer-left + 记 emptyAt
+    } catch (err) {
+      console.error(`[relay] close 清理异常 ${connId}:`, err?.message)
+    }
+  })
+
   // 握手：URL query 决定 role/code/token。中继一次都不 parse 消息体。
   const hs = parseHandshake(req.url)
   if (!hs.ok) { reject(ws, hs.reason); return }
 
   try {
     if (hs.token) {
-      // 带 token = 重连（今天只有 guest 会带；host 迁移的 host 重连是第 4 步扩 parseHandshake 的事，
-      // 纯核心的 reconnect 已按 role 通用，server.js 这条路径无需改）。
+      // 带 token = 重连。**host 和 guest 都会走这条**（parseHandshake 用 token 当闸门，
+      // 且保证有 token 时 code 一定已校验合法）。纯核心的 reconnect 本来就按 role 通用 ——
+      // 这条分支一个字都不用改，当初缺的只是上游把 host 的凭证解出来。
+      // ☠️ 失败即响，**绝不兜底 createRoom** —— 那正是修掉的那个 bug 的形态（静默铸新房）。
       const r = reconnect(reg, hs.code, hs.role, connId, hs.token, now())
       if (!r.ok) { reject(ws, r.reason); return }
       applyEffects(r.effects)
@@ -172,14 +188,6 @@ wss.on('connection', (ws, req) => {
     }
   })
 
-  ws.on('close', () => {
-    sockets.delete(connId)
-    try {
-      applyEffects(dropConn(reg, connId, now()).effects)   // 通知对端 peer-left + 记 emptyAt
-    } catch (err) {
-      console.error(`[relay] close 清理异常 ${connId}:`, err?.message)
-    }
-  })
 })
 
 // ---------- 心跳：僵尸连接检测（ws 官方 isAlive 范式）----------

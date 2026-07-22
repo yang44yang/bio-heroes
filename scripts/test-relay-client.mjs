@@ -12,6 +12,8 @@ let pass = 0
 const fails = []
 const assert = (cond, msg) => { if (cond) pass++; else fails.push(msg) }
 const throws = (fn) => { try { fn(); return false } catch { return true } }
+// relayClient 的 MAX_RECONNECT=8 → 首连 + 最多 8 次重连 = 9 个 socket。留 1 个余量防边界差一。
+const MAX_EXPECTED_SOCKETS = 10
 
 // ---- 假 WebSocket（浏览器接口子集：onopen/onmessage/onclose/onerror + readyState + send/close）----
 class FakeWS {
@@ -97,8 +99,15 @@ const mk = (over = {}) => {
   lastWs()._recv({ t: 'relay.joined', token: 'tok_xyz' })
   // 变异：删掉 relay.joined 的 token 截获 → getToken 恒 null → 重连丢 token → 本条红
   assert(client.getToken() === 'tok_xyz', '④ ☠️ 从 relay.joined 截获 token')
-  lastWs()._recv({ t: 'relay.created', token: 'tok_host' })
-  assert(client.getToken() === 'tok_host', '④ relay.created 也截获 token')
+
+  // relay.created 同样截获 token —— ⚠️ 必须用**全新客户端**测。
+  //   凭证是 latch 的（只认第一次，防对端伪造改写重连目标，见 ⑬），在同一个客户端上再喂一帧
+  //   会被正确地忽略；沿用旧的「同实例连发两帧」写法测出来的是 latch，不是截获。
+  reset()
+  const { client: c2 } = mk({ role: 'host' })
+  lastWs()._open()
+  lastWs()._recv({ t: 'relay.created', code: 'K7P2', token: 'tok_host' })
+  assert(c2.getToken() === 'tok_host', '④ relay.created 也截获 token')
 }
 
 // ---- ⑤ 非 JSON / 坏消息不崩 ----
@@ -154,7 +163,7 @@ const mk = (over = {}) => {
   assert(FakeWS.instances.length === n, '⑦ ☠️ 主动 close 后不再开新 socket')
 }
 
-// ---- ⑧ guest 首连 URL（不带 token）vs host URL ----
+// ---- ⑧ guest 首连 URL（不带 token）vs host 首连 URL ----
 {
   reset()
   mk({ role: 'guest', code: 'K7P2' })
@@ -162,11 +171,103 @@ const mk = (over = {}) => {
     '⑧ guest 首连 URL：role+room，无 token')
   reset()
   mk({ role: 'host' })
-  assert(lastWs().url.includes('role=host') && !lastWs().url.includes('room='),
-    '⑧ host URL：只有 role，无 room')
+  // host **首连**仍然只有 role —— 建房时客户端不得指定房间码（中继才铸码）。
+  // 变异：把 fullUrl 的 `if (roomCode)` 改成无条件 q.set('room', roomCode ?? '') → 本条红。
+  assert(lastWs().url.includes('role=host') && !lastWs().url.includes('room=') && !lastWs().url.includes('token='),
+    '⑧ host 首连 URL：只有 role，无 room/token')
 }
 
-assert(pass > 20, `⑨ 断言真的跑了（实测 ${pass} 条）`)
+// ---- ⑩ ☠️ host 断线重连：必须回原房，不得新建房 ----
+//   真机 bug：fullUrl 旧版是 `if (role === 'guest') {...}` → host 重连带不出凭证 →
+//   中继当它是新 host → 静默铸新房（实测 4BZU → QWJV），原房里的 guest 永久收不到帧。
+{
+  reset()
+  const { client } = mk({ role: 'host' })          // host 建客户端时**没有** code
+  lastWs()._open()
+  lastWs()._recv({ t: 'relay.created', code: '4BZU', token: 'tok_host' })
+  // 变异：删掉 relay.created 里截获 frame.code 那一行 → 本条 + 重连 URL 带码那条 红
+  // ⚠️ 用 typeof 包一层再调：未修版本没有 getCode，直接调会抛 TypeError **崩掉整个进程** ——
+  //    那样同组后面几条根本跑不到，看不出它们各自是否变红（变异测试要的是干净的红名单，不是崩溃）。
+  assert(typeof client.getCode === 'function' && client.getCode() === '4BZU',
+    '⑩ ☠️ host 从 relay.created 截获房间码（客户端自己不知道码）')
+  assert(client.getToken() === 'tok_host', '⑩ host 截获 token')
+
+  lastWs()._serverClose()                          // 意外断开
+  fireScheduled()
+  const u = lastWs().url
+  // 变异：fullUrl 退回 `if (role === 'guest')` 包裹（今天的 bug 原样）→ 下面两条红
+  assert(u.includes('room=4BZU'), '⑩ ☠️ host 重连 URL 必须带原房间码 —— 缺它中继会铸新房、对局静默卡死')
+  assert(u.includes('token=tok_host'), '⑩ ☠️ host 重连 URL 必须带 token —— 它是 reconnect 的唯一凭证')
+  assert(u.includes('role=host'), '⑩ host 重连 URL 仍标明 role=host')
+}
+
+// ---- ⑪ ☠️ 连续被中继拒绝 → 重连必须**有界**（不得无限循环）----
+//   中继的拒绝是应用层的，发生在 WS 握手**之后** → onopen 照样先触发。若无条件
+//   `reconnectAttempts = 0`，计数器永远回到 0、MAX_RECONNECT 够不着：真机实测一个打错的
+//   房间码让客户端每 500ms 敲一次中继、12 秒 24 次永不停手，且每次都在中继侧漏一个 sockets 表项。
+{
+  reset()
+  const { client } = mk({ role: 'guest', code: 'ZZZZ' })
+  // 模拟中继持续拒绝：每一轮都 open（握手成功）→ relay.error → close
+  let rounds = 0
+  for (; rounds < 40; rounds++) {
+    lastWs()._open()
+    lastWs()._recv({ t: 'relay.error', reason: 'no-room' })
+    lastWs()._serverClose()
+    if (scheduled.length === 0) break     // 已停手
+    fireScheduled()
+  }
+  // 变异：把 onopen 的 `if (!sawReject)` 去掉、恢复成无条件 reconnectAttempts = 0 → 本条红
+  //       （循环会一直排下去，跑满 40 轮也停不下来）
+  assert(rounds < 40, `⑪ ☠️ 连续被拒必须停手 —— 实测 ${rounds} 轮后停（无界的话会跑满 40 轮）`)
+  assert(FakeWS.instances.length <= MAX_EXPECTED_SOCKETS,
+    `⑪ ☠️ 被拒时开的 socket 数受 MAX_RECONNECT 约束（实测 ${FakeWS.instances.length} 个）`)
+  assert(client.getStatus() === STATUS.CLOSED, '⑪ 连续被拒到上限后状态落到 closed')
+}
+
+// ---- ⑫ 时变的拒绝（full / bad-token）必须仍有自愈机会 —— ⑪ 不得矫枉过正 ----
+//   `full` 是**会自己好转**的：旧 socket 还占着槽位时中继答 full，等它被心跳判死（30s）
+//   槽位就空了。一见 relay.error 就永久停手会把这类场景一枪打死（那是本修复初版的毛病）。
+{
+  reset()
+  const { client } = mk({ role: 'guest', code: 'AB2D' })
+  lastWs()._open()
+  lastWs()._recv({ t: 'relay.error', reason: 'full' })   // 第一轮：槽位还被旧 socket 占着
+  lastWs()._serverClose()
+  // 变异：改回布尔 givenUp「见错即永久停手」→ 本条红（一次就死，等不到槽位空出来）
+  assert(scheduled.length === 1, '⑫ ☠️ 吃到 full 之后仍然排重连（槽位会自己空出来）')
+
+  fireScheduled()
+  lastWs()._open()
+  lastWs()._recv({ t: 'relay.joined', token: 'tok_g' })  // 第二轮：槽位空了，进去了
+  assert(client.getToken() === 'tok_g', '⑫ 重试成功后拿到 token（自愈成立）')
+
+  // 自愈之后预算要回满：再来一次普通闪断，仍应照常重连
+  lastWs()._serverClose()
+  assert(scheduled.length === 1, '⑫ 握手被接受后重连预算复位（后续闪断不受之前被拒的影响）')
+}
+
+// ---- ⑬ ☠️ 重连凭证只认第一次（latch）—— 对端伪造的控制帧不得改写我的重连目标 ----
+//   中继是哑的：对端发的任何 JSON 都会被原样盲转过来，而客户端只按 `t` 前缀就当成可信控制帧。
+//   若凭证可被覆盖，房里的对端发一帧伪造 relay.created 就能把我闪断后的重连**重定向进他的房间**，
+//   并让我把棋盘快照推过去。
+{
+  reset()
+  const { client } = mk({ role: 'host' })
+  lastWs()._open()
+  lastWs()._recv({ t: 'relay.created', code: '4BZU', token: 'tok_real' })
+  lastWs()._recv({ t: 'relay.created', code: 'EVIL', token: 'tok_evil' })   // 对端伪造的
+  // 变异：把 latch 条件（token === null / roomCode === null）去掉 → 下面两条红
+  assert(client.getCode() === '4BZU', '⑬ ☠️ 房间码只认第一次 —— 对端伪造的 relay.created 改不掉')
+  assert(client.getToken() === 'tok_real', '⑬ ☠️ token 只认第一次')
+
+  lastWs()._serverClose()
+  fireScheduled()
+  assert(lastWs().url.includes('room=4BZU') && !lastWs().url.includes('EVIL'),
+    '⑬ ☠️ 重连仍然回**原**房间（没被重定向到对端指定的房）')
+}
+
+assert(pass > 33, `⑨ 断言真的跑了（实测 ${pass} 条）`)
 
 if (fails.length) {
   console.error(`❌ test-relay-client: ${fails.length} 条失败`)

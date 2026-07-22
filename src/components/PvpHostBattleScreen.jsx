@@ -19,12 +19,13 @@ import { useHand } from '../hooks/useHand'
 import { usePvpHost } from '../hooks/usePvpHost'
 import BattleScreen from './BattleScreen'
 
-export default function PvpHostBattleScreen({ client, gameFrameRef, playerDeck, enemyDeck, onExit }) {
+export default function PvpHostBattleScreen({ client, gameFrameRef, playerDeck, enemyDeck, resumeTick = 0, onExit }) {
   const battle = useBattle()
   const playerHand = useHand(playerDeck.mainCards, 'player')
   const enemyHand = useHand(enemyDeck.mainCards, 'enemy')
   const floatBridgeRef = useRef(null)
-  const pvpBattle = usePvpHost({ enabled: true, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef })
+  // resumeTick：大厅在 relay.resumed / peer-joined 时 +1 → 强制重推一帧全量 sync（见 usePvpHost）
+  const pvpBattle = usePvpHost({ enabled: true, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef, resumeTick })
   return (
     <BattleScreen
       battle={pvpBattle}

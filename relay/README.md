@@ -33,13 +33,26 @@ WS 端点 `/api/relay`，握手信息全在 URL query：
 | 连接 | URL | 中继回 |
 |---|---|---|
 | host 建房 | `?role=host` | `{t:'relay.created', code, token}` |
+| host 重连 | `?role=host&room=CODE&token=T` | `{t:'relay.resumed'}`；guest 收 `{t:'relay.peer-joined'}` |
 | guest 加入 | `?role=guest&room=CODE` | `{t:'relay.joined', token}`；host 收 `{t:'relay.peer-joined'}` |
-| guest 重连 | `?role=guest&room=CODE&token=T` | `{t:'relay.resumed'}` |
+| guest 重连 | `?role=guest&room=CODE&token=T` | `{t:'relay.resumed'}`；host 收 `{t:'relay.peer-joined'}` |
 
+- ☠️ **token 是「建房 vs 重连」的唯一闸门**：无 token 的 `role=host` 一律按建房处理，
+  **客户端给的 `room` 会被忽略**（`?role=host&room=ABCD` 照样铸新码）——否则客户端就能自选
+  房间码建房（占码/碰撞攻击）。有 token 则必须带合法 `room`，凭证真伪由 `rooms.reconnect` 逐字校验。
+  历史坑：host 分支曾无条件返回 `{code:null, token:null}` → host 闪断重连带不出凭证 →
+  被当成新 host **静默铸新房**，原房里的 guest 从此一帧收不到（真机实测 4BZU → QWJV，还漏孤儿房）。
 - 出站控制帧一律 `t: 'relay.*'` 命名空间（wire 的 `t` 只会是 `sync`/`intent`/`resume`，永不撞）。
 - 掉线：中继通知对端 `{t:'relay.peer-left'}`，保留槽位 token 等重连。
+  ⚠️ 僵尸 socket 的**迟到 close**（重连已完成、旧 socket 的 close 才到）**不发** peer-left ——
+  对端其实已经回来了，发了会让 UI 永久显示「对手跑了」。
 - 拒绝：`{t:'relay.error', reason}` + close。`reason ∈ full|no-room|bad-role|bad-room|bad-token|…`
+  ⚠️ 拒绝发生在 **WS 握手之后**（客户端的 `onopen` 已经触发过）→ 客户端收到 `relay.error`
+  必须**停止重连**（同一个 URL 重试必然同样被拒；不停会退化成每 500ms 一次的永久循环）。
 - **游戏帧（sync/intent/resume）**：中继逐字节盲转，不改不看。
+
+⚠️ **动过 `control.js` / `rooms.js` / `server.js` 请跑 `npm run smoke`** —— 主 CI 的四套纯函数测试
+覆盖不到 server.js 的接线（`if (hs.token) → reconnect` 那条分支）。
 
 ## 本地跑
 

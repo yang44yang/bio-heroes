@@ -142,6 +142,106 @@ const frameTo = (res, conn) => res.effects.find((e) => e.type === 'send' && e.to
   assert(reconnect(reg, 'NONE', GUEST, 'x', 't', 6000).reason === 'no-room', '⑥ 重连不存在的房 → no-room')
 }
 
+// ---- ⑩ ☠️ host 槽位重连（真机 bug：host 闪断后被当成新 host、静默铸新房）----
+//   ⑥ 只测了 GUEST 槽。修掉握手层之后 host 槽位第一次成为热路径，需要回归护甲。
+{
+  const reg = makeRegistry()
+  createRoom(reg, 'HCON', 'c_h1', 'tok_h', 1000)
+  joinRoom(reg, 'HCON', 'c_g', 'tok_g', 2000)
+  dropConn(reg, 'c_h1', 3000)   // host 掉线（guest 还在）
+
+  // ☠️ 拿 guest 的 token 抢 host 槽位必须被拒 —— slot 先按角色取、token 再逐字比。
+  //   变异：reconnect 的 token 校验放宽成「任一槽位 token 匹配即可」→ 本条红。
+  const cross = reconnect(reg, 'HCON', HOST, 'c_evil', 'tok_g', 3500)
+  assert(!cross.ok && cross.reason === 'bad-token', '⑩ ☠️ 拿 guest 的 token 抢 host 槽位 → bad-token')
+
+  const ok = reconnect(reg, 'HCON', HOST, 'c_h2', 'tok_h', 4000)
+  // 变异：reconnect 把 room[role] 硬编码成 room[GUEST] → 本组全红
+  assert(ok.ok, '⑩ host 用对 token 重连成功')
+  assert(reg.rooms.get('HCON').host.connId === 'c_h2', '⑩ host 槽位重绑到新 connId')
+  assert(frameTo(ok, 'c_h2') === 'relay.resumed', '⑩ ☠️ 回的是 relay.resumed —— 不是 relay.created（那就是铸新房了）')
+  // ☠️ resumed 必须告诉重连方对手在不在（掉线期间的 peer-joined/peer-left 是净丢失的，
+  //   客户端本地那份认知已过期）。变异：resumed 不带 peerPresent → 本条红。
+  const resumedFrame = ok.effects.find((e) => e.to === 'c_h2').frame
+  assert(resumedFrame.peerPresent === true, '⑩ ☠️ resumed 带 peerPresent=true（guest 确实还在）')
+  assert(frameTo(ok, 'c_g') === 'relay.peer-joined', '⑩ 通知 guest：host 回来了')
+  assert(deepEq(peersFor(reg, 'c_g'), ['c_h2']), '⑩ ☠️ 路由重指向新 host —— guest 的帧要送到新 socket')
+  assert(deepEq(peersFor(reg, 'c_h2'), ['c_g']), '⑩ 新 host 也能路由到 guest')
+  // 不铸新房：整个过程注册表里始终只有一个房间（真机 bug 的直接症状是 rooms 1→2 的孤儿房）
+  assert(reg.rooms.size === 1, '⑩ ☠️ 重连不新建房间（孤儿房泄漏的守卫）')
+}
+
+// ---- ⑪ ☠️ 僵尸 socket 的迟到 close：不得误伤重连后的新连接 ----
+//   真机时序：网络断了但服务器最长 30s（心跳）才察觉，客户端 500ms 就重连成功 →
+//   旧 socket 的 close **迟到**于重连。若处理不当，对端会收到一条假 peer-left，
+//   而对手其实早就回来了（host 侧还会顺手清掉 guestDeckReady → 开战按钮永久消失）。
+{
+  const reg = makeRegistry()
+  createRoom(reg, 'ZOMB', 'c_h', 'tok_h', 1000)
+  joinRoom(reg, 'ZOMB', 'c_g1', 'tok_g', 2000)
+
+  // guest 重连**先到**（旧 socket 尚未 close）
+  reconnect(reg, 'ZOMB', GUEST, 'c_g2', 'tok_g', 3000)
+  // 变异：reconnect 里不删被顶替的旧 connId → 本条红（byConn 无界增长 + 僵尸可被路由）
+  assert(!reg.byConn.has('c_g1'), '⑪ ☠️ 重连时清掉被顶替的旧 connId 反查项（否则注册表无界增长）')
+
+  // 旧 socket 的 close 迟到 —— 第一道防线（byConn 已清）让它在 dropConn 开头就早返回
+  const late = dropConn(reg, 'c_g1', 4000)
+  assert(reg.rooms.get('ZOMB').guest.connId === 'c_g2', '⑪ ☠️ 迟到的 close 不得把重连后的新 connId 踢成 null')
+  assert(late.effects.length === 0,
+    '⑪ ☠️ 迟到的 close 不得给对端发 peer-left —— 对手已经回来了，发了会让 UI 永久显示「对手跑了」')
+  assert(deepEq(peersFor(reg, 'c_h'), ['c_g2']), '⑪ 迟到 close 后路由仍指向新 guest')
+  assert(reg.rooms.get('ZOMB').emptyAt === null, '⑪ 迟到 close 不得把房间标记成空（它其实满员）')
+
+  // 反向守卫：**真正**的掉线仍然必须通知对端（⑪ 不得误伤 ⑤ 的正常路径）
+  const real = dropConn(reg, 'c_g2', 5000)
+  assert(frameTo(real, 'c_h') === 'relay.peer-left', '⑪ 真正的掉线仍然通知对端（没有误伤正常路径）')
+}
+
+// ---- ⑭ ☠️ resumed 的 peerPresent 反向守卫：对手真的走了就必须报 false ----
+//   只断「在场时为 true」会被「恒返回 true」的实现骗过（不动点陷阱，同 ③ 的教训）。
+{
+  const reg = makeRegistry()
+  createRoom(reg, 'ALON', 'c_h', 'tok_h', 1000)
+  joinRoom(reg, 'ALON', 'c_g1', 'tok_g', 2000)
+  dropConn(reg, 'c_h', 3000)     // host 走了
+  dropConn(reg, 'c_g1', 3500)    // guest 也断了
+
+  const back = reconnect(reg, 'ALON', GUEST, 'c_g2', 'tok_g', 4000)
+  const frame = back.effects.find((e) => e.to === 'c_g2').frame
+  // 变异：把 peerPresent 写死成 true → 本条红（guest 会看到「对手已就位」而对面根本没人）
+  assert(frame.peerPresent === false,
+    '⑭ ☠️ 对端不在线时 resumed.peerPresent 必须为 false（否则 UI 谎报「对手已就位」）')
+  assert(back.effects.length === 1, '⑭ 对端不在 → 不给任何人发 peer-joined')
+}
+
+// ---- ⑬ ☠️ 第二道防线：byConn 项还在、但槽位已指向别人时，dropConn 也不得发 peer-left ----
+//   ⑪ 走的是**第一道**防线（reconnect 清了 byConn → dropConn 在开头就早返回），所以它其实
+//   杀不掉 dropConn 里的 wasLive 守卫 —— 实测把 wasLive 改成恒 true，⑪ 一条都不红。
+//   本组直接构造「byConn 有项 + 槽位已被别人占」这个状态，把第二道防线单独钉住。
+//   （两道防线各自独立可变异，是「新守卫必须配变异测试」的字面要求。）
+{
+  const reg = makeRegistry()
+  createRoom(reg, 'DEF2', 'c_h', 'tok_h', 1000)
+  joinRoom(reg, 'DEF2', 'c_g1', 'tok_g', 2000)
+
+  // 手工制造第一道防线**失效**后的状态：byConn 仍认得旧 connId，但槽位已经指向新连接。
+  // （等价于「有人把 reconnect 里那行 byConn.delete 删掉了」。）
+  reg.rooms.get('DEF2').guest.connId = 'c_g2'
+  reg.byConn.set('c_g2', { code: 'DEF2', role: GUEST })
+  // c_g1 的 byConn 项**故意保留**
+
+  const late = dropConn(reg, 'c_g1', 3000)
+  // 变异：把 dropConn 的 wasLive 改成恒 true（或删掉 peer-left 那行的 wasLive 前置条件）→ 本条红
+  assert(late.effects.length === 0,
+    '⑬ ☠️ 槽位已指向别人时，旧 connId 的迟到 close 不得发 peer-left（wasLive 守卫本身）')
+  // 变异：删掉 `if (wasLive) slot.connId = null` 的条件 → 本条红（新连接被误踢下线）
+  assert(reg.rooms.get('DEF2').guest.connId === 'c_g2',
+    '⑬ ☠️ 也不得把槽位踢成 null —— 那会让在线的新连接凭空掉线')
+  assert(reg.rooms.get('DEF2').emptyAt === null, '⑬ 房间没被误标成空')
+  assert(!reg.byConn.has('c_g1'), '⑬ 旧 connId 的反查项仍被清理（dropConn 的常规清扫照做）')
+}
+
 // ---- ⑦ ☠️ reapEmpty：正反双向（超 TTL 删 + 未超不删）----
 {
   const reg = makeRegistry()
@@ -176,7 +276,7 @@ const frameTo = (res, conn) => res.effects.find((e) => e.type === 'send' && e.to
     '⑧ 每个 effect 都是 {type:send, to:connId, frame:{t}} 形状')
 }
 
-assert(pass > 40, `⑨ 断言真的跑了（实测 ${pass} 条）`)
+assert(pass > 66, `⑮ 断言真的跑了（实测 ${pass} 条）`)
 
 if (fails.length) {
   console.error(`❌ test-relay-rooms: ${fails.length} 条失败`)

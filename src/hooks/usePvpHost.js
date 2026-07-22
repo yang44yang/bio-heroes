@@ -37,7 +37,7 @@ import {
 } from '../engine/wire.js'
 import { playSound } from '../audio/soundManager.js'
 
-export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef }) {
+export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef, resumeTick = 0 }) {
   const gRef = useRef(null)
   if (enabled && gRef.current === null) {
     gRef.current = mintMatchId(crypto.getRandomValues(new Uint32Array(1))[0])
@@ -134,7 +134,13 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
     } catch (err) {
       console.error('[pvpHost] buildSync 失败（公开性守门？）:', err)
     }
-  }, [enabled, client, battle.battleState, playerHand.hand, enemyHand.hand])
+    // ☠️ resumeTick 是**必需**的依赖，不是保险丝。
+    //   断线重连前后，上面四个依赖的引用**一个都不会变**（client 是同一个闭包对象，
+    //   battleState 是 useReducer 状态，两个 hand 是 useState 数组）——所以只修好握手层，
+    //   effect 也不会重跑：guest 屏幕会一直冻着，直到 host 下一次真的动棋盘。
+    //   大厅在 relay.resumed（自己回来）/ relay.peer-joined（对手回来）时 +1 → 强制重推一帧全量快照。
+    //   sync 是全量快照而非增量，重复推是幂等的（多推一帧只是多一次同样的渲染）。
+  }, [enabled, client, battle.battleState, playerHand.hand, enemyHand.hand, resumeTick])
 
   // ---- handCount：把双方手牌张数同步进公开棋盘树 → 随快照 mirror 给 guest ----
   //   guest 的 enemyHand.hand 是空的（隐私），对手手牌数只能读这个公开字段（此前恒 0）。

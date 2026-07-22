@@ -15,12 +15,43 @@ let pass = 0
 const fails = []
 const assert = (cond, msg) => { if (cond) pass++; else fails.push(msg) }
 
-// ---- ① host 握手 ----
+// ---- ① host 首连（建房）握手 ----
 {
   const h = parseHandshake('/api/relay?role=host')
   assert(h.ok && h.role === 'host', '① role=host 解析成功')
-  // host 不接受客户端指定房间码/token —— 码由中继铸（防客户端占码/碰撞攻击）
-  assert(h.code === null && h.token === null, '① host 的 code/token 为 null（中继才铸码）')
+  // host **首连**不接受客户端指定房间码/token —— 码由中继铸（防客户端占码/碰撞攻击）。
+  // 变异：把「host 无 token → 早返回」那条闸门删掉、让 host 一律去读 room → 本条红。
+  assert(h.code === null && h.token === null, '① host 首连（无 token）的 code/token 为 null（中继才铸码）')
+
+  // ☠️ 收紧语义：不只是「没给码」，而是「给了码也不认」—— 否则客户端就能自选房间码建房。
+  const squat = parseHandshake('/api/relay?role=host&room=4BZU')
+  assert(squat.ok && squat.code === null,
+    '① ☠️ host 只带 room 不带 token → 仍按建房处理、room 被忽略（客户端不能占码）')
+}
+
+// ---- ⑥ ☠️ host 重连握手（真机 bug：host 闪断后重连新建房，对局静默永久卡死）----
+//   真机实测：host 建房 4BZU → 掐断底层 socket → 重连拿到 QWJV（新房），
+//   guest 从此一帧收不到、双方 UI 都显示 connected，还漏一个孤儿房。
+//   根因就在这个函数：host 分支曾无条件 return { code:null, token:null }。
+{
+  const r = parseHandshake('/api/relay?role=host&room=4bzu&token=tok_host')
+  // 变异：host 分支恢复成无条件 return {code:null,token:null} → 下面三条全红
+  assert(r.ok && r.role === 'host', '⑥ host 重连解析成功')
+  assert(r.code === '4BZU', '⑥ ☠️ host 重连的房间码被解析出来（且归一成大写）')
+  assert(r.token === 'tok_host', '⑥ ☠️ host 重连的 token 被解析出来 —— 缺它就会被当成新 host 铸新房')
+
+  // 有 token 就必须有合法码（token 是闸门，但闸门后仍要校验码）
+  assert(parseHandshake('/api/relay?role=host&token=tok').reason === 'bad-room',
+    '⑥ host 带 token 但无房间码 → bad-room')
+  assert(parseHandshake('/api/relay?role=host&room=ABOD&token=tok').reason === 'bad-room',
+    '⑥ host 重连的非法码（含 O）同样拒')
+
+  // ☠️ 对称性：host 与 guest 的重连解析除 role 外必须逐字段一致 —— 这条钉死「凭证路径不再按 role 分叉」。
+  //   变异：只给 guest 读 token / 只给 host 读 room → 本条红。
+  const hr = parseHandshake('/api/relay?role=host&room=K7P2&token=tok_x')
+  const gr = parseHandshake('/api/relay?role=guest&room=K7P2&token=tok_x')
+  assert(hr.ok && gr.ok && hr.code === gr.code && hr.token === gr.token && hr.role !== gr.role,
+    '⑥ ☠️ host/guest 两条重连路径除 role 外解析完全一致（凭证路径 role-blind）')
 }
 
 // ---- ② guest 握手 ----
@@ -103,7 +134,7 @@ function stripComments(srcTxt) {
 assert(!stripComments('// seat here\n').includes('seat'), '⓪ 行注释里的 seat 被剥掉')
 assert(stripComments('const s = "seat"\n').includes('seat'), '⓪ 代码里的 seat 字符串被保留')
 
-assert(pass > 18, `⑥ 断言真的跑了（实测 ${pass} 条）`)
+assert(pass > 27, `⑦ 断言真的跑了（实测 ${pass} 条）`)
 
 if (fails.length) {
   console.error(`❌ test-relay-control: ${fails.length} 条失败`)

@@ -101,12 +101,20 @@ export function dropConn(reg, connId, now) {
   if (!room) return { effects: [] }   // 房已被回收，槽位反查落空 —— 安静收场
 
   const slot = room[entry.role]
-  // 只在「掉的正是当前活连接」时置 null —— 防重连后旧 socket 的迟到 close 事件把新连接误伤下线。
-  if (slot && slot.connId === connId) slot.connId = null
+  // ☠️ 「掉的是不是当前活连接」这一条要同时管**置空**和**通知**，不能只管置空。
+  //   真机时序：网络断了但服务器最长 HEARTBEAT_MS(30s) 才察觉，客户端 500ms 就重连成功了 ——
+  //   于是旧 socket 的 close **迟到**于重连。只护槽位不护通知的话，这条迟到 close 仍会给对端
+  //   推一条 peer-left，而对手其实早就回来了：PvpLobby 收到后把 peerPresent 打成 false 且
+  //   再无 peer-joined 复位（host 侧更狠，还会清掉 guestDeckReady/guestDeckRef → 开战按钮
+  //   永久消失）。症状从「对局卡死」变成「重连成功但显示对手跑了」，一样是死局。
+  const wasLive = !!(slot && slot.connId === connId)
+  if (wasLive) slot.connId = null
 
   const effects = []
   const peerRole = entry.role === HOST ? GUEST : HOST
-  if (slotAlive(room[peerRole])) effects.push({ type: 'send', to: room[peerRole].connId, frame: { t: 'relay.peer-left' } })
+  if (wasLive && slotAlive(room[peerRole])) {
+    effects.push({ type: 'send', to: room[peerRole].connId, frame: { t: 'relay.peer-left' } })
+  }
 
   if (roomEmpty(room)) room.emptyAt = now
   return { effects }
@@ -126,13 +134,25 @@ export function reconnect(reg, code, role, connId, token, now) {
   if (!slot) return { ok: false, reason: 'no-slot', effects: [] }
   if (slot.token !== token) return { ok: false, reason: 'bad-token', effects: [] }
 
+  // ☠️ 顶掉旧 connId 时**同时清掉它的反查项** —— 否则 byConn 里留下一条僵尸记录：
+  //   ① 它是注册表的一条无界增长路径（每次重连 +1，房间回收也带不走它）；
+  //   ② 旧 socket 在被顶替后仍能被 peersFor 路由（reg.byConn 还认得它）；
+  //   ③ 它让迟到的 dropConn 一路走到发通知那步（dropConn 靠 byConn 命中才继续）。
+  //   dropConn 里的 wasLive 守卫是第二道防线，这里是第一道 —— 两道各有变异测试。
+  if (slot.connId && slot.connId !== connId) reg.byConn.delete(slot.connId)
+
   slot.connId = connId
   reg.byConn.set(connId, { code, role })
   room.emptyAt = null
 
-  const effects = [{ type: 'send', to: connId, frame: { t: 'relay.resumed' } }]
   const peerRole = role === HOST ? GUEST : HOST
-  if (slotAlive(room[peerRole])) effects.push({ type: 'send', to: room[peerRole].connId, frame: { t: 'relay.peer-joined' } })
+  // ☠️ resumed **必须带上对端在场与否** —— 重连方在掉线期间收不到任何 peer-joined/peer-left
+  //   （applyEffects 找不到 socket 就 no-op），回来时它对对手的认知是**停在掉线那一刻的**。
+  //   不带这个字段，客户端只能瞎猜：猜 true 则对手早走了还显示「已就位」，猜着不动则对手
+  //   回来了还显示「已离开」。两种猜法都错，而中继这里是唯一知道真相的地方。
+  const peerPresent = slotAlive(room[peerRole])
+  const effects = [{ type: 'send', to: connId, frame: { t: 'relay.resumed', peerPresent } }]
+  if (peerPresent) effects.push({ type: 'send', to: room[peerRole].connId, frame: { t: 'relay.peer-joined' } })
   return { ok: true, effects }
 }
 
