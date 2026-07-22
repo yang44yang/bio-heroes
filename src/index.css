@@ -2,6 +2,14 @@
 
 /* === 响应式适配：dvh + 触摸优化 === */
 
+/* 全局横向安全区 —— iPhone **横屏**时刘海在侧边，会啃掉左右边缘的内容。
+   只做左右：竖向让位已由 index.html 的 `apple-mobile-web-app-status-bar-style: black` 确定性解决
+   （iOS 把 webview 下移到状态栏之下），而给 body 加竖向 padding 会把 100dvh 的定高布局顶出溢出。 */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 /* dvh 工具类（动态视口高度，解决移动端地址栏伸缩问题） */
 @utility h-screen-d {
   height: 100dvh;
@@ -16,6 +24,14 @@
   -webkit-user-select: none;
   user-select: none;
   touch-action: manipulation;
+
+  /* ☠️ 安全区：index.html 同时开了 `apple-mobile-web-app-capable` + `black-translucent`
+     + `viewport-fit=cover` —— 加到主屏后内容会**钻到状态栏底下**。实测顶栏那 4 个图标
+     （🔄🔊📜🚪，含重开和退出）占 y=6..26，整个落在状态栏区域内 = 被挡住还容易误触。
+     真正被遮的是**顶部**，不是底部（底部 home indicator 那一档本来就有余量）。
+     不会撑破 h-screen-d 定高：容器是 border-box，收缩由两个 `flex-1 min-h-0` 战场区吸收。 */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* 滚动吸附 */
@@ -33,6 +49,56 @@
 @media (max-width: 639px) and (orientation: portrait) {
   [data-landscape-prompt] {
     display: flex !important;
+  }
+}
+
+/* === 触屏按下反馈 ===
+   全 app 此前 **0 条** `:active`（生产 CSS 实测 `:active` 出现 0 次 —— 源码里 grep 到的
+   6 处 `active:` 全是 JS 对象字面量的 key，如 `scientistMode: { active: false }`，不是 CSS 变体）。
+   约 115 个按钮按下去屏幕上什么都不发生。鼠标用户靠 hover 得到反馈，而 **hover 在触屏上不存在**
+   （Tailwind v4 已把 hover: 编译进 @media(hover:hover)），于是 iPad 上齐齐点按钮是全无反馈的。
+
+   ⚠️ 用 filter 不用 transform：framer-motion 的 whileTap 走内联 style.transform，
+   CSS 的 transform 会和它打架（松手后可能留下残留变换）。filter 两条通道互不干扰。
+
+   ☠️ 必须写 `transition-duration: 0s`：Tailwind v4 的 `.transition` 工具类**把 filter 也纳入了
+   transition-property**（实测编译产物：`transition-property:…,transform,translate,scale,rotate,filter,…`），
+   默认 150ms。src/components 里有近百处 `transition` —— 不归零的话按下反馈是「慢慢淡入」，
+   而小孩的一次点按只有 80-120ms，亮度爬到一半就开始往回退，等于没有。
+
+   ⚠️ 只挂 button/[role=button]：全仓带 `grayscale` 的都是 div（Card.jsx:65 死亡卡、
+   Collection.jsx:274 未解锁成就、CampaignScreen 的 inline filter），不会被这条 filter 覆盖掉
+   —— 否则按一下没抽到的卡它会闪成全彩，等于谎报「你解锁了」。 */
+button:active,
+[role='button']:active {
+  filter: brightness(1.25);
+  transition-duration: 0s;
+}
+@media (hover: none) {
+  /* 触屏没有 hover 可依赖，反馈要更明显一点 */
+  button:active,
+  [role='button']:active {
+    filter: brightness(1.4);
+  }
+}
+button:disabled:active,
+button[aria-disabled='true']:active,
+[role='button'][aria-disabled='true']:active {
+  filter: none;   /* 禁用态不该有「按到了」的错觉 */
+}
+
+/* === 卡角 ⓘ：视觉不变，热区扩到 44×44 ===
+   ⓘ 是卡片右上角的详情按钮，实测 24×24 —— 远低于 Apple HIG 的 44pt，而它是齐齐了解
+   一张卡最主要的入口。**不能直接放大**：它浮在卡面上，做大了会挡住卡名和数值。
+   用伪元素向外扩不可见的命中区域（inset -10px → 44×44），视觉一个像素都不动。
+   ⚠️ 只在有足够空间时扩（min-height:600px）：手机横屏紧凑模式下卡本来就挤，
+   相邻卡槽的热区会互相重叠、点哪张都不确定。 */
+@media (min-height: 600px) {
+  [data-battle-container] button[aria-label]::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 9999px;
   }
 }
 
@@ -58,8 +124,13 @@
 @media (max-height: 500px) {
   [data-battle-container] {
     font-size: 10px;
-    padding-left: 2px !important;
-    padding-right: 2px !important;
+    /* ⚠️ 手机横屏竖向预算已经极紧（实测 844×390 下战场区只剩 ~35px），
+       safe-area 的上下内边距在这里必须**归零**，否则直接夹爆卡牌。
+       左右改成刘海侧的安全区（iPhone 横屏刘海在侧边），至少 2px 保底。 */
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    padding-left: max(2px, env(safe-area-inset-left)) !important;
+    padding-right: max(2px, env(safe-area-inset-right)) !important;
   }
   /* 战场卡槽区域压缩 */
   [data-battle-container] [data-field-area] {

@@ -24,7 +24,6 @@
   "settings.quizModeCardHint": "Only questions about cards on the board",
   "settings.parentGate": "Parent check: what is 7 × 8 = ?",
   "settings.parentGateFail": "Wrong answer — setting unchanged",
-
   "battle.you": "You",
   "battle.enemy": "Enemy",
   "battle.round": "R",
@@ -57,7 +56,6 @@
   "battle.lockNeedEnergy": "Not enough energy (need {cost}, have {current})",
   "battle.landscape": "Please rotate!",
   "battle.landscapeHint": "Landscape mode is better",
-
   "battle.victory": "🏆 Victory!",
   "battle.defeat": "💀 Defeat…",
   "battle.victoryMsg": "Amazing! Your Bio Heroes won!",
@@ -78,27 +76,26 @@
   "battle.chapterReward.2-4": "🎁 Chapter reward: +500 Coins",
   "battle.chapterReward.3-4": "🎁 Chapter reward: +500 Coins +10 Diamonds",
   "battle.chapterReward.4-4": "🎁 Chapter reward: Scientist 🔬 Title",
-
   "battle.exit.title": "Exit Battle?",
   "battle.exit.campaign": "Exiting counts as a loss, no rewards",
   "battle.exit.normal": "Current battle progress will be lost",
   "battle.exit.continue": "Continue",
   "battle.exit.confirm": "Exit",
-
+  "battle.restart.title": "Restart?",
+  "battle.restart.desc": "All current battle progress will be lost",
+  "battle.restart.cancel": "Keep Playing",
+  "battle.restart.confirm": "Restart",
   "mulligan.title": "🔄 Mulligan",
   "mulligan.desc": "Tap cards to swap them (you'll redraw the same number)",
   "mulligan.selected": "{n} selected to swap",
   "mulligan.skip": "Keep all, start!",
   "mulligan.confirm": "Swap ({n})",
   "mulligan.expensive": "$",
-
   "sp.title": "🌟 SP Awakening!",
   "sp.desc": "Choose an SP card to summon (free!)",
   "sp.skip": "Skip summon",
-
   "env.confirm": "OK",
   "env.duration": "Lasts {n} turns",
-
   "quiz.title": "🧠 Awaken Quiz!",
   "quiz.easy": "Easy",
   "quiz.medium": "Medium",
@@ -108,7 +105,6 @@
   "quiz.correctAnswer": "Correct answer",
   "quiz.yourAnswer": "You picked",
   "quiz.continue": "Continue ▶",
-
   "gacha.title": "🎰 Gacha",
   "gacha.subtitle": "Collect Bio Heroes, build the strongest team!",
   "gacha.collected": "{n} collected",
@@ -119,7 +115,6 @@
   "gacha.pulling": "✨ Pulling...",
   "gacha.fragments": "+{n} fragments",
   "gacha.back": "← Back to Menu",
-
   "deck.title": "🃏 Deck Manager",
   "deck.back": "← Back",
   "deck.slot": "Deck {n}",
@@ -146,7 +141,6 @@
   "deck.sortAtk": "By ATK",
   "deck.sortRarity": "By Rarity",
   "deck.recommend": "Suggest",
-
   "deck.detail.skills": "── Skills ──",
   "deck.detail.science": "── Did you know? ──",
   "deck.detail.requirement": "── Requirement ──",
@@ -154,7 +148,6 @@
   "deck.detail.consume": " (consume)",
   "deck.detail.addToDeck": "＋ Add to Deck",
   "deck.detail.close": "Close",
-
   "collection.title": "📖 Collection",
   "collection.back": "← Back",
   "collection.progress": "Collection Progress",
@@ -175,7 +168,6 @@
   "collection.event": "📜 Events",
   "collection.sp": "🌟 SP Cards",
   "collection.showing": "Showing {n}",
-
   "campaign.title": "🏆 Campaign",
   "campaign.back": "← Back",
   "campaign.nextReward": "Next: {target}⭐ ({reward})",
@@ -197,19 +189,16 @@
   "campaign.star3": "Leader HP ≥ 80% & ≤10 turns",
   "campaign.reward500": "500 Coins",
   "campaign.reward1000": "1000 Coins",
-
   "tutorial.title": "📚 Tutorial",
   "tutorial.subtitle": "Learn Bio Heroes step by step",
   "tutorial.back": "← Back to Menu",
   "tutorial.skip": "Skip Tutorial",
-
   "dialogue.narrator": "Narrator",
   "dialogue.enemy": "Enemy",
   "dialogue.you": "You",
   "dialogue.skip": "Skip",
   "dialogue.continue": "Next →",
   "dialogue.start": "Start!",
-
   "intro.tagline": "The battle inside your body is about to begin!",
   "intro.story1": "Viruses, bacteria, and super-pathogens are invading your body!",
   "intro.story1b": "Only you can command the Bio Heroes to fight back!",
@@ -229,13 +218,11 @@
   "intro.faction.tech": "Tech",
   "intro.startTutorial": "Start Tutorial ➡",
   "intro.skipTutorial": "I already know how to play, skip",
-
   "card.event": "Event",
   "card.spTrigger": "🌟 SP Trigger",
   "card.spSummonTurn": "Turn {n}+",
   "card.spSummonTurnDetail": "Summonable from turn {n} onward (higher SP cost = later)",
   "card.factionReq": "🔒{icon}{count} {name}",
-
   "collection.detail.cost": "💎 Cost {n}",
   "collection.detail.evoSuccess": "✨ Evolution Success!",
   "collection.detail.evolving": "🧬 Evolving...",
@@ -244,7 +231,6 @@
   "collection.detail.evolveTo": "Evolve to",
   "collection.detail.close": "Close",
   "collection.detail.eventCards": "📜 Events",
-
   "tutorial.levelTitle": "Level {id}: {title}",
   "tutorial.completed": "Completed",
   "tutorial.graduate": "🎓 Claim Reward",
@@ -265,34 +251,27 @@
   "tutorial.fatigue": "💤Wait",
   "tutorial.endTurn": "End Turn ⏭️",
   "tutorial.continue": "Next →",
-
   "common.details": "Details",
   "common.viewDetails": "View details",
   "common.awesome": "Awesome!",
-
   "battle.float.superEffective": "Super! +20%",
   "battle.float.resisted": "Resisted!",
   "battle.viewLog": "View battle log",
   "battle.factionReqTip": "Discard pile needs {need} {name} cards (have {have})",
-
   "battleLog.title": "📜 Battle Log",
   "battleLog.empty": "No battle log yet",
   "battleLog.footer": "Scroll for the full battle · tap outside or × to close",
   "battleLog.copy": "📋 Copy all",
   "battleLog.copied": "✓ Copied",
-
   "card.reqCondition": "⚠️ Play condition: needs {icon} {name} marker ×{count}",
   "card.consumeOnPlay": " (consumed on play)",
-
   "achievement.unlocked": "🏆 Achievement Unlocked",
   "achievement.collectedCards": "You collected all {n} related cards!",
   "achievement.badge": "✨ You unlocked a special badge! Check the Collection page",
-
   "spUnlock.title": "New SP Awakening Card Unlocked!",
   "spUnlock.effect": "⚗️ Effect",
   "spUnlock.skillFallback": "Powerful SP skill",
   "spUnlock.science": "📚 Science",
-
   "milestone.header": "🏆 Collection Milestone",
   "milestone.continue": "Keep collecting!",
   "milestone.t10": "Dex Beginner",
@@ -309,12 +288,10 @@
   "milestone.d120": "120 cards! You're a true Bio Heroes collection master!",
   "milestone.tGeneric": "Milestone {n}",
   "milestone.dGeneric": "You've collected {n} cards!",
-
   "gachaQuiz.intro": "Quiz time! Right or wrong, you can keep pulling",
   "gachaQuiz.correct": "✓ Correct!",
   "gachaQuiz.wrong": "Not quite — the answer is {letter}",
   "gachaQuiz.continue": "Keep pulling →",
-
   "gacha.spAwakenBanner": "⚡ SP Awakening Card!",
   "gacha.featured": "⭐ Featured",
   "gacha.dexProgress": "📖 Dex Progress",
@@ -330,13 +307,11 @@
   "gacha.tapDetail": "ℹ️ Tap for details",
   "gacha.gotRare": "🎉 You pulled {n} powerful cards! Add them to your deck now?",
   "gacha.goToDeck": "Go build your deck →",
-
   "deck.renameTip": "Click to rename",
   "deck.costCountTip": "Cost {cost}: {count} cards",
   "deck.removeTip": "Click to remove",
   "deck.comboBodyTech": "Body + Tech",
   "deck.comboNaturePathogen": "Nature + Pathogen",
-
   "collection.noSellable": "No sellable fragments (evolution-path fragments are kept)",
   "collection.sellAllConfirm": "Sell all non-evolution fragments for {total} 🪙. Continue?",
   "collection.sellAllTitle": "Sell all fragments not used for evolution",
@@ -352,6 +327,5 @@
   "collection.fragLabel": "Fragments {n}",
   "collection.sellTo": "Sell → {n} 🪙",
   "collection.fragColon": "Fragments:",
-
   "science.chineseOnly": "🇨🇳"
 }

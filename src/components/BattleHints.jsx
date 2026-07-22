@@ -104,13 +104,17 @@ export function BattleHintOverlay({ hint, onDismiss }) {
     <AnimatePresence>
       <motion.div
         key={hint.id}
-        className="fixed top-14 left-1/2 -translate-x-1/2 z-[90] max-w-sm w-[90%]"
+        // ☠️ 外层必须 pointer-events-none：这条横幅是 `fixed top-14` 且宽 90%，
+        //    实测在 iPad 上正好压住**敌方主人面板** —— 那是「直攻主人」的点击热区。
+        //    没有它，提示浮层在时齐齐点主人打不出直攻（点到的是横幅），而横幅本身
+        //    只是条提示，没人会想到它在吃点击。内层横幅自己再把事件收回来（auto）。
+        className="fixed top-14 left-1/2 -translate-x-1/2 z-[90] max-w-sm w-[90%] pointer-events-none"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
       >
         <div
-          className="bg-yellow-900/95 border border-yellow-500/60 rounded-xl px-4 py-2.5 text-sm text-yellow-100 shadow-lg shadow-yellow-900/30 cursor-pointer"
+          className="bg-yellow-900/95 border border-yellow-500/60 rounded-xl px-4 py-2.5 text-sm text-yellow-100 shadow-lg shadow-yellow-900/30 cursor-pointer pointer-events-auto"
           onClick={onDismiss}
         >
           {hint.text}

@@ -93,6 +93,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   const [selectedAtkSlot, setSelectedAtkSlot] = useState(null)  // 战场中选中的攻击者
   const [awakenOpts, setAwakenOpts] = useState({})
   const [showExitConfirm, setShowExitConfirm] = useState(false)
+  const [showRestartConfirm, setShowRestartConfirm] = useState(false)
   const [detailCard, setDetailCard] = useState(null)
   const [showBattleLog, setShowBattleLog] = useState(false)
   // Conundrum：如果关卡有 conundrum 配置且尚未完成，先弹 modal 阻塞战斗初始化
@@ -687,7 +688,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
         </div>
         {canBreak && intact && stored > 0 && (
           <motion.button
-            className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-black rounded-lg min-h-[28px] sm:min-h-0"
+            className="px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-[11px] font-black text-black rounded-lg min-h-[28px] [@media(min-height:600px)]:min-h-[44px]"
             style={{
               background: stored >= 20 ? '#FFD700' : '#FF8C00',
             }}
@@ -858,14 +859,21 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
       <div className="flex-none flex items-center justify-between py-1 sm:py-1.5" data-top-bar="true">
         <div className="flex items-center gap-1 sm:gap-2">
           <span className="text-[10px] sm:text-sm text-gray-400">R{battle.turn}</span>
+          {/* ☠️ 🔄 重开整局 —— 必须二次确认。它此前零确认、点了立刻重开，而且就贴在
+              🚪（退出，本来就有确认）左边 8px，小孩误触代价是整局重来。
+              PvP 里更糟：sync 是**全量快照**，host 一重开，guest 会跟着被拉进新棋盘 ——
+              等于 host 单方面把对手的对局也清了，而对面小孩没有任何提示、也没得商量。
+              所以 PvP（remoteEnemy）下直接不给这个按钮。 */}
+          {!remoteEnemy && (
+            <button
+              className="text-[10px] sm:text-base px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded inline-flex items-center justify-center min-h-[28px] [@media(min-height:600px)]:min-h-[44px] [@media(min-height:600px)]:min-w-[44px]"
+              onClick={() => setShowRestartConfirm(true)}
+            >
+              🔄
+            </button>
+          )}
           <button
-            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
-            onClick={handleRestart}
-          >
-            🔄
-          </button>
-          <button
-            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
+            className="text-[10px] sm:text-base px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded inline-flex items-center justify-center min-h-[28px] [@media(min-height:600px)]:min-h-[44px] [@media(min-height:600px)]:min-w-[44px]"
             onClick={() => {
               ensureAudio()
               const m = toggleMute()
@@ -875,14 +883,14 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
             {soundMuted ? '🔇' : '🔊'}
           </button>
           <button
-            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
+            className="text-[10px] sm:text-base px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded inline-flex items-center justify-center min-h-[28px] [@media(min-height:600px)]:min-h-[44px] [@media(min-height:600px)]:min-w-[44px]"
             onClick={() => setShowBattleLog(true)}
             title={t('battle.viewLog')}
           >
             📜
           </button>
           <button
-            className="text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded min-h-[28px] sm:min-h-0"
+            className="text-[10px] sm:text-base px-1.5 sm:px-2 py-0.5 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded inline-flex items-center justify-center min-h-[28px] [@media(min-height:600px)]:min-h-[44px] [@media(min-height:600px)]:min-w-[44px]"
             onClick={() => setShowExitConfirm(true)}
           >
             🚪
@@ -1147,7 +1155,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
           <span className="text-[10px] sm:text-xs text-gray-600">{t('battle.deckPile')}{playerHand.drawPileCount}</span>
           {isMainPhase && selectedHandIdx !== null && playerHand.hand[selectedHandIdx]?.type === 'event' && (
             <motion.button
-              className="px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg min-h-[28px] sm:min-h-0"
+              className="px-2 py-0.5 text-[10px] sm:text-[11px] font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg min-h-[28px] [@media(min-height:600px)]:min-h-[44px]"
               whileTap={{ scale: 0.9 }}
               onClick={() => handlePlayCard(-1)}
             >
@@ -1157,7 +1165,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             {isMainPhase && (
               <motion.button
-                className="px-2 sm:px-4 py-0.5 sm:py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-[10px] sm:text-xs min-h-[28px] sm:min-h-0"
+                className="px-2 sm:px-4 py-0.5 sm:py-1 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold text-[10px] sm:text-xs min-h-[28px] [@media(min-height:600px)]:min-h-[44px]"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   setSelectedHandIdx(null)
@@ -1170,7 +1178,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
             )}
             {isBattlePhase && (
               <motion.button
-                className="px-2 sm:px-4 py-0.5 sm:py-1 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold text-[10px] sm:text-xs min-h-[28px] sm:min-h-0"
+                className="px-2 sm:px-4 py-0.5 sm:py-1 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-bold text-[10px] sm:text-xs min-h-[28px] [@media(min-height:600px)]:min-h-[44px]"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => {
                   setSelectedAtkSlot(null)
@@ -1357,7 +1365,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
             )}
             <div className="text-center">
               <motion.button
-                className="px-6 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-sm"
+                className="px-6 py-2 min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold text-sm"
                 whileTap={{ scale: 0.95 }}
                 onClick={() => battle.dismissEnvEvent()}
               >
@@ -1638,6 +1646,31 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
                 })}
               >
                 {t('battle.exit.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* 重开确认 —— 同退出确认的形状（按钮 min-h-44，触屏友好） */}
+      {showRestartConfirm && createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/70">
+          <div className="bg-gray-800 rounded-2xl p-6 mx-4 max-w-sm w-full text-center shadow-2xl border border-gray-600">
+            <p className="text-white text-lg font-bold mb-2">{t('battle.restart.title')}</p>
+            <p className="text-gray-400 text-sm mb-4">{t('battle.restart.desc')}</p>
+            <div className="flex gap-3 justify-center">
+              <button
+                className="px-5 py-2.5 bg-gray-600 hover:bg-gray-500 rounded-xl text-white font-bold text-sm min-h-[44px]"
+                onClick={() => setShowRestartConfirm(false)}
+              >
+                {t('battle.restart.cancel')}
+              </button>
+              <button
+                className="px-5 py-2.5 bg-amber-600 hover:bg-amber-500 rounded-xl text-white font-bold text-sm min-h-[44px]"
+                onClick={() => { setShowRestartConfirm(false); handleRestart() }}
+              >
+                {t('battle.restart.confirm')}
               </button>
             </div>
           </div>

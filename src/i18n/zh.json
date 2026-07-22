@@ -24,7 +24,6 @@
   "settings.quizModeCardHint": "只出和场上卡牌有关的题",
   "settings.parentGate": "家长验证：请回答 7 × 8 = ?",
   "settings.parentGateFail": "答错啦，设置未改动",
-
   "battle.you": "你",
   "battle.enemy": "对手",
   "battle.round": "R",
@@ -57,7 +56,6 @@
   "battle.lockNeedEnergy": "能量不足（需要 {cost}，当前 {current}）",
   "battle.landscape": "请横过来玩！",
   "battle.landscapeHint": "横屏体验更佳",
-
   "battle.victory": "🏆 胜利！",
   "battle.defeat": "💀 败北…",
   "battle.victoryMsg": "太厉害了！你的生物英雄赢了！",
@@ -78,27 +76,26 @@
   "battle.chapterReward.2-4": "🎁 章节奖励: +500 金币",
   "battle.chapterReward.3-4": "🎁 章节奖励: +500 金币 +10 钻石",
   "battle.chapterReward.4-4": "🎁 章节奖励: 科学家🔬称号",
-
   "battle.exit.title": "退出战斗？",
   "battle.exit.campaign": "退出将视为失败，不会获得奖励",
   "battle.exit.normal": "当前战斗进度将丢失",
   "battle.exit.continue": "继续战斗",
   "battle.exit.confirm": "确认退出",
-
+  "battle.restart.title": "重新开始？",
+  "battle.restart.desc": "当前战斗进度将全部丢失，从头再来",
+  "battle.restart.cancel": "继续战斗",
+  "battle.restart.confirm": "重新开始",
   "mulligan.title": "🔄 换卡阶段",
   "mulligan.desc": "点击选择要换掉的卡牌（换掉后从卡组重新抽取同等数量）",
   "mulligan.selected": "已选 {n} 张换掉",
   "mulligan.skip": "不换了，直接开始",
   "mulligan.confirm": "确认换卡 ({n})",
   "mulligan.expensive": "贵",
-
   "sp.title": "🌟 SP 觉醒！",
   "sp.desc": "选择一张 SP 卡召唤到战场（免费！）",
   "sp.skip": "跳过召唤",
-
   "env.confirm": "确认",
   "env.duration": "持续 {n} 回合",
-
   "quiz.title": "🧠 觉醒问答！",
   "quiz.easy": "初级",
   "quiz.medium": "中级",
@@ -108,7 +105,6 @@
   "quiz.correctAnswer": "正确答案",
   "quiz.yourAnswer": "你选的",
   "quiz.continue": "继续 ▶",
-
   "gacha.title": "🎰 抽卡",
   "gacha.subtitle": "收集生物英雄，组建最强战队！",
   "gacha.collected": "已收集 {n} 张",
@@ -119,7 +115,6 @@
   "gacha.pulling": "✨ 抽取中...",
   "gacha.fragments": "+{n}碎片",
   "gacha.back": "← 返回主菜单",
-
   "deck.title": "🃏 卡组管理",
   "deck.back": "← 返回",
   "deck.slot": "卡组 {n}",
@@ -146,7 +141,6 @@
   "deck.sortAtk": "按攻击力",
   "deck.sortRarity": "按稀有度",
   "deck.recommend": "推荐",
-
   "deck.detail.skills": "── 技能 ──",
   "deck.detail.science": "── 你知道吗？──",
   "deck.detail.requirement": "── 出场条件 ──",
@@ -154,7 +148,6 @@
   "deck.detail.consume": " (消耗)",
   "deck.detail.addToDeck": "＋ 选入卡组",
   "deck.detail.close": "关闭",
-
   "collection.title": "📖 卡牌图鉴",
   "collection.back": "← 返回",
   "collection.progress": "收集进度",
@@ -175,7 +168,6 @@
   "collection.event": "📜 事件卡",
   "collection.sp": "🌟 SP卡",
   "collection.showing": "显示 {n} 张",
-
   "campaign.title": "🏆 闯关战役",
   "campaign.back": "← 返回",
   "campaign.nextReward": "下个奖励: {target}⭐ ({reward})",
@@ -197,19 +189,16 @@
   "campaign.star3": "主人HP ≥ 80% 且 ≤10回合",
   "campaign.reward500": "500 金币",
   "campaign.reward1000": "1000 金币",
-
   "tutorial.title": "📚 教学关卡",
   "tutorial.subtitle": "循序渐进学习 Bio Heroes 的核心玩法",
   "tutorial.back": "← 返回主菜单",
   "tutorial.skip": "跳过教学",
-
   "dialogue.narrator": "旁白",
   "dialogue.enemy": "敌方",
   "dialogue.you": "你",
   "dialogue.skip": "跳过对话",
   "dialogue.continue": "继续 →",
   "dialogue.start": "开始！",
-
   "intro.tagline": "你身体里的战斗，即将开始！",
   "intro.story1": "病毒、细菌、超级病原体正在入侵你的身体！",
   "intro.story1b": "只有你能指挥生物英雄们反击！",
@@ -229,13 +218,11 @@
   "intro.faction.tech": "科技系",
   "intro.startTutorial": "开始教学 ➡",
   "intro.skipTutorial": "我已经会玩了，跳过",
-
   "card.event": "事件",
   "card.spTrigger": "🌟 可触发SP",
   "card.spSummonTurn": "第{n}回合起可召",
   "card.spSummonTurnDetail": "需第 {n} 回合起才能召唤（SP 费用越高，可召唤的回合越晚）",
   "card.factionReq": "🔒{icon}{count}张{name}",
-
   "collection.detail.cost": "💎 费用 {n}",
   "collection.detail.evoSuccess": "✨ 进化成功！",
   "collection.detail.evolving": "🧬 进化中...",
@@ -244,7 +231,6 @@
   "collection.detail.evolveTo": "进化为",
   "collection.detail.close": "关闭",
   "collection.detail.eventCards": "📜 事件卡",
-
   "tutorial.levelTitle": "关卡 {id}: {title}",
   "tutorial.completed": "已完成",
   "tutorial.graduate": "🎓 领取毕业奖励",
@@ -265,34 +251,27 @@
   "tutorial.fatigue": "💤疲劳",
   "tutorial.endTurn": "结束回合 ⏭️",
   "tutorial.continue": "继续 →",
-
   "common.details": "详情",
   "common.viewDetails": "查看详情",
   "common.awesome": "太棒了！",
-
   "battle.float.superEffective": "克制！+20%",
   "battle.float.resisted": "被克制！",
   "battle.viewLog": "查看战斗记录",
   "battle.factionReqTip": "弃牌堆需要 {need} 张{name}卡，当前 {have} 张",
-
   "battleLog.title": "📜 战斗记录",
   "battleLog.empty": "还没有战斗记录哦",
   "battleLog.footer": "滚动查看完整战斗历程 · 点击空白处或 × 关闭",
   "battleLog.copy": "📋 复制全部",
   "battleLog.copied": "✓ 已复制",
-
   "card.reqCondition": "⚠️ 出场条件：需要 {icon} {name} 标记 ×{count}",
   "card.consumeOnPlay": "（出场时消耗）",
-
   "achievement.unlocked": "🏆 成就解锁",
   "achievement.collectedCards": "你集齐了 {n} 张相关卡牌！",
   "achievement.badge": "✨ 你已解锁专属徽章！图鉴页可以查看",
-
   "spUnlock.title": "解锁新 SP 觉醒卡！",
   "spUnlock.effect": "⚗️ 效果",
   "spUnlock.skillFallback": "强力 SP 技能",
   "spUnlock.science": "📚 科学知识",
-
   "milestone.header": "🏆 图鉴里程碑",
   "milestone.continue": "继续收集！",
   "milestone.t10": "图鉴入门",
@@ -309,12 +288,10 @@
   "milestone.d120": "120 张！你是真正的生物英雄收藏大师！",
   "milestone.tGeneric": "里程碑 {n}",
   "milestone.dGeneric": "你已经收集了 {n} 张！",
-
   "gachaQuiz.intro": "小测验时间！答对答错都能继续抽哦",
   "gachaQuiz.correct": "✓ 答对了！",
   "gachaQuiz.wrong": "不对哦，正确答案是 {letter}",
   "gachaQuiz.continue": "继续抽卡 →",
-
   "gacha.spAwakenBanner": "⚡ SP 觉醒卡！",
   "gacha.featured": "⭐ 本期推荐",
   "gacha.dexProgress": "📖 图鉴进度",
@@ -330,13 +307,11 @@
   "gacha.tapDetail": "ℹ️ 点看详情",
   "gacha.gotRare": "🎉 抽到了 {n} 张强力卡！现在就加入卡组试试？",
   "gacha.goToDeck": "立刻去组队 →",
-
   "deck.renameTip": "点击重命名",
   "deck.costCountTip": "费用{cost}: {count}张",
   "deck.removeTip": "点击移除",
   "deck.comboBodyTech": "人体+科技",
   "deck.comboNaturePathogen": "自然+病原",
-
   "collection.noSellable": "没有可卖的碎片（有进化路径的碎片会保留）",
   "collection.sellAllConfirm": "将卖出所有不能进化的碎片，换 {total} 🪙。继续？",
   "collection.sellAllTitle": "卖出所有不能用于进化的碎片",
@@ -352,6 +327,5 @@
   "collection.fragLabel": "碎片 {n}",
   "collection.sellTo": "卖 → {n} 🪙",
   "collection.fragColon": "碎片:",
-
   "science.chineseOnly": ""
 }
