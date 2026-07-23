@@ -5,18 +5,22 @@
 //   （见 CLAUDE.md 与 SESSION 的「血泪教训」：grep 全绿 ≠ 运行时没 bug）。
 // 这个守卫在 build/测试阶段就能红，是那一族的一劳永逸静态解。
 //
-// 范围只限**纯 JS 战斗热路径**（src/engine + src/hooks，均无 JSX）—— 最高危、解析零障碍。
-//   组件(.jsx)含 JSX，需要额外解析器/插件，噪音大，暂不纳入（本守卫的目标是抓热路径 undef，够用）。
-// 只开 no-undef —— 不碰风格/未用变量等规则，避免既有代码涌出一堆无关告警。
+// 范围：**整个 src/**（含组件 .jsx）+ relay。曾只覆盖纯 JS 热路径（engine/hooks/net），
+//   把组件排除在外，理由写的是「JSX 需额外解析器/插件、噪音大」。2026-07 实测那条理由**不成立**：
+//   flat config 只要 `parserOptions.ecmaFeatures.jsx = true` 就能解析 JSX，**零插件**，
+//   而 8123 行组件跑下来 `no-undef` **零违规**。补上成本为 0，白捡一层守卫。
+// 只开 no-undef —— 不碰风格/未用变量/react-hooks 等规则，避免既有代码涌出一堆无关告警。
 // 接进 `npm test`（scripts/test-no-undef.mjs 调用 ESLint Node API）当常驻门禁。
 import globals from 'globals';
 
 export default [
   {
-    files: ['src/engine/**/*.js', 'src/hooks/**/*.js', 'src/net/**/*.js'],
+    // 全前端（engine/hooks/net/components/data/utils/audio/i18n/App/main …）。JSX 解析内置，无需插件。
+    files: ['src/**/*.js', 'src/**/*.jsx'],
     languageOptions: {
       ecmaVersion: 'latest',
       sourceType: 'module',
+      parserOptions: { ecmaFeatures: { jsx: true } },
       globals: {
         ...globals.browser, // window / document / localStorage / console / setTimeout / structuredClone …
         ...globals.node,    // process / Buffer …（build 期偶用）

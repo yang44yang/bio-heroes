@@ -144,6 +144,61 @@ const ORIGIN = 'https://bio.socialcontract.capital'
   }
 }
 
+// ---- ⑤ ☠️ cachePut 剪枝：写新哈希版时删同名旧哈希版（治无界增长）----
+//   用 Map 支撑的真 caches mock 跑 fetch handler 的 cache-first 分支，观察缓存内容。
+{
+  // 一个够真的 Cache：keys() 返回 {url}，put/delete/match 走 Map
+  function makeCacheStore(initial = []) {
+    const store = new Map(initial.map((u) => [u, { url: u }]))
+    return {
+      store,
+      async put(req) { store.set(req.url, { url: req.url }) },
+      async delete(req) { return store.delete(req.url) },
+      async keys() { return [...store.values()] },
+      async match(req) { return store.get(req.url) },
+      async addAll(urls) { urls.forEach((u) => store.set(u, { url: u })) },
+    }
+  }
+
+  // 预置：旧哈希版 index/BattleScreen + 两个不该被误删的（非哈希 manifest、异名 chunk）
+  const ORIG = 'https://bio.socialcontract.capital'
+  const cache = makeCacheStore([
+    ORIG + '/assets/index-OLDOLD11.js',
+    ORIG + '/assets/BattleScreen-OLDOLD22.js',
+    ORIG + '/assets/react-vendor-KEEPKEE1.js',   // 异名 chunk，绝不能被 index 的剪枝误删
+    ORIG + '/manifest.json',                      // 非哈希，绝不能被剪
+  ])
+
+  // 装一套走这个 cache 的 sw
+  const listeners = {}
+  const self = {
+    location: { hostname: 'bio.socialcontract.capital', port: '', origin: ORIG },
+    addEventListener: (t, fn) => { listeners[t] = fn },
+    skipWaiting: () => {}, clients: { claim: () => {}, matchAll: async () => [] },
+    registration: { unregister: async () => {} },
+  }
+  const cachesMock = { open: async () => cache, match: async () => undefined, keys: async () => [], delete: async () => true }
+  const fetchStub = async () => ({ ok: true, clone: () => ({}) })
+  // eslint-disable-next-line no-new-func
+  new Function('self', 'location', 'caches', 'fetch', src)(self, self.location, cachesMock, fetchStub)
+
+  // 请求新哈希版 index → cache-first miss → fetch → cachePut 写入 + 剪同名旧版
+  const e = mkEvent(ORIG + '/assets/index-NEWNEW99.js')
+  listeners.fetch(e)
+  await e.taken   // respondWith 的 promise（cache-first 链）
+  // cachePut 是 fire-and-forget，给微任务队列一点时间跑完
+  await new Promise((r) => setTimeout(r, 0))
+
+  const paths = [...cache.store.keys()].map((u) => new URL(u).pathname).sort()
+  // 变异：cachePut 删掉剪枝那段（只 put 不 delete）→ 下面「旧版已删」红
+  assert(!paths.includes('/assets/index-OLDOLD11.js'), '⑤ ☠️ 写新哈希版后，同名旧哈希版被删（无界增长被收成有界）')
+  assert(paths.includes('/assets/index-NEWNEW99.js'), '⑤ 新哈希版已写入缓存')
+  // 变异：剪枝的 sibling 正则写太宽（跨 base 误删）→ 下面两条红
+  assert(paths.includes('/assets/react-vendor-KEEPKEE1.js'), '⑤ ☠️ 异名 chunk 不被误删（react-vendor ≠ index）')
+  assert(paths.includes('/assets/BattleScreen-OLDOLD22.js'), '⑤ 别的 base 的旧版也不被这次 index 剪枝波及')
+  assert(paths.includes('/manifest.json'), '⑤ ☠️ 非哈希资源（manifest）永不被剪')
+}
+
 // ---- 汇总 ----
 if (fails.length) {
   console.error(`❌ test-sw-api-bypass: ${fails.length} 条失败`)

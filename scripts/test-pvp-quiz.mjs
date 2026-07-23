@@ -61,6 +61,11 @@ function makeHost() {
       dispatch({ type: 'QUIZ_STREAK_SET', side, value: g.correct ? state[side].quizStreak + 1 : 0 })
       return { correct: g.correct, multiplier: g.correct ? 2 : 1 }
     },
+    /** 收到某侧的 endTurn：兜底 —— 还挂着没答的题就清掉（镜像 usePvpHost 的 abandon 分支）。 */
+    endTurn(side) {
+      if (keys[side]) { keys[side] = null; dispatch({ type: 'QUIZ_CLEAR', side }); return { abandoned: true } }
+      return { abandoned: false }
+    },
   }
 }
 
@@ -186,7 +191,22 @@ const host = makeHost()
   assert(PROTOCOL_VERSION >= 4, '⑨ 加 quiz 槽必须 bump 到 v4+（旧客户端吃不下新形状）')
 }
 
-assert(pass > 25, `⑩ 断言真的跑了（实测 ${pass} 条）`)
+// ---- ⑩ ☠️ 兜底：guest 回合结束时若还挂着没答的题，题槽必须清掉（不让陈旧 pending 跨回合）----
+{
+  const p = makeHost()
+  const a = p.attack(ENEMY)
+  assert(a.suspended === true && p.state.enemy.quiz.qid != null, '⑩ 前提：挂着一道没答的题')
+  const r = p.endTurn(ENEMY)
+  // 变异：usePvpHost 的 endTurn 分支删掉 abandon（不清题槽）→ 本组红
+  assert(r.abandoned === true, '⑩ endTurn 报告确实清掉了一道未答的题')
+  assert(p.state.enemy.quiz.qid == null, '⑩ ☠️ 题槽已清空（guest 弹窗随快照关闭，陈旧 pending 不跨回合）')
+  // 清空后 guest 视角的 currentQuiz 派生为 null（定形槽，键仍在）
+  assert(p.state.enemy.quiz.rightIdx == null, '⑩ 清空后揭晓字段也归 null')
+  // 没挂题时 endTurn 是 no-op（不误清、不误报）
+  assert(p.endTurn(ENEMY).abandoned === false, '⑩ 没挂题时 endTurn 不误报 abandon')
+}
+
+assert(pass > 29, `⑪ 断言真的跑了（实测 ${pass} 条）`)
 
 if (fails.length) {
   console.error(`❌ test-pvp-quiz: ${fails.length} 条失败`)

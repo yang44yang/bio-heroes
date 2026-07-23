@@ -258,6 +258,17 @@ function replayIntent(intent, { battle, playerHand, enemyHand, enemyMulliganedRe
       break
     }
     case 'endTurn':
+      // ☠️ 兜底：guest 回合结束时若还挂着一次被问答暂停的攻击（正常打不出 —— 全屏问答弹窗挡着 UI，
+      //    只有 buggy 客户端 / 重连竞态才会走到这），**就地以 ×1 结算并清题槽**。
+      //    不做的话，那个 pendingAttackRef 会带着**过期的槽位下标**跨到下一回合、之后被一条迟到的
+      //    answer 用错误的目标结算一次攻击。settle 用真 attack() —— 棋盘变了（防守方已死等）引擎自会拒。
+      if (pendingAttackRef.current) {
+        const pend = pendingAttackRef.current
+        pendingAttackRef.current = null
+        battle.attack(pend.atkSlot, pend.defSlot, {}, ENEMY)   // ×1：没答题就没有觉醒加成
+        battle.clearQuiz?.(ENEMY)   // 清题槽（不是揭晓）→ guest 弹窗随下一帧快照关闭
+        battle.addLog('🔴 对手没答题，攻击照常结算')
+      }
       if (battle.phase !== 'over') {
         playerHand.draw(1)
         battle.startPlayerTurn()

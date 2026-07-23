@@ -119,7 +119,8 @@ export default function Collection({ onBack, economy }) {
       economy.markAchievementsUnlocked(newly.map(a => a.id))
       setUnlockedQueue(q => [...q, ...newly])
     }
-  }, [economy.collection]) // eslint-disable-line react-hooks/exhaustive-deps
+    // 只在 collection 变化时扫新解锁；economy 的其余字段刻意不进 deps（不想每次金币变动都重扫）。
+  }, [economy.collection])
 
   // 获取选中卡的进化信息
   const selectedEvoInfo = selectedCard ? economy.checkEvolution(selectedCard.id) : null
