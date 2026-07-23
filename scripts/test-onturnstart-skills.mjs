@@ -59,6 +59,15 @@ ok('① 玩家 onTurnStart 在清标记之后（保留新召唤物的召唤疲�
 ok('① 敌方充能反映到返回 gain（ENERGY_BOOST 累加）',
   /e\.type\s*===\s*['"]ENERGY_BOOST['"]/.test(ub) && /let gain =/.test(ub))
 
+// 能量曲线 = 回合数（上限 ENERGY_CAP）。2026-07-23 用户裁定：从旧的「每两回合 +1」慢曲线
+// 改成「每回合 +1」——旧公式 R6 只有 4、要 18 回合才满，和 battle-system.md「= 当前回合数」+ 直觉都不符。
+// ⚠️ source-grep 守卫（公式活在 startPlayerTurn/beginEnemyTurn 的 hook 回调里，Node 无 renderer 测不了运行时）。
+//    正向锁：改回 `Math.min(Math.ceil(newTurn/2)+1, …)` → 下面两条的精确文本不再匹配 → 红。
+ok('① 玩家回合能量公式 = min(回合, 上限)（每回合 +1，非 ceil 慢曲线）',
+  /const gain = Math\.min\(newTurn, ENERGY_CAP\)/.test(ub))
+ok('① 敌方回合能量公式 = min(回合, 上限)',
+  /let gain = Math\.min\(t, ENERGY_CAP\)/.test(ub))
+
 // ============ ② skillRegistry：7 技能 timing='onTurnStart' ============
 const onTurnStartSkills = [
   'Photosynthesis Supply', 'ATP Burst', 'Colony Summon', 'Rapid Mutation',

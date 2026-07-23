@@ -2181,7 +2181,10 @@ export function useBattle() {
   // ----------------------------------------------------------------
   const beginEnemyTurn = useCallback(() => {
     const t = battleStateRef.current.turn
-    let gain = Math.min(Math.ceil(t / 2) + 1, ENERGY_CAP)
+    // 能量 = 回合数（上限 ENERGY_CAP）—— 见 battle-system.md「每回合可用能量 = 当前回合数」。
+    // ⚠️ 2026-07-23 从 `ceil(t/2)+1` 改成 `min(t, CAP)`（用户裁定）：旧公式每两回合才 +1、
+    //    要 18 回合才满能量，和文档 + 直觉都不符（R6 只有 4，玩家察觉「不对」）。现每回合 +1。
+    let gain = Math.min(t, ENERGY_CAP)
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
     dispatch({ type: 'ENERGY_SET', side: 'enemy', value: gain })
     addLog(`\n🔴 敌方回合（能量 ${gain}）`)
@@ -2258,7 +2261,8 @@ export function useBattle() {
     processEndPhase('enemy')
 
     const newTurn = battleStateRef.current.turn + 1
-    const gain = Math.min(Math.ceil(newTurn / 2) + 1, ENERGY_CAP)
+    // 能量 = 回合数（上限 ENERGY_CAP）—— 与 beginEnemyTurn 同一条（2026-07-23 用户裁定，见那里注释）。
+    const gain = Math.min(newTurn, ENERGY_CAP)
     // 能量不再累积：剩余能量已流入 Power Bank，新回合只获得 gain
     dispatch({ type: 'TURN_SET', value: newTurn })
     dispatch({ type: 'ENERGY_SET', side: 'player', value: gain })
