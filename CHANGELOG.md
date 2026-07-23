@@ -5,6 +5,36 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## PvP guest 答题（2026-07-23）✅ `7fa8c0d`
+> 修掉 **host 答对 ×2 / guest 恒 ×1** 的系统性不公平 —— guest 那一侧「玩法即学习」此前是关着的。
+> 真机双 tab 走通全链：guest 攻击→弹问答（host 屏幕不弹）→答对 ×2、看知识卡、连对数记自己头上。
+
+**架构（host 权威 + 每侧独立）：** 新 `src/engine/quizGate.js` 纯核心承载三件事——
+- **每侧独立节流**：`firstAttackDone`/`lastQuizTurn` 从单实例共享 ref 改成每侧一份。旧实现单机看不出
+  （只有玩家攻击），一进 PvP host 首攻把额度+冷却占了 → guest 全程 0 题 = 不公平的另一半根因。
+- **脱敏投影**：`publicQuiz` 白名单**重建**题面（不 delete）。`correct` 永不上 wire；`fact` 只在揭晓帧下发
+  （实测题库 86.7% 的 fact 与正确选项重合度最高 = 剧透）。
+- **host 权威判卷**：`gradeAnswer` 校验座位 + qid（挡重传/乱序/同题重抽的错算）。
+
+**踩过并钉住的坑（都实测）：**
+- **定形题槽**：`state[side].quiz` 7 键恒在（值填 null），不能 `quiz: null` —— assertPublicShape 逐路径比对，
+  nullable 在「有题/无题」下产出不同路径集 → 第一次出题当场抛、快照停推、guest 静默冻屏。
+- **字段命名**：wire.js 自己曾推荐的 `quizAnswered` 会被 PRIVATE_KEYS 子串匹配挡下（含 'answer'）。用
+  `chosenIdx`/`rightIdx`。`correctIdx`/`quizCorrect` 同样被封。
+- **协议 v3→v4** + SHAPES[4]（形状棘轮实测不 bump 就红）。**两台客户端必须都刷新**才能对战。
+- **currentQuiz 只暴露本方（player 侧）**：host 替 guest 出的题在 enemy.quiz，绝不弹到 host 脸上 ——
+  那是这一族最贵的 side 串台（爸爸屏幕弹出齐齐的题、一点就替他答了、还刷自己连对数）。
+- **Leitner 复习盒只记玩家自己的**：host 替 guest 判卷不写 `recordQuizResult`，否则齐齐的答题记录
+  进爸爸设备的复习计划、两人复习都被污染。
+- QuizModal 改成**两阶段**（rightIdx 到达才揭晓）：脱敏后 guest 拿不到 correct，旧的本地即时揭晓
+  会让他恒显示答错、看不到知识卡。guest 点继续本地记 `dismissedQid` 收弹窗（题槽是 host 权威状态）。
+
+**验证：** 62/62 套；新 `test-quiz-gate`(26) + 端到端 `test-pvp-quiz`(35)。变异「不脱敏」被**生产代码的
+assertPublicShape 当场抛**（答案不上 wire 是结构性的）。真机从 React fiber 确认 guest 收到的题面无 correct 键。
+**未接线（诚实）：** 连对 2 题触发 SP、host 挂起攻击期间 guest 掉线的超时兜底。
+
+---
+
 ## 全仓审计 + 断线重连 + iPad 适配（2026-07-22）✅ `83421c5`…`dea1572`
 > 一次只读全仓审计（~28k 行）挖出的东西比预期多。**审计本身也错了三条，都是靠实测抓回来的** ——
 > 记在这里是因为「读代码得出的结论」和「跑一遍得出的结论」差距有多大，这次给得很具体。
