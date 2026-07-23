@@ -102,6 +102,7 @@
   "quiz.hard": "Hard",
   "quiz.correct": "🎉 Correct!",
   "quiz.wrong": "❌ Wrong",
+  "quiz.judging": "Checking…",
   "quiz.correctAnswer": "Correct answer",
   "quiz.yourAnswer": "You picked",
   "quiz.continue": "Continue ▶",

@@ -25,6 +25,7 @@
 //    node 的 ESM 不做扩展名补全（Vite 会，所以漏了扩展名 build 照过、只有 npm test 会红）。
 //    同侧参照 engine/aiTarget.js:11。
 import { MAX_FIELD_SLOTS } from '../data/deckRules.js'
+import { emptyQuizSlot } from './quizGate.js'
 
 // 主人初始 HP（与 deckRules.LEADER_HP 一致，reducer 保持 React-free 故内联常量）
 // TODO: 同一个反模式，可比照 MAX_FIELD_SLOTS 收口，但不搭本次的车（另开单）。
@@ -82,8 +83,14 @@ export const initialBattleState = {
   // ★ handCount（PvP handCount 步）：**每侧一份**。手牌内容是隐私（永不上 wire），但张数是公开事实
   //   （BattleScreen 一直把「🔴 手牌 N」渲染给对手看）。host 持双方手牌，把 hand.length 同步进这里 →
   //   随公开快照 mirror 给 guest（guest 的 enemyHand.hand 是空的，只能读这个）。单机不读它（直接读 enemyHand.hand.length）。
-  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 }, handCount: 0 },
-  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 }, handCount: 0 },
+  // ★ quiz（guest 答题步）：**每侧一份的定形槽**。装的是**脱敏后**的题面（无正确答案、
+  //   提问帧无 fact）。放进公开树是为了走 mirror —— guest 读自己那侧就拿到自己的题，
+  //   BattleScreen 那几十处 `battle.player*` 零改动。答案卡留在 host 的 ref 里，永不上 wire。
+  //   ☠️ 必须**定形**（键恒在、值填 null），不能写成 `quiz: null`：assertPublicShape 逐路径比对，
+  //      nullable 子树在「有题/无题」下产出不同路径集 → 每局第一次出题当场抛 → 快照停推、
+  //      guest 静默冻屏（抛错被 usePvpHost 吞进 console.error）。已实测三种形状确实不同。
+  player: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 }, handCount: 0, quiz: emptyQuizSlot() },
+  enemy: { powerBank: { stored: 0, intact: true }, discard: [], energy: 1, leaderHp: LEADER_HP_INIT, field: emptyField(), summoned: [], attacked: [], phase: 'init', quizStreak: 0, scientistMode: { active: false, turnsLeft: 0 }, handCount: 0, quiz: emptyQuizSlot() },
 }
 
 /**
@@ -309,6 +316,26 @@ export function battleReducer(state, action) {
       const { side, value } = action
       if (state[side].quizStreak === value) return state   // no-op bailout（不变式③）
       return { ...state, [side]: { ...state[side], quizStreak: value } }
+    }
+
+    // ---- 问答（guest 答题步）：提问 / 揭晓 / 清空，三个都只动**一侧**的定形槽 ----
+    // ☠️ payload 一律是**已脱敏**的题面（quizGate.publicQuiz 的产物）。reducer 不认识
+    //    「正确答案」这个概念 —— 答案卡只存在于 host 的 ref 里，进不了这棵树、也就上不了 wire。
+    case 'QUIZ_ASK': {
+      const { side, quiz } = action
+      return { ...state, [side]: { ...state[side], quiz } }
+    }
+    case 'QUIZ_REVEAL': {
+      // 揭晓：在已有题面上补 chosenIdx / rightIdx / fact（fact 只在这一帧下发 —— 它剧透答案）
+      const { side, chosenIdx, rightIdx, fact } = action
+      const cur = state[side].quiz
+      if (!cur || cur.qid == null) return state          // 没挂题 → no-op（不变式③）
+      return { ...state, [side]: { ...state[side], quiz: { ...cur, chosenIdx, rightIdx, fact: fact ?? null } } }
+    }
+    case 'QUIZ_CLEAR': {
+      const { side } = action
+      if (state[side].quiz.qid == null) return state     // 已空 → no-op bailout（不变式③）
+      return { ...state, [side]: { ...state[side], quiz: emptyQuizSlot() } }
     }
 
     case 'SCIENTIST_SET': {

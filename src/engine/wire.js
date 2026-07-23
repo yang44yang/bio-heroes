@@ -48,7 +48,7 @@ import { MAX_FIELD_SLOTS } from '../data/deckRules.js'
  * 光有版本号不是棘轮（`1 === 1` 恒绿，最小修复是「把清单改一行」）。真正的棘轮是
  * SHAPES[PROTOCOL_VERSION] —— **版本编进形状本身，不 bump 就绿不了**。
  */
-export const PROTOCOL_VERSION = 3
+export const PROTOCOL_VERSION = 4
 
 /**
  * 事件环封顶。**测试从这里 import，不写字面量**（写死 = 让「环有多长」多一个真相源）。
@@ -263,6 +263,46 @@ export const SHAPES = Object.freeze({
     '<side>.phase',
     '<side>.powerBank.intact',
     '<side>.powerBank.stored',
+    '<side>.quizStreak',
+    '<side>.scientistMode.active',
+    '<side>.scientistMode.turnsLeft',
+    '<side>.summoned',
+    'activeSide',
+    'turn',
+    'winner',
+  ]),
+  // v4（guest 答题步）：**脱敏后的题面**提进每侧子树 → 走 mirror，guest 读自己那侧就拿到自己的题。
+  //
+  // ☠️ 这七个键**恒在**（空态填 null / []），这是定形槽，不是 nullable 子树。
+  //    写成 `quiz: null` 会让 collectPaths 在「有题/无题」下产出不同路径集 →
+  //    每局第一次出题时 assertPublicShape 当场抛 → 快照停推、guest 静默冻屏。
+  //
+  // ☠️ 这里**没有** correct：正确答案卡只存在于 host 的 ref 里，永不进这棵树。
+  //    `fact` 虽然在列，但只在**揭晓帧**（答完之后）才被填值 —— 提问帧恒 null。
+  //    理由：实测题库 805 题里 86.7% 的 fact 与正确选项重合度最高、31.9% 近乎逐字复述答案，
+  //    它和 correct 同级敏感。而 `fact` 这个名字**不在** PRIVATE_KEYS 里、findPrivate 放行 ——
+  //    挡住它的是「提问帧不填值」这条纪律，不是隐私词表。别以为词表替你守着。
+  //
+  // ⚠️ 字段命名踩过的坑：本文件 :201 曾推荐 `state[side].quizAnswered` —— 那个名字
+  //    **会被 PRIVATE_KEYS 挡下**（子串含 'answer'），照抄会让 host 每一次推送都抛。
+  //    同族被封的还有 correctIdx / quizCorrect / answeredBy。故用 chosenIdx / rightIdx。
+  4: Object.freeze([
+    '<side>.attacked',
+    '<side>.discard',
+    '<side>.energy',
+    '<side>.field',
+    '<side>.handCount',
+    '<side>.leaderHp',
+    '<side>.phase',
+    '<side>.powerBank.intact',
+    '<side>.powerBank.stored',
+    '<side>.quiz.chosenIdx',
+    '<side>.quiz.difficulty',
+    '<side>.quiz.fact',
+    '<side>.quiz.options',
+    '<side>.quiz.qid',
+    '<side>.quiz.question',
+    '<side>.quiz.rightIdx',
     '<side>.quizStreak',
     '<side>.scientistMode.active',
     '<side>.scientistMode.turnsLeft',

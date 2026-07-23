@@ -59,6 +59,11 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
   // 换牌：BattleScreen 先调 playerHand.mulligan(uids) 暂存选中卡，再调 battle.endMulligan() 铸 intent。
   //   「不换」路径只调 endMulligan（不调 mulligan）→ uids 保持 [] → 发空换牌，语义正确。
   const mulliganUidsRef = useRef([])
+  // 问答：本地记「已点继续消掉的 qid」。题槽是 host 的权威状态，guest 清不了它（clearQuiz 是 noop）——
+  //   而 host 揭晓后**故意不立刻清**（清早了 guest 就看不到揭晓）。于是靠这个本地游标：
+  //   currentQuiz 对已消的 qid 返回 null → 弹窗关掉、且后续快照重渲染也不会把它重新弹出来。
+  //   下一道题 qid 不同 → 自然又亮起来。用 useState 触发重渲染（ref 改了不会重画）。
+  const [dismissedQid, setDismissedQid] = useState(null)
 
   // 装游戏帧处理器（同 usePvpHost 的 gameFrameRef 机制）
   useEffect(() => {
@@ -122,7 +127,10 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
       playerField: s.player.field,
       enemyField: s.enemy.field,
       battleLog: guestLog,
-      currentQuiz: null,
+      // ★ 自己的题从快照里读。host 发来的已是 mirror 后的视角 → guest 的 player 就是自己，
+      //   和 useBattle 的导出处**同一个派生式**（判 qid 而不是判对象：定形槽是个恒真对象，
+      //   直接判会让一个空白全屏弹窗从第一帧就盖死屏幕）。
+      currentQuiz: (s.player.quiz?.qid == null || s.player.quiz.qid === dismissedQid) ? null : s.player.quiz,
       skillEvents: EMPTY,
       playerPowerBank: s.player.powerBank,
       enemyPowerBank: s.enemy.powerBank,
@@ -153,8 +161,21 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
       pushSkillEvents: noop,
       clearSkillEvents: noop,
       getEligibleSpCards: () => EMPTY,
-      tryQuiz: () => null,      // guest 攻击不触发问答（里程碑；抢答 = 后续）
-      answerQuiz: () => ({}),
+      // ☠️ tryQuiz 保持 null 是**对的**，不是遗漏：要不要出题由 host 权威判（wire.js 的裁定
+      //    「tryQuiz 是 attack intent 的服务端副作用」）。guest 照常把 attack 发出去，
+      //    host 决定出题就挂起它、把脱敏题面放进快照 → 上面的 currentQuiz 亮起来。
+      tryQuiz: () => null,
+      // 提交答案：只发 intent，判卷在 host（倍率根本传不进来 —— decodeIntent 会投影掉）。
+      // 返回 {pending:true} 让 BattleScreen 知道「还没判完」→ 不放对错音效、不结算攻击。
+      answerQuiz: (chosenIdx) => {
+        const q = decRef.current?.state?.player?.quiz
+        if (!q || q.qid == null) return {}
+        send('answer', { qid: q.qid, choice: chosenIdx })
+        return { pending: true }
+      },
+      // 点「继续」：本地记下当前 qid 已消 → currentQuiz 立刻变 null、弹窗关闭。
+      // host 的权威题槽不动（下一道题 qid 不同会自然覆盖），guest 不需要发任何 intent。
+      clearQuiz: () => { const q = decRef.current?.state?.player?.quiz; if (q?.qid) setDismissedQid(q.qid) },
 
       playToField: (card, slotIdx) => { send('play', { uid: card.uid, slot: slotIdx }); return { ok: true } },
       playEventCard: (card) => { send('playEvent', { uid: card.uid }); return { ok: true } },
@@ -181,7 +202,7 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
         get enemySpDeck() { return EMPTY },
       },
     }
-  }, [dec, guestLog, send, addLog])
+  }, [dec, guestLog, send, addLog, dismissedQid])
 
   // 自己的手牌 ← 通道②（self.hand）。方法全 no-op：手牌的真相在 host，变化随快照来。
   const playerHand = useMemo(() => ({

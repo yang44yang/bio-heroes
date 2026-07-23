@@ -25,8 +25,8 @@
 //   → 推送 effect 的 [battleState] deps 总能把新事件捎上，无环单独变化的推送缺口。
 //
 // ## 里程碑简化（诚实记录，后续步骤补）
-//   · guest 不换牌（同今天 AI）· guest SP 由 AI 人格代选 · guest 攻击不触发问答
-//   · answer / mulligan / spChoose intent 安静忽略（ack 仍推进，guest 不卡重传）
+//   · guest SP 由 AI 人格代选（换牌与问答都已接线）
+//   · spChoose intent 安静忽略（ack 仍推进，guest 不卡重传）；**answer 已接线**（见 replayIntent）
 //   · 拒绝类反馈不进环（guest 看快照没变自然明白）· fx 事件暂不发（浮字+日志先行）
 
 import { useEffect, useRef, useMemo, useCallback } from 'react'
@@ -47,6 +47,9 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
   // guest 换牌只应用一次：同步 ref 守卫，免得 dispatch 异步下两条 mulligan intent（guest 双击）都读到
   //   enemy.phase 还是 'mulligan' → enemyHand 被换两次。
   const enemyMulliganedRef = useRef(false)
+  // guest 那次被问答挂起的攻击（每侧一份的语义：这个 ref 天然只装 ENEMY 的，host 自己的
+  // 挂起在 BattleScreen 的 awakenOpts 里）。answer intent 到达时取出来带倍率结算。
+  const pendingAttackRef = useRef(null)
   // ---- 4e：事件环 + 已发水位 ----
   const ringRef = useRef([])
   const cursorRef = useRef(0)
@@ -109,7 +112,7 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
   // ★ 渲染期镜像最新对象 —— intent 处理器安装一次，闭包读 ref 拿最新（App.jsx:90 同款纪律）。
   //   存**包装后的** pvpBattle：guest 重放也走发射路径。
   const latestRef = useRef(null)
-  latestRef.current = { battle: pvpBattle, playerHand, enemyHand, enemyMulliganedRef }
+  latestRef.current = { battle: pvpBattle, playerHand, enemyHand, enemyMulliganedRef, pendingAttackRef }
 
   // ---- ① 推送快照（提交后的 effect；4e 起带事件环）----
   useEffect(() => {
@@ -188,7 +191,7 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
 
 // 重放一条已去重的 intent。约定逐字照抄 useAITurn（见文件头）。
 // battle 是**包装后的** pvpBattle → play/attack 自动进事件环 + host UI 浮字。
-function replayIntent(intent, { battle, playerHand, enemyHand, enemyMulliganedRef }) {
+function replayIntent(intent, { battle, playerHand, enemyHand, enemyMulliganedRef, pendingAttackRef }) {
   switch (intent.kind) {
     case 'mulligan': {
       if (enemyMulliganedRef.current) break            // 幂等：已换过 → 忽略重复 intent（防 guest 双击双换）
@@ -217,7 +220,30 @@ function replayIntent(intent, { battle, playerHand, enemyHand, enemyMulliganedRe
       break
     }
     case 'attack': {
+      // ☠️ 先问「这一击要不要触发问答」——问答是 attack intent 的**服务端副作用**，
+      //    由 host 权威判定（wire.js 的既有裁定）。触发了就**挂起这次攻击**，等 answer intent 到达
+      //    再带着倍率结算；不触发则照旧立刻打。
+      //    缺这一段，guest 永远拿不到问答 → host 答对能 ×2 而 guest 恒 ×1，是系统性不公平。
+      if (battle.tryQuiz(ENEMY)) {
+        pendingAttackRef.current = { atkSlot: intent.atkSlot, defSlot: intent.defSlot }
+        battle.addLog('🔴 对手正在答题…')
+        break
+      }
       const result = battle.attack(intent.atkSlot, intent.defSlot, {}, ENEMY)
+      if (result?.leaderHit) playSound('leaderHit')
+      else if (result) playSound('attack')
+      break
+    }
+    case 'answer': {
+      // host 用**自己**那份答案卡判卷（guest 送来的任何倍率都被 decodeIntent 投影掉了，
+      // 根本传不进来）。qid 一并交给 answerQuiz 校验，挡住重传/乱序/同题重抽造成的错算。
+      const opts = battle.answerQuiz(intent.choice, ENEMY, intent.qid)
+      if (opts?.stale) break                      // 过期答案：安静丢弃，不动挂起的攻击
+      const pend = pendingAttackRef.current
+      pendingAttackRef.current = null
+      if (!pend) break                            // 没挂着攻击（不该发生）→ 判卷已记，收工
+      // ★ 把判卷结果作为 awakenOpts 喂进去 —— 答对 ×2 就是在这里生效的
+      const result = battle.attack(pend.atkSlot, pend.defSlot, opts?.awakened ? opts : {}, ENEMY)
       if (result?.leaderHit) playSound('leaderHit')
       else if (result) playSound('attack')
       break

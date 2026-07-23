@@ -20,6 +20,7 @@ import { resolveCardCombat, aggregateCombatMods, canCardAttack } from '../engine
 // S1: 规则守门人抽成 side 参数化的纯谓词（Node 可直测 → scripts/test-rules-gates.mjs）。
 // 本 commit 只把**玩家路径**接过去；ai* 仍是另一份实现，fork 还在（S4/S5 才拆）。
 import { canPlayCard, canAttackFrom, canTargetSlot } from '../engine/rules.js'
+import { initialQuizGate, nextQuizGate, publicQuiz } from '../engine/quizGate.js'
 import { SIDES, PLAYER, ENEMY, opp } from '../engine/sides.js'
 // AI 的**人格**（挑哪张 SP / 20% 忘记）住 engine/aiTarget.js —— 与 pickAiTarget 同处，
 // 那里是「AI 怎么选」的家；引擎只管「能不能」（engine/rules.js）。S6 de-fork 的界线。
@@ -70,7 +71,9 @@ export function useBattle() {
 
   // === 日志 & 问答 & 胜负 ===
   const [battleLog, setBattleLog] = useState([])
-  const [currentQuiz, setCurrentQuiz] = useState(null)
+  // ⚠️ currentQuiz 不再是 useState —— 它**派生自 battleState.player.quiz**（见文件末尾导出处）。
+  //    这是「同一个 BattleScreen 同时服务 host 与 guest」的前提：guest 的适配器把自己那侧的
+  //    快照槽映射成同名字段，两边就走完全同一条渲染路径。
   // winner 于 E5c-4 迁进 battleReducer（派生自 reducer，见下方 battleState 后）
 
   // === 技能事件队列（供 BattleScreen 消费：伤害浮字、动画）===
@@ -200,9 +203,16 @@ export function useBattle() {
   // === 关卡特殊规则 ===
   const stageRuleRef = useRef(null)
 
-  // === 问答触发控制：首次攻击必触发，之后每3回合触发一次 ===
-  const firstAttackDone = useRef(false)      // 本局是否已做过首次攻击
-  const lastQuizTurn = useRef(0)             // 上次触发问答的回合数
+  // === 问答触发控制：**每侧一份**（guest 答题步）===
+  //   逻辑搬进 engine/quizGate.js（纯函数、可测）。这里只持有那份不可变的闸门。
+  //   ☠️ 曾是两个**单实例共享**的 ref。单机只有玩家在攻击、看不出问题；一进 PvP，
+  //      host 首攻把「首攻必触发」的额度用掉、又占住 3 回合冷却 → **guest 全程一道题都拿不到**。
+  //      那正是「host 能 ×2、guest 恒 ×1」这条系统性不公平的另一半根因。
+  const quizGateRef = useRef(initialQuizGate())
+  // host 手里的**答案卡**（每侧一份）：{ side, qid, correct, fact, _qid }。
+  // ☠️ 只活在这个 ref 里 —— 它进不了 reducer，也就永远上不了 wire。
+  const quizKeyRef = useRef({ [PLAYER]: null, [ENEMY]: null })
+  const quizSeqRef = useRef(0)               // 铸「题目实例 id」用，防同题重抽时旧答案错算
 
   const addLog = useCallback((msg) => {
     setBattleLog(prev => [...prev, msg])
@@ -1638,8 +1648,11 @@ export function useBattle() {
       dispatch({ type: 'QUIZ_STREAK_SET', side: s, value: 0 })
       dispatch({ type: 'SCIENTIST_SET', side: s, active: false, turnsLeft: 0 })
     }
-    firstAttackDone.current = false
-    lastQuizTurn.current = 0
+    // 问答闸门 + 答案卡 + 两侧题槽全部重置（每侧一份，见 quizGate.js）
+    quizGateRef.current = initialQuizGate()
+    quizKeyRef.current = { [PLAYER]: null, [ENEMY]: null }
+    quizSeqRef.current = 0
+    for (const s of SIDES) dispatch({ type: 'QUIZ_CLEAR', side: s })
     resetQuizHistory()
     // Boss 机制初始化
     campaignConfigRef.current = spDecks.campaignConfig || null
@@ -2331,23 +2344,15 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  问答觉醒
   // ----------------------------------------------------------------
-  // side 参数化（PvP 第 2 步）：streak 决定出题难度，而 streak 现在是每侧一份。
-  // ⚠️ firstAttackDone / lastQuizTurn 仍是**全局**的 —— 那是刻意的：问答的节拍是**这一局**的
-  //    （「本局首次攻击必触发、之后每 ≥3 回合一次」），不是每人一套。抢答语义（谁答到了那道题）
-  //    是第 4 步的账，形状已经定好了（state[side].quizAnswered，落每侧子树 → mirror 天然对）。
+  // side 参数化：streak 决定出题难度、节流每侧一份、题面进该侧的公开槽。
+  // 返回**脱敏后**的题面（BattleScreen 只判真假：非 null = 挂起本次攻击等答题）。
   const tryQuiz = useCallback((side = PLAYER) => {
     const currentTurn = battleStateRef.current.turn
 
-    // 首次攻击必触发
-    if (!firstAttackDone.current) {
-      firstAttackDone.current = true
-      // fall through to trigger
-    } else {
-      // 之后每3回合触发一次（距上次触发 >= 3 回合）
-      if (currentTurn - lastQuizTurn.current < 3) return null
-    }
-
-    lastQuizTurn.current = currentTurn
+    // 每侧独立的「首攻必触发 + 之后每 ≥3 回合一次」（纯函数，见 engine/quizGate.js）
+    const { fire, gate } = nextQuizGate(quizGateRef.current, side, currentTurn)
+    if (!fire) return null
+    quizGateRef.current = gate
 
     // 收集**双方**战场上所有卡牌的 id（出题优先出跟场上生物相关的）
     // ⚠️ 遍历 SIDES 而不是手写 player/enemy 两行：这里读两侧是**对称**的、不是偏袒 ——
@@ -2355,8 +2360,16 @@ export function useBattle() {
     const battleCardIds = SIDES.flatMap(s =>
       battleStateRef.current[s].field.filter(Boolean).map(c => c.id))
     const quiz = getRandomQuiz({ battleCardIds, streak: battleStateRef.current[side].quizStreak, mode: getQuizMode() })
-    setCurrentQuiz(quiz)
-    return quiz
+
+    // 铸题目**实例 id**（不是题库的 _qid —— 同一道题下次被抽中时 _qid 逐字相同，
+    // 那样一条迟到的上一轮答案会被当成本轮的）
+    const qid = `q${++quizSeqRef.current}`
+    // 答案卡留在 host 的 ref 里，永不上 wire
+    quizKeyRef.current[side] = { side, qid, correct: quiz.correct, fact: quiz.fact, _qid: quiz._qid }
+
+    const pub = publicQuiz(quiz, qid)
+    dispatch({ type: 'QUIZ_ASK', side, quiz: pub })
+    return pub
   }, [])
 
   /**
@@ -2370,14 +2383,30 @@ export function useBattle() {
    * ⚠️ 默认 side = PLAYER：今天唯一的调用点是 BattleScreen 的问答弹窗（那就是玩家）。
    *    guest 的 answer intent 到达时以 side = ENEMY 重放（第 4 步）。
    */
-  const answerQuiz = useCallback((chosenIdx, side = PLAYER) => {
-    if (!currentQuiz) return {}
-    const correct = chosenIdx === currentQuiz.correct
-    recordQuizResult(currentQuiz._qid, correct) // Leitner：答对升盒(下次隔更久)、答错回 Box1(明天再考)
-    setCurrentQuiz(null)
+  /** 收起该侧的问答弹窗（玩家点「继续」后）。题槽清空 = UI 的 `battle.currentQuiz` 变 null。 */
+  const clearQuiz = useCallback((side = PLAYER) => {
+    dispatch({ type: 'QUIZ_CLEAR', side })
+  }, [])
+
+  const answerQuiz = useCallback((chosenIdx, side = PLAYER, qid = null) => {
+    // 答案卡在**本侧**的 ref 里（host 替 guest 判卷时读的是 enemy 那份）
+    const key = quizKeyRef.current[side]
+    if (!key) return {}
+    // ☠️ qid 校验：只在调用方给了 qid 时比（本地 UI 不给 → 沿用旧行为；
+    //    guest 的 answer intent 一定给 → 挡住重传/乱序/同题重抽造成的错算）
+    if (qid != null && qid !== key.qid) return { stale: true }
+
+    const correct = chosenIdx === key.correct
+    // ☠️ Leitner 复习盒**只记玩家自己的**。host 替 guest 判卷时若照记，
+    //    齐齐答的题会进爸爸这台设备的复习计划里 —— 数据归属错，两个人的复习都被污染。
+    const isPlayer = side === PLAYER
+    if (isPlayer) recordQuizResult(key._qid, correct)
+
+    // 揭晓帧：补 chosenIdx / rightIdx / fact 进该侧的公开槽 → guest 那边同一个 QuizModal 自动进反馈阶段
+    dispatch({ type: 'QUIZ_REVEAL', side, chosenIdx, rightIdx: key.correct, fact: key.fact })
+    quizKeyRef.current[side] = null
     // ⚠️ battleStats 是**玩家的**成绩单（结算界面用），不是每侧的 —— 只在玩家答题时记。
     //    与 attack 里 `if (isPlayer)` 才记 totalDamage/kills 同一条纪律。
-    const isPlayer = side === PLAYER
     if (isPlayer) battleStatsRef.current.quizTotal++
 
     if (correct) {
@@ -2386,7 +2415,7 @@ export function useBattle() {
       //   不靠闭包读回（本文件的既有纪律，见 battleReducer 顶部的不变式）。
       const newStreak = battleStateRef.current[side].quizStreak + 1
       dispatch({ type: 'QUIZ_STREAK_SET', side, value: newStreak })
-      addLog(`🌟 觉醒！ATK ×2.0！(连续答对 ${newStreak} 题)${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
+      addLog(`🌟 觉醒！ATK ×2.0！(连续答对 ${newStreak} 题)${key.fact ? `\n📖 ${key.fact}` : ''}`)
 
       // Phase B：第8回合起"开闸"，连对 ≥ SP_QUIZ_STREAK 题（软条件之一）即召该侧的 SP
       // （软条件 OR：连对2题 或 主人HP≤50% 任一即可；HP 那半在 HP useEffect / 回合点）
@@ -2402,13 +2431,13 @@ export function useBattle() {
         scientistTriggered = true
       }
 
-      return { awakened: true, fact: currentQuiz.fact, streak: newStreak, scientistTriggered }
+      return { awakened: true, fact: key.fact, streak: newStreak, scientistTriggered }
     }
     dispatch({ type: 'QUIZ_STREAK_SET', side, value: 0 })
-    addLog(`❌ 答错了，正常攻击${currentQuiz.fact ? `\n📖 ${currentQuiz.fact}` : ''}`)
-    return { fact: currentQuiz.fact, streak: 0 }
+    addLog(`❌ 答错了，正常攻击${key.fact ? `\n📖 ${key.fact}` : ''}`)
+    return { fact: key.fact, streak: 0 }
     // deps 摘掉 scientistMode.active：函数体已不读渲染闭包（全走 battleStateRef）。
-  }, [currentQuiz, addLog, tryTriggerSp])
+  }, [addLog, tryTriggerSp])
 
   // ----------------------------------------------------------------
   //  Phase B 软条件：主人 HP 降至初始值的 50% 以下（监听双方 HP；阈值用各自初始 HP，
@@ -2477,7 +2506,12 @@ export function useBattle() {
     playerEnergy, enemyEnergy,
     playerLeaderHp, enemyLeaderHp,
     playerField, enemyField,
-    battleLog, currentQuiz,
+    battleLog,
+    // ★ 派生：本方（player 侧）的题。qid 为 null = 没挂题 → BattleScreen 的 `battle.currentQuiz &&`
+    //   自然不渲染。**必须判 qid 而不是判对象**：定形槽是个恒真对象，直接判会让空白弹窗盖死屏幕。
+    //   ☠️ 只暴露 player 侧 —— host 替 guest 出的题在 enemy.quiz 里，绝不能弹到 host 脸上
+    //   （BattleScreen 的 QuizModal 此前没有 side 过滤，那正是这一族最贵的 bug）。
+    currentQuiz: battleState.player.quiz.qid == null ? null : battleState.player.quiz,
     skillEvents,
     playerPowerBank, enemyPowerBank,
     playerDiscard, enemyDiscard,
@@ -2504,7 +2538,7 @@ export function useBattle() {
     playEventCard,              // aiPlayEventCard 已删（S6 de-fork → playEventCard(card, opts, side)）
     confirmSpSummon, cancelSpSummon, summonSpCard, dismissEnvEvent,
     getEligibleSpCards,
-    tryQuiz, answerQuiz,
+    tryQuiz, answerQuiz, clearQuiz,
     setPlayerField, setEnemyField, addLog,
     pushSkillEvents, clearSkillEvents,
     setHandRefs,  // Sprint 27: BattleScreen 注入手牌引用

@@ -102,6 +102,7 @@
   "quiz.hard": "高级",
   "quiz.correct": "🎉 答对了！",
   "quiz.wrong": "❌ 答错了",
+  "quiz.judging": "判定中…",
   "quiz.correctAnswer": "正确答案",
   "quiz.yourAnswer": "你选的",
   "quiz.continue": "继续 ▶",

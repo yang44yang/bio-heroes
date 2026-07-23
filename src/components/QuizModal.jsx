@@ -2,10 +2,23 @@ import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLanguage } from '../i18n/LanguageContext'
 
-export default function QuizModal({ quiz, onAnswer }) {
+/**
+ * QuizModal —— **由题目对象驱动的两阶段**弹窗：提问 → （判卷）→ 揭晓。
+ *
+ * ☠️ 这里曾是「点选项就用 `quiz.correct` 本地揭晓」。那在 PvP 里必然坏：guest 手里的题是
+ *    **脱敏**的（正确答案永不上 wire），`quiz.correct` 恒 undefined → `i === undefined` 恒假
+ *    → 齐齐无论答对答错都看到红色「答错了」，而且永远看不到知识卡。
+ *    改成读题目对象上的 `rightIdx`（揭晓帧由权威方回填）：
+ *      · 单机/host：answerQuiz 当场判卷 → dispatch 揭晓 → 本组件下一帧进反馈阶段
+ *      · guest：发 answer intent → host 判卷 → 揭晓随快照回来 → 同一段代码进反馈阶段
+ *    两条路径共用同一个渲染分支，不存在「PvP 专用 UI」。
+ *
+ * @param onSelect 点选项时触发（提交答案）。@param onAnswer 点「继续」时触发（收起弹窗+继续攻击）。
+ */
+export default function QuizModal({ quiz, onSelect, onAnswer }) {
   const { t } = useLanguage()
-  // 答完后进入「反馈阶段」：标出正确答案 + 讲解，再让玩家点「继续」——起到学习作用。
-  const [selected, setSelected] = useState(null)
+  // 本地只记「我点了哪个」用于提交前的即时高亮；对错一律等权威方揭晓。
+  const [pending, setPending] = useState(null)
 
   if (!quiz) return null
 
@@ -13,20 +26,23 @@ export default function QuizModal({ quiz, onAnswer }) {
   const stars = diffMap[quiz.difficulty] || '⭐'
   const label = t(`quiz.${quiz.difficulty}`)
 
-  const answered = selected !== null
-  const isRight = answered && selected === quiz.correct
+  // ★ 唯一的相位判据：权威方是否已回填正确答案下标
+  const revealed = quiz.rightIdx != null
+  const chosen = revealed ? quiz.chosenIdx : pending
+  const answered = chosen != null
+  const isRight = revealed && quiz.chosenIdx === quiz.rightIdx
 
   // 反馈阶段每个选项的样式：正确=绿✓，选错的那个=红✗，其余=暗
   const optClass = (i) => {
-    if (!answered) return 'bg-gray-700 hover:bg-yellow-600'
-    if (i === quiz.correct) return 'bg-green-600 ring-2 ring-green-300'
-    if (i === selected) return 'bg-red-600 ring-2 ring-red-300'
+    if (!revealed) return i === pending ? 'bg-yellow-600 ring-2 ring-yellow-300' : 'bg-gray-700 hover:bg-yellow-600'
+    if (i === quiz.rightIdx) return 'bg-green-600 ring-2 ring-green-300'
+    if (i === chosen) return 'bg-red-600 ring-2 ring-red-300'
     return 'bg-gray-700/50 text-gray-400'
   }
   const optMark = (i) => {
-    if (!answered) return ''
-    if (i === quiz.correct) return ' ✓'
-    if (i === selected) return ' ✗'
+    if (!revealed) return ''
+    if (i === quiz.rightIdx) return ' ✓'
+    if (i === chosen) return ' ✗'
     return ''
   }
 
@@ -55,10 +71,16 @@ export default function QuizModal({ quiz, onAnswer }) {
             {quiz.question}
           </div>
 
-          {/* 答对/答错 横幅（反馈阶段） */}
-          {answered && (
+          {/* 答对/答错 横幅（揭晓后）。⚠️ 提交了但还没揭晓时显示「等待判定」——
+              绝不能提前说「答错了」：guest 的判卷在 host 那边，中间隔着一个来回。 */}
+          {revealed && (
             <div className={`text-center font-bold text-sm sm:text-lg mb-2 sm:mb-3 ${isRight ? 'text-green-400' : 'text-red-400'}`}>
               {t(isRight ? 'quiz.correct' : 'quiz.wrong')}
+            </div>
+          )}
+          {!revealed && answered && (
+            <div className="text-center font-bold text-sm sm:text-lg mb-2 sm:mb-3 text-gray-400 animate-pulse">
+              {t('quiz.judging')}
             </div>
           )}
 
@@ -71,15 +93,15 @@ export default function QuizModal({ quiz, onAnswer }) {
                 className={`w-full py-2.5 sm:py-3 px-3 sm:px-4 rounded-lg sm:rounded-xl text-white font-medium text-left text-xs sm:text-base transition-colors min-h-[44px] ${optClass(i)}`}
                 whileHover={answered ? undefined : { scale: 1.02 }}
                 whileTap={answered ? undefined : { scale: 0.98 }}
-                onClick={() => { if (!answered) setSelected(i) }}
+                onClick={() => { if (!answered) { setPending(i); onSelect?.(i) } }}
               >
                 {String.fromCharCode(65 + i)}. {opt}{optMark(i)}
               </motion.button>
             ))}
           </div>
 
-          {/* 反馈阶段：科学讲解 + 继续按钮 */}
-          {answered && (
+          {/* 反馈阶段：科学讲解 + 继续按钮。**揭晓后**才出现（知识卡 fact 也只在揭晓帧下发） */}
+          {revealed && (
             <>
               {quiz.fact && (
                 <div className="mt-3 sm:mt-4 p-2.5 sm:p-3 bg-gray-900/70 border border-yellow-500/40 rounded-lg text-gray-100 text-xs sm:text-sm leading-relaxed">
@@ -90,7 +112,7 @@ export default function QuizModal({ quiz, onAnswer }) {
                 className="mt-3 sm:mt-4 w-full py-2.5 sm:py-3 bg-yellow-500 hover:bg-yellow-400 rounded-lg sm:rounded-xl text-gray-900 font-bold text-sm sm:text-base min-h-[44px]"
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => onAnswer(selected)}
+                onClick={() => onAnswer(chosen)}
               >
                 {t('quiz.continue')}
               </motion.button>

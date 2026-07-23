@@ -94,6 +94,8 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   const [awakenOpts, setAwakenOpts] = useState({})
   const [showExitConfirm, setShowExitConfirm] = useState(false)
   const [showRestartConfirm, setShowRestartConfirm] = useState(false)
+  // 选答时拿到的判卷结果，暂存到点「继续」时用来放觉醒演出 + 结算挂起的攻击
+  const quizResultRef = useRef(null)
   const [detailCard, setDetailCard] = useState(null)
   const [showBattleLog, setShowBattleLog] = useState(false)
   // Conundrum：如果关卡有 conundrum 配置且尚未完成，先弹 modal 阻塞战斗初始化
@@ -541,14 +543,26 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
     setSelectedAtkSlot(null)
   }, [selectedAtkSlot, doPlayerAttack, battle])
 
-  // === 问答回答 ===
-  const handleQuizAnswer = useCallback((idx) => {
+  // === 问答：① 选了某个选项 → 提交答案（判卷方回填揭晓帧） ===
+  //   host/单机：answerQuiz 当场判卷；guest：适配器把它变成一条 answer intent 发给 host。
+  //   两边都不在这里结算攻击 —— 结算等玩家读完知识卡点「继续」（见下）。
+  const handleQuizSelect = useCallback((idx) => {
     const opts = battle.answerQuiz(idx)
+    quizResultRef.current = opts || {}
+    if (opts?.pending) return          // guest：等 host 判卷，音效/演出都等揭晓帧
+    playSound(opts?.awakened ? 'quizCorrect' : 'quizWrong')
+  }, [battle])
+
+  // === 问答：② 读完知识卡点「继续」 → 收弹窗 + 结算挂起的那次攻击 ===
+  const handleQuizAnswer = useCallback(() => {
+    const opts = quizResultRef.current || {}
+    quizResultRef.current = null
+    battle.clearQuiz?.()
     const { pendingAtkSlot, pendingDefSlot } = awakenOpts
 
     if (opts.awakened) {
-      playSound('quizCorrect')
-      setTimeout(() => playSound('awaken'), 300)
+      // 对错音效已在 handleQuizSelect（选答那一刻）播过，这里只放觉醒演出
+      playSound('awaken')
       if (opts.scientistTriggered) {
         setTimeout(() => playSound('scientistMode'), 600)
       }
@@ -561,7 +575,6 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
         setAwakenOpts({})
       }, opts.scientistTriggered ? 1200 : 800)
     } else {
-      playSound('quizWrong')
       if (pendingAtkSlot !== undefined) {
         doPlayerAttack(pendingAtkSlot, pendingDefSlot)
       }
@@ -1279,8 +1292,14 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
       </div>
 
       {/* 问答弹窗 — 用 Portal 避免 z-index 问题 */}
+      {/* 问答弹窗 — 用 Portal 避免 z-index 问题。
+          ☠️ `battle.currentQuiz` **只暴露本方（player 侧）那道题**（useBattle 的导出处派生、
+             useGuestBattle 的适配器同形状）。host 替 guest 出的题在 enemy.quiz 里 ——
+             绝不能弹到 host 脸上，否则爸爸屏幕上会出现齐齐的题、他一点就替齐齐答了、
+             还把连对数刷到自己头上，而对局阻塞在这个弹窗上。
+             同样的过滤在下面的 SP 弹窗上已经写了（`pendingSpSummon?.side === 'player'`）。 */}
       {battle.currentQuiz && createPortal(
-        <QuizModal quiz={battle.currentQuiz} onAnswer={handleQuizAnswer} />,
+        <QuizModal quiz={battle.currentQuiz} onSelect={handleQuizSelect} onAnswer={handleQuizAnswer} />,
         document.body
       )}
 
