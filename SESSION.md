@@ -1,7 +1,8 @@
 # Bio Heroes Session State
-> 更新: 2026-07-24（**虎鲸/神经元/蜜蜂三技能修复已上生产**，字节验证 —— onAttack 缺 friendlyField 的根因修掉了）。
-> 更早已在生产：能量公式修复 + 三个旧「已知问题」收尾（eslint 覆盖组件 / 问答挂起兜底 / SW 缓存剪枝）。
-> 真机对战在跑 —— 下一步继续收 guest 答题 + iPad 适配的反馈；**虎鲸新数值待和齐齐试玩校准**。
+> 更新: 2026-07-24（**guest 自选 SP 已完成但尚未部署** `825545b` —— 齐齐当 guest 时终于能自己挑觉醒大招，
+> 不再由 host 的 AI 代选；零协议改动，不用双刷）。
+> 已在生产：三技能修复（friendlyField 根因）+ 能量公式 + 三个旧「已知问题」收尾。
+> 真机对战在跑 —— 下一步收 guest 答题 / iPad 适配反馈；**虎鲸新数值待和齐齐试玩校准**。
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -12,11 +13,13 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = 生产 = `fe706f9`**，干净树。测试 **63/63 绿**，lint 干净。
-- ✅ **生产 = HEAD（2026-07-24 部署 + 字节验证）**：entry `index-C7pnTNsL.js` prod md5 `e6e2c1a5…`
-  == 本地新构建，逐字节一致；技能修复所在的 BattleScreen chunk 线上返回真 JS
-  （`text/javascript` 200，不是 SPA fallback 的 text/html）。构建可复现。
-- **技能修复不动 PvP 协议**（只碰 `useBattle`/`skillTemplates`，没碰 `src/net/`）→ 不新增版本闸门。
+- **HEAD = origin/main = `825545b`**，干净树。测试 **64/64 绿**，lint 干净。
+- 🟠 **生产停在 `fe706f9`（落后 2 个 commit）** —— guest 自选 SP（`825545b`）+ 零风险清理（`976bb2d`）
+  **尚未部署**。要上线：`npm run deploy` 后**必须拉 bundle 对 md5**（回执不算数）。
+  （清理那条不改 bundle，真正要上的是 `825545b`。）
+- ✅ 上一次部署（`fe706f9`，2026-07-24）**字节验证过**：entry `index-C7pnTNsL.js` prod md5 `e6e2c1a5…`
+  == 本地新构建；BattleScreen chunk 线上返回真 JS（`text/javascript` 200，不是 SPA fallback 的 text/html）。
+- **技能修复 / guest 自选 SP 都不动 PvP 协议**（没碰 `SHAPES` 公开树）→ 不新增版本闸门、**不用双刷**。
   但齐齐 iPad 仍需**刷一次**才拿到新 bundle。SW 已在 v3，下次访问自动更新缓存。
 - 🔴🔴 **PROTOCOL_VERSION 仍是 4；若哪台 iPad 还停在 v3，两台都得 Cmd+Shift+R 才能对战**。
   中继盲转字节不崩，版本闸门在客户端：v3×v4 混用时新版快照被旧版**按版本拒收** →「连不上/开不了局」
@@ -37,13 +40,11 @@
 **guest 答题**（当 guest 也能答题、答对 ×2、看知识卡）+ **iPad 适配**（按钮变大、按下有反馈、主屏图标）。
 让齐齐各玩一局再定后续优先级。
 
-### 2. 🟡 让 guest 自己选 SP（触发已对称，缺的只是「谁来选」）
-⚠️ 澄清：**guest 连对 2 题已经能召 SP**，和 host 对称——`answer` intent → `answerQuiz(ENEMY)` →
-`tryTriggerSp(ENEMY)` 全线通，guest 的 SP 组也已作为 `enemySpDeck` 载入。缺的**只是让齐齐自己选**哪张：
-`resolveSpChoice` 的 enemy 分支走 `pickAiSpCard` **由 AI 人格代选**（`useBattle.js:1439`）。要 guest 自选，
-需给 enemy 侧接一个「翻 2 张 → 回传 choice」的往返（`spChoose` intent 现被 host 安静忽略，`usePvpHost.js:29`）。
-是否值得做由用户定（齐齐反正拿得到 SP，只是没得挑）。
-（「host 挂起攻击兜底」已在 `6631d65` 修掉：endTurn 就地 ×1 结算 + 清题槽。）
+### 2. 🟡 对手 / 自己的 SP **数**（guest 侧看不到）
+✅ **guest 自选 SP 已做完**（`825545b`）：候选走 self 私有通道 + `spChoose` intent 回传，**零协议改动**；
+回合末没选则 AI 兜底代选。剩下的只是**数字**：guest 看不到 SP 数（`useGuestBattle` 两个 spDeck 恒 EMPTY）。
+要显示得把**计数**提进**公开树** → **必须 bump PROTOCOL_VERSION**（同 handCount 先例）→ 两台强制双刷。
+为一个数字单独 bump 不划算 —— **攒着**，等下次真要改协议时顺手带上。
 
 ### 3. 📱 iPad 横屏改版（这次**刻意没做**）
 - `max-w-3xl`(768px) 封顶 → 1024px iPad 两侧各 128px 黑边、12.9 寸各约 300px。
@@ -67,9 +68,9 @@ host **刷新页面**会丢内存里的凭证，那才是 4g 的范畴。
   用户裁定「+1500 现值先上、和齐齐试玩再调」。要调就动 `skillRegistry` 的 `Coordinated Hunt` amount（或封顶友方数）。
 - 🔴 **横屏卡牌溢出**（既有，与「下一步」第 3 条同一块地方）：Safari 横屏带地址栏时（~660px 高）
   战场区仅 106px、卡面 86px 装 104px 内容 → ATK/技能行**画到卡外**；手牌事件卡同样溢出。
-- 🟡 guest 的 SP 由 AI 人格代选 · **guest 看不到 SP 数**（自己+对手都空）：wire 故意 strip `spDeck`
-  （内容是隐藏信息，`wire.js:173`），补"对手 SP 数"要新增 wire 字段 → **bump 协议**（又一次强刷），
-  **非零风险 cosmetic**。建议**并进 guest 自选 SP**（那个也要动 wire，一起 bump 免费）。
+- 🟡 **guest 看不到 SP 数**（自己+对手都空）：wire 故意 strip `spDeck`（内容是隐藏信息，`wire.js:173`）。
+  显示"数量"要把计数提进公开树 → **bump 协议**（强制双刷），非零风险 —— 攒着等下次改协议一起带。
+  （「由 AI 代选」那半已在 `825545b` 修掉：guest 现在自己选。）
 - 🟡 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）
 - 🟡 `derivePhase` 硬编码读 `state.player.phase` → guest 回合 1 派生为 `init`。已用等待横幅兜住表现
 - 🟡 打包遗留（非阻塞）：`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）·「精简模式」未实现
