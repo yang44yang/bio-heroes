@@ -25,8 +25,10 @@
 //   → 推送 effect 的 [battleState] deps 总能把新事件捎上，无环单独变化的推送缺口。
 //
 // ## 里程碑简化（诚实记录，后续步骤补）
-//   · guest SP 由 AI 人格代选（换牌与问答都已接线）
-//   · spChoose intent 安静忽略（ack 仍推进，guest 不卡重传）；**answer 已接线**（见 replayIntent）
+//   · **guest 自选 SP 已接线**（2026-07-24）：候选经 self **私有**通道下发（sources[ENEMY].spChoice），
+//     guest 回一条 spChoose intent → confirmSpSummon(card, ENEMY)；回合末还没选则 AI 人格兜底代选。
+//     换牌 / 问答（answer）也早已接线。
+//   · 对手 SP **数**仍显示 0 —— 那要进**公开树**才看得到，得 bump PROTOCOL_VERSION（同 handCount 的先例）
 //   · 拒绝类反馈不进环（guest 看快照没变自然明白）· fx 事件暂不发（浮字+日志先行）
 
 import { useEffect, useRef, useMemo, useCallback } from 'react'
@@ -36,6 +38,7 @@ import {
   appendEvents, floatEvent, logEvent,
 } from '../engine/wire.js'
 import { playSound } from '../audio/soundManager.js'
+import { pickAiSpCard } from '../engine/aiTarget.js'   // guest 没选 SP 时的回合末兜底代选
 
 export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef, resumeTick = 0 }) {
   const gRef = useRef(null)
@@ -122,8 +125,11 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
       const sync = buildSync({
         state: battle.battleState,
         sources: {
+          // ☠️ spChoice 只装**收件人自己那一侧**的 SP 候选。host 的 pendingSpSummon 绝不能进 ENEMY 桶
+          //    —— buildSync:669 会当场抛错，因为那等于在齐齐点选前把爸爸的 SP 候选剧透给他。
+          //    host 是本地的、自己的候选从不上 wire，故 PLAYER 桶恒 null。
           [PLAYER]: { hand: playerHand.hand, drawPileCount: playerHand.drawPileCount, spChoice: null },
-          [ENEMY]: { hand: enemyHand.hand, drawPileCount: enemyHand.drawPileCount, spChoice: null },
+          [ENEMY]: { hand: enemyHand.hand, drawPileCount: enemyHand.drawPileCount, spChoice: battle.pendingEnemySpSummon ?? null },
         },
         ring,
         to: ENEMY,
@@ -143,7 +149,9 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
     //   effect 也不会重跑：guest 屏幕会一直冻着，直到 host 下一次真的动棋盘。
     //   大厅在 relay.resumed（自己回来）/ relay.peer-joined（对手回来）时 +1 → 强制重推一帧全量快照。
     //   sync 是全量快照而非增量，重复推是幂等的（多推一帧只是多一次同样的渲染）。
-  }, [enabled, client, battle.battleState, playerHand.hand, enemyHand.hand, resumeTick])
+    // pendingEnemySpSummon 是**必需**依赖：SP 候选亮起/消失只改它，不动 battleState —— 漏了
+    // guest 就永远等不到那个弹窗（棋盘没变 → effect 不重跑 → 候选压根不发）。
+  }, [enabled, client, battle.battleState, battle.pendingEnemySpSummon, playerHand.hand, enemyHand.hand, resumeTick])
 
   // ---- handCount：把双方手牌张数同步进公开棋盘树 → 随快照 mirror 给 guest ----
   //   guest 的 enemyHand.hand 是空的（隐私），对手手牌数只能读这个公开字段（此前恒 0）。
@@ -257,6 +265,18 @@ function replayIntent(intent, { battle, playerHand, enemyHand, enemyMulliganedRe
       playSound('bankBreak')
       break
     }
+    // guest 自选 SP：候选是 host 先发下去的那一份，这里只按 uid 在**权威候选**里找回卡对象
+    // （decodeIntent 只放行 uid —— 卡内容根本传不进来，伪造不出一张场外 SP）。
+    case 'spChoose': {
+      const pend = battle.pendingEnemySpSummon
+      if (!pend) break                                                   // 没在等选择（重传/过期）→ 忽略，ack 照常推进
+      if (intent.uid === null) { battle.cancelSpSummon(ENEMY); break }   // guest 显式跳过
+      const chosen = pend.candidates.find((c) => c && c.uid === intent.uid)
+      if (!chosen) break                                                 // uid 不在候选里 → 忽略，弹窗留着让他重选
+      battle.confirmSpSummon(chosen, ENEMY)
+      playSound('spSummon')
+      break
+    }
     case 'endTurn':
       // ☠️ 兜底：guest 回合结束时若还挂着一次被问答暂停的攻击（正常打不出 —— 全屏问答弹窗挡着 UI，
       //    只有 buggy 客户端 / 重连竞态才会走到这），**就地以 ×1 结算并清题槽**。
@@ -268,6 +288,18 @@ function replayIntent(intent, { battle, playerHand, enemyHand, enemyMulliganedRe
         battle.attack(pend.atkSlot, pend.defSlot, {}, ENEMY)   // ×1：没答题就没有觉醒加成
         battle.clearQuiz?.(ENEMY)   // 清题槽（不是揭晓）→ guest 弹窗随下一帧快照关闭
         battle.addLog('🔴 对手没答题，攻击照常结算')
+      }
+      // ☠️ 同款兜底：回合末还挂着没选的 SP 候选 → 由 AI 人格代选。不做的话候选会跨回合停在那儿
+      //    （且随每帧快照重发）。**代选而不是取消**：保持「触发了就一定召得出来」——
+      //    与本次改动之前（敌方恒 AI 代选）行为一致，不因超时白亏掉一次触发资格。
+      if (battle.pendingEnemySpSummon) {
+        const pick = pickAiSpCard(battle.pendingEnemySpSummon.candidates)
+        if (pick) {
+          battle.confirmSpSummon(pick, ENEMY)
+          battle.addLog('🔴 对手没选 SP —— 自动替他选了一张')
+        } else {
+          battle.cancelSpSummon(ENEMY)
+        }
       }
       if (battle.phase !== 'over') {
         playerHand.draw(1)

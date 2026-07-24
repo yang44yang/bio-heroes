@@ -16,7 +16,9 @@
 //
 // ## 里程碑简化（4d「能对战」，诚实记录）
 //   · 浮字/战斗日志 = 4e（guest 本地 log 只有自己 addLog 的几条；伤害数字靠快照 HP 变化可见）
-//   · currentQuiz=null（guest 不答题）· SP 卡组显示 0（内容不在 wire 上 —— 隐私；数量后续补）
+//   · SP **卡组数**仍显示 0（内容不在 wire 上 = 隐私；要显示"数量"得进公开树 → bump 版本）。
+//     但**自选 SP 已接线**（2026-07-24）：候选走 self 私有通道，点选发 spChoose intent。
+//     （问答也早已接线 —— 本行原写「currentQuiz=null，guest 不答题」，那是 guest 答题上线前的旧话。）
 //   · 对手手牌数显示 0（handCount 不在 SHAPES v2；上 wire 要 bump 版本 = 后续一并）
 //   · 乐观返回：playToField/playEventCard 回 {ok:true} —— 真结果在下一帧快照里
 //     （host 拒了 = 状态不变 = 手牌里那张卡还在，天然一致）
@@ -140,7 +142,10 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
       scientistMode: s.player.scientistMode,
       playerSpDeck: EMPTY,
       enemySpDeck: EMPTY,
-      pendingSpSummon: null,
+      // ★ 自选 SP：候选走 self **私有**通道（公开树里 candidates 是被 strip 的 —— 在点选前
+      //   寄给对面就是剧透，见 wire.js:174）。wire 上带的是**绝对**座位（side:'enemy'），
+      //   这里镜像成 PLAYER：guest 的整个视角都是 mirror 过的，而 BattleScreen 的弹窗只认 side==='player'。
+      pendingSpSummon: dec?.self?.spChoice ? { ...dec.self.spChoice, side: PLAYER } : null,
       activeEnvEvent: null,
       pendingEnvEvent: null,
       bossMechanicEvents: EMPTY,
@@ -154,8 +159,10 @@ export function useGuestBattle({ client, gameFrameRef, initialSyncRef, floatBrid
       setPlayerField: noop,
       setEnemyField: noop,
       setHandRefs: noop,
-      confirmSpSummon: noop,
-      cancelSpSummon: noop,
+      // 点选 → 只发 uid（intent 白名单就只有 uid，卡内容传不出去也伪造不了）。
+      // 真正的召唤跑在 host 上，结果随下一帧快照回来 —— 与 answerQuiz 同款「只发意图」纪律。
+      confirmSpSummon: (spCard) => { send('spChoose', { uid: spCard.uid }) },
+      cancelSpSummon: () => { send('spChoose', { uid: null }) },
       summonSpCard: noop,
       dismissEnvEvent: noop,
       pushSkillEvents: noop,

@@ -20,7 +20,9 @@ import { usePvpHost } from '../hooks/usePvpHost'
 import BattleScreen from './BattleScreen'
 
 export default function PvpHostBattleScreen({ client, gameFrameRef, playerDeck, enemyDeck, resumeTick = 0, onExit }) {
-  const battle = useBattle()
+  // remoteEnemy：敌方席位是**真人 guest**，不是 AI → 他的 SP 由他自己选（候选走 self 私有通道，
+  // 回传 spChoose intent；见 usePvpHost）。单机的 HostBattleScreen 不传 → 敌方仍由 AI 人格代选。
+  const battle = useBattle({ remoteEnemy: true })
   const playerHand = useHand(playerDeck.mainCards, 'player')
   const enemyHand = useHand(enemyDeck.mainCards, 'enemy')
   const floatBridgeRef = useRef(null)

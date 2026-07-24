@@ -51,7 +51,13 @@ const PLAY_REJECT_MSG = {
  * 阶段流转（玩家视角）：
  *   mulligan → main（出牌）→ battle（攻击）→ enemyTurn（AI）→ main …
  */
-export function useBattle() {
+/**
+ * @param {object}  [opts]
+ * @param {boolean} [opts.remoteEnemy=false] 敌方席位是**远端真人 guest**（PvP host 传 true）。
+ *   影响唯一一处：`resolveSpChoice` 的敌方分支 —— 真人要**自己选** SP（候选经 self 私有通道下发、
+ *   spChoose intent 回传），而单机的 AI 必须**同步代选**（否则 AI 回合会卡住等一个永不到来的选择）。
+ */
+export function useBattle({ remoteEnemy = false } = {}) {
   // === 回合 & 阶段 === turn/activeSide/每侧 phase/winner 住在 battleReducer（E5c-4 → S3）
   // 真相源：state.activeSide（轮到谁） + state[side].phase（那一侧的进度：init|mulligan|main|battle|ended）
   // 对外仍暴露旧的顶层 phase 标量（derivePhase 派生）→ BattleScreen 20+ 处读取与 useAITurn 的
@@ -161,6 +167,12 @@ export function useBattle() {
   // === 事件卡效果日志（供 UI 展示动画用）===
   const [pendingSpSummon, setPendingSpSummon] = useState(null) // { side, candidates }
   const pendingSpSummonRef = useLatestRef(pendingSpSummon)
+  // 敌方侧待选（**仅 remoteEnemy=true**：guest 自选 SP）。
+  // ☠️ 不复用上面那个单例：① 两侧同时待选会互相覆盖（host 的弹窗被 guest 的顶掉）；
+  //    ② buildSync 的守卫要求「候选只能进自己那个桶」，分开存才写得出正确的 sources
+  //       （wire.js:669 那段注释专门警告过「往两个桶各挂一份」会把 host 的候选提前寄给对面）。
+  const [pendingEnemySpSummon, setPendingEnemySpSummon] = useState(null) // { side:'enemy', candidates, rule }
+  const pendingEnemySpSummonRef = useLatestRef(pendingEnemySpSummon)
   // Phase B: SP 三条件自动触发 —— 每条件本局只触发一次（按 `${side}:${reason}` 去重）
   const spTriggeredRef = useRef(new Set())
   // 主人初始 HP（用于 50% 触发阈值；campaign Boss 主人 HP 可能 ≠ 30000）
@@ -1435,11 +1447,19 @@ export function useBattle() {
       setPendingSpSummon({ side, candidates, rule })
       return
     }
+    // 敌方是**远端真人 guest** → 也交给"人"来选：候选经 self **私有**通道下发（usePvpHost 装桶），
+    // guest 点选后回一条 spChoose intent → host 这边 confirmSpSummon(card,'enemy') 落地。
+    // ☠️ 单机的敌方仍是 AI（remoteEnemy=false）→ 必须走下面的同步代选，
+    //    否则 AI 回合会停在这里等一个**永远不会到来**的选择。
+    if (remoteEnemy) {
+      setPendingEnemySpSummon({ side, candidates, rule })
+      return
+    }
     // AI：同步决策（人格住 engine/aiTarget.js）
     const chosen = pickAiSpCard(candidates)
     if (chosen) summonSpCard(chosen, side)
     else addLog(`🔴 敌方没有触发 SP 召唤`)
-  }, [addLog, summonSpCard])
+  }, [addLog, summonSpCard, remoteEnemy])
 
   /**
    * 出事件卡。**唯一的一条路（S6 de-fork）** —— 玩家与 AI/guest 共用。
@@ -1527,13 +1547,22 @@ export function useBattle() {
   // ----------------------------------------------------------------
   //  确认 SP 召唤选择（玩家 UI 回调）
   // ----------------------------------------------------------------
-  const confirmSpSummon = useCallback((spCard) => {
-    if (!pendingSpSummon) return
-    summonSpCard(spCard, pendingSpSummon.side)
-    setPendingSpSummon(null)
-  }, [pendingSpSummon, summonSpCard])
+  // side 参数化：'player' = 本地玩家点弹窗；'enemy' = 远端 guest 的 spChoose intent 到达时由 usePvpHost 调。
+  // ☠️ 读 ref 不读 state 闭包：'enemy' 那条是**异步 intent 路径**，闭包可能是旧的（本文件既有纪律）。
+  const confirmSpSummon = useCallback((spCard, side = 'player') => {
+    const pending = side === 'enemy' ? pendingEnemySpSummonRef.current : pendingSpSummonRef.current
+    if (!pending) return
+    summonSpCard(spCard, pending.side)
+    if (side === 'enemy') setPendingEnemySpSummon(null)
+    else setPendingSpSummon(null)
+  }, [summonSpCard])
 
-  const cancelSpSummon = useCallback(() => {
+  const cancelSpSummon = useCallback((side = 'player') => {
+    if (side === 'enemy') {
+      setPendingEnemySpSummon(null)
+      addLog('🔴 对手跳过 SP 召唤')
+      return
+    }
     setPendingSpSummon(null)
     addLog('跳过 SP 召唤')
   }, [addLog])
@@ -1573,8 +1602,10 @@ export function useBattle() {
   const tryTriggerSp = useCallback((side, reason) => {
     const key = `${side}:${reason}`
     if (spTriggeredRef.current.has(key)) return
-    // 玩家侧：已有待选弹窗（事件卡/其它条件）时不重复弹，避免双触发
+    // 已有待选弹窗（事件卡/其它条件）时不重复弹，避免双触发。两侧各守自己那份 ——
+    // guest 侧同理：否则会在他点选前把候选悄悄换掉。
     if (side === 'player' && pendingSpSummonRef.current) return
+    if (side === 'enemy' && remoteEnemy && pendingEnemySpSummonRef.current) return
 
     const candidates = getEligibleSpCards({ type: 'auto' }, side)
     if (candidates.length === 0) return // 无空位 / 无够回合的 SP → 不消耗触发资格
@@ -1596,7 +1627,7 @@ export function useBattle() {
     //   现在两侧同走 resolveSpChoice：规则一致，只有「谁来选」在那一处具名分叉。
     if (side === 'player') addLog(`🌟 SP 觉醒条件达成！翻开 ${picks.length} 张 SP，选 1 张召唤！`)
     resolveSpChoice(side, picks, { type: 'auto', reason })
-  }, [addLog, resolveSpChoice])
+  }, [addLog, resolveSpChoice, remoteEnemy])
 
   // ----------------------------------------------------------------
   //  环境事件 UI 回调
@@ -2527,7 +2558,7 @@ export function useBattle() {
     quizStreak: battleState.player.quizStreak,
     scientistMode: battleState.player.scientistMode,
     // SP system
-    playerSpDeck, enemySpDeck, pendingSpSummon,
+    playerSpDeck, enemySpDeck, pendingSpSummon, pendingEnemySpSummon,
     // Environment events
     activeEnvEvent, pendingEnvEvent,
     // Boss mechanics
