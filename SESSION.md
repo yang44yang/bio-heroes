@@ -1,7 +1,7 @@
 # Bio Heroes Session State
-> 更新: 2026-07-23 晚（**能量公式修复已上生产**，字节验证 —— R6 该 6 能量实得 4 的老 bug 修掉了）。
-> 同一批还清掉三个旧「已知问题」：eslint 覆盖组件 / 问答挂起兜底 / SW 缓存剪枝（`6631d65`）。
-> 真机对战在跑（能量 bug 就是这么抓到的）—— 下一步继续收 guest 答题 + iPad 适配的反馈。
+> 更新: 2026-07-24（**虎鲸/神经元/蜜蜂三技能修复已上生产**，字节验证 —— onAttack 缺 friendlyField 的根因修掉了）。
+> 更早已在生产：能量公式修复 + 三个旧「已知问题」收尾（eslint 覆盖组件 / 问答挂起兜底 / SW 缓存剪枝）。
+> 真机对战在跑 —— 下一步继续收 guest 答题 + iPad 适配的反馈；**虎鲸新数值待和齐齐试玩校准**。
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -12,12 +12,12 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = 生产 = `1dd340e`**，干净树。测试 **62/62 绿**，lint 干净。
-- ✅ **生产 = HEAD（2026-07-23 晚部署 + 字节验证）**：entry `index-CBeiY_Tq.js` prod md5 `df77168e…`
-  == 本地新构建，逐字节一致；能量修复所在的 BattleScreen chunk 线上返回真 JS
+- **HEAD = origin/main = 生产 = `fe706f9`**，干净树。测试 **63/63 绿**，lint 干净。
+- ✅ **生产 = HEAD（2026-07-24 部署 + 字节验证）**：entry `index-C7pnTNsL.js` prod md5 `e6e2c1a5…`
+  == 本地新构建，逐字节一致；技能修复所在的 BattleScreen chunk 线上返回真 JS
   （`text/javascript` 200，不是 SPA fallback 的 text/html）。构建可复现。
-- **能量修复不动 PvP 协议**（没碰 `src/net/`）→ 不新增版本闸门。但齐齐 iPad 仍需**刷一次**才拿到新 bundle
-  （新公式 + SW v3）。SW 已 v2→v3，下次访问自动更新缓存。
+- **技能修复不动 PvP 协议**（只碰 `useBattle`/`skillTemplates`，没碰 `src/net/`）→ 不新增版本闸门。
+  但齐齐 iPad 仍需**刷一次**才拿到新 bundle。SW 已在 v3，下次访问自动更新缓存。
 - 🔴🔴 **PROTOCOL_VERSION 仍是 4；若哪台 iPad 还停在 v3，两台都得 Cmd+Shift+R 才能对战**。
   中继盲转字节不崩，版本闸门在客户端：v3×v4 混用时新版快照被旧版**按版本拒收** →「连不上/开不了局」
   （不是报错弹窗）。**别一台刷一台没刷就试**，会以为坏了。想看新图标重新「加到主屏」。
@@ -62,13 +62,10 @@ host **刷新页面**会丢内存里的凭证，那才是 4g 的范畴。
 ---
 
 ## 已知问题（未修）
-- 🔴 **3 个技能因同一根因失效**：`onAttack` context 从不传 `friendlyField`（`useBattle.js:2076`）
-  - 虎鲸「协同猎杀」/ 神经元「突触传递」→ 恒 `null`
-  - 蜜蜂「自伤 500」→ `targetSlot` 恒 -1 → 伤害没生效**但日志照打**，卡牌实际强于卡面
-  - ☠️ **修复陷阱**：事件写 `_side:'friendly'` 而消费端判 `=== 'attacker'`（`useBattle.js:428`）——
-    只补 `friendlyField` 会让蜜蜂那 500 打到**敌方**。两处必须同改。
-  - 等用户拍板数值（虎鲸修好会引爆满血秒杀平衡）
-- 🔴 **横屏卡牌溢出**（既有，与上面第 3 条同一块地方）：Safari 横屏带地址栏时（~660px 高）
+- 🟡 **虎鲸新数值待试玩校准**：三技能失效已修（`fe706f9` = onAttack 补 friendlyField + 蜜蜂 `_side`；
+  见 `test-onattack-friendly-field`）。虎鲸「协同猎杀」现活了 —— 满自然场(自己+5友方)觉醒 = 32000 ≥ 主人 30000 可秒。
+  用户裁定「+1500 现值先上、和齐齐试玩再调」。要调就动 `skillRegistry` 的 `Coordinated Hunt` amount（或封顶友方数）。
+- 🔴 **横屏卡牌溢出**（既有，与「下一步」第 3 条同一块地方）：Safari 横屏带地址栏时（~660px 高）
   战场区仅 106px、卡面 86px 装 104px 内容 → ATK/技能行**画到卡外**；手牌事件卡同样溢出。
 - 🟡 guest 的 SP 由 AI 人格代选 · guest 侧对手 SP 数显示 0（cosmetic）
 - 🟡 **SP 触发门槛 doc≠code**：`battle-system.md` 写「连对2题 / HP≤50% / 第8回合」三条独立任一即触发；
