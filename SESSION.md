@@ -1,6 +1,6 @@
 # Bio Heroes Session State
-> 更新: 2026-07-24（**guest 自选 SP 已完成但尚未部署** `825545b` —— 齐齐当 guest 时终于能自己挑觉醒大招，
-> 不再由 host 的 AI 代选；零协议改动，不用双刷）。
+> 更新: 2026-07-24（**guest 自选 SP 已上生产**，字节+功能验证 —— 齐齐当 guest 时终于能自己挑觉醒大招，
+> 不再由 host 的 AI 代选；零协议改动，**不用双刷**，各刷一次即可）。
 > 已在生产：三技能修复（friendlyField 根因）+ 能量公式 + 三个旧「已知问题」收尾。
 > 真机对战在跑 —— 下一步收 guest 答题 / iPad 适配反馈；**虎鲸新数值待和齐齐试玩校准**。
 >
@@ -13,12 +13,13 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = `825545b`**，干净树。测试 **64/64 绿**，lint 干净。
-- 🟠 **生产停在 `fe706f9`（落后 2 个 commit）** —— guest 自选 SP（`825545b`）+ 零风险清理（`976bb2d`）
-  **尚未部署**。要上线：`npm run deploy` 后**必须拉 bundle 对 md5**（回执不算数）。
-  （清理那条不改 bundle，真正要上的是 `825545b`。）
-- ✅ 上一次部署（`fe706f9`，2026-07-24）**字节验证过**：entry `index-C7pnTNsL.js` prod md5 `e6e2c1a5…`
-  == 本地新构建；BattleScreen chunk 线上返回真 JS（`text/javascript` 200，不是 SPA fallback 的 text/html）。
+- **HEAD = origin/main = 生产 = `6e5264f`**，干净树。测试 **64/64 绿**，lint 干净。
+- ✅ **生产 = HEAD（2026-07-24 部署 + 字节验证）**：entry `index-D42-gkmy.js` prod md5 `ee5ae3fc…`
+  == 本地新构建，逐字节一致；各 chunk 均返回真 JS（`text/javascript` 200，不是 SPA fallback 的 html）。
+- ☝️ **功能级回验（比对哈希更进一步，值得沿用）**：光对 entry 的 md5 只证明"构建一致"，
+  证明不了**某个功能**真进了生产（PvP 代码在 lazy chunk 里，entry 里根本搜不到）。
+  做法：`grep -l 功能关键字 dist/assets/*.js` 找出承载它的 chunk → 到线上取同名文件 →
+  既比 md5 又数关键字。本次：`PvpLobby-DoSAZdQc.js` 线上 `spChoose` 6 处、md5 一致。
 - **技能修复 / guest 自选 SP 都不动 PvP 协议**（没碰 `SHAPES` 公开树）→ 不新增版本闸门、**不用双刷**。
   但齐齐 iPad 仍需**刷一次**才拿到新 bundle。SW 已在 v3，下次访问自动更新缓存。
 - 🔴🔴 **PROTOCOL_VERSION 仍是 4；若哪台 iPad 还停在 v3，两台都得 Cmd+Shift+R 才能对战**。
