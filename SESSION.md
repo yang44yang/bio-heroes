@@ -67,14 +67,12 @@ host **刷新页面**会丢内存里的凭证，那才是 4g 的范畴。
   用户裁定「+1500 现值先上、和齐齐试玩再调」。要调就动 `skillRegistry` 的 `Coordinated Hunt` amount（或封顶友方数）。
 - 🔴 **横屏卡牌溢出**（既有，与「下一步」第 3 条同一块地方）：Safari 横屏带地址栏时（~660px 高）
   战场区仅 106px、卡面 86px 装 104px 内容 → ATK/技能行**画到卡外**；手牌事件卡同样溢出。
-- 🟡 guest 的 SP 由 AI 人格代选 · guest 侧对手 SP 数显示 0（cosmetic）
-- 🟡 **SP 触发门槛 doc≠code**：`battle-system.md` 写「连对2题 / HP≤50% / 第8回合」三条独立任一即触发；
-  实际代码是「**第8回合"开闸" AND（连对2题 OR HP≤50%）**」（`useBattle.js:2426`）。第8回合前连对2题只给
-  觉醒×2 / 科学家模式，**不召 SP**；纯撑到第8回合但满血又没连对也不召。代码是有意的（注释多处「开闸」），是文档滞后。待定改哪边。
+- 🟡 guest 的 SP 由 AI 人格代选 · **guest 看不到 SP 数**（自己+对手都空）：wire 故意 strip `spDeck`
+  （内容是隐藏信息，`wire.js:173`），补"对手 SP 数"要新增 wire 字段 → **bump 协议**（又一次强刷），
+  **非零风险 cosmetic**。建议**并进 guest 自选 SP**（那个也要动 wire，一起 bump 免费）。
 - 🟡 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）
 - 🟡 `derivePhase` 硬编码读 `state.player.phase` → guest 回合 1 派生为 `init`。已用等待横幅兜住表现
-- 🟡 打包/依赖遗留（非阻塞）：`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）·
-  tsParticles 装 3 包零引用 ·「精简模式」未实现 · DEPLOY.md §4.1「零依赖」该更正为 ws 选型（§4.6 已写）
+- 🟡 打包遗留（非阻塞）：`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）·「精简模式」未实现
 
 ---
 
