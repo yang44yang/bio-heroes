@@ -37,9 +37,13 @@
 **guest 答题**（当 guest 也能答题、答对 ×2、看知识卡）+ **iPad 适配**（按钮变大、按下有反馈、主屏图标）。
 让齐齐各玩一局再定后续优先级。
 
-### 2. 🟡 guest 连对 2 题触发 SP（本次没做）
-guest 侧还没接线：`answerQuiz` 已 side 化、`tryTriggerSp(side,'gated')` 已备，落点 `usePvpHost.js`。
-（另一半「host 挂起攻击兜底」已在 `6631d65` 修掉：endTurn 就地 ×1 结算 + 清题槽。）
+### 2. 🟡 让 guest 自己选 SP（触发已对称，缺的只是「谁来选」）
+⚠️ 澄清：**guest 连对 2 题已经能召 SP**，和 host 对称——`answer` intent → `answerQuiz(ENEMY)` →
+`tryTriggerSp(ENEMY)` 全线通，guest 的 SP 组也已作为 `enemySpDeck` 载入。缺的**只是让齐齐自己选**哪张：
+`resolveSpChoice` 的 enemy 分支走 `pickAiSpCard` **由 AI 人格代选**（`useBattle.js:1439`）。要 guest 自选，
+需给 enemy 侧接一个「翻 2 张 → 回传 choice」的往返（`spChoose` intent 现被 host 安静忽略，`usePvpHost.js:29`）。
+是否值得做由用户定（齐齐反正拿得到 SP，只是没得挑）。
+（「host 挂起攻击兜底」已在 `6631d65` 修掉：endTurn 就地 ×1 结算 + 清题槽。）
 
 ### 3. 📱 iPad 横屏改版（这次**刻意没做**）
 - `max-w-3xl`(768px) 封顶 → 1024px iPad 两侧各 128px 黑边、12.9 寸各约 300px。
@@ -67,6 +71,9 @@ host **刷新页面**会丢内存里的凭证，那才是 4g 的范畴。
 - 🔴 **横屏卡牌溢出**（既有，与上面第 3 条同一块地方）：Safari 横屏带地址栏时（~660px 高）
   战场区仅 106px、卡面 86px 装 104px 内容 → ATK/技能行**画到卡外**；手牌事件卡同样溢出。
 - 🟡 guest 的 SP 由 AI 人格代选 · guest 侧对手 SP 数显示 0（cosmetic）
+- 🟡 **SP 触发门槛 doc≠code**：`battle-system.md` 写「连对2题 / HP≤50% / 第8回合」三条独立任一即触发；
+  实际代码是「**第8回合"开闸" AND（连对2题 OR HP≤50%）**」（`useBattle.js:2426`）。第8回合前连对2题只给
+  觉醒×2 / 科学家模式，**不召 SP**；纯撑到第8回合但满血又没连对也不召。代码是有意的（注释多处「开闸」），是文档滞后。待定改哪边。
 - 🟡 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）
 - 🟡 `derivePhase` 硬编码读 `state.player.phase` → guest 回合 1 派生为 `init`。已用等待横幅兜住表现
 - 🟡 打包/依赖遗留（非阻塞）：`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）·
