@@ -68,9 +68,11 @@ ssh root@67.230.186.254 "caddy validate --config /etc/caddy/Caddyfile && systemc
   WS 握手根本不触发 SW 的 fetch 事件,天然免疫。
   (已另外加了 `/api/*` 旁路 + CACHE_NAME v2 作为云存档的保险,见 commit `396db5a`;
    守卫在 `scripts/test-sw-api-bypass.mjs`。)
-- **零依赖**:中继可以只用 `node:http`/`node:crypto`/`node:net` 手写 WS upgrade。
-  这既贴合本仓库(前端零服务端依赖),也绕开 CI 的坑 —— `ci.yml` 只在根目录跑
-  `npm ci`,中继若自带 `package.json` 则它的依赖**根本不会被安装**。
+- **依赖选型**:中继**实际用了 `ws`**(`relay/server.js` import `WebSocketServer`,`relay/package.json` 有 `ws`),
+  不是手写 WS upgrade。⚠️ 曾设想「零依赖」(只用 `node:http`/`crypto`/`net` 手写)以贴合前端零服务端依赖 +
+  绕开 CI 的坑(`ci.yml` 只在根目录 `npm ci`,中继若自带 `package.json` 其依赖根本不被安装)——
+  但中继是**独立部署**的(`npm run deploy:api` 会 `npm ci --omit=dev` 装 `ws` 再 restart,不走前端 CI),
+  故 `ws` 没问题;**前端 bundle 仍零服务端依赖**。
 - **host 权威**:只有 host 挂载 `useBattle` 并掷骰(全项目 52 处 `Math.random`,
   `BattleScreen` 里 0 处)。所以**不需要拆引擎、不需要 RNG 确定性**。
 - 场景:齐齐 vs 远方朋友(跨网络)· 实时 · **公平模式**(双方全卡池自由组卡)。
