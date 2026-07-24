@@ -304,7 +304,10 @@ export function onAttackDebuff(ctx, params) {
           targetName: attacker.name,
           targetUid: attacker.uid,
           damage: params.self_damage,
-          _side: 'friendly',
+          // ★ 自伤落"攻击者自己那方"：AOE_DAMAGE 消费端只认 _side==='attacker' → friendlySetter
+          //   （onAttack 路径里 friendly = 攻击者自己的场）。曾误写 'friendly' → 不被识别 → 落敌方；
+          //   再叠加 friendlyField 从不传 → targetSlot 恒 -1 短路，掩盖了路由错。见 test-onattack-friendly-field。
+          _side: 'attacker',
           message: `💔 ${attacker.name} 自身受到 ${params.self_damage} 反噬！`,
         })
       }

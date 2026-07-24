@@ -2046,6 +2046,7 @@ export function useBattle() {
         attacker: atkCard,
         target: 'leader',
         damageMultiplier: 1,
+        friendlyField: battleStateRef.current[side].field,   // 协同猎杀(虎鲸)按自然系友方数加伤 —— per_ally 直攻主人也触发，故此路径也要传
       })
       for (const evt of atkEvents) {
         if (evt.message) addLog(`${prefix}${evt.message}`)
@@ -2089,6 +2090,7 @@ export function useBattle() {
     const preAtkEvents = triggerSkills('onAttack', {
       attacker: atkCard, defender: defCard, target: 'card',
       defSlot, enemyField: battleStateRef.current[foe].field,
+      friendlyField: battleStateRef.current[side].field,   // 协同猎杀/突触传递/蜂毒自伤 据此读友方场（曾从不传 → 三技能哑火）
     })
     // attackerField = 攻击者的场 → onHitCounter 据此定位攻击者 slot，反击才能落到正确目标
     const preHitEvents = triggerSkills('onHit', { attacker: atkCard, defender: defCard, attackerField: battleStateRef.current[side].field })

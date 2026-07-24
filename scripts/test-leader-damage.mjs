@@ -114,36 +114,37 @@ const multOf = (c) => aggregateCombatMods(triggerSkills('onAttack', leaderCtx(c)
     '③ 真实 ctx 下能拿到直攻主人倍率的卡，全卡池只有猎豹与猫头鹰')
 }
 
-// ---- ⑥ friendlyField 缺失的现状快照（这是个真 bug，不是设计）----
-// useBattle 的四个 triggerSkills('onAttack') 调用点都不传 friendlyField，
-// 而 conditionalAtk 的 per_ally 分支(skillTemplates.js)读它 → 下面两张卡的招牌技能 100% 失效。
-// ⚠️ 修好那个 bug 时这两条会红 —— 那时请回来把断言改成期望的真实数值，别直接删。
+// ---- ⑥ friendlyField 已接线（2026-07-24 根因修复）----
+// 曾经 useBattle 的两个 triggerSkills('onAttack') 调用点都不传 friendlyField，
+// conditionalAtk 的 per_ally 分支(skillTemplates.js)读它 → 虎鲸「协同猎杀」/神经元「突触传递」/
+// 蜜蜂「蜂毒尾刺」自伤 三技能 100% 失效。现已补上（两处）。
+// 本段守「直攻主人」这条 per_ally 也触发的路径 + 生产调用点接线；三技能完整功能测试见 test-onattack-friendly-field.mjs。
 {
   const orca = byName('虎鲸·深海霸主')
   assert(orca, '⑥ 找得到虎鲸·深海霸主')
   if (orca) {
-    eq(triggerSkills('onAttack', leaderCtx(mk(orca, 'o'))).length, 0,
-      '⑥ 虎鲸「协同猎杀」当前零触发（缺 friendlyField）—— 8500 SSR 的招牌技能是死的，待修')
-    eq(calcLeaderDamage(mk(orca, 'o2'), { awakened: true, damageMultiplier: multOf(mk(orca, 'o3')) }), 17000,
-      '⑥ 故其觉醒直攻主人 = 17000 < 30000，不存在"满血秒杀"（本文件初版曾误信 34000）')
-  }
-  const neuron = byName('神经元·闪电信使')
-  if (neuron) {
-    eq(triggerSkills('onAttack', leaderCtx(mk(neuron, 'n'))).length, 0,
-      '⑥ 神经元「突触传递」同样零触发（缺 friendlyField）—— 同根因，待修')
+    const o = mk(orca, 'o')
+    // per_ally 是唯一直攻主人也触发的 onAttack 加伤（skillTemplates.js 的 leader 例外）。无自然系友方 → 不触发（负例）。
+    eq(triggerSkills('onAttack', leaderCtx(o)).length, 0,
+      '⑥ 虎鲸「协同猎杀」无友方时不触发（allies=0 → null）')
+    // 2 个自然系友方（直攻主人也吃加成）→ 倍率 (8500+1500×2)/8500。
+    const nat = (uid) => ({ atk: 1000, hp: 1000, faction: 'nature', uid, currentHp: 1000, maxHp: 1000 })
+    const ctxAllies = { attacker: o, target: 'leader', damageMultiplier: 1, friendlyField: [o, nat('a1'), nat('a2')] }
+    const mult2 = aggregateCombatMods(triggerSkills('onAttack', ctxAllies)).damageMultiplier
+    eq(mult2, (8500 + 1500 * 2) / 8500, '⑥ 虎鲸 + 2 自然系友方 → 倍率 (8500+3000)/8500')
+    eq(calcLeaderDamage(o, { awakened: true, damageMultiplier: mult2 }), 23000,
+      '⑥ 觉醒 + 2 友方直攻主人 = (8500+3000)×2 = 23000（< 30000，尚不秒杀）')
+    // ⚠️ 平衡：满自然场(虎鲸 + 5 友方) (8500+7500)×2(觉醒) = 32000 ≥ 30000 → 觉醒可秒主人。
+    //   用户已裁定「现值 +1500 上线、和齐齐试玩再调」（2026-07-24）→ 此处只留提醒、不做数值断言。
   }
 
-  // 上面两条用的是本文件自己的 ctx，改 useBattle 不会让它们变红 —— 真正的哨兵在这：
-  // 直接盯生产的调用点。有人补上 friendlyField 时这条会红，把他引到这段说明。
+  // 生产调用点接线哨兵（源码级）：两个 onAttack 调用点都必须传 friendlyField。
+  // 曾断言「一个都没传(===0)」—— 修复后翻成「两个都传(===2)」。谁删了 friendlyField 这条会红。
   const src = readFileSync(join(root, 'src/hooks/useBattle.js'), 'utf8')
   const onAttackCalls = [...src.matchAll(/triggerSkills\('onAttack',\s*\{[\s\S]*?\n\s*\}\)/g)].map((m) => m[0])
-    // S5 de-fork（2026-07-17）：attack 与 aiAttack 合并 → 调用点 4 → **2**（1 直攻主人 + 1 打卡）。
-    // ⚠️ 这个数字变小**不代表覆盖变弱**：合并前必须「两处都记得传 friendlyField」，
-    //   现在只有一处 —— 哨兵反而更锐利（漏一处的可能性从 2 降到 1）。
-    eq(onAttackCalls.length, 2, '⑥ useBattle 应有 2 个 onAttack 调用点（1 直攻主人 + 1 打卡；S5 de-fork 后玩家/AI 共用）')
-  eq(onAttackCalls.filter((c) => c.includes('friendlyField')).length, 0,
-    '⑥ 现状快照：没有任何 onAttack 调用点传 friendlyField —— 若你刚补上，请回来更新 ⑥，' +
-    '并同时评估平衡：虎鲸满场 5 个自然系友方时 (8500+7500)×2(觉醒) = 32000 ≥ 主人 30000（6 格后才够得着，5 格时是 29000）')
+  eq(onAttackCalls.length, 2, '⑥ useBattle 应有 2 个 onAttack 调用点（1 直攻主人 + 1 打卡；S5 de-fork 后玩家/AI 共用）')
+  eq(onAttackCalls.filter((c) => c.includes('friendlyField')).length, 2,
+    '⑥ 两个 onAttack 调用点都必须传 friendlyField（协同猎杀/突触传递/蜂毒自伤 的根因修复）')
 }
 
 // ---- ④ 每个「能在直攻主人时触发」的技能都必须声明 mods（否则静默变哑弹）----
