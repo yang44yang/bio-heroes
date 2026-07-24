@@ -191,3 +191,62 @@ button[aria-disabled='true']:active,
     min-height: 20px !important;
   }
 }
+
+/* === P0: iPad 横屏中间档（501px ≤ 视口高 ≤ 780px）—— 2026-07-24 ===
+   ☠️ 这一档此前是**空白**：上面那条只管 ≤500px 的手机横屏，而 iPad 横屏带浏览器地址栏
+   恰好落在 660–730px 之间 —— 拿到的是完整布局，却没有容纳它的垂直预算。
+
+   实测（vite preview 真机尺寸，战场上放一张真卡后测量）：
+     1024×660(10.2寸横屏+Safari)：槽位仅 63px，卡片内容最小需 107px → **溢出 44px**
+     1180×712(11寸横屏+Safari)  ：槽位 89px  → 溢出 18px
+   溢出的是 HP 条与 ATK/技能行，被画到卡片边框外、并与下方 PB 能量条重叠（真机照片可见）。
+   临界点实测为 1024×748（槽位恰好 107、溢出 0）。
+
+   为什么按**高度**分档而不是 orientation：这个问题纯粹是垂直预算不足。按高度分档天然同时
+   覆盖「横屏带地址栏」与「矮屏」，且**竖屏 iPad(1024 高) 不会被触发** —— 竖屏是目前唯一
+   合格档位，绝不能碰。上界取 780 而非实测临界 748：卡片带状态徽章（中毒/护盾/守护中）时
+   内容会更高，留出余量。下界 501 与上面的手机横屏档严格互斥，两档不会同时命中。
+
+   做法：只压缩「家具」（顶栏/主人条/PB/分隔/信息行/日志）+ 收回战场区自身的 py，
+   **完全不碰卡片自身的布局模型**（不改 max-width、不动卡片结构）——
+   前人实测过「只放大 max-width」会把卡横向拉扁且字号不变，是死路。
+   实测本档可把槽位从 63px 抬到 117px，溢出 +44 → -2。 */
+@media (min-height: 501px) and (max-height: 780px) {
+  /* 战场区自身的 py-2：这 16px 是直接从卡槽高度里扣的，收回来最划算 */
+  [data-battle-container] [data-field-area] {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+  }
+  /* 主人血条：padding 在内层 div 上（外层只是 flex-none 包装）。
+     只压上下留白，头像与 HP 数字一个像素不动 —— 那是齐齐读盘面的主要信息。 */
+  [data-battle-container] [data-hp-bar-area] > div {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+  }
+  /* Power Bank 条：sm:h-5(20px) → 13px，仍看得清填充比例 */
+  [data-battle-container] [data-pb-bar] {
+    height: 13px !important;
+  }
+  /* ⚔️ 分隔：sm:text-2xl + py-1.5 在这一档纯属奢侈 */
+  [data-battle-container] [data-vs-divider] {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+    font-size: 15px !important;
+    line-height: 1 !important;
+  }
+  /* 信息行（SP 计数 / 手牌数 / 卡组数） */
+  [data-battle-container] [data-info-row] {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    line-height: 1.15 !important;
+  }
+  /* 顶栏 */
+  [data-battle-container] [data-top-bar] {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+  }
+  /* 战斗日志：不隐藏（横屏还有空间，日志是齐齐看懂"刚才发生了什么"的入口），只压到约两行 */
+  [data-battle-container] [data-battle-log] {
+    max-height: 26px !important;
+  }
+}
