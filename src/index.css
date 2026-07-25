@@ -250,3 +250,48 @@ button[aria-disabled='true']:active,
     max-height: 26px !important;
   }
 }
+
+/* === P1 A: 战场卡「比例锁定 + 容器查询排版」—— 2026-07-25 ===
+   根治 P0 只止住的病：战场卡从来没有 aspect-ratio，宽度是死的(≈114px)、高度是 flex 剩余空间，
+   于是长宽比在 0.48(竖屏)↔1.83(横屏矮视口) 之间漂移，矮视口下固定 ~104px 内容画到卡外。
+   （手牌卡本就有 aspect-[5/7]，战场卡是遗漏 —— 见调研审计。横竖屏统一，用户 2026-07-25 裁定。）
+
+   1. 战场行成为 inline-size 容器；卡槽锁 5:7、高度取「行高 100%」与「按宽度均分反推的高」的较小者
+      （CSS 版 Phaser FIT）→ 比例恒定 5:7，6 槽永不横向撑破。
+   2. 卡内所有尺寸改用 cqh(卡高的百分比) → 内容总高 = 常数 × 卡高 → **结构上不可能溢出**，与视口无关。
+      max(px, …cqh) 给每行像素下限：卡再小字也不会小到看不清（儿童可读性底线）。
+   3. 卡太矮 → 降级卡面：藏技能名/阵营名/需求行，反而放大 ATK/HP 关键数字。
+
+   ☠️ 两个会静默复发的坑（有 test-p1a-card-container 钉死，别手贱改回去）：
+   - 卡内 cqh 必须有 size 容器祖先（命名 bh-slot），否则 cqh 静默回退视口单位 svh → 本地对、真机歪。
+   - 卡槽高度**不能**用 100cqh：实测 `container-type: size` 施加在 flex-grow 行 + 槽高用 100cqh 时，
+     祖先 resize 后空槽不重算（卡在旧视口高度、敌方行有卡触发 relayout 恢复、我方空行却不）。
+     故行用 `container-type: inline-size`（cqw 稳定），槽高用 `min(100%, …cqw…)`（百分比高度标准重算）。
+   - 只作用 `[data-field-area]` 内 → Card.jsx 被 8 界面复用，其余 7 个无此祖先 → 零影响。 */
+[data-battle-container] [data-field-area] {
+  container-type: inline-size;        /* 只 inline-size：size 会让槽高 cqh 在 resize 后不重算（实测） */
+}
+[data-battle-container] [data-field-area] > div {
+  --bh-cols: 6;
+  --bh-gap: 0.5rem;                   /* = gap-2；作为按宽度反推的上界估算 */
+  flex: 0 0 auto !important;          /* 覆盖 flex-1：宽度改由 aspect-ratio 定 */
+  width: auto !important;
+  /* FIT = min(行高, 按宽度均分反推的高)。行高用 100%(百分比稳定重算)，宽度预算用 100cqw(稳定)。 */
+  height: min(100%, ((100cqw - (var(--bh-cols) - 1) * var(--bh-gap)) / var(--bh-cols)) * 7 / 5) !important;
+  aspect-ratio: 5 / 7 !important;
+  container: bh-slot / size;          /* 卡内 cqh 读本槽尺寸（命名，供 @container 精确匹配） */
+}
+/* 卡内排版：全部 cqh → 内容总高 = 常数 × 卡高。各行系数之和 + 留白已验算 < 100。 */
+[data-battle-container] [data-field-area] [data-cq="icon"]       { font-size: max(12px, 15cqh) !important; }
+[data-battle-container] [data-field-area] [data-cq="name"]       { font-size: max(9px, 8.5cqh) !important; }
+[data-battle-container] [data-field-area] [data-cq="faction"]    { font-size: max(7px, 6cqh) !important; }
+[data-battle-container] [data-field-area] [data-cq="hpbar"]      { height: max(9px, 9cqh) !important; }
+[data-battle-container] [data-field-area] [data-cq="hptext"]     { font-size: max(8px, 6.5cqh) !important; }
+[data-battle-container] [data-field-area] [data-cq="stats"]      { font-size: max(9px, 8cqh) !important; }
+[data-battle-container] [data-field-area] [data-cq="factionreq"] { font-size: max(7px, 6cqh) !important; }
+/* 降级卡面：卡槽矮于阈值 → 藏次要信息、放大关键数字（命名容器，只在战场卡触发） */
+@container bh-slot (max-height: 104px) {
+  [data-cq="faction"], [data-cq="skill"], [data-cq="factionreq"] { display: none !important; }
+  [data-cq="stats"]  { font-size: max(11px, 13cqh) !important; }
+  [data-cq="hptext"] { font-size: max(9px, 9cqh) !important; }
+}

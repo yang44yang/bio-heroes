@@ -197,14 +197,15 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
         </div>
       )}
 
-      {/* 阵营标记 */}
-      <div className="text-center text-sm sm:text-lg leading-none mt-0.5 sm:mt-1">{faction?.icon}</div>
+      {/* 阵营标记 —— data-cq 是给「战场卡容器查询排版」(P1 A) 的惰性钩子，只被
+          index.css 里 `[data-field-area]` 作用域的 cqh 规则消费；其它 7 个用 Card 的界面无此祖先，零影响。 */}
+      <div data-cq="icon" className="text-center text-sm sm:text-lg leading-none mt-0.5 sm:mt-1">{faction?.icon}</div>
 
       {/* 名称 */}
-      <div className="text-center text-[9px] sm:text-xs font-bold text-white truncate mt-0.5 sm:mt-1">{cardName(card)}</div>
+      <div data-cq="name" className="text-center text-[9px] sm:text-xs font-bold text-white truncate mt-0.5 sm:mt-1">{cardName(card)}</div>
 
       {/* 阵营名 */}
-      <div className="text-center text-[8px] sm:text-[10px] text-white/50 hidden sm:block">{lang === 'en' ? (faction?.nameEn || faction?.name) : faction?.name}</div>
+      <div data-cq="faction" className="text-center text-[8px] sm:text-[10px] text-white/50 hidden sm:block">{lang === 'en' ? (faction?.nameEn || faction?.name) : faction?.name}</div>
 
       {isEvent ? (
         <div className="mt-1 mb-0.5 sm:mt-1.5 sm:mb-1 text-[7px] sm:text-[9px] text-emerald-200 text-center leading-tight px-0.5 sm:px-1 min-h-[16px] sm:min-h-[24px]">
@@ -212,22 +213,22 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
         </div>
       ) : (
         <>
-          <div className="relative h-2 sm:h-3 bg-gray-800 rounded-full overflow-hidden mt-1 mb-0.5 sm:mt-1.5 sm:mb-1">
+          <div data-cq="hpbar" className="relative h-2 sm:h-3 bg-gray-800 rounded-full overflow-hidden mt-1 mb-0.5 sm:mt-1.5 sm:mb-1">
             <motion.div
               className={`absolute inset-y-0 left-0 ${hpColor} rounded-full`}
               initial={false}
               animate={{ width: `${hpPercent}%` }}
               transition={{ duration: 0.5, ease: 'easeOut' }}
             />
-            <div className="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-white drop-shadow">
+            <div data-cq="hptext" className="absolute inset-0 flex items-center justify-center text-[8px] sm:text-[10px] font-bold text-white drop-shadow">
               {hp}/{maxHp}
             </div>
           </div>
 
-          <div className="flex items-center justify-between text-[8px] sm:text-[10px] text-white/80">
+          <div data-cq="stats" className="flex items-center justify-between text-[8px] sm:text-[10px] text-white/80">
             <span>⚔️{card.atk}</span>
             {card.skills?.length > 0 && (
-              <span className="text-yellow-300 truncate max-w-[40px] sm:max-w-[60px]" title={card.skills.map(s => skillName(s)).join(', ')}>
+              <span data-cq="skill" className="text-yellow-300 truncate max-w-[40px] sm:max-w-[60px]" title={card.skills.map(s => skillName(s)).join(', ')}>
                 {skillName(card.skills[0])}
               </span>
             )}
@@ -244,7 +245,7 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
 
       {/* 阵营标记需求 */}
       {!isEvent && card.factionRequirement && (
-        <div className="text-center text-[8px] sm:text-[9px] text-amber-300/80 mt-0.5 truncate">
+        <div data-cq="factionreq" className="text-center text-[8px] sm:text-[9px] text-amber-300/80 mt-0.5 truncate">
           {t('card.factionReq', { icon: FACTIONS[card.factionRequirement.faction]?.icon, count: card.factionRequirement.count, name: localName(FACTIONS[card.factionRequirement.faction]) })}
         </div>
       )}
