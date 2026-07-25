@@ -199,7 +199,10 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
         }))
       }
       setSelectedHandIdx(null)
-      advanceStep()
+      // ☠️ play_all 要「把剩余卡全铺上场」，绝不能出一张就推进步骤 —— 否则玩家一次出一张时
+      //    出完第一张就跳到「结束回合」，剩下的牌卡在手里、下一步清场时卡数不够 → 卡死。
+      //    play_all 由「手牌空」的 useEffect 推进。
+      if (currentStep.waitFor !== 'play_all') advanceStep()
       return
     }
 
@@ -227,7 +230,8 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
     })
     setSummonedThisTurn(prev => new Set([...prev, card.uid]))
     setSelectedHandIdx(null)
-    advanceStep()
+    // play_all：出一张不推进（见上方事件卡分支的注释），由「手牌空」的 useEffect 推进。
+    if (currentStep.waitFor !== 'play_all') advanceStep()
   }, [currentStep, playerHand, playerEnergy, playerField, playerDiscard, advanceStep, showFloat])
 
   // === 玩家操作：攻击 ===
@@ -274,8 +278,11 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
     })
     setAttackedThisTurn(prev => new Set([...prev, atkCard.uid]))
     setSelectedAtkSlot(null)
-    advanceStep()
-  }, [playerField, enemyField, summonedThisTurn, attackedThisTurn, showFloat, advanceStep])
+    // ☠️ clear_field 要「清光敌方全场」，打一张就推进会让提示在还剩敌人时就喊「场上清空了」，
+    //    然后停在直攻主人步 —— 而那一步点敌方卡不会再攻击，剩下的敌人永远清不掉 → 卡死。
+    //    与 play_all 同款：由「敌方场空」的 useEffect 推进。
+    if (currentStep?.waitFor !== 'clear_field') advanceStep()
+  }, [currentStep, playerField, enemyField, summonedThisTurn, attackedThisTurn, showFloat, advanceStep])
 
   // === 玩家操作：直攻主人 ===
   const handleDirectAttack = useCallback((atkSlot) => {
@@ -386,10 +393,15 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
     } else {
       // 点击敌方卡 — 如果已选中攻击者，执行攻击
       if (selectedAtkSlot !== null && (w === 'attack' || w === 'clear_field')) {
+        // 守护强制：场上有存活守护卡时只能先打它（关卡3教这个机制）。
+        // 无守护关卡 guardIdx=-1，不受影响。不做的话玩家能绕过守护打普通兵，
+        // 而 guard_down 步骤会误报「守护被打倒」。
+        const guardIdx = enemyField.findIndex(c => c && c.currentHp > 0 && c.skills?.some(s => s.type === 'guard'))
+        if (guardIdx >= 0 && slot !== guardIdx) return
         handleAttack(selectedAtkSlot, slot)
       }
     }
-  }, [currentStep, playerField, selectedAtkSlot, handleAttack])
+  }, [currentStep, playerField, enemyField, selectedAtkSlot, handleAttack])
 
   const handleLeaderClick = useCallback((side) => {
     if (!currentStep) return
@@ -412,6 +424,17 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
       advanceStep()
     }
   }, [currentStep, playerHand.length, advanceStep])
+
+  // === play_card: 无牌可出（能量不足/战场满）时自动跳过 ===
+  // ☠️ 关卡2 的卡死点：先出 2 费白细胞 → 0 能量 → play_second 等的是 'play_card'，
+  //    但手里剩的都出不起、这一步又没有「结束回合」按钮 → 永久卡住。
+  //    文案本就写「能量不够就结束回合」，这里把那个意图兑现（能出就等玩家，出不了才跳）。
+  useEffect(() => {
+    if (currentStep?.waitFor !== 'play_card') return
+    const hasEmptySlot = playerField.some(s => s === null)
+    const canPlayAny = playerHand.some(c => c.cost <= playerEnergy && (c.type === 'event' || hasEmptySlot))
+    if (!canPlayAny) advanceStep()
+  }, [currentStep, playerHand, playerEnergy, playerField, advanceStep])
 
   // === clear_field: 自动检测敌方场上是否清空 ===
   useEffect(() => {

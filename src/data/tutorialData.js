@@ -89,7 +89,9 @@ export const LEVEL_1 = {
   ],
   getEnemyField: () => {
     const field = Array(MAX_FIELD_SLOTS).fill(null)
-    field[2] = weakCard('训练假人', 500, 1000, 'pathogen', 'Training Dummy')
+    // ATK 300（原 500 是 bug）：蚂蚁 1000HP 先挨 enemy_attack 一次，再和它互扣一次，
+    // 两次都是这个 ATK。500 → 1000-500-500=0 蚂蚁死光、无卡打主人卡死。300 → 剩 400 存活。
+    field[2] = weakCard('训练假人', 300, 1000, 'pathogen', 'Training Dummy')
     return field
   },
   playerField: () => Array(MAX_FIELD_SLOTS).fill(null),
@@ -301,7 +303,9 @@ export const LEVEL_3 = {
   ],
   getEnemyField: () => {
     const field = Array(MAX_FIELD_SLOTS).fill(null)
-    field[1] = weakCardWithSkills('守卫兵', 1500, 2000, 'pathogen', 'Guard Soldier', [
+    // HP 1500（原 2000）：must_attack_guard 一次攻击就推进步骤，若守护没被一击打死，
+    // 会显示「守护被打倒」但它其实还活着。玩家最弱攻击 = 骨架 1500×1.2(克制)=1800 > 1500 → 必一击。
+    field[1] = weakCardWithSkills('守卫兵', 1500, 1500, 'pathogen', 'Guard Soldier', [
       { name: '守护', nameEn: 'Guard', description: '对手只能攻击该卡', descriptionEn: 'Opponents must attack this card', type: 'guard' },
     ])
     field[2] = weakCard('普通兵', 1000, 1500, 'pathogen', 'Normal Soldier')
@@ -429,9 +433,12 @@ export const LEVEL_4 = {
   ],
   getEnemyField: () => {
     const field = Array(MAX_FIELD_SLOTS).fill(null)
-    field[1] = weakCard('沙袋A', 800, 2500, 'pathogen', 'Sandbag A')
-    field[2] = weakCard('沙袋B', 800, 2500, 'pathogen', 'Sandbag B')
-    field[3] = weakCard('沙袋C', 800, 2500, 'pathogen', 'Sandbag C')
+    // HP 2000（原 2500）：clear_field 步骤不能结束回合，每张卡一回合只攻击一次。
+    // 2500 时只有猎豹(5000)/电鳗(3000) 能一击，3 个沙袋乱分攻击会剩一个清不掉→卡死。
+    // 2000 时蜜蜂(2000)也能一击 → 3 张一击卡(豹/鳗/蜂)刚好对 3 个沙袋，怎么打都清得掉。
+    field[1] = weakCard('沙袋A', 800, 2000, 'pathogen', 'Sandbag A')
+    field[2] = weakCard('沙袋B', 800, 2000, 'pathogen', 'Sandbag B')
+    field[3] = weakCard('沙袋C', 800, 2000, 'pathogen', 'Sandbag C')
     return field
   },
   playerField: () => Array(MAX_FIELD_SLOTS).fill(null),
