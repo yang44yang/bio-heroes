@@ -448,6 +448,37 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
     }
   }, [currentStep, enemyField, advanceStep])
 
+  // === 兜底逃生阀（2026-07-25）===
+  // ☠️ 除 play_card 外，其余「要求一个具体动作」的步骤原本**都没有兜底**：一旦资源不足
+  //    （能量 / 空位 / 可攻击的卡 / bank 存量），屏幕上就没有任何能推进的可点目标，
+  //    而「结束回合」按钮只在 end_turn 步可点（isClickable），孩子唯一出口是「跳过教学」= 本关报废。
+  //    历史上 4 处卡死（7ba8cb7）与本次查出的 L3 step7 / L5 step5 全是这个形状。
+  // ⚠️ 这是**安全网，不是「数据可以不可解」的许可**：scripts/test-tutorial-solvable.mjs 仍然要求
+  //    每关在**不依赖本逃生阀**的前提下怎么点都能通关（它只建模 play_card 那个原生阀）。
+  //    别因为「反正有兜底」就把这里加进模拟器 —— 那等于把守卫自我阉割成永远绿。
+  // ⚠️ 两处**故意不在这里处理**，避免同一次提交里两个 effect 都调 advanceStep 而一次跳两步：
+  //    play_all 的「手牌空」与 clear_field 的「敌方场空」已由上面各自的 effect 负责。
+  useEffect(() => {
+    const w = currentStep?.waitFor
+    if (!w) return
+    const emptySlot = playerField.some(s => s === null)
+    const alive = enemyField.some(c => c && c.currentHp > 0)
+    // 与 handleAttack / handleDirectAttack 同款判定：攻击查两个 Set，直攻只查召唤疲劳
+    const canAttack = playerField.some(c => c && !attackedThisTurn.has(c.uid) && !summonedThisTurn.has(c.uid))
+    const canDirect = playerField.some(c => c && !summonedThisTurn.has(c.uid))
+    const canPlayAny = playerHand.some(c => c.cost <= playerEnergy && (c.type === 'event' || emptySlot))
+
+    let stuck = false
+    if (w === 'play_event') stuck = !canPlayAny
+    else if (w === 'attack') stuck = !canAttack || !alive
+    else if (w === 'clear_field') stuck = !canAttack && alive        // 场空那半交给上面的 effect
+    else if (w === 'direct_attack') stuck = !canDirect
+    else if (w === 'summon_sp') stuck = playerSpDeck.length === 0 || !emptySlot
+    else if (w === 'break_power_bank') stuck = !powerBank.intact || powerBank.stored <= 0
+    if (stuck) advanceStep()
+  }, [currentStep, playerField, enemyField, playerHand, playerEnergy, playerSpDeck,
+    powerBank, attackedThisTurn, summonedThisTurn, advanceStep])
+
   // === 检测胜利 ===
   useEffect(() => {
     if (enemyLeaderHp <= 0 && phase === 'battle' && currentStep?.waitFor !== 'acknowledge') {

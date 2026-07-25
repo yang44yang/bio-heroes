@@ -1,10 +1,12 @@
 // Bio Heroes 教学关卡数据
 // Sprint 21: 3 基础 + 2 进阶教学关卡
 
-import cards from './cards'
-import { MAX_FIELD_SLOTS } from './deckRules'
-import eventCards from './eventCards'
-import spCards from './spCards'
+// ⚠️ 相对 import 必须带 .js：Vite 两种写法都认，Node ESM 只认显式扩展名 ——
+//    漏了就等于把本文件锁在 npm test 之外（scripts/test-tutorial-solvable.mjs 要 import 它）。
+import cards from './cards.js'
+import { MAX_FIELD_SLOTS } from './deckRules.js'
+import eventCards from './eventCards.js'
+import spCards from './spCards.js'
 
 const cardById = (id) => {
   const c = cards.find(c => c.id === id)
@@ -293,13 +295,19 @@ export const LEVEL_3 = {
   ],
   summary: '🎓 你学会了：守护卡能挡住攻击、技能自动触发、每张卡都有独特能力',
   summaryEn: '🎓 You learned: Guard blocks attacks, skills trigger automatically, each card is unique',
-  playerEnergy: 4,
+  // ☠️ 能量 7 不是随手写的：本关 step7 free_attack 要求「再攻击一次」，而每张卡每回合只能攻击一次
+  //    （handleAttack 查 attackedThisTurn，中间又没有 end_turn 重置）→ **场上必须有 2 张卡**。
+  //    手牌 cost 是 4/3/2，最贵的两张 = 4+3 = 7，所以只有 ≥7 才能保证**不论孩子先点哪张**都出得起两张。
+  //    原值 4（最便宜两张 = 5 > 4）→ 场上永远只有 1 张 → step7 选不出攻击者、该步无逃生阀、
+  //    结束回合按钮又只在 end_turn 步可点 → **100% 硬卡死**，只能「跳过教学」。
+  //    （由 scripts/test-tutorial-solvable.mjs 的对抗式穷举钉死；改小会立刻变红。）
+  playerEnergy: 7,
   playerLeaderHp: 30000,
   enemyLeaderHp: 10000,
   getPlayerHand: () => [
-    cardById('skeleton_frame'),     // 有守护
-    cardById('neuron_messenger'),   // 有迅击
-    cardById('white_blood_cell'),   // 有技能
+    cardById('skeleton_frame'),     // 4费 有守护
+    cardById('neuron_messenger'),   // 3费 有迅击
+    cardById('white_blood_cell'),   // 2费 有技能
   ],
   getEnemyField: () => {
     const field = Array(MAX_FIELD_SLOTS).fill(null)
@@ -593,13 +601,19 @@ export const LEVEL_5 = {
   ],
   summary: '🎓 你学会了：事件卡立即生效进弃牌堆、SP 卡只能通过事件卡召唤、SP 卡免费上场且有超强登场效果',
   summaryEn: '🎓 You learned: event cards take effect instantly and go to discard, SP cards can only be summoned via event cards, SP cards enter for free with powerful entrance effects',
-  playerEnergy: 5,
+  // ☠️ 能量 6 = 手牌总费 1+1+4，一分不多一分不少：step3/step4/step5 三步**各强制打出一张**，
+  //    而三步之间没有 end_turn 回能 → 三张必须用同一池能量全部打出，不论孩子按什么顺序点。
+  //    原值 5 → 任何顺序都会剩一张出不起，而 play_event **没有**「出不起就放行」的逃生阀
+  //    （只有 play_card 有）→ **100% 硬卡死**在 step5。根因是下面那条注释曾写「2费 事件卡」，
+  //    而 event_food_chain_burst 的真实 cost 是 4 —— 过期注释把预算算错了。
+  //    （scripts/test-tutorial-solvable.mjs 同时钉死能量预算和「注释费用 == 真实费用」。）
+  playerEnergy: 6,
   playerLeaderHp: 30000,
   enemyLeaderHp: 12000,
   getPlayerHand: () => [
     cardById('ant_soldier'),            // 1费 自然系
     cardById('bee_worker'),             // 1费 自然系
-    { ...cardById('event_food_chain_burst'), uid: `tut_event_fcb_${Math.random().toString(36).slice(2, 6)}` }, // 2费 事件卡
+    { ...cardById('event_food_chain_burst'), uid: `tut_event_fcb_${Math.random().toString(36).slice(2, 6)}` }, // 4费 事件卡
   ],
   getEnemyField: () => {
     const field = Array(MAX_FIELD_SLOTS).fill(null)

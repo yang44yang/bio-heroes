@@ -42,11 +42,34 @@ body {
   scroll-snap-align: start;
 }
 
-/* 手机竖屏横屏提示 — 仅在窄屏竖屏时显示 */
+/* === 转屏提示 —— 2026-07-25 把方向**反过来**了 ===
+   原条件是 `(max-width: 639px) and (orientation: portrait)`，文案「请横过来玩！」——
+   即在**手机竖屏**弹全屏黑幕，把人赶去横屏。这从 2026-03-26（eba0f3c，那个 sprint 的标题就叫
+   「iPad横屏优先」）起没改过，而实测证明方向恰好写反了：
+
+     390×844 手机竖屏：卡槽比例 0.714、零溢出、板面占满 98% 宽、且是手机上**唯一**能同时拿到
+       44pt 触控热区（min-height:600 那两处）和 5:7 手牌比例（min-height:501）的档位 —— 完全能玩，
+       却被这块 `fixed inset-0 z-[999]` 的黑幕整个挡住（全仓只有战斗界面有这块黑幕，
+       主菜单/图鉴/抽卡在竖屏都正常，于是表现为「点开始战斗就没法玩了」）。
+     844×390 手机横屏：卡槽 22.3×31.3、卡内内容溢出 45px、手牌卡比例 1.03（同屏两套比例）、
+       ⓘ 热区退回 24×24 —— 这才是唯一坏掉的档，而它**永远看不到**这条提示（844 > 639 且非竖屏）。
+
+   同一天的 dfe0f3c 还专门为手机横屏写了整档紧凑 CSS（下面 max-height:500 那一档）——
+   一边劝人转过去、一边给转过去的人擦屁股，方向从一开始就是矛盾的。
+   （P1 B 的注释里已经写明「手机横屏本就该走请转竖屏」，本次把它落地。）
+
+   ⚠️ 条件三件套，每一条都有理由：
+   · `orientation: landscape` —— 只在真的横过来时挡，竖屏放行（这是本次反转的核心）。
+   · `max-height: 500px` —— 与下面手机横屏紧凑档同一个边界，保证 **iPad 横屏（高 ≥ 660）永不命中**。
+   · `hover: none` —— 只针对触屏。这是块**全屏拦截**，桌面用户把窗口拖成又宽又矮时
+     弹「请转竖屏」是荒谬的，宁可让他看紧凑布局。两个方向的失败都是优雅降级。
+   ⚠️ 写法上把 `orientation` 放在最前面：test-responsive-tiers 用
+     `/@media\s*\(max-height:\s*(\d+)px\)\s*\{/` **取第一个匹配**当手机横屏档，
+     若这里写成 `@media (max-height: 500px) and …` 且排在那一档之前，那个守卫会解析到错的块并静默失效。 */
 [data-landscape-prompt] {
   display: none !important;
 }
-@media (max-width: 639px) and (orientation: portrait) {
+@media (orientation: landscape) and (max-height: 500px) and (hover: none) {
   [data-landscape-prompt] {
     display: flex !important;
   }

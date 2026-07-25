@@ -1707,11 +1707,12 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
         document.body
       )}
 
-      {/* 手机竖屏横屏提示 */}
+      {/* 手机**横屏**转竖屏提示（2026-07-25 方向反转，理由见 index.css 的「转屏提示」段）。
+          display 由 CSS 控制（这里故意不写 flex）—— 只在 landscape + 矮 + 触屏三条同时满足时才铺开。 */}
       <div className="fixed inset-0 z-[999] bg-gray-900/95 flex-col items-center justify-center gap-4" data-landscape-prompt="true">
         <div className="text-6xl animate-bounce">📱</div>
-        <p className="text-white text-lg font-bold">{t('battle.landscape')}</p>
-        <p className="text-gray-400 text-sm">{t('battle.landscapeHint')}</p>
+        <p className="text-white text-lg font-bold">{t('battle.rotatePortrait')}</p>
+        <p className="text-gray-400 text-sm">{t('battle.rotatePortraitHint')}</p>
       </div>
     </div>
   )
