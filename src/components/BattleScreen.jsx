@@ -1226,6 +1226,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
             return (
               <div
                 key={card.uid}
+                data-hand-card="true"
                 className={`relative flex-none w-[22%] sm:w-[15%] lg:w-[13%] aspect-[5/7] max-h-[110px] cursor-pointer transition-transform snap-start ${
                   selectedHandIdx === i ? 'scale-105 ring-2 ring-green-400 rounded-lg sm:rounded-xl' : ''
                 } ${isMainPhase && canAfford && markerOk ? 'opacity-100' : 'opacity-50'}`}
