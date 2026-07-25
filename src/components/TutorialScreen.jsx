@@ -7,6 +7,10 @@ import {
   loadTutorialProgress, saveTutorialProgress,
 } from '../data/tutorialData'
 import { useLanguage } from '../i18n/LanguageContext'
+// ☠️ 守护判定必须用主战场那个**单一真相源**（按 nameEn 白名单），不能在教学里另写一套
+//    `s.type === 'guard'` —— guardSkill.js 的注释记着「三处硬编码 nameEn 导致两张卡守护失效」
+//    的历史坑，教学再分叉一次就是第四处。教学守卫兵的 nameEn 正是 'Guard'，天然被认出。
+import { cardHasGuard, fieldHasGuard } from '../utils/guardSkill'
 
 // ================================================================
 //  TutorialScreen — 教学模块
@@ -396,7 +400,8 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
         // 守护强制：场上有存活守护卡时只能先打它（关卡3教这个机制）。
         // 无守护关卡 guardIdx=-1，不受影响。不做的话玩家能绕过守护打普通兵，
         // 而 guard_down 步骤会误报「守护被打倒」。
-        const guardIdx = enemyField.findIndex(c => c && c.currentHp > 0 && c.skills?.some(s => s.type === 'guard'))
+        // 判定走 cardHasGuard（主战场同一真相源），不自己认 type:'guard'。
+        const guardIdx = enemyField.findIndex(c => c && c.currentHp > 0 && cardHasGuard(c))
         if (guardIdx >= 0 && slot !== guardIdx) return
         handleAttack(selectedAtkSlot, slot)
       }
@@ -828,17 +833,32 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
           style={{ gridTemplateColumns: `repeat(${MAX_FIELD_SLOTS}, minmax(0, 1fr))` }}
           data-field-area="true"
         >
-          {enemyField.map((card, slot) => (
+          {enemyField.map((card, slot) => {
+            // 守护可视化（齐齐反馈：第三关"守护看不出来" —— 教学的迷你卡此前只画
+            // 名字/⚔️/❤️/阵营，skills 一个字都不显示，守卫兵和普通兵**长得一模一样**，
+            // 而提示却说"敌方有一张守护卡🛡️"，孩子根本无从分辨是哪张）。
+            const isGuard = cardHasGuard(card)
+            // 被守护挡住 = 这一刻打不了：变灰 + 不给可点样式，让"只能先打守护卡"看得见而不是撞墙。
+            const blockedByGuard = !!card && !isGuard && fieldHasGuard(enemyField)
+            const targetable = selectedAtkSlot !== null && card && !blockedByGuard
+            return (
             <div
               key={`ef-${slot}`}
               className={`rounded-lg border relative transition-all ${
                 card ? 'border-red-700/50 bg-red-950/30' : 'border-gray-800 bg-gray-900/50'
-              } ${selectedAtkSlot !== null && card ? 'cursor-pointer border-red-500' : ''}`}
-              {...(selectedAtkSlot !== null && card ? { 'data-attack-target': 'true' } : {})}
+              } ${isGuard ? 'border-cyan-400 bg-cyan-950/30' : ''} ${targetable ? 'cursor-pointer border-red-500' : ''} ${
+                blockedByGuard ? 'opacity-40' : ''
+              }`}
+              {...(targetable ? { 'data-attack-target': 'true' } : {})}
               onClick={() => card && handleFieldCardClick('enemy', slot)}
             >
               {card && (
                 <div className="w-full h-full flex flex-col items-center justify-center p-0.5">
+                  {isGuard && (
+                    <div className="text-[9px] font-bold text-cyan-300 leading-none flex items-center gap-0.5">
+                      🛡️<span>{t('tutorial.guarding')}</span>
+                    </div>
+                  )}
                   <div className="text-xs font-bold text-center truncate w-full">{card.name?.slice(0, 4)}</div>
                   <div className="text-[10px] text-red-300">⚔️{card.atk}</div>
                   <div className="text-[10px] text-green-300">❤️{card.currentHp}/{card.maxHp || card.hp}</div>
@@ -861,7 +881,8 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
                 ))}
               </AnimatePresence>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -926,6 +947,13 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
               )}
               {card && (
                 <div className="w-full h-full flex flex-col items-center justify-center p-0.5">
+                  {/* 我方守护同样要显示：第三关手牌里的骨骼就有守护，只在敌方画标识会让
+                      "守护是什么"只学到一半。 */}
+                  {cardHasGuard(card) && (
+                    <div className="text-[9px] font-bold text-cyan-300 leading-none flex items-center gap-0.5">
+                      🛡️<span>{t('tutorial.guarding')}</span>
+                    </div>
+                  )}
                   <div className="text-xs font-bold text-center truncate w-full">{card.name?.slice(0, 4)}</div>
                   <div className="text-[10px] text-red-300">⚔️{card.atk}</div>
                   <div className="text-[10px] text-green-300">❤️{card.currentHp}/{card.maxHp || card.hp}</div>
