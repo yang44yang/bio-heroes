@@ -5,6 +5,44 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 教学两处硬卡死 + 转屏提示方向修反（2026-07-25）✅ `a4df51f`
+> 本轮的起点只是"给教学的卡死复发模式补个 source-grep 守卫"，结果守卫写成的当天就在**线上正在跑的**
+> 数据里抓出两处 100% 复现的硬卡死 —— 齐齐上次卡在 L3 守护提示，修完接着往下走就会撞上 step7。
+
+**两处死锁（对抗式穷举查出，先红后绿）：**
+- **L3 step7 `free_attack`**：energy 4 而手牌 cost 4/3/2 → 最便宜两张 =5>4 → 场上**永远只有 1 张卡**；
+  它在 step5 打守护时 uid 已进 `attackedThisTurn`（中间无 end_turn 不重置）→ step7 选不出攻击者。
+  → `playerEnergy` 4→**7**（最贵两张 4+3=7，保证不论先点哪张都出得起两张）。
+- **L5 step5 `play_event`**：energy 5 而手牌 1+1+4=6（事件卡真实 cost 4，注释误写「2费」），
+  步骤 3/4/5 三连出牌之间没有 end_turn 回能 → 任何顺序都剩一张出不起。→ `playerEnergy` 5→**6** + 修注释。
+- 两处都**没有逃生阀**（只有 play_card 有），结束回合按钮又只在 end_turn 步可点 → 唯一出口是「跳过教学」。
+
+**新守卫 `scripts/test-tutorial-solvable.mjs`（46 条）：** 这类 bug **grep 抓不住**（语法完全合法，
+是"预算算术 vs 步骤要求"不匹配），故把 TutorialScreen 的玩家可达状态机复刻成纯函数 + DFS 穷举
+**每一步所有合法点击**，判据是「最坏顺序也能通关」（7 岁小孩会乱点）。L4 曾状态爆炸 40 万节点跑不完，
+加**槽位无关化指纹**后 0.08s 跑完；该合并只在无 `enemy_attack` 自动动作时成立，由 `canonical()` 逐关判定。
+
+**兜底逃生阀（TutorialScreen）：** 除 play_card 外 6 种「要求具体动作」的步骤原本都没有兜底，
+新增一个 useEffect 覆盖 play_event/attack/clear_field/direct_attack/summon_sp/break_power_bank。
+⚠️ 它是安全网**不是**「数据可以不可解」的许可 —— 守卫仍只建模 play_card 那个原生阀。
+
+**转屏提示方向修反：** 原 `(max-width:639px) and (orientation:portrait)` + 「请横过来玩！」，
+即在**手机竖屏**弹全屏黑幕把人赶去横屏。实测方向恰好写反：390×844 竖屏比例 0.714、零溢出、44pt 热区齐全，
+是手机上唯一能玩的档却被黑幕挡住；844×390 横屏槽仅 22.3×31.3、溢出 45px，才是坏的那档却永远看不到提示。
+改为 `(orientation:landscape) and (max-height:500px) and (hover:none)`（max-height 保证 iPad 横屏永不命中、
+hover 保证桌面窄窗口不被全屏拦截）+ 文案「请竖过来玩！」，key 改名 `battle.rotatePortrait{,Hint}`。
+这条方向从 2026-03-26 `eba0f3c` 起没人动过，而同一天的 `dfe0f3c` 还专门给手机横屏写了整档紧凑 CSS。
+
+**验证：** 真机走查（vite preview 跑真组件）L3 十步全通、L5 全通到毕业奖励；
+变异测试 **19/19 全部变红**（10 条并行 worktree + 9 条本地重跑 + 3 条针对新改的大括号配对提取逻辑）；
+生产按内容定位验到 L3=7 / L5=6（`playerEnergy:7` 这种字面量压缩后不存在，字面 grep 会误判）。
+
+**顺手记下但没修：** `targetCardIdx` 数据里 3 处、组件 0 处引用（脚本以为控制了出牌顺序，其实没有）·
+`highlight:'enemy_slot_1'` 没有对应 `isHighlighted` 分支（那一步高亮到空气）·
+`clear_field` 步允许点敌方主人绕过清场（L4 恰好后接直攻步所以不卡死，换个后继步就复发）。
+
+---
+
 ## PvP guest 答题（2026-07-23）✅ `7fa8c0d`
 > 修掉 **host 答对 ×2 / guest 恒 ×1** 的系统性不公平 —— guest 那一侧「玩法即学习」此前是关着的。
 > 真机双 tab 走通全链：guest 攻击→弹问答（host 屏幕不弹）→答对 ×2、看知识卡、连对数记自己头上。
