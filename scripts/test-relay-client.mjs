@@ -177,6 +177,22 @@ const mk = (over = {}) => {
     '⑧ host 首连 URL：只有 role，无 room/token')
 }
 
+// ---- ⑨ ☠️ 续局（host 自恢复）：注入的凭证必须**首连就带上** ----
+//   4g 场景：host 刷新页面 → 内存全丢 → 新页面从 localStorage 取回 code+token 注入。
+//   ☠️ 这是整条恢复链的硬阻断点：中继把「无 token 的 role=host」一律当**建房**，
+//      而且**忽略客户端给的 room**（control.js:61，防的是自选房间码占码/碰撞）——
+//      所以只传 code 不传 token 不是「差一点」，是会**静默铸一间新房**，
+//      原房里的孩子从此一帧都收不到，而屏幕上什么错都不报。
+//   变异：createRelayClient 的解构里删掉 token（回到今天的形状）→ 本组两条红。
+{
+  reset()
+  mk({ role: 'host', code: '4BZU', token: 'tok_saved' })
+  const u = lastWs().url
+  assert(u.includes('room=4BZU') && u.includes('token=tok_saved'),
+    '⑨ ☠️ 续局首连 URL 必须同时带 room 与注入的 token —— 缺 token 中继会静默铸新房')
+  assert(u.includes('role=host'), '⑨ 续局首连仍标明 role=host')
+}
+
 // ---- ⑩ ☠️ host 断线重连：必须回原房，不得新建房 ----
 //   真机 bug：fullUrl 旧版是 `if (role === 'guest') {...}` → host 重连带不出凭证 →
 //   中继当它是新 host → 静默铸新房（实测 4BZU → QWJV），原房里的 guest 永久收不到帧。

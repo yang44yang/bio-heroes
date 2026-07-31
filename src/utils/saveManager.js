@@ -37,6 +37,12 @@ export const SAVE_KEYS = [
  */
 export const NON_SAVE_KEYS = [
   'bio-heroes-cloud',
+  // PvP 对局快照（host 自恢复 / 4g 场景）。**绝不进存档**，三条理由各自足够：
+  //   ① 它是短命数据（6 小时 TTL），换设备时早就过期了；
+  //   ② 里面装着中继房间码 + 重连 token —— 跟着存档旅行 = 把「回到那间房」的凭证送给别人；
+  //   ③ 它含**双方手牌与问答答案卡**（host 权威的隐藏信息）。这些从不上 wire，
+  //      正是为了不让对手看见；随存档导出等于绕过整堵隐私墙。见 src/engine/matchSnapshot.js。
+  'bio-heroes-pvp-match',
 ]
 
 /**

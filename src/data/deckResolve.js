@@ -23,11 +23,17 @@ export function resolveSp(ids) {
   return (ids || []).map(id => spById(id)).filter(Boolean)
 }
 
-// { main:[ids], sp:[ids] } → { mainCards:[objs], spCards:[objs] }
+// { main:[ids], sp:[ids] } → { mainCards:[objs], spCards:[objs], ids:{main,sp} }
 // 解析不到的 ID（卡被删/改名）由 .filter(Boolean) 丢弃 → 可能 < DECK_SIZE，调用方按需校验长度。
+//
+// ⚠️ `ids` 原样带回来，是给**续局**用的（host 自恢复）：useHand 在首渲染就把卡组冻进 ref
+//    并按**原始下标**铸 uid（`${side}_${cardId}_${index}`）。恢复时必须传回**同一副 ID 数组**，
+//    否则新实例铸出的 uid 与快照里的对不上 —— 而 summoned/attacked/弃牌堆标记全是按 uid 查表的，
+//    对不上就是静默认错卡。带上 ids 让「存的是什么、恢复用什么」是同一份东西。
 export function resolveDeck(deck) {
   return {
     mainCards: resolveMain(deck?.main),
     spCards: resolveSp(deck?.sp),
+    ids: { main: deck?.main || [], sp: deck?.sp || [] },
   }
 }

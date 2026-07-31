@@ -46,7 +46,12 @@ const defaultScheduler = (ms, cb) => { const id = setTimeout(cb, ms); return () 
  * @param {object} opts
  * @param {string} opts.url        中继 WS 端点，如 'ws://127.0.0.1:3002/api/relay'（不含 query）
  * @param {'host'|'guest'} opts.role
- * @param {string} [opts.code]     guest 加入用的房间码
+ * @param {string} [opts.code]     房间码：guest 加入用；**host 续局时也要传**（配合 token 走 reconnect）
+ * @param {string} [opts.token]    重连凭证。续局（host 自恢复）时由调用方从 localStorage 取出注入 ——
+ *                                 没有它，新页面在**协议层**就回不到原房间：中继把「无 token 的
+ *                                 role=host」一律当建房、并**忽略客户端给的 room**（control.js:61，
+ *                                 防的是自选房间码占码/碰撞），于是会静默铸一间新房，
+ *                                 原房里的孩子从此一帧都收不到。引擎那边恢复得再全也白搭。
  * @param {Function} [opts.WebSocketImpl] 注入的 WebSocket 构造器（默认全局 WebSocket）
  * @param {(ms:number, cb:Function)=>Function} [opts.scheduler] 注入定时器，返回 cancel（默认 setTimeout）
  * @param {(frame:object)=>void} [opts.onControl] 收到 relay.* 控制帧
@@ -56,7 +61,7 @@ const defaultScheduler = (ms, cb) => { const id = setTimeout(cb, ms); return () 
  */
 export function createRelayClient(opts) {
   const {
-    url, role, code,
+    url, role, code, token: initialToken,
     WebSocketImpl = (typeof WebSocket !== 'undefined' ? WebSocket : undefined),
     scheduler = defaultScheduler,
     onControl = () => {}, onGame = () => {}, onStatus = () => {},
@@ -67,7 +72,10 @@ export function createRelayClient(opts) {
 
   let ws = null
   let status = STATUS.CLOSED
-  let token = null            // 从 relay.created/relay.joined 收到，重连用
+  // token：正常路径从 relay.created/relay.joined 收到；**续局路径由 opts 注入**（见上方 JSDoc）。
+  // 注入的 token 走的是与闪断重连**完全同一条**代码路径（fullUrl 只看凭证在不在，不看 role），
+  // 所以续局不是新增一条分支，而是复用已经被真机验证过的那条。
+  let token = initialToken ?? null
   let roomCode = code ?? null // host 建房时为 null，从 relay.created 学到；guest 是用户输入的
   let closedByUs = false      // 主动 close 不触发重连
   let sawReject = false       // 上一轮连接被中继拒了（见 onopen 的计数器纪律）

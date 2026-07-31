@@ -29,7 +29,7 @@ import { useLanguage } from '../i18n/LanguageContext'
  *   敌方主人HP → 敌方战场(5位) → VS → 玩家战场(5位) → 玩家主人HP
  *   → 手牌区 → 操作按钮 → 日志
  */
-export default function BattleScreen({ battle, playerHand, enemyHand, playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit, remoteEnemy = false, floatBridgeRef = null }) {
+export default function BattleScreen({ battle, playerHand, enemyHand, playerDeckCards, enemyDeckCards, playerSpDeckCards, enemySpDeckCards, campaignConfig, testArenaConfig, onExit, remoteEnemy = false, floatBridgeRef = null, skipInit = false }) {
   const { t, lang, cardName, localName } = useLanguage()
   // ★ 4b：battle / playerHand / enemyHand 现从 prop 收（HostBattleScreen 供）。playerDeckCards /
   //   enemyDeckCards 仍作 prop 保留（本组件别处可能用；HostBattleScreen 也用它们建手牌）。
@@ -221,9 +221,15 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
   const delay = (ms) => new Promise(r => setTimeout(r, ms))
 
   // === 初始化 ===
+  // ☠️ `skipInit`（续局 / host 自恢复）：这个 effect 是**恢复路径的头号敌人** ——
+  //    新页面挂载时 initialized 是 false，它会无条件 initHand()（重洗重抽）+ startBattle()（整局重置），
+  //    把刚 hydrate 回来的棋盘当场清成新局。而症状是「恢复成功了但回到第 1 回合」，
+  //    极易被误判成「快照没存对」，然后去改根本没错的序列化。
+  //    传 skipInit 的是 PvpHostBattleScreen，它在装载完快照之后才渲染 BattleScreen。
   const initialized = useRef(false)
   useEffect(() => {
     if (initialized.current) return
+    if (skipInit) { initialized.current = true; return }
     // Conundrum 未完成 → 等用户做完选择再初始化（modal onComplete 后再触发本 effect）
     if (conundrumPending) return
     initialized.current = true
@@ -283,7 +289,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
         if (playerHand.addToHand) playerHand.addToHand(extras)
       }
     }
-  }, [conundrumPending, conundrumEffect])
+  }, [conundrumPending, conundrumEffect, skipInit])
 
   // === 闯关对话 ===
   const [dialoguePhase, setDialoguePhase] = useState(campaignConfig?.dialogue?.before ? 'before' : null)

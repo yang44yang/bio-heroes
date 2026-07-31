@@ -10,6 +10,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { createRelayClient, STATUS } from '../net/relayClient'
 import { encodeDeckFrame, decodeDeckFrame } from '../net/lobbyProtocol'
 import { resolveDeck } from '../data/deckResolve'
+import { loadMatch } from '../utils/matchStore'
 import { DECK_SIZE } from '../data/deckRules'
 import PvpHostBattleScreen from './PvpHostBattleScreen'
 import GuestBattleScreen from './GuestBattleScreen'
@@ -58,7 +59,17 @@ export default function PvpLobby({ onExit }) {
   //   （client 是同一个闭包对象、battleState 是 useReducer 状态）→ effect 不重跑
   //   → guest 屏幕一直冻着，直到 host 下一次真的动棋盘。
   const [resumeTick, setResumeTick] = useState(0)
+  // ★ 续局（host 自恢复 / 4g 场景）：上一局的快照（含中继凭证 + 整棵棋盘）。
+  //   只在**进大厅那一刻**读一次 —— 之后它只会被「用掉」或「作废」，不该随渲染反复读盘。
+  const [savedMatch] = useState(() => loadMatch())
+  // 拿着快照但房间已经没了（中继重启 / 双方都离线超时被回收）→ 保留棋盘、换一间房继续。
+  // 这就是「快照与房间码解耦」：房间是通路，棋盘是对局，前者没了不该赔上后者。
+  const [pendingResume, setPendingResume] = useState(null)
+  const [roomLost, setRoomLost] = useState(false)
   const clientRef = useRef(null)
+  // startHost 要在自己的 onControl 里递归调用自己（房间没了 → 重开一间）→ 走 ref 拿最新的那份，
+  // 避免 useCallback 自引用。
+  const startHostRef = useRef(null)
   // ★ 游戏帧转发 ref —— client 建在大厅、处理器装在战斗侧（usePvpHost / useGuestBattle）。
   const gameFrameRef = useRef(null)
   // ★ guest 缓存最近一帧 sync —— 消掉「战斗组件挂载前那帧丢了」的竞态。
@@ -76,10 +87,17 @@ export default function PvpLobby({ onExit }) {
   // 卸载时关闭连接（防泄漏 socket）
   useEffect(() => () => teardown(), [teardown])
 
-  const startHost = useCallback(() => {
+  // resume：续局时带着上一局的 code+token 建客户端 → 中继走 reconnect 分支回到**原房间**。
+  // ☠️ 必须同时给 code 和 token：中继把「无 token 的 role=host」一律当建房，且**忽略**客户端
+  //    给的 room（防自选房间码占码）→ 只给 code 会静默铸一间新房，原房里的孩子一帧都收不到。
+  // ⚠️ 这里**不能**清 roomLost：房间没了的兜底路径正是「在 onControl 里回头再调一次 startHost(null)」，
+  //    在这里清等于自己把刚立起来的提示抹掉（实测过：新房开出来了，横幅一闪即没）。
+  //    清 roomLost 的责任在「真正开一段全新会话」的入口：创建房间按钮 / backToChoose。
+  const startHost = useCallback((resume = null) => {
     setError(null); setMode('host')
     clientRef.current = createRelayClient({
       url: relayUrl(), role: 'host',
+      ...(resume ? { code: resume.room, token: resume.token } : {}),
       onStatus: setStatus,
       onControl: (f) => {
         if (f.t === 'relay.created') setRoomCode(f.code)
@@ -94,7 +112,16 @@ export default function PvpLobby({ onExit }) {
           setResumeTick((n) => n + 1)
         }
         else if (f.t === 'relay.peer-left') { setPeerPresent(false); setGuestDeckReady(false); guestDeckRef.current = null }
-        else if (f.t === 'relay.error') setError(f.reason)
+        else if (f.t === 'relay.error') {
+          // ☠️ 续局时房间没了（中继重启 / 双方都离线超过 TTL 被回收）→ **不是死路**：
+          //   棋盘还在快照里，只是通路没了。开一间新房、把新房间码念给孩子，棋盘一子不丢。
+          //   （你自己每次 `npm run deploy:api` 重启中继都会走到这条分支。）
+          if (resume && (f.reason === 'no-room' || f.reason === 'bad-token')) {
+            setPendingResume(resume); setRoomLost(true); setBattleOn(false)
+            clientRef.current?.close()
+            startHostRef.current?.(null)      // 重开一间新房，快照留着
+          } else setError(f.reason)
+        }
       },
       // ★ 先拦「卡组帧」（大厅阶段，gameFrameRef 还没装）：存进 ref，标记 guest 卡组已到。
       //   其余（sync/intent）转给 usePvpHost 装的处理器（战斗挂载后）。
@@ -105,6 +132,21 @@ export default function PvpLobby({ onExit }) {
       },
     })
   }, [])
+  startHostRef.current = startHost
+
+  // ★ 续局入口：带上一局的凭证回原房间，并把棋盘/卡组一并交给战斗组件。
+  //   卡组必须从快照里取回**同一副 ID 数组** —— useHand 按原始下标铸 uid，换一副就全对不上。
+  const resumeMatch = useCallback(() => {
+    const s = savedMatch
+    if (!s) return
+    setMyPick({ id: 'resume', main: s.decks?.player?.main || [], sp: s.decks?.player?.sp || [] })
+    guestDeckRef.current = s.decks?.enemy || null
+    setGuestDeckReady(true)
+    setRoomCode(s.room)
+    setPendingResume(s)
+    startHost(s)
+    setBattleOn(true)
+  }, [savedMatch, startHost])
 
   const startGuest = useCallback(() => {
     const code = joinCode.trim().toUpperCase()
@@ -166,7 +208,7 @@ export default function PvpLobby({ onExit }) {
   }, [myPick])
 
   const backToChoose = useCallback(() => {
-    teardown(); setMode('choose'); setJoinCode('')
+    teardown(); setMode('choose'); setJoinCode(''); setRoomLost(false)
     setMyPick(null); setGuestDeckReady(false); setEditingDecks(false)
     myDeckRef.current = null; guestDeckRef.current = null
   }, [teardown])
@@ -183,7 +225,8 @@ export default function PvpLobby({ onExit }) {
         playerDeck={resolveDeck(myPick)}
         enemyDeck={resolveDeck(guestDeckRef.current)}
         resumeTick={resumeTick}
-        onExit={() => setBattleOn(false)}
+        resumeFrom={pendingResume}
+        onExit={() => { setPendingResume(null); setBattleOn(false) }}
       />
     ) : (
       <GuestBattleScreen
@@ -207,8 +250,17 @@ export default function PvpLobby({ onExit }) {
       {/* —— 选择：建房 / 加入 —— */}
       {mode === 'choose' && (
         <div className="flex flex-col gap-4 w-full max-w-sm">
+          {/* 续局入口：只有存在一份**没分胜负、没过期、带得回凭证**的快照时才出现（判据在 matchStore） */}
+          {savedMatch && (
+            <button
+              onClick={resumeMatch}
+              className="py-4 rounded-xl bg-amber-600 hover:bg-amber-500 font-bold text-lg"
+            >
+              🔄 继续上一局（第 {savedMatch.engine?.battleState?.turn ?? '?'} 回合）
+            </button>
+          )}
           <button
-            onClick={startHost}
+            onClick={() => { setRoomLost(false); setPendingResume(null); startHost(null) }}
             className="py-4 rounded-xl bg-blue-600 hover:bg-blue-500 font-bold text-lg"
           >
             🏠 创建房间
@@ -236,6 +288,14 @@ export default function PvpLobby({ onExit }) {
       {/* —— host：房间码 + 选卡组 + 开战门控 —— */}
       {mode === 'host' && (
         <div className="flex flex-col items-center gap-4 w-full max-w-sm">
+          {/* 房间没了但棋盘还在（中继重启 / 双方都离线太久被回收）—— 说清楚「不用重打」 */}
+          {roomLost && pendingResume && (
+            <div className="w-full rounded-xl px-4 py-3 text-sm text-amber-200 bg-amber-900/30 border border-amber-600/50">
+              上一间房已经过期了，已经开了一间新的。<b>棋盘一子没丢</b> ——
+              把下面的新房间码念给他，他加入后点「开始对战」就接着打第
+              {' '}{pendingResume.engine?.battleState?.turn ?? '?'} 回合。
+            </div>
+          )}
           <p className="text-gray-400">把房间码念给朋友：</p>
           <div className="text-5xl font-bold tracking-[0.3em] bg-gray-800 px-8 py-6 rounded-2xl">
             {roomCode || '····'}
