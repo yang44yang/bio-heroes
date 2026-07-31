@@ -5,6 +5,50 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 4g host 自恢复：刷新页面接着打（2026-07-31）✅ `ae6dad5` `639e2bc` `e994dfb`
+> PvP 是 host 权威，而整条 PvP 路径此前 **localStorage 零使用** —— host 一刷新页面（4g 切网 /
+> iOS 回收标签页 / 误触后退 / 手机没电重开），中继凭证和整棵棋盘一起蒸发，对局直接死。
+
+**推翻了原计划（relay/README 末尾的「热备发给 guest 接管」），三条理由：**
+① 热备必须把 host 手牌、双方抽牌堆顺序、SP 卡组内容、**问答答案卡**持续发过网，而 `wire.js`
+   从第一行起的全部设计就是让这些「在形状上不可表达」（PRIVATE_KEYS / SELF_SPEC 白名单重建 /
+   assertPublicShape 跑在每一次推送上 / quizGate 脱敏投影 + 四套测试）。**加密救不了** ——
+   能解密的钥匙必须在 guest 手上，否则他接管不了。
+② 中继侧**本来就支持 host 接回**：`rooms.js:119` 的回收时钟只在**两槽全空**时才启动，
+   host 掉线只置空 connId、**token 原封保留**，guest 还连着 → 房间永不回收。缺的只有
+   「新页面记得自己是谁」。中继零改动这条承诺，自恢复同样满足。
+③ 热备最难的部分不是传输，是 `usePvpHost` 的**座位反转**（~20 处写死「我=PLAYER」），
+   而那正是全项目**唯一没有 side 棘轮保护**的 PvP 文件。自恢复是热备的**真子集** ——
+   序列化那 80% 将来一行不浪费。
+
+**分三层落地：**
+- **纯核心** `src/engine/matchSnapshot.js`：两张清单（RESTORED/NOT_RESTORED）是「必须恢复什么」的
+  单一真相源；三个 JSON 往返陷阱（Set→数组、quizGate 的 -Infinity 哨兵、环境事件只存 id）；
+  游标只往小里猜（lastN 猜大 = guest 点什么都被判 dup、界面永久卡死）；readSnapshot 四道拒收闸。
+- **恢复面**：`battleReducer.HYDRATE`（**按初始形状收口**，多余键丢弃 —— 直接 `return action.state`
+  会让下一帧推送的 assertPublicShape 抛错、被吞进 console.error、**guest 静默冻屏**）·
+  `useBattle.snapshotEngine/hydrateEngine`（reducer 树 + 19 项树外权威状态）· `useHand.hydrate`
+  （三堆原样放回，不洗牌不重抽）· `usePvpHost` 的 `adapterRef`（7 个游标）。
+- **接线**：`relayClient` 的 token 注入（**硬阻断点**：中继把无 token 的 role=host 一律当建房且
+  忽略客户端给的 room → 只传 code 会静默铸新房）· `matchStore`（节流 + 登记 NON_SAVE_KEYS）·
+  `BattleScreen.skipInit`（那个初始化 effect 会 initHand+startBattle 把刚恢复的一切清成新局）·
+  `PvpLobby` 的「🔄 继续上一局」+ **C1 快照与房间码解耦**（中继重启导致 no-room → 开新房、棋盘不丢）。
+
+**☠️ 这个方案唯一的高风险点是「漏一项 = 静默改规则」**：reducer 树之外挂着十几个权威 ref，
+丢了棋盘上完全看不出异常（答案卡丢 → 那道题永远判不了卷；pendingAttack 丢 → guest 那一击凭空消失；
+virusOutbreak 丢 → 每回合 -500 静默停掉；processedDeaths/__fieldUidSeq 丢 → 重复亡语、uid 撞车）。
+故 `test-match-snapshot`（111 条）逐条比对 useBattle/usePvpHost 里的**每一处声明**，
+新增一个没登记就变红；另有反向锁防「清单项改名后变成谎言」。9+1 个变异全部先变红后才提交。
+
+**真机端到端**（本地中继 + preview 双标签页）：建房 → guest 加入 → 开战 → host 出牌 →
+**刷新 host** → 续局 → 战场卡 uid / 手牌 uid / 抽牌堆前三张顺序 / 回合 / 能量 / 房间码 / matchId
+**逐字一致**，guest 全程没掉；续局后 guest 出牌 → intent 到达 host（日志与敌方战场更新、lastN 推进）。
+再 kill 中继重启 → 续局回原房失败 → 自动开新房 + 横幅 + 快照仍在。
+
+**救不了**：host 设备永久不可用 · 双方同时离线超 60~120s 被回收（有 C1 兜底）· 清站点数据/隐身模式。
+
+---
+
 ## 教学两处硬卡死 + 转屏提示方向修反（2026-07-25）✅ `a4df51f`
 > 本轮的起点只是"给教学的卡死复发模式补个 source-grep 守卫"，结果守卫写成的当天就在**线上正在跑的**
 > 数据里抓出两处 100% 复现的硬卡死 —— 齐齐上次卡在 L3 守护提示，修完接着往下走就会撞上 step7。

@@ -1,10 +1,11 @@
 # Bio Heroes Session State
-> 更新: 2026-07-25（**教学 L3/L5 两处 100% 硬卡死已修 + 转屏提示方向修反，已上生产**）。
-> 🔴 那两处是**线上正在跑的**：L3 energy 4 而手牌 4/3/2 → 场上永远只有 1 张卡 → step7 选不出
-> 攻击者；L5 energy 5 而手牌 1+1+4=6（事件卡真实 4 费、注释误写 2 费）→ 三连出牌必剩一张出不起。
-> 齐齐上次卡在 L3 守护提示，**修完接着往下走就会撞上 step7** —— 现在两关都已真机走查通关。
-> 同日已在生产：P1 B（横屏黑边取回 + 手牌 5:7）、P1 A、横屏 P0、教学守护可见性、教学 4 处卡死、
-> guest 自选 SP、三技能修复、能量公式。
+> 更新: 2026-07-31（**4g host 自恢复已上生产** —— host 刷新页面/标签页被回收后，
+> 大厅出现「🔄 继续上一局」，凭证+整棵棋盘从本机 localStorage 取回、走中继 reconnect 回原房间，
+> guest 全程无感。真机双标签页验过：战场卡 uid / 手牌 uid / 抽牌堆顺序 / 回合 / 能量 / matchId 逐字一致，
+> 且续局后 guest 的 intent 仍能到达 host）。
+>
+> 07-25 已在生产：教学 L3/L5 两处 100% 硬卡死（能量不够导致步骤无解）+ 转屏提示方向修反 +
+> P1 B 横屏黑边取回 + P1 A 卡锁 5:7 + guest 自选 SP + 三技能修复。细节见 CHANGELOG。
 > **等齐齐反馈**：教学五关能否顺畅打通 + 横屏 P1 A/B 观感（卡够不够大、竖屏没被弄坏）+ 虎鲸数值。
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
@@ -16,12 +17,13 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = 生产 = `a4df51f`**（教学卡死 + 转屏提示），干净树。**测试 68/68 绿**，lint 干净。
-- ✅ **生产 = HEAD（2026-07-25 部署 + 字节 + 功能级回验）**：`index-C4jRKdqJ.js`、`index-B5Qy-74G.css`、
-  `TutorialScreen-8vJrZzZT.js`、`BattleScreen-DTQwPCFI.js` 四个文件线上 md5 与本地逐字节一致；
-  线上关卡数据里 **L3 playerEnergy=7 / L5=6**（从压缩产物里按关卡名取段解析出来，不是信构建回执）、
-  CSS 里 `orientation:landscape` / `hover:none` 就位、`battle.rotatePortrait` 2 处。
-  反向哨兵：`battle.landscape` / `请横过来玩` / `orientation:portrait` 线上均 **0 处**。
+- **HEAD = origin/main = 生产 = `e994dfb`**（4g host 自恢复），干净树。**测试 69/69 绿**，lint 干净，
+  中继冒烟 10 条通过（⚠️ 冒烟必须在**没有本地中继占着 3002** 时跑，否则假红「等消息超时」）。
+- ✅ **生产 = HEAD（2026-07-31 部署 + 字节 + 功能级回验）**：`index-BgrjVINw.js`、`index-B8jq74ui.css`、
+  `PvpLobby-C0awz7Jx.js`、`BattleScreen-Cd9Weai7.js` 四个文件线上 md5 与本地逐字节一致；
+  线上 PvpLobby chunk 里 `bio-heroes-pvp-match` / `继续上一局` / `上一间房已经过期` 各 1 处，
+  BattleScreen chunk 里 `HYDRATE` 2 / `quizKey` 4 / `spTriggered` 4 / `processedDeaths` 4 / `fieldUidSeq` 5，
+  -Infinity 哨兵 `"-inf"` 线上本地各 1 处（压缩后仍在 —— 这条要用 python 数，`grep -F "-inf"` 会被当选项）。
   ☝️ **样式改动必须验 CSS 文件**（都编译进 `index-*.css`，JS 里搜是 0 处）；
   ☝️ **数据改动要按内容定位**：`playerEnergy:7` 这种字面量压缩后不存在（本地同样 0 处 → 按判据不是部署问题），
   改用「关卡名前后取段 + 正则」才验得到真值。
@@ -49,10 +51,16 @@
 等反馈的三块：**教学五关能否顺畅打通**（两处硬卡死刚修掉、机制看不看得懂）、
 **iPad 横屏 P1 A+B 观感**（卡够不够大 / 竖屏没被弄坏）、**虎鲸新数值**。反馈到手再定后续排序。
 
-### 2. 🟡 4g host 迁移（掉线韧性剩下的那一半）
-用户已裁定「快照热备 + **手动确认接管**」。relay 零改动，思路在 `relay/README` 末尾。
-⚠️ 与已修的断线重连**不是一回事**：那次只覆盖「同页面内 socket 闪断」，
-host **刷新页面**会丢内存里的凭证，那才是 4g 的范畴。
+### 2. ✅ 4g host 韧性已完成（`ae6dad5`+`639e2bc`+`e994dfb`）—— 但**只覆盖「设备还在」**
+做的是 **host 自恢复**（凭证+棋盘落本机 localStorage，新页面走中继 reconnect 回原房间），
+**不是**原计划的「热备发给 guest 接管」。改方案的三条理由（调研得出，值得记住）：
+① 热备要把 host 手牌/双方牌序/SP 内容/**问答答案卡**持续发过网，而 wire.js 从第一行起就是为了让这些
+「在形状上不可表达」（四套测试钉死）；加密救不了 —— 钥匙必须在 guest 手上他才接管得了。
+② 中继侧**本来就支持 host 接回**（房间只在两槽全空时才进回收，token 原封保留），缺的只有「新页面记得自己是谁」。
+③ 热备最难的部分是 `usePvpHost` 的座位反转（~20 处写死 PLAYER/ENEMY），而那正是全项目**唯一没有
+side 棘轮保护**的 PvP 文件。自恢复零泄露、协议零改动、不用双刷，且是热备方案的真子集。
+- **救不了**：host 设备永久不可用（手机摔了/被拿走）· 双方同时离线超 60~120s 房间被回收
+  （已有 C1 兜底：开新房、棋盘不丢）· 清了站点数据 / 隐身模式。真要覆盖第一条才需要热备。
 
 ### 3. 🟡 对手 / 自己的 SP **数**（guest 侧看不到）—— 攒着
 guest 自选 SP 已完成（`825545b`，零协议改动）。剩下的只是**数字**：`useGuestBattle` 两个 spDeck 恒 EMPTY。
@@ -73,12 +81,9 @@ guest 自选 SP 已完成（`825545b`，零协议改动）。剩下的只是**�
   跑 `npm test`，会直接告诉你哪一关哪一步、按什么点击顺序走不下去。两条使用纪律写在守卫文件头：
   ① 它是**规则复刻**不是跑真组件 → 改 `TutorialScreen` 判定要同步改 `successors()`，否则守卫会说谎；
   ② **别把兜底逃生阀加进模拟器**（守卫要求数据「不依赖兜底」也可解，加进去=自我阉割成永远绿）。
-- 🟡 **教学里三处已确认但没修的小洞**（都不致卡死，改教学时顺手）：
-  · `targetCardIdx`（数据里 3 处，`TutorialScreen` **0 处引用**）—— 脚本以为控制了出牌顺序，其实没有。
-  · `highlight: 'enemy_slot_1'`（L3 step0）—— `isHighlighted` 没有这个分支，那一步**高亮到空气**，
-    孩子不知道哪张是守护卡（和「守护看不出来」同一类盲区）。
-  · `clear_field` 步允许点敌方主人（`isClickable:754` + `handleLeaderClick:413`）→ 没清完场也能推进，
-    下一步文案会谎报「场上清空了」。L4 恰好后接直攻步所以不卡死，**换个后继步就会复发**。
+- 🟡 **教学三处已确认但没修的小洞**（都不致卡死）：`targetCardIdx` 数据里 3 处、组件 **0 处引用**（脚本
+  以为控制了出牌顺序，其实没有）· L3 step0 的 `highlight:'enemy_slot_1'` 没有对应 `isHighlighted` 分支
+  → **高亮到空气** · `clear_field` 步能点敌方主人绕过清场，下一步文案会谎报「场上清空了」。
 - ☠️ **教学迷你卡不走 `Card.jsx`**（`TutorialScreen` 内联渲染，只画 名字/⚔️/❤️/阵营）：
   主战场卡的一切视效（守护🛡️/中毒/护盾/技能名…）在教学里**默认都看不见**。`03f453f` 只补了守护；
   以后教学要教哪个机制，**必须单独在迷你卡上补该机制的可见标识** —— 否则会重演「逻辑对了但看不见，
@@ -92,7 +97,9 @@ guest 自选 SP 已完成（`825545b`，零协议改动）。剩下的只是**�
   守卫：`test-p1a-card-container`（cqh/inline-size 两坑）+ `test-p1b-wide-viewport`（17 条，钉死
   「下界 <900 会卷进竖屏基线」「放宽了却忘抬 25vh」「flex 的 `min-width:auto` 悄悄顶掉 aspect-ratio」
   「手牌定高下限 <110px 会让 660 档溢 5px」四个静默复发坑；7 个变异全变红后才提交）。
-- 🟡 **guest 看不到 SP 数**（自己+对手都空）：wire 故意 strip `spDeck`（隐藏信息，`wire.js:173`）→ 见「下一步 §6」。
+- 🟡 **guest 看不到 SP 数**（自己+对手都空）：wire 故意 strip `spDeck`（隐藏信息，`wire.js:173`）→ 见「下一步 §3」。
+- 🟡 **续局只保 host 一侧**：guest 自己刷新仍要重输 4 位码（他那侧本来就能自愈，只是要重输）。
+  另：快照 6 小时过期、已分胜负的局不提示、写入节流 1.2s（低端 iPad 上 45KB stringify 会抖）。
 - 🟡 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）
 - 🟡 `derivePhase` 硬编码读 `state.player.phase` → guest 回合 1 派生为 `init`。已用等待横幅兜住表现
 - 🟡 打包遗留（非阻塞）：`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）·「精简模式」未实现
@@ -111,7 +118,15 @@ guest 自选 SP 已完成（`825545b`，零协议改动）。剩下的只是**�
 - **UI/样式**：`src/components/{BattleScreen,QuizModal,TutorialScreen}.jsx` · `src/index.css`（紧凑模式 + 触控热区分档 + 按下反馈）
   - QuizModal 是**由题目对象驱动的两阶段**（`rightIdx` 到达才揭晓）—— 脱敏后 guest 拿不到 correct，
     旧的「本地即时揭晓」会让他恒显示答错、看不到知识卡。别改回去。
-- **测试**：`scripts/test-*.mjs`（**68 套**，`npm test`）。中继侧 control 29 / client 39 / rooms 71；
+- **续局（host 自恢复）**：`src/engine/matchSnapshot.js`（纯核心：**两张清单是「必须恢复什么」的
+  单一真相源** + Set/-Infinity/环境事件三个 JSON 陷阱 + 游标只往小里猜 + 四道拒收闸）·
+  `src/utils/matchStore.js`（localStorage + 节流，已登记 NON_SAVE_KEYS **绝不进存档**：装着中继 token
+  与双方手牌/答案卡）· `useBattle.snapshotEngine/hydrateEngine` · `useHand.hydrate` ·
+  `usePvpHost` 的 `adapterRef` · `battleReducer` 的 `HYDRATE`（**按初始形状收口**，多余键丢弃 ——
+  多一个键会让下一帧推送的 assertPublicShape 当场抛、guest 静默冻屏）· `BattleScreen` 的 `skipInit`
+  （那个初始化 effect 是恢复路径的头号敌人：会 initHand+startBattle 把刚恢复的一切清成新局）。
+  ☠️ **新增 useState/useRef 必须登记进 matchSnapshot 的清单**，否则 `test-match-snapshot` 当场红。
+- **测试**：`scripts/test-*.mjs`（**69 套**，`npm test`）。中继侧 control 29 / client 39 / rooms 71；
   问答侧 `test-quiz-gate` 26（纯核心）+ `test-pvp-quiz`（端到端 sim）
   - 教学：`test-tutorial-solvable` 46（**规则复刻 + DFS 对抗式穷举**，不是 grep；L4 靠槽位无关化指纹
     避免状态爆炸，该合并只在无 `enemy_attack` 时成立、由 `canonical()` 逐关判定）
