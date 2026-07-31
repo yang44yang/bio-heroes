@@ -37,10 +37,11 @@ import {
   buildSync, decodeIntent, acceptIntent, mintMatchId, MSG,
   appendEvents, floatEvent, logEvent,
 } from '../engine/wire.js'
+import { clampCursor } from '../engine/matchSnapshot.js'
 import { playSound } from '../audio/soundManager.js'
 import { pickAiSpCard } from '../engine/aiTarget.js'   // guest 没选 SP 时的回合末兜底代选
 
-export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef, resumeTick = 0 }) {
+export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, enemyHand, floatBridgeRef, resumeTick = 0, adapterRef = null }) {
   const gRef = useRef(null)
   if (enabled && gRef.current === null) {
     gRef.current = mintMatchId(crypto.getRandomValues(new Uint32Array(1))[0])
@@ -181,6 +182,40 @@ export function usePvpHost({ enabled, client, gameFrameRef, battle, playerHand, 
     }
     return () => { gameFrameRef.current = null }
   }, [enabled, gameFrameRef])
+
+  // ---- 续局：适配器游标的快照 / 装载（host 自恢复；清单见 engine/matchSnapshot.js）----
+  //  ☠️ 这 7 个 ref 全都「丢了棋盘上看不出异常」：
+  //     · pendingAttackRef 丢 → guest 答完题回来的 answer intent 找不到挂起的攻击，**那一击凭空消失**
+  //     · gRef 丢（重铸新 id）→ decodeIntent 的 `dec.g !== gRef.current` 会把 guest 在切换窗口期
+  //       发出的 intent **全部丢弃**，表现是「孩子点了没反应」
+  //     · enemyMulliganedRef 丢 → 一条重传的 mulligan 会让他手牌被再换一次
+  //  ☠️ 两个游标只能往**小**里猜（wire.js:656 那笔血账）：lastN 恢复出比 guest 当前 n 大的值
+  //     → 他点什么都被判 dup、界面永久卡死。快照是「每次推送后」存的，所以存下来的 lastN
+  //     天然 ≤ 真值（偏小=安全方向），原样恢复即可；cursor 则用环里最大 seq 兜一道上界。
+  if (adapterRef) {
+    adapterRef.current = {
+      snapshot: () => ({
+        g: gRef.current,
+        lastN: lastNRef.current,
+        ring: ringRef.current,
+        cursor: cursorRef.current,
+        pendingAttack: pendingAttackRef.current,
+        enemyMulliganed: enemyMulliganedRef.current,
+        bootstrapped: bootstrappedRef.current,
+      }),
+      hydrate: (a) => {
+        if (!a) return
+        if (a.g) gRef.current = a.g
+        lastNRef.current = clampCursor(a.lastN)
+        ringRef.current = Array.isArray(a.ring) ? a.ring : []
+        const maxSeq = ringRef.current.length ? ringRef.current[ringRef.current.length - 1].seq : 0
+        cursorRef.current = clampCursor(a.cursor, maxSeq)
+        pendingAttackRef.current = a.pendingAttack ?? null
+        enemyMulliganedRef.current = !!a.enemyMulliganed
+        bootstrappedRef.current = !!a.bootstrapped
+      },
+    }
+  }
 
   // ---- ③ 敌方回合起点 bootstrap（AI 步骤 1-2，无 delay）----
   useEffect(() => {

@@ -124,8 +124,37 @@ export function derivePhase(state) {
   return state.player.phase === 'ended' ? 'battle' : state.player.phase
 }
 
+/**
+ * HYDRATE 的形状收口器 —— **按 initialBattleState 的形状逐键取值，多余的键一律丢弃**。
+ *
+ * ☠️ 为什么不是直接 `return action.state`：wire.js 的 assertPublicShape 跑在 host
+ *    **每一次推送**上，逐路径比对 SHAPES[PROTOCOL_VERSION]。恢复进来的树只要多一个键
+ *    （旧版本快照、手改过的 localStorage、将来加字段忘了 bump），下一帧推送当场抛错 →
+ *    被 usePvpHost 吞进 console.error → **快照停推、guest 静默冻屏**，而且看起来像网络问题。
+ *    按初始形状收口后，「恢复」在结构上**不可能**改变树的路径集。
+ * ☠️ 同理缺键也要有默认值：半棵树比没有树更危险（能跑，但规则悄悄变了）。
+ */
+const hydrateSide = (init, src) => {
+  if (!src || typeof src !== 'object') return init
+  const out = {}
+  for (const k of Object.keys(init)) out[k] = k in src ? src[k] : init[k]
+  return out
+}
+
 export function battleReducer(state, action) {
   switch (action.type) {
+    // --- 续局：整树装载（host 自恢复；见 src/engine/matchSnapshot.js）---
+    case 'HYDRATE': {
+      const src = action.state
+      if (!src || typeof src !== 'object') return state
+      return {
+        turn: Number.isFinite(src.turn) ? src.turn : initialBattleState.turn,
+        activeSide: src.activeSide === 'enemy' ? 'enemy' : 'player',
+        winner: src.winner === 'player' || src.winner === 'enemy' ? src.winner : null,
+        player: hydrateSide(initialBattleState.player, src.player),
+        enemy: hydrateSide(initialBattleState.enemy, src.enemy),
+      }
+    }
     // --- Power Bank（E5c-0）---
     case 'POWERBANK_SET': {
       const { side, powerBank } = action

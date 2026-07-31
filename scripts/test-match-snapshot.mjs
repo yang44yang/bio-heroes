@@ -31,6 +31,7 @@ import {
   packSet, unpackSet, packGate, unpackGate, packEnv, unpackEnv,
   clampCursor, packMatch, readSnapshot, isResumable,
 } from '../src/engine/matchSnapshot.js'
+import { battleReducer, initialBattleState } from '../src/engine/battleReducer.js'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 let pass = 0, fail = 0
@@ -193,6 +194,43 @@ ok('⑤ 正常值原样通过', clampCursor(7, 100) === 7)
   ok('⑦ 中继凭证与卡组一并落地（缺一样都回不去原房间/冻不对卡组）',
     snap.room === 'ABCD' && snap.token === 'tok' && snap.decks.player[0] === 'ant')
   ok('⑦ 读回来能通过校验', !!readSnapshot(text, 123))
+}
+
+// ---- ⑧ reducer 的 HYDRATE 必须**按初始形状收口** ----
+// ☠️ 这是整条恢复链上最容易静默炸的一环：wire.js 的 assertPublicShape 跑在 host
+//    **每一次推送**上，逐路径比对 SHAPES[PROTOCOL_VERSION]。恢复进来的树只要多一个键
+//    （旧快照 / 手改过的 localStorage / 将来加字段忘了 bump），下一帧推送当场抛错 →
+//    被 usePvpHost 吞进 console.error → 快照停推、**guest 静默冻屏**，看起来像网络问题。
+{
+  const paths = (o, pre = '') => (o && typeof o === 'object' && !Array.isArray(o))
+    ? Object.keys(o).sort().flatMap(k => paths(o[k], pre ? `${pre}.${k}` : k))
+    : [pre]
+  const base = paths(initialBattleState).join('|')
+
+  const extra = battleReducer(initialBattleState, {
+    type: 'HYDRATE',
+    state: { ...initialBattleState, 偷偷加的字段: 1, player: { ...initialBattleState.player, 也偷偷加: 2 } },
+  })
+  ok('⑧ ★ HYDRATE 必须丢弃多余的键 —— 多一个键 = 下一帧推送 assertPublicShape 当场抛 → '
+    + '快照停推、guest 静默冻屏（看起来像网络问题，最难查的那种）', paths(extra).join('|') === base)
+
+  const missing = battleReducer(initialBattleState, {
+    type: 'HYDRATE',
+    state: { turn: 5, activeSide: 'enemy', player: { energy: 3 }, enemy: {} },
+  })
+  ok('⑧ ★ HYDRATE 必须给缺失的键补默认值 —— 半棵树比没有树更危险（能跑，但规则悄悄变了）',
+    paths(missing).join('|') === base)
+  ok('⑧ 缺失键补的是初始值、给到的键按快照走',
+    missing.player.energy === 3 && missing.player.leaderHp === initialBattleState.player.leaderHp
+    && missing.turn === 5 && missing.activeSide === 'enemy')
+
+  ok('⑧ winner 只认三种合法值（脏值一律当没分胜负，避免恢复出一个"已结束"的死局）',
+    battleReducer(initialBattleState, { type: 'HYDRATE', state: { winner: '乱写' } }).winner === null
+    && battleReducer(initialBattleState, { type: 'HYDRATE', state: { winner: 'enemy' } }).winner === 'enemy')
+  ok('⑧ activeSide 只认 player/enemy',
+    battleReducer(initialBattleState, { type: 'HYDRATE', state: { activeSide: 'x' } }).activeSide === 'player')
+  ok('⑧ 传入垃圾时原样返回旧状态（不炸、不半灌）',
+    battleReducer(initialBattleState, { type: 'HYDRATE', state: null }) === initialBattleState)
 }
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} test-match-snapshot: 通过 ${pass} / ${pass + fail}`)

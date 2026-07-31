@@ -25,7 +25,8 @@ import { SIDES, PLAYER, ENEMY, opp } from '../engine/sides.js'
 // AI 的**人格**（挑哪张 SP / 20% 忘记）住 engine/aiTarget.js —— 与 pickAiTarget 同处，
 // 那里是「AI 怎么选」的家；引擎只管「能不能」（engine/rules.js）。S6 de-fork 的界线。
 import { pickAiSpCard } from '../engine/aiTarget.js'
-import { pickRandomEvent } from '../data/events.js'
+import environmentEvents, { pickRandomEvent } from '../data/events.js'
+import { unpackSet, unpackGate, unpackEnv, unpackEnvPending } from '../engine/matchSnapshot.js'
 import { getBossMechanic } from '../engine/bossMechanics.js'
 import { cardHasGuard, fieldHasGuard, attackerBypassesGuard } from '../utils/guardSkill.js'
 import { getStageRule } from '../engine/stageRules.js'
@@ -2517,6 +2518,71 @@ export function useBattle({ remoteEnemy = false } = {}) {
   //  getter 在读取瞬间取 .current → 保留「读最新值」语义，
   //  但外部拿不到 ref 本体、无法写 .current（只读）。
   // ----------------------------------------------------------------
+  // ----------------------------------------------------------------
+  //  续局：整机快照 / 装载（host 自恢复，见 src/engine/matchSnapshot.js）
+  //
+  //  ☠️ 这两个函数是「漏一项 = 静默改规则」的收口点。reducer 树只是权威状态的一半，
+  //     另一半散在下面这十几个 ref/state 里，而它们丢了**棋盘上完全看不出异常**：
+  //       · quizKeyRef 丢 → 已发给 guest 的那道题永远判不了卷
+  //       · virusOutbreakRef 丢 → 每回合 -500 的 DoT 静默停掉
+  //       · processedDeathsRef / __fieldUidSeq 丢 → 重复亡语、uid 撞车
+  //     清单在 matchSnapshot.js 的 RESTORED/NOT_RESTORED，由 test-match-snapshot 逐条比对
+  //     本文件的**每一处声明** —— 新增一个 useRef 而没登记就变红。改这里请同步改那里。
+  // ----------------------------------------------------------------
+  // ⚠️ 刻意**不用** useCallback：它要读 battleLog / activeEnvEvent 这些没有 useLatestRef 镜像的
+  //    useState 值。空依赖的 useCallback 会把首渲染的值冻在闭包里 → 存下来的是**开局那一帧**，
+  //    而且完全不报错。调用方在提交后的 effect 里调它，拿到的就是这一帧的真实值。
+  const snapshotEngine = () => ({
+    battleState: battleStateRef.current,
+    battleLog,
+    playerSpDeck: playerSpDeckRef.current,
+    enemySpDeck: enemySpDeckRef.current,
+    pendingSpSummon: pendingSpSummonRef.current,
+    pendingEnemySpSummon: pendingEnemySpSummonRef.current,
+    spTriggeredRef: spTriggeredRef.current,
+    playerInitLeaderHpRef: playerInitLeaderHpRef.current,
+    enemyInitLeaderHpRef: enemyInitLeaderHpRef.current,
+    activeEnvEvent,
+    pendingEnvEvent,
+    recentEventsRef: recentEventsRef.current,
+    virusOutbreakRef: virusOutbreakRef.current,
+    battleStatsRef: battleStatsRef.current,
+    quizGateRef: quizGateRef.current,
+    quizKeyRef: quizKeyRef.current,
+    quizSeqRef: quizSeqRef.current,
+    processedDeathsRef: processedDeathsRef.current,
+    fieldUidSeq: __fieldUidSeq,
+  })
+
+  const hydrateEngine = useCallback((e) => {
+    if (!e) return
+    dispatch({ type: 'HYDRATE', state: e.battleState })
+    setBattleLog(Array.isArray(e.battleLog) ? e.battleLog : [])
+    setPlayerSpDeck(Array.isArray(e.playerSpDeck) ? e.playerSpDeck : [])
+    setEnemySpDeck(Array.isArray(e.enemySpDeck) ? e.enemySpDeck : [])
+    setPendingSpSummon(e.pendingSpSummon ?? null)
+    setPendingEnemySpSummon(e.pendingEnemySpSummon ?? null)
+    // 技能事件队列**刻意不恢复**：它按下标消费，而消费游标（BattleScreen 的 lastRevealRef）
+    // 刷新即归零 —— 一起归零才自洽，恢复了反而会把技能演出重播一遍。
+    setSkillEvents([])
+    spTriggeredRef.current = unpackSet(e.spTriggered)
+    playerInitLeaderHpRef.current = Number.isFinite(e.playerInitLeaderHp) ? e.playerInitLeaderHp : LEADER_HP
+    enemyInitLeaderHpRef.current = Number.isFinite(e.enemyInitLeaderHp) ? e.enemyInitLeaderHp : LEADER_HP
+    const lookupEvent = (id) => environmentEvents.find((ev) => ev.id === id) ?? null
+    setActiveEnvEvent(unpackEnv(e.activeEnvEvent, lookupEvent))
+    setPendingEnvEvent(unpackEnvPending(e.pendingEnvEvent, lookupEvent))
+    recentEventsRef.current = Array.isArray(e.recentEvents) ? e.recentEvents : []
+    virusOutbreakRef.current = e.virusOutbreak ?? { playerAffected: false, enemyAffected: false, turnsLeft: 0 }
+    if (e.battleStats) battleStatsRef.current = e.battleStats
+    quizGateRef.current = unpackGate(e.quizGate)
+    quizKeyRef.current = e.quizKey ?? { [PLAYER]: null, [ENEMY]: null }
+    quizSeqRef.current = Number.isFinite(e.quizSeq) ? e.quizSeq : 0
+    processedDeathsRef.current = unpackSet(e.processedDeaths)
+    // uid 序号必须往**大**里对齐：归零会让之后新上场的卡与恢复回来的 fc_* 卡撞 uid，
+    // 而 attacked/summoned/processedDeaths 全是按 uid 查表的 → 认错卡且不报错。
+    if (Number.isFinite(e.fieldUidSeq)) __fieldUidSeq = Math.max(__fieldUidSeq, e.fieldUidSeq)
+  }, [])
+
   const latest = {
     get playerField() { return battleStateRef.current.player.field },
     get enemyField() { return battleStateRef.current.enemy.field },
@@ -2579,6 +2645,7 @@ export function useBattle({ remoteEnemy = false } = {}) {
     setPlayerField, setEnemyField, addLog,
     pushSkillEvents, clearSkillEvents,
     setHandRefs,  // Sprint 27: BattleScreen 注入手牌引用
+    snapshotEngine, hydrateEngine,   // 续局（host 自恢复）：整机快照 / 装载
     // 只读最新值快照（E5b）—— 取代泄漏原始 *Ref
     latest,
   }

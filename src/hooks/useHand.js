@@ -71,6 +71,23 @@ export function useHand(deckCards, side) {
   }, [])
 
   /**
+   * 续局装载（host 自恢复）—— 把三堆按快照原样放回去，**不洗牌、不抽牌**。
+   *
+   * ☠️ 为什么不能用 initHand 代替：它会 shuffle + 重抽起手，等于换一副牌
+   *    （手上那张蓝鲸会凭空变成别的卡，孩子当场看出来）。牌**序**没人观测过可以重掷，
+   *    但手牌是被观测过的，必须逐字还原。
+   * ⚠️ uid 由 initDeck 在首渲染冻结（`${side}_${cardId}_${index}`，确定性），
+   *    所以只要恢复时传回**同一副卡组**，快照里的 uid 与新实例铸出来的完全对得上。
+   *    卡组不对 → uid 对不上 → 按 uid 查的 summoned/attacked/弃牌堆标记全认错卡。
+   */
+  const hydrate = useCallback((snap) => {
+    if (!snap) return
+    setHand(Array.isArray(snap.hand) ? snap.hand : [])
+    setDrawPile(Array.isArray(snap.drawPile) ? snap.drawPile : [])
+    setDiscard(Array.isArray(snap.discard) ? snap.discard : [])
+  }, [])
+
+  /**
    * 抽牌（每回合调用）
    * @param {number} count - 抽几张，默认 1
    * @returns {Array} 实际抽到的卡
@@ -171,6 +188,7 @@ export function useHand(deckCards, side) {
     discard,
     drawPileCount: drawPile.length,
     initHand,
+    hydrate,      // 续局装载（host 自恢复）：三堆原样放回，不洗牌不重抽
     draw,
     playCard,
     discardCard,
