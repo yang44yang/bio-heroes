@@ -1,72 +1,35 @@
-import React, { useState, useRef } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { exportSave, importSave, resetSave } from '../utils/saveManager'
-import { getQuizMode, setQuizMode } from '../utils/settings'
+import React, { useState } from 'react'
+import { motion } from 'framer-motion'
 import { ownedDexCount } from '../data/dexSets'
+import { loadTutorialProgress } from '../data/tutorialData'
 import { useLanguage } from '../i18n/LanguageContext'
+import MoreMenu from './MoreMenu'
 
-export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuilder, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, onOpenTestArena, onOpenPvp, daily, economy }) {
-  const { t, lang, toggleLang } = useLanguage()
-  const [showSettings, setShowSettings] = useState(false)
-  const [importMsg, setImportMsg] = useState(null)
-  const [quizMode, setQuizModeState] = useState(() => getQuizMode())
-  const fileRef = useRef(null)
+// ================================================================
+//  TitleScreen —— 首页只回答一个问题：「现在玩什么」
+//
+//  ☠️ 别再往这里加按钮。首页曾经堆了 10 个（7 种颜色、宽度全一样、没有层级），后果实测：
+//     · iPad 横屏 1024×768 文档高 924 > 768 → 首页必须滚动，「存档管理」整个在屏幕外；
+//     · 「⚔️ 自由对战」和「🃏 卡组」是**同一个界面**（App 里两行代码一模一样）—— 已合并；
+//     · 家长用的「🧪 测试场」夹在孩子的按钮中间。
+//  现在的规矩：**要玩的**留首页，**工具**进 MoreMenu 浮层。
+//  首页按钮预算 7 个（4 大 + 抽卡 + 更多 + 未毕业时的教学），由 test-title-menu ① 钉死。
+// ================================================================
 
-  // 切换题库模式：家长门（简单算术）防孩子误改；持久化到设置
-  const handleQuizMode = (mode) => {
-    if (mode === quizMode) return
-    const ans = window.prompt(t('settings.parentGate'))
-    if (ans === null) return
-    if (ans.trim() !== '56') {
-      setImportMsg({ success: false, message: t('settings.parentGateFail') })
-      return
-    }
-    setQuizMode(mode)
-    setQuizModeState(mode)
-    setImportMsg(null)
-  }
+const BIG = 'w-full rounded-2xl text-white font-black shadow-lg py-2.5 sm:py-4 text-lg sm:text-xl'
 
-  // 🧪 测试场：家长门（防孩子误入 dev 工具），复用同款算术门
-  const handleOpenTestArena = () => {
-    const ans = window.prompt(t('settings.parentGate'))
-    if (ans === null) return
-    if (ans.trim() !== '56') { setImportMsg({ success: false, message: t('settings.parentGateFail') }); return }
-    onOpenTestArena?.()
-  }
-
-  const handleImport = async (e) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    const result = await importSave(file)
-    setImportMsg(result)
-    if (result.success) {
-      setTimeout(() => window.location.reload(), 1200)
-    }
-    if (fileRef.current) fileRef.current.value = ''
-  }
-
-  const handleReset = () => {
-    if (window.confirm(t('menu.confirmReset'))) {
-      resetSave()
-      window.location.reload()
-    }
-  }
+export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenCollection, onOpenTutorial, onOpenCampaign, onOpenDailyChallenge, onOpenTestArena, onOpenPvp, daily, economy }) {
+  const { t } = useLanguage()
+  const [showMore, setShowMore] = useState(false)
+  // 教学毕业了没 —— 决定「📚 教学」留首页还是收进「更多」。
+  // TitleScreen 每次回主菜单都会重新挂载（App 里是 screen === 'title' 条件渲染），所以这个初始值会刷新。
+  const [graduated] = useState(() => loadTutorialProgress().graduated)
 
   return (
     <div className="min-h-screen-d flex flex-col items-center justify-center px-4 py-4 overflow-y-auto">
-      {/* 语言切换 */}
-      <div className="absolute top-3 right-3 z-10">
-        <button
-          className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg text-xs font-bold"
-          onClick={toggleLang}
-        >
-          🌐 {lang === 'zh' ? 'EN' : '中文'}
-        </button>
-      </div>
-
       {/* 标题 */}
       <motion.div
-        className="text-center mb-4 sm:mb-10"
+        className="text-center mb-4 sm:mb-8"
         initial={{ opacity: 0, y: -30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
@@ -78,229 +41,135 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         <p className="text-gray-400 text-sm">{t('menu.subtitle')}</p>
       </motion.div>
 
-      {/* 货币显示 */}
+      {/* 货币行。「收集 N 张」本身就是图鉴入口 —— 图鉴收进「更多」后，这是它的第二个入口，
+          否则整个游戏就只剩浮层里那一处能进图鉴了（守卫 ⑥）。 */}
       {economy && (
         <motion.div
-          className="flex gap-4 mb-3 sm:mb-6 text-xs sm:text-sm"
+          className="flex gap-4 mb-3 sm:mb-5 text-xs sm:text-sm items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
         >
           <span className="text-yellow-400 font-bold">🪙 {economy.coins}</span>
           <span className="text-cyan-400 font-bold">💎 {economy.diamonds}</span>
-          <span className="text-gray-500">{t('menu.collected', { n: ownedDexCount(economy.collection) })}</span>
+          <button
+            className="text-gray-400 hover:text-cyan-300 underline decoration-dotted underline-offset-4"
+            onClick={onOpenCollection}
+            title={t('menu.collectedTip')}
+          >
+            {t('menu.collected', { n: ownedDexCount(economy.collection) })}
+          </button>
           {daily?.currentStreak > 0 && (
             <span className="text-orange-400 font-bold">🔥 {daily.currentStreak}</span>
           )}
         </motion.div>
       )}
 
-      {/* 菜单按钮 */}
-      <div className="space-y-2 sm:space-y-3 w-56 sm:w-64">
-        <motion.button
-          className="w-full py-2.5 sm:py-4 bg-amber-700 hover:bg-amber-600 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-          onClick={onOpenCampaign}
-        >
-          {t('menu.campaign')}
-        </motion.button>
-
-        <motion.button
-          className="relative w-full py-2.5 sm:py-4 bg-teal-600 hover:bg-teal-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          onClick={onOpenDailyChallenge}
-        >
-          {t('menu.daily')}
-          {daily?.status === 'incomplete' && (
-            <span className="absolute top-2 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-          )}
-        </motion.button>
-
-        <motion.button
-          className="w-full py-2.5 sm:py-4 bg-red-600 hover:bg-red-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.25 }}
-          onClick={onStartBattle}
-        >
-          {t('menu.freeBattle')}
-        </motion.button>
-
-        {/* PvP 联机对战（第 4a 步）—— i18n 键待打磨阶段补，本步内联中文 */}
-        <motion.button
-          className="w-full py-2.5 sm:py-4 bg-cyan-600 hover:bg-cyan-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.27 }}
-          onClick={onOpenPvp}
-        >
-          🔗 联机对战
-        </motion.button>
-
-        <motion.button
-          className="w-full py-2.5 sm:py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          onClick={onOpenDeckBuilder}
-        >
-          {t('menu.deck')}
-        </motion.button>
-
-        <motion.button
-          className="w-full py-2.5 sm:py-4 bg-purple-600 hover:bg-purple-500 rounded-2xl text-white text-lg sm:text-xl font-black shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.4 }}
-          onClick={onOpenGacha}
-        >
-          {t('menu.gacha')}
-        </motion.button>
-
-        <motion.button
-          className="w-full py-3 bg-gray-700 hover:bg-gray-600 rounded-2xl text-white text-lg font-bold shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.5 }}
-          onClick={onOpenCollection}
-        >
-          {t('menu.collection')}
-        </motion.button>
-
-        <motion.button
-          className="w-full py-2 bg-emerald-800 hover:bg-emerald-700 rounded-2xl text-emerald-100 text-sm font-bold shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.58 }}
-          onClick={handleOpenTestArena}
-        >
-          🧪 测试场（家长）
-        </motion.button>
-
-        <motion.button
-          className="w-full py-3 bg-yellow-700 hover:bg-yellow-600 rounded-2xl text-yellow-100 text-lg font-bold shadow-lg"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.55 }}
-          onClick={onOpenTutorial}
-        >
-          {t('menu.tutorial')}
-        </motion.button>
-
-        <motion.button
-          className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 rounded-2xl text-gray-400 text-sm font-bold"
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.65 }}
-          onClick={() => setShowSettings(!showSettings)}
-        >
-          {t('menu.settings')}
-        </motion.button>
-      </div>
-
-      {/* 存档管理面板 */}
-      <AnimatePresence>
-        {showSettings && (
-          <motion.div
-            className="w-64 mt-3 bg-gray-800 rounded-xl p-4 border border-gray-700"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
+      <div className="w-56 sm:w-64">
+        {/* === 第一层：现在玩什么 === */}
+        <div className="space-y-2 sm:space-y-3">
+          {/* 闯关战役是主线 —— 做成最大的那个，首页的"默认答案" */}
+          <motion.button
+            className="w-full py-3 sm:py-5 bg-amber-700 hover:bg-amber-600 rounded-2xl text-white text-xl sm:text-2xl font-black shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.15 }}
+            onClick={onOpenCampaign}
           >
-            <div className="space-y-2.5">
-              <button
-                className="w-full py-2 bg-emerald-700 hover:bg-emerald-600 rounded-lg text-sm text-white"
-                onClick={exportSave}
-              >
-                {t('settings.export')}
-              </button>
+            {t('menu.campaign')}
+          </motion.button>
 
-              <div>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept=".json"
-                  className="hidden"
-                  onChange={handleImport}
-                />
-                <button
-                  className="w-full py-2 bg-blue-700 hover:bg-blue-600 rounded-lg text-sm text-white"
-                  onClick={() => fileRef.current?.click()}
-                >
-                  {t('settings.import')}
-                </button>
-              </div>
+          <motion.button
+            className={`relative ${BIG} bg-teal-600 hover:bg-teal-500`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+            onClick={onOpenDailyChallenge}
+          >
+            {t('menu.daily')}
+            {daily?.status === 'incomplete' && (
+              <span className="absolute top-2 right-3 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+            )}
+          </motion.button>
 
-              <button
-                className="w-full py-2 bg-red-900 hover:bg-red-800 rounded-lg text-sm text-red-300"
-                onClick={handleReset}
-              >
-                {t('settings.reset')}
-              </button>
+          <motion.button
+            className={`${BIG} bg-cyan-600 hover:bg-cyan-500`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.25 }}
+            onClick={onOpenPvp}
+          >
+            {t('menu.pvp')}
+          </motion.button>
 
-              {/* 题库模式（家长门） */}
-              <div className="pt-2 mt-1 border-t border-gray-700">
-                <div className="text-xs text-gray-400 mb-1.5">{t('settings.quizMode')}</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    className={`py-2 rounded-lg text-xs font-bold transition-colors ${quizMode === 'any' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                    onClick={() => handleQuizMode('any')}
-                  >
-                    {t('settings.quizModeAny')}
-                  </button>
-                  <button
-                    className={`py-2 rounded-lg text-xs font-bold transition-colors ${quizMode === 'card' ? 'bg-amber-600 text-white' : 'bg-gray-700 text-gray-300 hover:bg-gray-600'}`}
-                    onClick={() => handleQuizMode('card')}
-                  >
-                    {t('settings.quizModeCard')}
-                  </button>
-                </div>
-                <div className="text-[10px] text-gray-500 mt-1 text-center">
-                  {quizMode === 'any' ? t('settings.quizModeAnyHint') : t('settings.quizModeCardHint')}
-                </div>
-              </div>
+          {/* ⚠️ 这个按钮落地的是 DeckBuilder（选卡组 → 出战）。以前首页还有一个「🃏 卡组」按钮
+              指向**同一个界面**，已合并掉；界面标题也补了副标题说清"选一套出战"。 */}
+          <motion.button
+            className={`${BIG} bg-red-600 hover:bg-red-500`}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            onClick={onStartBattle}
+          >
+            {t('menu.freeBattle')}
+          </motion.button>
+        </div>
 
-              {importMsg && (
-                <motion.div
-                  className={`text-xs text-center py-1 rounded ${importMsg.success ? 'text-green-400' : 'text-red-400'}`}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                >
-                  {importMsg.message}
-                </motion.div>
-              )}
-            </div>
-          </motion.div>
+        {/* === 第二层：打之前弄的 === */}
+        {/* 没通关教学时留在首页显眼处；毕业后自动收进「更多」（守卫 ⑤）。
+            闯关界面里也有教学入口，所以收起来不会丢。 */}
+        {!graduated && (
+          <motion.button
+            className="w-full mt-2 sm:mt-3 py-2 sm:py-2.5 bg-yellow-700 hover:bg-yellow-600 rounded-2xl text-yellow-100 text-base font-bold shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.35 }}
+            onClick={onOpenTutorial}
+          >
+            {t('menu.tutorial')}
+          </motion.button>
         )}
-      </AnimatePresence>
+
+        <div className="grid grid-cols-2 gap-2 mt-2 sm:mt-3">
+          <motion.button
+            className="py-2.5 bg-purple-600 hover:bg-purple-500 rounded-2xl text-white text-base sm:text-lg font-black shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+            onClick={onOpenGacha}
+          >
+            {t('menu.gacha')}
+          </motion.button>
+
+          <motion.button
+            className="py-2.5 bg-gray-700 hover:bg-gray-600 rounded-2xl text-gray-200 text-base sm:text-lg font-bold shadow-lg"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.45 }}
+            onClick={() => setShowMore(true)}
+          >
+            {t('menu.more')}
+          </motion.button>
+        </div>
+      </div>
 
       {/* 底部信息 */}
       <motion.div
-        className="mt-4 sm:mt-12 text-gray-600 text-xs text-center"
+        className="mt-4 sm:mt-8 text-gray-600 text-xs text-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
@@ -308,6 +177,16 @@ export default function TitleScreen({ onStartBattle, onOpenGacha, onOpenDeckBuil
         <p>{t('menu.footer1')}</p>
         <p className="mt-1">{t('menu.footer2')}</p>
       </motion.div>
+
+      {/* === ⚙️ 更多：二级菜单（浮层，不占首页高度） === */}
+      <MoreMenu
+        open={showMore}
+        onClose={() => setShowMore(false)}
+        graduated={graduated}
+        onOpenCollection={onOpenCollection}
+        onOpenTutorial={onOpenTutorial}
+        onOpenTestArena={onOpenTestArena}
+      />
     </div>
   )
 }

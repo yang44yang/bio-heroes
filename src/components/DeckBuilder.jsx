@@ -248,7 +248,13 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-6 min-h-screen">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-black text-yellow-400">{t('deck.title')}</h1>
+          {/* 副标题不是装饰：首页那个按钮写着「⚔️ 自由对战」，落地却是卡组界面 ——
+              副标题把「选一套出战 / 也能编辑」说清，标签和落地才对得上。
+              （从抽卡、闯关过来也是同一个界面，所以措辞要三条路都成立。） */}
+          <div>
+            <h1 className="text-2xl font-black text-yellow-400">{t('deck.title')}</h1>
+            <p className="text-xs text-gray-400 mt-0.5">{t('deck.subtitle')}</p>
+          </div>
           <button
             className="text-sm px-3 py-1 bg-gray-700 hover:bg-gray-600 text-gray-300 rounded-lg"
             onClick={onBack}

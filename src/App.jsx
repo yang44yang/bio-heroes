@@ -357,7 +357,6 @@ export default function App() {
         <TitleScreen
           onStartBattle={() => setScreen('deckBuilder')}
           onOpenGacha={() => setScreen('gacha')}
-          onOpenDeckBuilder={() => setScreen('deckBuilder')}
           onOpenCollection={() => setScreen('collection')}
           onOpenTutorial={() => setScreen('tutorial')}
           onOpenCampaign={() => setScreen('campaign')}

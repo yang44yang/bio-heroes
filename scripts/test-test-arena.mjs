@@ -33,9 +33,16 @@ ok('③ handleExitBattle 对测试场对战直接清配置回主菜单（不计�
 ok('③ 渲染 testArena 屏 + 传 testArenaConfig 给 BattleScreen',
   /screen === 'testArena'/.test(app) && /testArenaConfig=\{testArenaConfig\}/.test(app))
 
-// ④ TitleScreen：家长门后的测试场入口
+// ④ 家长门后的测试场入口
+// ⚠️ 2026-08-21 首页重构：测试场从 TitleScreen 搬进了二级菜单 MoreMenu（家长工具不占首页位置）。
+//    这条断言跟着搬 —— 不是放宽：门（算术 56）和入口本身都还要在，只是换了文件。
+//    TitleScreen 仍要把 onOpenTestArena **透传**下去，否则入口就断了。
 const ts = read('src/components/TitleScreen.jsx')
-ok('④ TitleScreen 有走家长门的测试场入口', /handleOpenTestArena/.test(ts) && /onOpenTestArena/.test(ts) && /!== '56'/.test(ts))
+const mm = read('src/components/MoreMenu.jsx')
+ok('④ MoreMenu 有走家长门的测试场入口',
+  /handleOpenTestArena/.test(mm) && /onOpenTestArena/.test(mm) && /!== '56'/.test(mm))
+ok('④ TitleScreen 仍把 onOpenTestArena 透传给 MoreMenu（断了的话浮层里点了没反应）',
+  /onOpenTestArena=\{onOpenTestArena\}/.test(ts))
 
 // ⑤ TestArena 组件存在且产出 {playerField, enemyField, startEnergy}
 ok('⑤ TestArena.jsx 存在', existsSync(join(ROOT, 'src/components/TestArena.jsx')))
