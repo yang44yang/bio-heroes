@@ -1,12 +1,13 @@
 # Bio Heroes Session State
-> 更新: 2026-07-31（**4g host 自恢复已上生产** —— host 刷新页面/标签页被回收后，
-> 大厅出现「🔄 继续上一局」，凭证+整棵棋盘从本机 localStorage 取回、走中继 reconnect 回原房间，
-> guest 全程无感。真机双标签页验过：战场卡 uid / 手牌 uid / 抽牌堆顺序 / 回合 / 能量 / matchId 逐字一致，
-> 且续局后 guest 的 intent 仍能到达 host）。
+> 更新: 2026-08-21（**教学「不说谎」四修 + 指向箭头已上生产**：高亮打在空气上 / 死字段
+> targetCardIdx / clear_field 可点主人绕过 / arrow 死字段实装成量出来的指向箭头。
+> 四处都不致卡死，但都是「屏幕说的和游戏认的不是一回事」。细节见 CHANGELOG。）
 >
-> 07-25 已在生产：教学 L3/L5 两处 100% 硬卡死（能量不够导致步骤无解）+ 转屏提示方向修反 +
-> P1 B 横屏黑边取回 + P1 A 卡锁 5:7 + guest 自选 SP + 三技能修复。细节见 CHANGELOG。
-> **等齐齐反馈**：教学五关能否顺畅打通 + 横屏 P1 A/B 观感（卡够不够大、竖屏没被弄坏）+ 虎鲸数值。
+> 07-31 已在生产：**4g host 自恢复** —— host 刷新页面/标签页被回收后，大厅出现「🔄 继续上一局」，
+> 凭证+整棵棋盘从本机 localStorage 取回、走中继 reconnect 回原房间，guest 全程无感。
+>
+> **等齐齐反馈**（已等三周）：教学五关能否顺畅打通 + 箭头指得清不清楚 +
+> iPad 横屏 P1 A/B 观感（卡够不够大、竖屏没被弄坏）+ 虎鲸数值。
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -17,13 +18,13 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = 生产 = `e994dfb`**（4g host 自恢复），干净树。**测试 69/69 绿**，lint 干净，
+- **HEAD = origin/main = 生产 = `1bbddf1`**（教学指向箭头），干净树。**测试 69/69 绿**，lint 干净，
   中继冒烟 10 条通过（⚠️ 冒烟必须在**没有本地中继占着 3002** 时跑，否则假红「等消息超时」）。
-- ✅ **生产 = HEAD（2026-07-31 部署 + 字节 + 功能级回验）**：`index-BgrjVINw.js`、`index-B8jq74ui.css`、
-  `PvpLobby-C0awz7Jx.js`、`BattleScreen-Cd9Weai7.js` 四个文件线上 md5 与本地逐字节一致；
-  线上 PvpLobby chunk 里 `bio-heroes-pvp-match` / `继续上一局` / `上一间房已经过期` 各 1 处，
-  BattleScreen chunk 里 `HYDRATE` 2 / `quizKey` 4 / `spTriggered` 4 / `processedDeaths` 4 / `fieldUidSeq` 5，
-  -Infinity 哨兵 `"-inf"` 线上本地各 1 处（压缩后仍在 —— 这条要用 python 数，`grep -F "-inf"` 会被当选项）。
+- ✅ **生产 = HEAD（2026-08-21 部署 + 字节 + 功能级回验）**：`index-Cpny3GoT.js`、`index-B8jq74ui.css`、
+  `TutorialScreen-UbuoNac3.js` 线上 md5 与本地逐字节一致；线上 TutorialScreen chunk 里
+  `data-tut-lit` 4 处 / 箭头字形 ▲▼◀▶ 各 1 / `enemy_slot_` 2 处，反向哨兵 `targetCardIdx` 0 处；
+  entry 里教学的 `arrow:` 字段 0 处（⚠️ 直接数 `arrow:` 会有 1 个假阳性 —— 是卡牌名
+  "Bone M**arrow: **Blood Forge"，按内容确认后才算数）。
   ☝️ **样式改动必须验 CSS 文件**（都编译进 `index-*.css`，JS 里搜是 0 处）；
   ☝️ **数据改动要按内容定位**：`playerEnergy:7` 这种字面量压缩后不存在（本地同样 0 处 → 按判据不是部署问题），
   改用「关卡名前后取段 + 正则」才验得到真值。
@@ -48,7 +49,8 @@
 ## 🎯 下一步（按价值排）
 
 ### 1. 继续收真机反馈 —— 优先级最高，但**卡在齐齐**
-等反馈的三块：**教学五关能否顺畅打通**（两处硬卡死刚修掉、机制看不看得懂）、
+等反馈的三块：**教学五关能否顺畅打通**（硬卡死已修、四个「说谎」的洞已修、气泡装了指向箭头，
+机制看不看得懂 / 箭头指得清不清楚）、
 **iPad 横屏 P1 A+B 观感**（卡够不够大 / 竖屏没被弄坏）、**虎鲸新数值**。反馈到手再定后续排序。
 
 ### 2. ✅ 4g host 韧性已完成（`ae6dad5`+`639e2bc`+`e994dfb`）—— 但**只覆盖「设备还在」**
@@ -69,21 +71,22 @@ guest 自选 SP 已完成（`825545b`，零协议改动）。剩下的只是**�
 
 ### 4. 🧹 小收尾（都独立、随时可做）
 - 事件卡还没统一到 cqh（手牌**生物卡**比例已由 P1 B 修好；照片里事件卡也溢出过）。
-- 教学三处已确认的小洞（`targetCardIdx` 死字段 / `enemy_slot_1` 高亮到空气 / `clear_field` 可点主人绕过），
-  见「已知问题」。
 - 横屏还想让卡更大：**先动纯装饰**（VS 分隔 44px + 底部日志 44px ≈ +11% 卡面），
   别做侧栏重排 —— 要再长 67px 得腾 158px 竖向，等于把手牌区整个搬走，实测判断不值。
 
 ---
 
 ## 已知问题（未修）
-- ✅ **教学卡死已有自动化覆盖**（`test-tutorial-solvable` 46 条，`a4df51f`）：改教学的数据或推进逻辑后
+- ✅ **教学卡死已有自动化覆盖**（`test-tutorial-solvable` **94 条**，`a4df51f`→`1bbddf1`）：改教学的数据或推进逻辑后
   跑 `npm test`，会直接告诉你哪一关哪一步、按什么点击顺序走不下去。两条使用纪律写在守卫文件头：
   ① 它是**规则复刻**不是跑真组件 → 改 `TutorialScreen` 判定要同步改 `successors()`，否则守卫会说谎；
   ② **别把兜底逃生阀加进模拟器**（守卫要求数据「不依赖兜底」也可解，加进去=自我阉割成永远绿）。
-- 🟡 **教学三处已确认但没修的小洞**（都不致卡死）：`targetCardIdx` 数据里 3 处、组件 **0 处引用**（脚本
-  以为控制了出牌顺序，其实没有）· L3 step0 的 `highlight:'enemy_slot_1'` 没有对应 `isHighlighted` 分支
-  → **高亮到空气** · `clear_field` 步能点敌方主人绕过清场，下一步文案会谎报「场上清空了」。
+- ✅ **教学四个「说谎」的洞已修并上生产**（`833e309`+`1bbddf1`，见 CHANGELOG）。留下三条纪律：
+  ① **新增 highlight 区域**必须同时给出**渲染分支**和 `data-tut-lit` 标记（守卫 ③-6/③-10 判红）——
+     漏前者=高亮打在空气上，漏后者=那一步的指向箭头凭空消失。
+  ② **箭头方向不许写回数据**（守卫 ③-11）：量出来的才不会和布局漂移。
+  ③ 教学的 hook（`bubbleRef`/`arrow`/`useLayoutEffect`）在**所有早期 return 之前** —— 放错位置是
+     React #310，grep 抓不到，只有 preview 走查能发现。
 - ☠️ **教学迷你卡不走 `Card.jsx`**（`TutorialScreen` 内联渲染，只画 名字/⚔️/❤️/阵营）：
   主战场卡的一切视效（守护🛡️/中毒/护盾/技能名…）在教学里**默认都看不见**。`03f453f` 只补了守护；
   以后教学要教哪个机制，**必须单独在迷你卡上补该机制的可见标识** —— 否则会重演「逻辑对了但看不见，
@@ -128,8 +131,10 @@ guest 自选 SP 已完成（`825545b`，零协议改动）。剩下的只是**�
   ☠️ **新增 useState/useRef 必须登记进 matchSnapshot 的清单**，否则 `test-match-snapshot` 当场红。
 - **测试**：`scripts/test-*.mjs`（**69 套**，`npm test`）。中继侧 control 29 / client 39 / rooms 71；
   问答侧 `test-quiz-gate` 26（纯核心）+ `test-pvp-quiz`（端到端 sim）
-  - 教学：`test-tutorial-solvable` 46（**规则复刻 + DFS 对抗式穷举**，不是 grep；L4 靠槽位无关化指纹
-    避免状态爆炸，该合并只在无 `enemy_attack` 时成立、由 `canonical()` 逐关判定）
+  - 教学：`test-tutorial-solvable` **94**（① 可解性 = **规则复刻 + DFS 对抗式穷举**，不是 grep；L4 靠
+    槽位无关化指纹避免状态爆炸，该合并只在无 `enemy_attack` 时成立、由 `canonical()` 逐关判定。
+    ③ 是代码侧 grep 锚点，**一律跑在去掉注释的源码 `tutCode` 上** —— 注释里提到一个名字 ≠ 代码在用它，
+    本项目已被自己写的注释骗出过一次假绿、一次假红。例外：③-5 靠「兜底逃生阀」这条中文注释定位代码段）
   - ⚠️ `src/data/tutorialData.js` 的相对 import 已补 `.js` —— 漏了它就 import 不进 Node，守卫直接失效
   - 能量公式：`test-onturnstart-skills` 加 **source-grep 守卫**（公式活在 hook 回调、Node 无 renderer 测不了运行时）
   - SW 剪枝：`test-sw-api-bypass`（Map 支撑的真 caches mock 跑剪枝，双向变异）
