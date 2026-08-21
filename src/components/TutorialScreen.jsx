@@ -410,8 +410,8 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
 
   const handleLeaderClick = useCallback((side) => {
     if (!currentStep) return
-    if (side === 'enemy' && selectedAtkSlot !== null &&
-        (currentStep.waitFor === 'direct_attack' || currentStep.waitFor === 'clear_field')) {
+    // clear_field 故意不受理（见 isClickable 的 'enemy_leader' 注释）：那一步只能靠打完敌方卡推进
+    if (side === 'enemy' && selectedAtkSlot !== null && currentStep.waitFor === 'direct_attack') {
       handleDirectAttack(selectedAtkSlot)
     }
   }, [currentStep, selectedAtkSlot, handleDirectAttack])
@@ -782,13 +782,25 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
       case 'hand': return ['play_card', 'play_all', 'play_event'].includes(w)
       case 'player_field': return ['attack', 'direct_attack', 'clear_field'].includes(w)
       case 'enemy_field': return ['attack', 'clear_field'].includes(w)
-      case 'enemy_leader': return ['direct_attack', 'clear_field'].includes(w)
+      // ☠️ 这里曾经也放行 clear_field —— 于是「清光敌方全场」那一步，孩子点一下敌方主人就能绕过去：
+      //    下一步文案是「场上清空了！」而敌人还站着（教学当场说谎），且下一步 waitFor 是 direct_attack、
+      //    点敌方卡不再攻击 → 剩下的敌人永远清不掉。清场就老老实实清（守卫 ③-8 钉死）。
+      case 'enemy_leader': return w === 'direct_attack'
       case 'end_turn_btn': return w === 'end_turn'
       case 'power_bank_break': return w === 'break_power_bank'
       case 'sp_area': return w === 'summon_sp'
       default: return false
     }
   }
+
+  // 敌方主人此刻是不是**合法目标** —— 红框与闪烁的 TAP 都由它决定。
+  // ☠️ 以前只看 selectedAtkSlot !== null：attack / clear_field 步选中攻击者后，主人面板照样亮红框、
+  //    闪 TAP，屏幕在邀请孩子点一个「点了没反应」（修复前更糟：能绕过清场）的地方。堵住点击还不够，
+  //    邀请也要一起撤掉，否则孩子只会觉得游戏坏了。
+  const leaderTargetable = selectedAtkSlot !== null && isClickable('enemy_leader')
+
+  // 敌方战场既能整片高亮（enemy_field），也能点名某一个槽位（enemy_slot_N，如 L3 的守卫兵）
+  const anyEnemySlotLit = enemyField.some((_, i) => isHighlighted(`enemy_slot_${i}`))
 
   // 阵营标记计算（关卡5用）
   const factionMarkers = {}
@@ -826,7 +838,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
         onClick={() => handleLeaderClick('enemy')}
       >
         <div className={`flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl border-[1.5px] bg-[#151c30] border-[#3a2020] ${
-          selectedAtkSlot !== null ? 'border-red-500 bg-[#2a1515] cursor-pointer' : ''
+          leaderTargetable ? 'border-red-500 bg-[#2a1515] cursor-pointer' : ''
         } ${isHighlighted('enemy_leader') ? 'ring-2 ring-yellow-400' : ''}`}
           style={isHighlighted('enemy_leader') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
         >
@@ -847,7 +859,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
               />
             </div>
           </div>
-          {selectedAtkSlot !== null && (
+          {leaderTargetable && (
             <motion.span
               className="text-[10px] sm:text-xs text-red-400 border border-red-500 px-1.5 sm:px-2 py-0.5 rounded-md shrink-0 font-bold"
               animate={{ opacity: [1, 0.5, 1] }}
@@ -858,7 +870,10 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
       </div>
 
       {/* === 敌方战场 === */}
-      <div className={`flex-1 px-2 py-1 min-h-0 ${isHighlighted('enemy_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''}`}>
+      <div className={`flex-1 px-2 py-1 min-h-0 ${
+        isHighlighted('enemy_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30'
+          : anyEnemySlotLit ? 'relative z-30' : ''
+      }`}>
         <div
           className="grid gap-1 h-full"
           style={{ gridTemplateColumns: `repeat(${MAX_FIELD_SLOTS}, minmax(0, 1fr))` }}
@@ -872,6 +887,10 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
             // 被守护挡住 = 这一刻打不了：变灰 + 不给可点样式，让"只能先打守护卡"看得见而不是撞墙。
             const blockedByGuard = !!card && !isGuard && fieldHasGuard(enemyField)
             const targetable = selectedAtkSlot !== null && card && !blockedByGuard
+            // 点名某一个槽位（highlight: 'enemy_slot_N'）。☠️ 以前组件只认 enemy_field / enemy_leader，
+            // L3 step0 一边说「敌方有一张守护卡 🛡️——你只能先攻击它」一边点名 enemy_slot_1，
+            // 屏幕上却什么都不亮 = 高亮打在空气上，孩子无从知道说的是哪张（守卫 ③-6 钉死）。
+            const slotLit = isHighlighted(`enemy_slot_${slot}`)
             return (
             <div
               key={`ef-${slot}`}
@@ -879,7 +898,8 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
                 card ? 'border-red-700/50 bg-red-950/30' : 'border-gray-800 bg-gray-900/50'
               } ${isGuard ? 'border-cyan-400 bg-cyan-950/30' : ''} ${targetable ? 'cursor-pointer border-red-500' : ''} ${
                 blockedByGuard ? 'opacity-40' : ''
-              }`}
+              } ${slotLit ? 'ring-2 ring-yellow-400 z-30' : ''}`}
+              style={slotLit ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
               {...(targetable ? { 'data-attack-target': 'true' } : {})}
               onClick={() => card && handleFieldCardClick('enemy', slot)}
             >
@@ -1086,7 +1106,18 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
 
       {/* === 手牌区 === */}
       {(() => {
-        const anyHandHighlighted = isHighlighted('hand') || isHighlighted('hand_card_0') || isHighlighted('hand_card_1') || isHighlighted('hand_card_2') || isHighlighted('hand_card_3')
+        // ☠️ 别退回硬编码 0..3：手牌可以有第 5 张，硬编码会让它悄悄不受管（守卫 ③-6 的动态一族）
+        const anyHandHighlighted = isHighlighted('hand') || playerHand.some((_, i) => isHighlighted(`hand_card_${i}`))
+        // 高亮点名某一张手牌（hand_card_N）时，其余卡本来就已经压暗成 opacity-30 grayscale
+        // （和 🔒 锁住的卡长得一模一样），却**照样点得动** —— L1 说「点击这张蚂蚁卡」，孩子点蜜蜂
+        // 也一样过关，屏幕在骗人。数据里那个 targetCardIdx 本想管这件事，但组件 0 处引用（死字段，已删）。
+        // 现在唯一真相源就是孩子看得见的高亮：压暗 = 真的不能点（守卫 ③-9 钉死）。
+        // ⚠️ 收紧必须**带退路**：只有被点名那张此刻真出得起（能量 / 空位 / 阵营标记）才收紧，否则退回
+        //    「随便出」—— play_card 的逃生阀只看「有没有任何一张出得起」，无条件收紧会绕过它锁死步骤。
+        const targetHandIdx = playerHand.findIndex((_, i) => isHighlighted(`hand_card_${i}`))
+        const tgt = targetHandIdx >= 0 ? playerHand[targetHandIdx] : null
+        const targetPlayable = !!tgt && !isCardLocked(tgt) && tgt.cost <= playerEnergy
+          && (tgt.type === 'event' || playerField.some(slot => slot === null))
         return (
       <div className={`px-2 py-1 flex-none ${anyHandHighlighted ? 'relative z-30' : ''}`}>
         <div className="flex gap-1 justify-center flex-wrap">
@@ -1094,8 +1125,10 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
             const locked = isCardLocked(card)
             const highlighted = isHighlighted('hand') || isHighlighted(`hand_card_${idx}`)
             const canClick = isClickable('hand') && !locked && card.cost <= playerEnergy
-            // 有高亮目标时，非高亮卡片压暗
-            const dimmed = anyHandHighlighted && !highlighted
+              && (!targetPlayable || idx === targetHandIdx)
+            // 压暗 = 「这张现在不该点」。只有两种情况成立：这一步本来就点不了手牌（acknowledge 等），
+            // 或者上面的收紧真的生效了。退回「随便出」时不压暗 —— 否则又是「看起来不能点却点得动」。
+            const dimmed = anyHandHighlighted && !highlighted && (!isClickable('hand') || targetPlayable)
             return (
               <motion.div
                 key={card.uid}
@@ -1162,13 +1195,15 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
           )}
 
           {/* 提示框定位规则：
-              - enemy_leader/enemy_field 高亮 → 气泡放底部 (bottom-32 避开手牌区, 又不挡敌方目标)
+              - enemy_leader/enemy_field/enemy_slot_N 高亮 → 气泡放底部 (bottom-32 避开手牌区, 又不挡敌方目标)
+                ☠️ enemy_slot_N 漏进这张表的话，气泡会停在 top 8% 正好压住刚点亮的那张敌方卡
+                （实测：L3 守卫兵在 y=83，气泡 top 8% 覆盖 y=65~194）
               - player_field/sp_area 高亮 → 气泡放底部 bottom-32 (Sprint 31a Bug #2)
                 关键: 上次试过 top 8% 但 iPad 实测仍会挡到 SP·霸王龙
               - 其它情况(none, hand, energy, end_turn_btn) → 顶部 top 8%
               */}
           {(() => {
-            const lowerHandledAreas = ['enemy_leader', 'enemy_field', 'player_field', 'sp_area']
+            const lowerHandledAreas = ['enemy_leader', 'enemy_field', 'enemy_slot', 'player_field', 'sp_area']
             const useBottom = lowerHandledAreas.some(a => currentStep.highlight?.startsWith(a))
             return (
               <motion.div

@@ -114,8 +114,11 @@ export const LEVEL_1 = {
       text: '点击这张蚂蚁卡，把它放上战场！',
       textEn: 'Tap this Ant card to play it onto the field!',
       arrow: 'up',
+      // 「点名哪一张」只由上面的 highlight: 'hand_card_N' 表达 —— 组件按它收紧可点范围。
+      // ☠️ 这里原本还有一个死字段（三个步骤共 3 处），组件**0 处引用**：写的人以为钉住了
+      //    出牌顺序，实际点哪张都过。别再加这类「看起来管用」的字段 ——
+      //    守卫 ③-7 会把任何没人消费的步骤字段直接判红。
       waitFor: 'play_card',
-      targetCardIdx: 0,
     },
     {
       id: 'explain_turn',
@@ -476,7 +479,6 @@ export const LEVEL_4 = {
       textEn: 'Play a cheap Ant card (1 cost) — the leftover energy will flow into the Power Bank!',
       arrow: 'up',
       waitFor: 'play_card',
-      targetCardIdx: 0,
     },
     {
       id: 'end_turn_3a',
@@ -658,7 +660,6 @@ export const LEVEL_5 = {
       textEn: 'First play 2 creature cards — the event card buff will be more effective!',
       arrow: 'up',
       waitFor: 'play_card',
-      targetCardIdx: 0,
     },
     {
       id: 'play_creature_2',

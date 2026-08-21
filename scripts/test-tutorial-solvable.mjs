@@ -246,11 +246,20 @@ function successors(s, level) {
   if (w === 'end_turn') return { next: [advance(applyEndTurn(s), level)] }
 
   if (w === 'play_card' || w === 'play_event' || w === 'play_all') {
-    const playable = s.hand
+    let playable = s.hand
       .map((c, i) => ({ c, i }))
       .filter(({ c }) => c.cost <= s.energy
         && (c.type === 'event' || hasEmptySlot(s.field))
         && markerOk(c, s.discard))
+    // 高亮点名某一张手牌（highlight: 'hand_card_N'）时，组件只让那一张可点（其余早已压暗成
+    // opacity-30 grayscale）。⚠️ 收紧是**有条件的**：被点名那张此刻出不起就退回「随便出」，
+    // 否则会绕过 play_card 的逃生阀（它只看「有没有任何一张出得起」）而锁死步骤。
+    // 复刻自 TutorialScreen 手牌区的 targetHandIdx / targetPlayable。
+    const mTarget = /^hand_card_(\d+)$/.exec(step.highlight || '')
+    if (mTarget) {
+      const ti = +mTarget[1]
+      if (playable.some(({ i }) => i === ti)) playable = playable.filter(({ i }) => i === ti)
+    }
     for (const { i } of playable) {
       const played = applyPlay(s, i)
       // play_all 只在手牌空时推进（:427-431）；其余出一张即推进（:209/:238）
@@ -282,15 +291,10 @@ function successors(s, level) {
           : advance(after, level))
       }
     }
-    // clear_field 还允许点敌方主人（isClickable:754 + handleLeaderClick:413）→ 直接推进（绕过清场）
-    if (w === 'clear_field') {
-      for (const a of directAttackers(s)) {
-        const s2 = clone(s)
-        s2.enemyLeaderHp = Math.max(0, s2.enemyLeaderHp - s2.field[a].atk)
-        s2.attacked.push(s2.field[a].k)
-        out.push(advance(s2, level))
-      }
-    }
+    // ☠️ clear_field **不再**允许点敌方主人绕过（已修）：以前 isClickable('enemy_leader') 和
+    //    handleLeaderClick 都放行 clear_field，孩子点一下主人就推进到「场上清空了」那一步，
+    //    而敌人还站着 —— 教学当场说谎，且下一步是 direct_attack，剩下的敌人再也清不掉。
+    //    删掉这段建模后，「清不掉场」在 ① 里会变成真死锁（③-8 钉死组件侧不许把绕过加回来）。
     if (out.length === 0) {
       return { next: [], reason: `${w} 步选不出攻击者（场上 ${s.field.filter(Boolean).length} 张，`
         + `已攻击 ${s.attacked.length} 张，召唤疲劳 ${s.summoned.length} 张，存活敌方 ${livingEnemies(s).length}），`
@@ -428,6 +432,16 @@ for (const level of TUTORIAL_LEVELS) {
 const tut = readFileSync(join(ROOT, 'src/components/TutorialScreen.jsx'), 'utf8')
 const data = readFileSync(join(ROOT, 'src/data/tutorialData.js'), 'utf8')
 
+// ☠️ 假绿 / 假红都当场发生过：**注释里提到一个名字，不等于代码在用它**。
+//    写本次修复时，组件注释里出现了 "targetCardIdx"（把 ③-7 骗绿）和 "clear_field"
+//    （把 ③-8 骗红）。所以 ③-6 起的锚点一律跑在**去掉注释后的源码** tutCode 上。
+//    ⚠️ ③-5 例外：它靠「兜底逃生阀」这个中文注释来定位代码段，必须用原文 tut。
+const tutCode = tut
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/(^|[^:"'`\\])\/\/[^\n]*/gm, '$1')
+ok('③-0 注释剥离没把代码一起吃掉（吃掉了下面所有锚点就成了摆设）',
+  tutCode.length > tut.length * 0.5 && tutCode.includes('const isClickable'))
+
 // ③-1 多次型步骤（做一次不算达成）必须在 handler 里被排除掉，否则「做第一次就跳步」→ 7ba8cb7 那 4 个 bug
 ok('③-1 ★ handlePlayCard 仍排除 play_all（少了 → 出第一张就跳步、剩下的出不去 → L4 卡死）',
   /waitFor\s*!==\s*'play_all'/.test(tut))
@@ -467,6 +481,80 @@ for (const w of used) {
   ok(`③-4 waitFor '${w}' 在本守卫与 TutorialScreen 里都已登记（新增一种就必须两边都接线）`,
     KNOWN.includes(w))
 }
+
+// ③-6 ★ 数据里用到的每一个 highlight 区域，TutorialScreen 都必须真的画得出来 ——
+//      否则就是「高亮打在空气上」：L3 step0 一边说「敌方有一张守护卡 🛡️——你只能先攻击它」，
+//      一边 highlight:'enemy_slot_1'，而组件当时只有 enemy_field / enemy_leader 两个分支，
+//      屏幕上什么都不会亮，孩子根本不知道说的是哪一张（同「守护看不出来」那一类：逻辑对了但看不见）。
+// ⚠️ 按下标生成的一族（hand_card_N / enemy_slot_N）必须用模板字符串匹配 —— 别退回硬编码 0..3，
+//    那样第 5 张手牌/第 6 个槽位又会悄悄没人管。
+const DYNAMIC_HIGHLIGHT = [
+  [/^enemy_slot_\d+$/, /isHighlighted\(`enemy_slot_\$\{slot\}`\)/],
+  [/^hand_card_\d+$/, /isHighlighted\(`hand_card_\$\{idx\}`\)/],
+]
+const usedHighlights = [...new Set([...data.matchAll(/highlight:\s*'([a-z_0-9]+)'/g)].map(m => m[1]))]
+for (const h of usedHighlights) {
+  if (h === 'none') continue
+  const literal = tutCode.includes(`isHighlighted('${h}')`)
+  const dyn = DYNAMIC_HIGHLIGHT.some(([val, src]) => val.test(h) && src.test(tutCode))
+  ok(`③-6 ★ highlight '${h}' 在 TutorialScreen 里有对应的渲染分支（没有 = 高亮打在空气上）`, literal || dyn)
+}
+// 气泡会盖住它指的东西：enemy_slot_N 属于敌方战场，气泡必须和 enemy_field 一样落到底部，
+// 否则停在 top 8% 正好压住刚点亮的那张卡（lowerHandledAreas 用 startsWith，写前缀即可）。
+ok('③-6 ★ 提示气泡的「放底部」列表包含 enemy_slot（否则气泡盖住被高亮的敌方卡）',
+  /lowerHandledAreas\s*=\s*\[[^\]]*'enemy_slot'/.test(tutCode))
+
+// ③-7 ★ 步骤对象里出现的每一个字段都必须真的被消费。
+//      死字段是「以为控制了什么、其实没有」的温床：targetCardIdx 曾在 3 个步骤里写着「出第 0 张」，
+//      而组件 0 处引用 —— 谁来改教学都会以为出牌顺序被钉住了，实际上点哪张都过。
+const KNOWN_DEAD_KEYS = ['arrow']
+const stepKeys = [...new Set([...data.matchAll(/^ {6}([a-zA-Z]+):/gm)].map(m => m[1]))]
+ok('③-7 步骤字段提取有效（tutorialData 缩进变了就必须同步改这里的正则，否则本条会静默失效）',
+  ['id', 'text', 'textEn', 'highlight', 'waitFor'].every(k => stepKeys.includes(k)))
+const locIdiom = /\+\s*'En'/.test(tutCode)          // loc(obj, field) 靠 field+'En' 消费所有 xxxEn
+for (const k of stepKeys) {
+  if (KNOWN_DEAD_KEYS.includes(k)) continue
+  const consumed = new RegExp(`\\b${k}\\b`).test(tutCode)
+    || (k.endsWith('En') && locIdiom && stepKeys.includes(k.slice(0, -2)))
+  ok(`③-7 ★ 步骤字段 '${k}' 在 TutorialScreen 里真的被读到（读不到 = 死字段，会骗下一个改教学的人）`, consumed)
+}
+// 登记表自清理：某个死字段哪天被实装了，就必须从表里删掉，否则它会替真字段挡住上面那条检查。
+// arrow：数据里 54 处、全项目 0 处消费。故意暂留（它记着「气泡该往哪指」的设计意图），
+// 但实装前要**逐条校准方向** —— 数据给 hand_card_0 标的是 arrow:'up'，而那一步气泡在 top 8%、
+// 手牌在屏幕最下方，照着画就是指反的（本项目刚栽过一次「转屏提示方向修反」）。
+for (const k of KNOWN_DEAD_KEYS) {
+  ok(`③-7 死字段登记表里的 '${k}' 仍然确实没被消费（实装了就把它从表里删掉）`,
+    !new RegExp(`\\b${k}\\b`).test(tutCode))
+}
+
+// ③-8 ★ clear_field 不得再能靠「点敌方主人」绕过。
+//      旧行为：isClickable('enemy_leader') 与 handleLeaderClick 都放行 clear_field →
+//      孩子点一下主人就推进到下一步，而下一步文案是「场上清空了！」，敌人明明还站着；
+//      且下一步 waitFor 是 direct_attack，点敌方卡不再攻击 → 剩下的敌人永远清不掉。
+const clkIdx = tutCode.indexOf('const isClickable')
+const clickable = tutCode.slice(clkIdx, clkIdx + 800)
+ok("③-8 ★ isClickable('enemy_leader') 不再放行 clear_field（放行 = 点一下主人就跳到「场上清空了」）",
+  /case 'enemy_leader':/.test(clickable) && !/case 'enemy_leader':[^\n]*clear_field/.test(clickable))
+ok("③-8 反向锁：isClickable('enemy_leader') 仍放行 direct_attack（连它也删了，最后一步直攻主人就点不动）",
+  /case 'enemy_leader':[^\n]*direct_attack/.test(clickable))
+const lcIdx = tutCode.indexOf('const handleLeaderClick')
+ok('③-8 ★ handleLeaderClick 不再受理 clear_field',
+  lcIdx >= 0 && !/clear_field/.test(tutCode.slice(lcIdx, lcIdx + 500)))
+// 光堵住点击还不够：主人面板此前只要「选中了攻击者」就亮红框 + 闪 TAP，
+// 于是 clear_field 步骤仍在邀请孩子点一个点了没反应的地方 —— 邀请也要一起撤掉。
+ok('③-8 ★ 敌方主人的红框 / TAP 提示改由「主人此刻真的可打」决定（leaderTargetable）',
+  /leaderTargetable\s*=\s*selectedAtkSlot !== null && isClickable\('enemy_leader'\)/.test(tutCode))
+
+// ③-9 ★ 手牌被点名（highlight:'hand_card_N'）时，只有那一张真的点得动。
+//      旧行为：其余卡已经被压暗成 opacity-30 grayscale（和 🔒 锁住的卡长得一模一样），却照样点得出牌
+//      —— L1 说「点击这张蚂蚁卡」，点蜜蜂也照样过关，屏幕在骗人。successors() 已按收紧后的规则建模，
+//      组件不实现的话守卫就在说谎（纪律①）。
+ok('③-9 ★ 手牌区按「被点名的那一张」收紧可点范围（targetHandIdx / targetPlayable）',
+  /targetHandIdx/.test(tutCode) && /!targetPlayable \|\| idx === targetHandIdx/.test(tutCode))
+// 反向锁：收紧必须是**有条件的**。被点名那张此刻出不起（能量/空位/阵营标记）时要退回「随便出」，
+// 否则会绕过 play_card 的逃生阀（它只看「有没有任何一张出得起」）→ 步骤锁死 = 本关报废。
+ok('③-9 ★ 收紧带退路：targetPlayable 要查 cost/能量与空位，出不起就不收紧',
+  /targetPlayable[\s\S]{0,400}cost\s*<=\s*playerEnergy/.test(tutCode))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} test-tutorial-solvable: 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)
