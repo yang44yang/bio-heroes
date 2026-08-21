@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import React, { useState, useCallback, useRef, useEffect, useLayoutEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import BattleCard from './Card'
 import { FACTIONS, MAX_FIELD_SLOTS, FACTION_ADVANTAGE, FACTION_ADVANTAGE_BONUS } from '../data/deckRules'
@@ -11,6 +11,25 @@ import { useLanguage } from '../i18n/LanguageContext'
 //    `s.type === 'guard'` —— guardSkill.js 的注释记着「三处硬编码 nameEn 导致两张卡守护失效」
 //    的历史坑，教学再分叉一次就是第四处。教学守卫兵的 nameEn 正是 'Guard'，天然被认出。
 import { cardHasGuard, fieldHasGuard } from '../utils/guardSkill'
+
+// 提示气泡的指向箭头。方向**不写在关卡数据里**，由渲染后量出来的相对位置决定（见 useLayoutEffect）。
+const ARROW_GLYPH = { up: '▲', down: '▼', left: '◀', right: '▶' }
+const ARROW_POS = {
+  up: { top: '-1.15rem', transform: 'translateX(-50%)' },
+  down: { bottom: '-1.15rem', transform: 'translateX(-50%)' },
+  left: { left: '-1.15rem', transform: 'translateY(-50%)' },
+  right: { right: '-1.15rem', transform: 'translateY(-50%)' },
+}
+// 箭头沿气泡那条边**滑到目标中心的正上/正下方**（不是永远居中）——
+// 守卫兵在屏幕最左、气泡在正中时，居中的箭头看着像在指中间那张普通兵。
+// 夹在 [12%, 88%] 内，免得滑出圆角。
+const ARROW_ALIGN = (dir, offset) => ({
+  ...ARROW_POS[dir],
+  [dir === 'up' || dir === 'down' ? 'left' : 'top']: offset,
+})
+// 轻微来回浮动，指向感更强。⚠️ 位移交给**内层** motion，外层只做定位 ——
+// framer 动 x/y 时会接管 transform，写在同一个元素上会把 translateX(-50%) 顶掉（箭头当场跑偏）。
+const ARROW_BOUNCE = { up: { y: [0, -4, 0] }, down: { y: [0, 4, 0] }, left: { x: [0, -4, 0] }, right: { x: [0, 4, 0] } }
 
 // ================================================================
 //  TutorialScreen — 教学模块
@@ -60,6 +79,44 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
 
   const level = currentLevelIdx !== null ? TUTORIAL_LEVELS[currentLevelIdx] : null
   const currentStep = level ? level.steps[stepIdx] : null
+
+  // ☠️ 这三个 hook 必须待在**所有早期 return 之前**（phase==='menu'/'intro'/'summary'/'graduation'
+  //    各有一处 return）。第一版把它们写在战斗渲染段里 —— 那已经在早期 return 之后，
+  //    进关卡时 hook 数量突变，React 当场抛 #310「Rendered more hooks than during the previous render」，
+  //    整个教学被 ErrorBoundary 接管（守卫 grep 不到这种事，是 preview 走查抓出来的）。
+  // 气泡的指向箭头：量「被高亮的元素」和气泡的相对位置，取不重叠的那个轴。
+  // ☠️ 别改回读数据里的方向（见 litAttr 上方注释）。也别只比中心点差值：
+  //    energy/SP 那一行和底部气泡在竖直方向是**重叠**的，只比 dy 会得到一个指向自己身上的箭头。
+  const bubbleRef = useRef(null)
+  const [arrow, setArrow] = useState(null)      // { dir, offset } —— offset = 沿气泡边的百分比位置
+  useLayoutEffect(() => {
+    const bubble = bubbleRef.current
+    const lit = bubble ? [...document.querySelectorAll('[data-tut-lit="true"]')]
+      .map(el => el.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0) : []
+    if (!bubble || lit.length === 0) { setArrow(null); return }
+    const b = bubble.getBoundingClientRect()
+    // 多个元素（如整只手牌被高亮）取并集
+    const u = lit.reduce((a, r) => ({
+      l: Math.min(a.l, r.left), t: Math.min(a.t, r.top),
+      r: Math.max(a.r, r.right), b: Math.max(a.b, r.bottom),
+    }), { l: Infinity, t: Infinity, r: -Infinity, b: -Infinity })
+    const dy = (u.t + u.b) / 2 - (b.top + b.bottom) / 2
+    const dx = (u.l + u.r) / 2 - (b.left + b.right) / 2
+    // 两个轴上「不重叠」的间距：谁更大就沿谁指（都为 0 = 目标压在气泡上，退回比中心差）
+    const vGap = u.b < b.top ? b.top - u.b : (u.t > b.bottom ? u.t - b.bottom : 0)
+    const hGap = u.r < b.left ? b.left - u.r : (u.l > b.right ? u.l - b.right : 0)
+    let dir
+    if (vGap > 0 && vGap >= hGap) dir = dy < 0 ? 'up' : 'down'
+    else if (hGap > 0) dir = dx < 0 ? 'left' : 'right'
+    else dir = Math.abs(dy) >= Math.abs(dx) ? (dy < 0 ? 'up' : 'down') : (dx < 0 ? 'left' : 'right')
+    const clamp = (v) => Math.max(12, Math.min(88, v))
+    const offset = (dir === 'up' || dir === 'down')
+      ? clamp(((u.l + u.r) / 2 - b.left) / b.width * 100)
+      : clamp(((u.t + u.b) / 2 - b.top) / b.height * 100)
+    setArrow({ dir, offset: `${offset.toFixed(1)}%` })
+  }, [currentStep, phase, playerHand.length, playerField, enemyField, playerSpDeck.length,
+    powerBank.intact, powerBank.stored, playerDiscard.length])
+
 
   // === 初始化关卡 ===
   const startLevel = useCallback((idx) => {
@@ -793,6 +850,14 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
     }
   }
 
+  // 让**被高亮的那个元素**自己带上可量到的标记 —— 气泡的箭头靠量它来决定指哪边。
+  // ☠️ 方向绝不能写在关卡数据里：数据里原本有 54 个手写 arrow（且 hand_card_0 标的是 'up'，
+  //    而那一步气泡在屏幕顶部、手牌在最底部 —— 指反的）。改布局时没人会去同步 54 个值，
+  //    必然漂移。现在方向由「量出来的相对位置」决定，改布局自动跟着对。
+  // ⚠️ 纪律：**每一处 ring-yellow-400 都必须同时摊开 litAttr(该区域)**，否则那个区域一被高亮，
+  //    箭头就找不到目标而整个消失（守卫 ③-10 用「两者出现次数必须相等」钉死）。
+  const litAttr = (area) => (isHighlighted(area) ? { 'data-tut-lit': 'true' } : {})
+
   // 敌方主人此刻是不是**合法目标** —— 红框与闪烁的 TAP 都由它决定。
   // ☠️ 以前只看 selectedAtkSlot !== null：attack / clear_field 步选中攻击者后，主人面板照样亮红框、
   //    闪 TAP，屏幕在邀请孩子点一个「点了没反应」（修复前更糟：能绕过清场）的地方。堵住点击还不够，
@@ -841,6 +906,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
           leaderTargetable ? 'border-red-500 bg-[#2a1515] cursor-pointer' : ''
         } ${isHighlighted('enemy_leader') ? 'ring-2 ring-yellow-400' : ''}`}
           style={isHighlighted('enemy_leader') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
+          {...litAttr('enemy_leader')}
         >
           <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-2 bg-red-900/60 border-red-700 flex items-center justify-center text-lg sm:text-xl shrink-0">👹</div>
           <div className="flex-1 min-w-0">
@@ -873,7 +939,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
       <div className={`flex-1 px-2 py-1 min-h-0 ${
         isHighlighted('enemy_field') ? 'ring-2 ring-yellow-400 rounded-lg relative z-30'
           : anyEnemySlotLit ? 'relative z-30' : ''
-      }`}>
+      }`} {...litAttr('enemy_field')}>
         <div
           className="grid gap-1 h-full"
           style={{ gridTemplateColumns: `repeat(${MAX_FIELD_SLOTS}, minmax(0, 1fr))` }}
@@ -900,6 +966,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
                 blockedByGuard ? 'opacity-40' : ''
               } ${slotLit ? 'ring-2 ring-yellow-400 z-30' : ''}`}
               style={slotLit ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
+              {...(slotLit ? { 'data-tut-lit': 'true' } : {})}
               {...(targetable ? { 'data-attack-target': 'true' } : {})}
               onClick={() => card && handleFieldCardClick('enemy', slot)}
             >
@@ -961,7 +1028,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
       <div className={`flex-1 px-2 py-1 min-h-0 ${
         isHighlighted('player_field') && !['attack', 'direct_attack', 'clear_field'].includes(currentStep?.waitFor)
           ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''
-      }`}>
+      }`} {...litAttr('player_field')}>
         <div
           className="grid gap-1 h-full"
           style={{ gridTemplateColumns: `repeat(${MAX_FIELD_SLOTS}, minmax(0, 1fr))` }}
@@ -1061,7 +1128,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
       <div className={`px-4 py-1 flex items-center gap-3 ${
         isHighlighted('energy_display') || isHighlighted('power_bank') || isHighlighted('power_bank_break')
           ? 'ring-2 ring-yellow-400 rounded-lg relative z-30' : ''
-      }`}>
+      }`} {...litAttr('energy_display')} {...litAttr('power_bank')}>
         <span className="text-sm text-yellow-400 font-bold">⚡ {playerEnergy}</span>
 
         {/* SP区域 */}
@@ -1069,6 +1136,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
           <div
             className={`flex items-center gap-1 cursor-pointer ${isHighlighted('sp_area') ? 'ring-2 ring-yellow-400 rounded px-1 animate-bounce relative z-30' : ''}`}
             style={isHighlighted('sp_area') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
+            {...litAttr('sp_area')}
             onClick={() => isClickable('sp_area') && handleSummonSp()}
           >
             <span className="text-xs text-purple-400">🌟SP</span>
@@ -1085,6 +1153,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
                 isHighlighted('power_bank_break') ? 'ring-2 ring-yellow-400 animate-bounce relative z-30' : ''
               }`}
               style={isHighlighted('power_bank_break') ? { boxShadow: '0 0 16px rgba(250,204,21,0.5)' } : {}}
+              {...litAttr('power_bank_break')}
               onClick={() => isClickable('power_bank_break') && handleBreakPowerBank()}
             >
               {t('battle.pb.break')}
@@ -1095,7 +1164,8 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
 
         {/* 弃牌堆标记 */}
         {playerDiscard.length > 0 && (
-          <div className={`text-xs text-gray-400 ${isHighlighted('discard_area') ? 'ring-2 ring-yellow-400 rounded px-1' : ''}`}>
+          <div className={`text-xs text-gray-400 ${isHighlighted('discard_area') ? 'ring-2 ring-yellow-400 rounded px-1' : ''}`}
+            {...litAttr('discard_area')}>
             {t('tutorial.discardPile')}{playerDiscard.length}
             {Object.entries(factionMarkers).map(([f, n]) => (
               <span key={f} className="ml-1">{FACTIONS[f]?.icon}×{n}</span>
@@ -1142,6 +1212,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
                 whileTap={canClick ? { scale: 0.95 } : {}}
                 animate={highlighted ? { scale: [1, 1.06, 1] } : {}}
                 transition={highlighted ? { duration: 1.2, repeat: Infinity, ease: 'easeInOut' } : {}}
+                {...(highlighted ? { 'data-tut-lit': 'true' } : {})}
                 onClick={() => canClick && handleHandCardClick(idx)}
                 layout
               >
@@ -1174,6 +1245,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
               : 'bg-gray-800 text-gray-600 cursor-not-allowed'
           } ${isHighlighted('end_turn_btn') ? 'ring-2 ring-yellow-400 animate-bounce' : ''}`}
           style={isHighlighted('end_turn_btn') ? { boxShadow: '0 0 20px rgba(250,204,21,0.6)' } : {}}
+          {...litAttr('end_turn_btn')}
           onClick={() => isClickable('end_turn_btn') && handleEndTurn()}
           disabled={!isClickable('end_turn_btn')}
         >
@@ -1216,7 +1288,17 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
                 animate={{ opacity: 1, y: 0 }}
                 key={currentStep.id}
               >
-                <div className="bg-yellow-900/95 border-2 border-yellow-500 rounded-xl p-3 shadow-lg shadow-yellow-500/20">
+                <div ref={bubbleRef} className="relative bg-yellow-900/95 border-2 border-yellow-500 rounded-xl p-3 shadow-lg shadow-yellow-500/20">
+                  {arrow && (
+                    <div className="absolute pointer-events-none" style={ARROW_ALIGN(arrow.dir, arrow.offset)}>
+                      <motion.div
+                        className="text-2xl leading-none text-yellow-400"
+                        style={{ filter: 'drop-shadow(0 0 6px rgba(250,204,21,0.9))' }}
+                        animate={ARROW_BOUNCE[arrow.dir]}
+                        transition={{ duration: 0.9, repeat: Infinity, ease: 'easeInOut' }}
+                      >{ARROW_GLYPH[arrow.dir]}</motion.div>
+                    </div>
+                  )}
                   <p className="text-sm text-yellow-100 leading-relaxed">{loc(currentStep, 'text')}</p>
 
                   {currentStep.waitFor === 'acknowledge' && (

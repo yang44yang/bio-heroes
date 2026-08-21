@@ -488,9 +488,11 @@ for (const w of used) {
 //      屏幕上什么都不会亮，孩子根本不知道说的是哪一张（同「守护看不出来」那一类：逻辑对了但看不见）。
 // ⚠️ 按下标生成的一族（hand_card_N / enemy_slot_N）必须用模板字符串匹配 —— 别退回硬编码 0..3，
 //    那样第 5 张手牌/第 6 个槽位又会悄悄没人管。
+// [值的形状, 渲染分支的写法, 「可被量到」标记的写法]
 const DYNAMIC_HIGHLIGHT = [
-  [/^enemy_slot_\d+$/, /isHighlighted\(`enemy_slot_\$\{slot\}`\)/],
-  [/^hand_card_\d+$/, /isHighlighted\(`hand_card_\$\{idx\}`\)/],
+  [/^enemy_slot_\d+$/, /isHighlighted\(`enemy_slot_\$\{slot\}`\)/, /slotLit \? \{ 'data-tut-lit': 'true' \}/],
+  [/^hand_card_\d+$/, /isHighlighted\(`hand_card_\$\{idx\}`\)/, /highlighted \? \{ 'data-tut-lit': 'true' \}/],
+  [/^hand$/, /isHighlighted\('hand'\)/, /highlighted \? \{ 'data-tut-lit': 'true' \}/],
 ]
 const usedHighlights = [...new Set([...data.matchAll(/highlight:\s*'([a-z_0-9]+)'/g)].map(m => m[1]))]
 for (const h of usedHighlights) {
@@ -498,6 +500,11 @@ for (const h of usedHighlights) {
   const literal = tutCode.includes(`isHighlighted('${h}')`)
   const dyn = DYNAMIC_HIGHLIGHT.some(([val, src]) => val.test(h) && src.test(tutCode))
   ok(`③-6 ★ highlight '${h}' 在 TutorialScreen 里有对应的渲染分支（没有 = 高亮打在空气上）`, literal || dyn)
+  // 高亮元素还必须**可被量到**：气泡的指向箭头靠量它决定方向，没标记就整个箭头不显示。
+  const litLiteral = tutCode.includes(`litAttr('${h}')`)
+  const litDyn = DYNAMIC_HIGHLIGHT.some(([val, , mark]) => val.test(h) && mark && mark.test(tutCode))
+  ok(`③-10 ★ highlight '${h}' 的元素带 data-tut-lit 标记（没有 = 那一步的指向箭头凭空消失）`,
+    litLiteral || litDyn)
 }
 // 气泡会盖住它指的东西：enemy_slot_N 属于敌方战场，气泡必须和 enemy_field 一样落到底部，
 // 否则停在 top 8% 正好压住刚点亮的那张卡（lowerHandledAreas 用 startsWith，写前缀即可）。
@@ -507,7 +514,7 @@ ok('③-6 ★ 提示气泡的「放底部」列表包含 enemy_slot（否则气�
 // ③-7 ★ 步骤对象里出现的每一个字段都必须真的被消费。
 //      死字段是「以为控制了什么、其实没有」的温床：targetCardIdx 曾在 3 个步骤里写着「出第 0 张」，
 //      而组件 0 处引用 —— 谁来改教学都会以为出牌顺序被钉住了，实际上点哪张都过。
-const KNOWN_DEAD_KEYS = ['arrow']
+const KNOWN_DEAD_KEYS = []      // 空表 = 步骤字段全部有人消费。往里加之前先想清楚为什么不能删
 const stepKeys = [...new Set([...data.matchAll(/^ {6}([a-zA-Z]+):/gm)].map(m => m[1]))]
 ok('③-7 步骤字段提取有效（tutorialData 缩进变了就必须同步改这里的正则，否则本条会静默失效）',
   ['id', 'text', 'textEn', 'highlight', 'waitFor'].every(k => stepKeys.includes(k)))
@@ -518,10 +525,8 @@ for (const k of stepKeys) {
     || (k.endsWith('En') && locIdiom && stepKeys.includes(k.slice(0, -2)))
   ok(`③-7 ★ 步骤字段 '${k}' 在 TutorialScreen 里真的被读到（读不到 = 死字段，会骗下一个改教学的人）`, consumed)
 }
-// 登记表自清理：某个死字段哪天被实装了，就必须从表里删掉，否则它会替真字段挡住上面那条检查。
-// arrow：数据里 54 处、全项目 0 处消费。故意暂留（它记着「气泡该往哪指」的设计意图），
-// 但实装前要**逐条校准方向** —— 数据给 hand_card_0 标的是 arrow:'up'，而那一步气泡在 top 8%、
-// 手牌在屏幕最下方，照着画就是指反的（本项目刚栽过一次「转屏提示方向修反」）。
+// 登记表自清理：某个死字段哪天被实装（或删掉）了，就必须从表里拿掉，否则它会替真字段挡住上面那条检查。
+// 曾登记过 arrow（54 处、0 消费）—— 现已连同字段一起删除，方向改为量出来的，见 ③-11。
 for (const k of KNOWN_DEAD_KEYS) {
   ok(`③-7 死字段登记表里的 '${k}' 仍然确实没被消费（实装了就把它从表里删掉）`,
     !new RegExp(`\\b${k}\\b`).test(tutCode))
@@ -555,6 +560,32 @@ ok('③-9 ★ 手牌区按「被点名的那一张」收紧可点范围（target
 // 否则会绕过 play_card 的逃生阀（它只看「有没有任何一张出得起」）→ 步骤锁死 = 本关报废。
 ok('③-9 ★ 收紧带退路：targetPlayable 要查 cost/能量与空位，出不起就不收紧',
   /targetPlayable[\s\S]{0,400}cost\s*<=\s*playerEnergy/.test(tutCode))
+
+// ③-11 ★ 提示气泡的指向箭头：方向必须是**量出来的**，不能写回关卡数据。
+//      历史：数据里有 54 个手写 arrow 字段、组件 0 处引用（纯死字段），而且已经和布局漂移
+//      —— hand_card_0 标着 'up'，可那一步气泡在屏幕顶部、手牌在最底部，照着画就是指反的。
+//      54 个值没人会在改布局时同步，写回数据 = 必然再次漂移（本项目刚栽过一次「转屏提示方向修反」）。
+ok('③-11 ★ 关卡数据里不得再出现 arrow 字段（方向写回数据 = 必然与布局漂移）',
+  !/^\s*arrow\s*:/m.test(data))
+ok('③-11 ★ 组件按「被高亮元素 vs 气泡」的实测相对位置求方向（useLayoutEffect + data-tut-lit）',
+  /useLayoutEffect/.test(tutCode) && /querySelectorAll\('\[data-tut-lit="true"\]'\)/.test(tutCode)
+  && /getBoundingClientRect/.test(tutCode))
+// 两个轴都要判：energy/SP 那行与底部气泡在竖直方向是重叠的，只比 dy 会指到自己身上
+ok('③-11 ★ 方向按「不重叠间距」在两个轴之间选（vGap / hGap），不是只比中心点 dy',
+  /vGap/.test(tutCode) && /hGap/.test(tutCode))
+for (const d of ['up', 'down', 'left', 'right']) {
+  ok(`③-11 箭头四个方向都有字形与定位（缺一个 = 那个方向的步骤箭头空白）`,
+    new RegExp(`${d}:`).test(tutCode.slice(tutCode.indexOf('ARROW_GLYPH'), tutCode.indexOf('ARROW_GLYPH') + 200))
+    && new RegExp(`${d}:`).test(tutCode.slice(tutCode.indexOf('ARROW_POS'), tutCode.indexOf('ARROW_POS') + 400)))
+}
+// 箭头还要沿气泡那条边滑到目标中心（不是永远居中）：守卫兵在屏幕最左、气泡在正中时，
+// 居中的箭头看着像在指中间那张普通兵。
+ok('③-11 ★ 箭头沿气泡边对齐到目标中心（ARROW_ALIGN + 夹在 12%~88%）',
+  /ARROW_ALIGN/.test(tutCode) && /Math\.max\(12, Math\.min\(88/.test(tutCode))
+// 反向锁：位移动画必须挂在**内层** motion 上。framer 动 x/y 会接管 transform，
+// 和定位用的 translateX(-50%) 写在同一个元素上会把箭头顶偏（看起来像"指错了"）。
+ok('③-11 ★ ARROW_POS 的 transform 与 ARROW_BOUNCE 的 x/y 不在同一个元素上',
+  !/style=\{\{[^}]*ARROW_POS[^}]*\}\}[^\n]*animate=\{ARROW_BOUNCE/.test(tutCode))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} test-tutorial-solvable: 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

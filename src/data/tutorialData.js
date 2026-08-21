@@ -1,5 +1,10 @@
 // Bio Heroes 教学关卡数据
 // Sprint 21: 3 基础 + 2 进阶教学关卡
+//
+// ☠️ 提示气泡的箭头方向**不在这里**：曾有 54 个手写 arrow 字段，组件 0 处引用（纯装饰性死字段），
+//    而且已经和布局漂移了（hand_card_0 标 'up'，可那一步气泡在屏幕顶部、手牌在最底部 —— 指反）。
+//    现在方向由 TutorialScreen 量「被高亮元素 vs 气泡」的相对位置得出，改布局自动跟着对。
+//    别把方向写回数据（守卫 ③-11 会判红）。
 
 // ⚠️ 相对 import 必须带 .js：Vite 两种写法都认，Node ESM 只认显式扩展名 ——
 //    漏了就等于把本文件锁在 npm test 之外（scripts/test-tutorial-solvable.mjs 要 import 它）。
@@ -105,7 +110,6 @@ export const LEVEL_1 = {
       highlight: 'hand',
       text: '这是你的手牌！点击一张卡把它放到战场上',
       textEn: 'These are your cards! Tap one to play it onto the field',
-      arrow: 'down',
       waitFor: 'acknowledge',
     },
     {
@@ -113,7 +117,6 @@ export const LEVEL_1 = {
       highlight: 'hand_card_0',
       text: '点击这张蚂蚁卡，把它放上战场！',
       textEn: 'Tap this Ant card to play it onto the field!',
-      arrow: 'up',
       // 「点名哪一张」只由上面的 highlight: 'hand_card_N' 表达 —— 组件按它收紧可点范围。
       // ☠️ 这里原本还有一个死字段（三个步骤共 3 处），组件**0 处引用**：写的人以为钉住了
       //    出牌顺序，实际点哪张都过。别再加这类「看起来管用」的字段 ——
@@ -125,7 +128,6 @@ export const LEVEL_1 = {
       highlight: 'end_turn_btn',
       text: '干得好！刚上场的卡不能马上攻击。点击"结束回合"',
       textEn: "Nice! Cards just played can't attack yet. Tap 'End Turn'",
-      arrow: 'right',
       waitFor: 'end_turn',
     },
     {
@@ -133,7 +135,6 @@ export const LEVEL_1 = {
       highlight: 'enemy_field',
       text: '对手攻击了你的卡！现在轮到你了',
       textEn: 'The opponent attacked your card! Now it\'s your turn',
-      arrow: 'none',
       waitFor: 'acknowledge',
       autoAction: 'enemy_attack',
     },
@@ -142,7 +143,6 @@ export const LEVEL_1 = {
       highlight: 'player_field',
       text: '点击你的卡，再点击敌人来攻击！',
       textEn: 'Tap your card, then tap the enemy to attack!',
-      arrow: 'up',
       waitFor: 'attack',
     },
     {
@@ -150,7 +150,6 @@ export const LEVEL_1 = {
       highlight: 'enemy_leader',
       text: '敌人被打倒了！点你的卡 → 点对方主人，直接攻击！',
       textEn: 'Enemy defeated! Tap your card → tap the enemy leader to attack directly!',
-      arrow: 'up',
       waitFor: 'direct_attack',
     },
     {
@@ -158,7 +157,6 @@ export const LEVEL_1 = {
       highlight: 'none',
       text: '你赢了！🎉',
       textEn: 'You won! 🎉',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
   ],
@@ -206,7 +204,6 @@ export const LEVEL_2 = {
       highlight: 'energy_display',
       text: '你有 2 点能量 ⚡。每张卡左上角的数字是费用',
       textEn: 'You have 2 energy ⚡. The number on each card is its cost',
-      arrow: 'left',
       waitFor: 'acknowledge',
     },
     {
@@ -214,7 +211,6 @@ export const LEVEL_2 = {
       highlight: 'hand',
       text: '白细胞费用是 2，蚂蚁费用是 1。你只有 2 能量，先出一张试试！',
       textEn: 'White Blood Cell costs 2, Ant costs 1. You only have 2 energy — try playing one!',
-      arrow: 'up',
       waitFor: 'play_card',
     },
     {
@@ -222,7 +218,6 @@ export const LEVEL_2 = {
       highlight: 'energy_display',
       text: '能量减少了！看看还能不能再出一张',
       textEn: 'Energy decreased! See if you can play another card',
-      arrow: 'left',
       waitFor: 'acknowledge',
     },
     {
@@ -230,7 +225,6 @@ export const LEVEL_2 = {
       highlight: 'hand',
       text: '如果还有能量，再出一张！能量不够就结束回合',
       textEn: 'If you have energy left, play another! Otherwise end your turn',
-      arrow: 'up',
       waitFor: 'play_card',
     },
     {
@@ -238,7 +232,6 @@ export const LEVEL_2 = {
       highlight: 'end_turn_btn',
       text: '结束回合！下回合你会得到更多能量（回合数 = 能量上限）',
       textEn: 'End your turn! Next turn you get more energy (turn number = energy cap)',
-      arrow: 'right',
       waitFor: 'end_turn',
     },
     {
@@ -246,7 +239,6 @@ export const LEVEL_2 = {
       highlight: 'none',
       text: '对手回合结束',
       textEn: "Opponent's turn is over",
-      arrow: 'none',
       waitFor: 'acknowledge',
       autoAction: 'enemy_pass',
     },
@@ -255,7 +247,6 @@ export const LEVEL_2 = {
       highlight: 'player_field',
       text: '你的能量增加了！先攻击敌人吧！',
       textEn: 'Your energy increased! Attack the enemies!',
-      arrow: 'up',
       waitFor: 'attack',
     },
     {
@@ -263,7 +254,6 @@ export const LEVEL_2 = {
       highlight: 'enemy_leader',
       text: '用你的卡消灭敌人，攻击主人获胜！',
       textEn: 'Destroy all enemies and attack the leader to win!',
-      arrow: 'up',
       waitFor: 'direct_attack',
     },
     {
@@ -271,7 +261,6 @@ export const LEVEL_2 = {
       highlight: 'none',
       text: '你学会了能量管理！便宜的卡能更早上场，贵的卡要等能量够了再出 🎉',
       textEn: 'You learned energy management! Cheap cards come early, expensive ones need more turns 🎉',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
   ],
@@ -332,7 +321,6 @@ export const LEVEL_3 = {
       highlight: 'enemy_slot_1',
       text: '敌方有一张"守护"卡 🛡️——你只能先攻击它！',
       textEn: 'The enemy has a "Guard" card 🛡️ — you must attack it first!',
-      arrow: 'down',
       waitFor: 'acknowledge',
     },
     {
@@ -340,7 +328,6 @@ export const LEVEL_3 = {
       highlight: 'hand',
       text: '先出卡上场！',
       textEn: 'Play your cards onto the field!',
-      arrow: 'up',
       waitFor: 'play_card',
     },
     {
@@ -348,7 +335,6 @@ export const LEVEL_3 = {
       highlight: 'hand',
       text: '再出一张！',
       textEn: 'Play another one!',
-      arrow: 'up',
       waitFor: 'play_card',
     },
     {
@@ -356,7 +342,6 @@ export const LEVEL_3 = {
       highlight: 'end_turn_btn',
       text: '结束回合',
       textEn: 'End your turn',
-      arrow: 'right',
       waitFor: 'end_turn',
     },
     {
@@ -364,7 +349,6 @@ export const LEVEL_3 = {
       highlight: 'none',
       text: '对手回合结束',
       textEn: "Opponent's turn is over",
-      arrow: 'none',
       waitFor: 'acknowledge',
       autoAction: 'enemy_pass',
     },
@@ -373,7 +357,6 @@ export const LEVEL_3 = {
       highlight: 'player_field',
       text: '对方有守护卡 🛡️，你必须先打它！点你的卡 → 点守护卡',
       textEn: 'The enemy has a Guard card 🛡️ — you must attack it first! Tap your card → tap the Guard card',
-      arrow: 'up',
       waitFor: 'attack',
     },
     {
@@ -381,7 +364,6 @@ export const LEVEL_3 = {
       highlight: 'enemy_field',
       text: '守护卡被打倒了！现在可以攻击其他敌人！',
       textEn: 'The Guard card is down! Now you can attack other enemies!',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
     {
@@ -389,7 +371,6 @@ export const LEVEL_3 = {
       highlight: 'player_field',
       text: '自由攻击！消灭所有敌人！',
       textEn: 'Free attack! Destroy all enemies!',
-      arrow: 'up',
       waitFor: 'attack',
     },
     {
@@ -397,7 +378,6 @@ export const LEVEL_3 = {
       highlight: 'enemy_leader',
       text: '攻击主人！',
       textEn: 'Attack the leader!',
-      arrow: 'up',
       waitFor: 'direct_attack',
     },
     {
@@ -405,7 +385,6 @@ export const LEVEL_3 = {
       highlight: 'none',
       text: '你掌握了基础！可以开始闯关了！🎉',
       textEn: "You've mastered the basics! Ready for campaign mode! 🎉",
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
   ],
@@ -461,7 +440,6 @@ export const LEVEL_4 = {
       highlight: 'hand',
       text: '你的高费卡现在出不起。但有一个秘密武器——Power Bank！',
       textEn: "Your expensive cards can't be played yet. But there's a secret weapon — the Power Bank!",
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
     {
@@ -469,7 +447,6 @@ export const LEVEL_4 = {
       highlight: 'power_bank',
       text: '每回合没花完的能量会自动存进 Power Bank。看到那个电池图标了吗？',
       textEn: 'Unused energy each turn is saved into the Power Bank automatically. See that battery icon?',
-      arrow: 'left',
       waitFor: 'acknowledge',
     },
     {
@@ -477,7 +454,6 @@ export const LEVEL_4 = {
       highlight: 'hand_card_0',
       text: '先出一张低费蚂蚁（1费），剩余能量会流入 Power Bank！',
       textEn: 'Play a cheap Ant card (1 cost) — the leftover energy will flow into the Power Bank!',
-      arrow: 'up',
       waitFor: 'play_card',
     },
     {
@@ -485,7 +461,6 @@ export const LEVEL_4 = {
       highlight: 'end_turn_btn',
       text: '结束回合！剩余能量存入 Power Bank 了！看到数字在涨吗？',
       textEn: 'End your turn! Leftover energy was saved. See the number going up?',
-      arrow: 'right',
       waitFor: 'end_turn',
     },
     {
@@ -493,7 +468,6 @@ export const LEVEL_4 = {
       highlight: 'none',
       text: '对手回合结束。继续攒能量！',
       textEn: "Opponent's turn is over. Keep saving energy!",
-      arrow: 'none',
       waitFor: 'acknowledge',
       autoAction: 'enemy_pass',
     },
@@ -502,7 +476,6 @@ export const LEVEL_4 = {
       highlight: 'end_turn_btn',
       text: '这回合不出牌，直接结束！让所有能量都流入 Power Bank！',
       textEn: "Don't play anything this turn — end it! Let all the energy flow into the Power Bank!",
-      arrow: 'right',
       waitFor: 'end_turn',
     },
     {
@@ -510,7 +483,6 @@ export const LEVEL_4 = {
       highlight: 'none',
       text: 'Power Bank 越来越满了…',
       textEn: 'The Power Bank is filling up…',
-      arrow: 'none',
       waitFor: 'acknowledge',
       autoAction: 'enemy_pass',
     },
@@ -519,7 +491,6 @@ export const LEVEL_4 = {
       highlight: 'power_bank_break',
       text: '能量攒够了！点击 💥 打破 Power Bank！',
       textEn: 'Enough energy saved! Tap 💥 to break the Power Bank!',
-      arrow: 'left',
       waitFor: 'break_power_bank',
     },
     {
@@ -527,7 +498,6 @@ export const LEVEL_4 = {
       highlight: 'energy_display',
       text: 'BOOM！所有存储的能量释放了！你现在能量充足！',
       textEn: 'BOOM! All stored energy released! You have plenty of energy now!',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
     {
@@ -535,7 +505,6 @@ export const LEVEL_4 = {
       highlight: 'hand',
       text: '趁现在能量充足，把剩余卡牌全部铺上场！',
       textEn: 'While you have lots of energy, play all your remaining cards!',
-      arrow: 'up',
       waitFor: 'play_all',
     },
     {
@@ -543,7 +512,6 @@ export const LEVEL_4 = {
       highlight: 'end_turn_btn',
       text: '结束回合，下回合用强力卡碾压对手！',
       textEn: 'End your turn — next turn, crush the opponent with your powerful cards!',
-      arrow: 'right',
       waitFor: 'end_turn',
     },
     {
@@ -551,7 +519,6 @@ export const LEVEL_4 = {
       highlight: 'none',
       text: '对手回合结束。全力进攻！',
       textEn: "Opponent's turn is over. Go all out!",
-      arrow: 'none',
       waitFor: 'acknowledge',
       autoAction: 'enemy_pass',
     },
@@ -560,7 +527,6 @@ export const LEVEL_4 = {
       highlight: 'player_field',
       text: '用你的强力卡碾压对手！攻击所有敌方卡牌！',
       textEn: 'Use your powerful cards to crush the enemies! Attack all enemy cards!',
-      arrow: 'up',
       waitFor: 'clear_field',
     },
     {
@@ -568,7 +534,6 @@ export const LEVEL_4 = {
       highlight: 'enemy_leader',
       text: '场上清空了！点你的卡 → 点上方对手面板，直攻主人！',
       textEn: 'Field is clear! Tap your card → tap the enemy leader panel to attack directly!',
-      arrow: 'up',
       waitFor: 'direct_attack',
     },
     {
@@ -576,7 +541,6 @@ export const LEVEL_4 = {
       highlight: 'none',
       text: '完美！Power Bank 让你一回合爆发！🎉',
       textEn: 'Perfect! The Power Bank lets you burst in a single turn! 🎉',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
   ],
@@ -634,7 +598,6 @@ export const LEVEL_5 = {
       highlight: 'hand_card_2',
       text: '📜 这张"食物链爆发"是事件卡！和生物卡不同——打出后不上战场，效果立刻生效',
       textEn: '📜 This "Food Chain Burst" is an event card! Unlike creature cards — it doesn\'t go on the field, its effect activates instantly',
-      arrow: 'up',
       waitFor: 'acknowledge',
     },
     {
@@ -642,7 +605,6 @@ export const LEVEL_5 = {
       highlight: 'sp_area',
       text: '看到 SP 区域那张面朝下的卡了吗？那是超强的 SP 觉醒卡！但它不能直接出牌',
       textEn: "See that face-down card in the SP area? That's a super powerful SP Awakening card! But it can't be played directly",
-      arrow: 'down',
       waitFor: 'acknowledge',
     },
     {
@@ -650,7 +612,6 @@ export const LEVEL_5 = {
       highlight: 'hand_card_2',
       text: 'SP 卡只能通过特定事件卡触发！这张"食物链爆发"可以召唤自然系 SP！',
       textEn: 'SP cards can only be triggered by specific event cards! This "Food Chain Burst" can summon a Nature SP!',
-      arrow: 'up',
       waitFor: 'acknowledge',
     },
     {
@@ -658,7 +619,6 @@ export const LEVEL_5 = {
       highlight: 'hand_card_0',
       text: '先出 2 张生物卡到场上，让事件卡的增益更有效果！',
       textEn: 'First play 2 creature cards — the event card buff will be more effective!',
-      arrow: 'up',
       waitFor: 'play_card',
     },
     {
@@ -666,7 +626,6 @@ export const LEVEL_5 = {
       highlight: 'hand',
       text: '再出一张生物卡！',
       textEn: 'Play one more creature card!',
-      arrow: 'up',
       waitFor: 'play_card',
     },
     {
@@ -674,7 +633,6 @@ export const LEVEL_5 = {
       highlight: 'hand',
       text: '现在打出事件卡"食物链爆发"！全体自然系 ATK +1500！',
       textEn: 'Now play the event card "Food Chain Burst"! All Nature cards ATK +1500!',
-      arrow: 'up',
       waitFor: 'play_event',
     },
     {
@@ -682,7 +640,6 @@ export const LEVEL_5 = {
       highlight: 'player_field',
       text: '效果生效了！你的自然系生物攻击力大幅提升！事件卡还触发了 SP 召唤！',
       textEn: 'Effect activated! Your Nature creatures got a huge ATK boost! The event card also triggered an SP summon!',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
     {
@@ -690,7 +647,6 @@ export const LEVEL_5 = {
       highlight: 'sp_area',
       text: '💥 选择激活 SP·霸王龙·远古霸主！',
       textEn: '💥 Choose to activate SP T-Rex: Ancient Overlord!',
-      arrow: 'down',
       waitFor: 'summon_sp',
     },
     {
@@ -698,7 +654,6 @@ export const LEVEL_5 = {
       highlight: 'player_field',
       text: '💥 SP·霸王龙登场！登场效果：全体敌方 -3000 HP！无敌的力量！',
       textEn: '💥 SP T-Rex enters the field! Entrance effect: all enemies -3000 HP! Unstoppable power!',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
     {
@@ -706,7 +661,6 @@ export const LEVEL_5 = {
       highlight: 'end_turn_btn',
       text: '结束回合，下回合用 SP 卡碾压对手！',
       textEn: 'End your turn — next turn, crush the opponent with your SP card!',
-      arrow: 'right',
       waitFor: 'end_turn',
     },
     {
@@ -714,7 +668,6 @@ export const LEVEL_5 = {
       highlight: 'none',
       text: '对手回合结束。用霸王龙终结战斗吧！',
       textEn: "Opponent's turn is over. Finish the battle with T-Rex!",
-      arrow: 'none',
       waitFor: 'acknowledge',
       autoAction: 'enemy_pass',
     },
@@ -723,7 +676,6 @@ export const LEVEL_5 = {
       highlight: 'enemy_leader',
       text: '霸王龙的登场效果清空了敌方！点你的卡 → 点上方对手面板，直攻主人！',
       textEn: "T-Rex's entrance effect wiped out all enemies! Tap your card → tap the enemy leader to attack directly!",
-      arrow: 'up',
       waitFor: 'direct_attack',
     },
     {
@@ -731,7 +683,6 @@ export const LEVEL_5 = {
       highlight: 'none',
       text: 'SP 觉醒卡是扭转战局的王牌！🎉',
       textEn: 'SP Awakening cards are the ultimate game-changers! 🎉',
-      arrow: 'none',
       waitFor: 'acknowledge',
     },
   ],
