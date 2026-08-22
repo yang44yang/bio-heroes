@@ -8,6 +8,8 @@ import { FACTIONS, SUBTYPES, DECK_SIZE, SP_DECK_SIZE, MAX_SAME_CARD, MAX_SAME_SP
 import CardDetailModal from './CardDetailModal'
 import { useLanguage } from '../i18n/LanguageContext'
 import { loadDecks, saveDecks, MAX_SLOTS } from '../utils/decks'
+// 一键推荐是**新玩家做的第一件事**，抽成纯核心才测得到（它曾产出同名 5 张的非法卡组）
+import { generateRecommendedDeck } from '../utils/recommendDeck.js'
 
 // allMainCards 包含所有卡（用于 resolveCard / costCurve 等需要查找已入组卡牌的场景）
 const allMainCards = [...cards, ...eventCards]
@@ -20,33 +22,6 @@ const allSpCards = spCards
 // 卡组存取已抽到 ../utils/decks（CampaignScreen 也要用，避免它 import 整个 DeckBuilder）
 
 // Generate a recommended deck (from available cards pool)
-function generateRecommendedDeck(factionPrimary, factionSecondary, mainPool, spPool) {
-  const main = []
-  const pool = mainPool
-    .filter(c => c.faction === factionPrimary || c.faction === factionSecondary)
-    .sort((a, b) => a.cost - b.cost)
-
-  const costTargets = { 1: 6, 2: 6, 3: 5, 4: 4, 5: 2 }
-  for (const [cost, count] of Object.entries(costTargets)) {
-    const candidates = pool.filter(c => c.cost === Number(cost) && main.filter(m => m.id === c.id).length < MAX_SAME_CARD)
-    for (let i = 0; i < count && candidates.length > 0 && main.length < DECK_SIZE; i++) {
-      const pick = candidates[i % candidates.length]
-      if (pick) main.push(pick)
-    }
-  }
-  while (main.length < DECK_SIZE) {
-    const fill = pool.find(c => main.filter(m => m.id === c.id).length < MAX_SAME_CARD)
-    if (!fill) break
-    main.push(fill)
-  }
-
-  const sp = spPool
-    .filter(c => c.faction === factionPrimary || c.faction === factionSecondary)
-    .slice(0, Math.min(3, SP_DECK_SIZE))
-
-  return { main: main.map(c => c.id), sp: sp.map(c => c.id) }
-}
-
 // 技能类型 → 图标映射
 const SKILL_ICONS = {
   '守护': '🛡️',
@@ -243,8 +218,37 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
     onSelectDeck({ mainCards, spCards: spCardsResolved })
   }, [deckSlots, onSelectDeck])
 
+  // 一键开打 —— ☠️ 这是新玩家的第一道坎：原本点进来是 10 个一模一样的「空卡组 ➕ 新建」，
+  // 唯一能立刻开打的入口是页面最底下 12px 的灰字（手机竖屏还要往下滚 116px 才看得见），
+  // 而一键「推荐」是 10px 的小按钮、藏在「新建」之后。7 岁的玩家过不了这一关。
+  // 做法：用**他自己拥有的卡**组一副合法卡组、存进第一个空槽、直接出战 —— 打完还留着一副能编辑的卡组。
+  // ⚠️ 卡不够凑满 25 时**退回默认卡组**，绝不能让按钮点了没反应（宁可换套牌，不可卡住）。
+  const handleQuickStart = useCallback(() => {
+    const combos = [['body', 'tech'], ['nature', 'pathogen']]
+    let rec = null
+    for (const [a, b] of combos) {
+      const r = generateRecommendedDeck(a, b, ownedMainCards, ownedSpCards)
+      if (r.main.length === DECK_SIZE) { rec = r; break }
+    }
+    if (!rec) { onSelectDeck(null); return }          // 兜底：用默认卡组，照样能玩
+    const idx = Math.max(0, deckSlots.findIndex(x => !x))
+    const next = [...deckSlots]
+    next[idx] = { name: t('deck.quickName'), main: rec.main, sp: rec.sp }
+    setDeckSlots(next)
+    saveDecks(next)
+    const mainCards = rec.main.map(id => allMainCards.find(c => c.id === id)).filter(Boolean)
+    const spResolved = rec.sp.map(id => allSpCards.find(c => c.id === id)).filter(Boolean)
+    onSelectDeck({ mainCards, spCards: spResolved })
+  }, [ownedMainCards, ownedSpCards, deckSlots, onSelectDeck, t])
+
   // === Slot overview (not editing) ===
   if (!editing) {
+    // 只渲染「已有的卡组 + 一个新建位」——十个一模一样的空槽位没有任何信息量，
+    // 还把唯一能开打的入口挤到屏幕外（守卫 test-deck-firstrun）。
+    const filledIdx = deckSlots.map((sl, i) => (sl ? i : -1)).filter(i => i >= 0)
+    const firstEmptyIdx = deckSlots.findIndex(x => !x)
+    const visibleIdx = firstEmptyIdx >= 0 ? [...filledIdx, firstEmptyIdx] : filledIdx
+    const hasAnyDeck = filledIdx.length > 0
     return (
       <div className="w-full max-w-2xl mx-auto px-4 py-6 min-h-screen">
         <div className="flex items-center justify-between mb-6">
@@ -263,8 +267,23 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
           </button>
         </div>
 
+        {/* 一个卡组都没有时，先给一条「马上能玩」的路 —— 组卡是后面的事 */}
+        {!hasAnyDeck && (
+          <motion.button
+            className="w-full mb-5 py-4 bg-green-600 hover:bg-green-500 rounded-2xl text-white text-lg font-black shadow-lg"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleQuickStart}
+          >
+            {t('deck.quickStart')}
+            <span className="block text-xs font-normal text-green-100/90 mt-0.5">{t('deck.quickStartHint')}</span>
+          </motion.button>
+        )}
+
         <div className="space-y-4">
-          {deckSlots.map((slot, i) => (
+          {visibleIdx.map((i) => deckSlots[i]).map((slot, vi) => {
+          const i = visibleIdx[vi]
+          return (
             <motion.div
               key={i}
               className={`p-4 rounded-xl border-2 ${slot ? 'border-blue-500/50 bg-gray-800/80' : 'border-gray-700 bg-gray-800/40 border-dashed'}`}
@@ -343,7 +362,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                 </div>
               )}
             </motion.div>
-          ))}
+          )})}
         </div>
 
         {/* Quick start with test deck */}
@@ -561,14 +580,14 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
         {/* Recommended decks */}
         <div className="flex gap-1 ml-auto">
           <button
-            className="text-[10px] px-2 py-1 bg-blue-700 hover:bg-blue-600 text-white rounded font-bold"
+            className="text-xs px-3 py-1.5 bg-blue-700 hover:bg-blue-600 text-white rounded-lg font-bold"
             onClick={() => applyRecommended('body', 'tech')}
             title={t('deck.comboBodyTech')}
           >
             🧬⚗️ {t('deck.recommend')}
           </button>
           <button
-            className="text-[10px] px-2 py-1 bg-green-700 hover:bg-green-600 text-white rounded font-bold"
+            className="text-xs px-3 py-1.5 bg-green-700 hover:bg-green-600 text-white rounded-lg font-bold"
             onClick={() => applyRecommended('nature', 'pathogen')}
             title={t('deck.comboNaturePathogen')}
           >
