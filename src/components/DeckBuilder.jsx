@@ -10,6 +10,8 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { loadDecks, saveDecks, MAX_SLOTS } from '../utils/decks'
 // 一键推荐是**新玩家做的第一件事**，抽成纯核心才测得到（它曾产出同名 5 张的非法卡组）
 import { generateRecommendedDeck } from '../utils/recommendDeck.js'
+// 体检 + 一键修正：生成器修好了，但**已经存下来的**卡组不会自己变好（齐齐存档里那副还违规着）
+import { findDeckIssues, repairDeck } from '../utils/deckHealth.js'
 
 // allMainCards 包含所有卡（用于 resolveCard / costCurve 等需要查找已入组卡牌的场景）
 const allMainCards = [...cards, ...eventCards]
@@ -55,6 +57,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
     return allSpCards.filter(c => collection[c.id])
   }, [collection])
   const [deckSlots, setDeckSlots] = useState(() => loadDecks())
+  const [repairedSlot, setRepairedSlot] = useState(null)   // 刚修好的槽位，给一句反馈
   const [activeSlot, setActiveSlot] = useState(0)
   const [editing, setEditing] = useState(false)
   const [detailCard, setDetailCard] = useState(null) // 卡牌详情弹窗
@@ -241,6 +244,18 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
     onSelectDeck({ mainCards, spCards: spResolved })
   }, [ownedMainCards, ownedSpCards, deckSlots, onSelectDeck, t])
 
+  // 一键修正一副超限的卡组。☠️ 必须落盘 —— 不落盘的话下次打开又是坏的，等于修了个寂寞。
+  const handleRepair = useCallback((slotIdx) => {
+    const slot = deckSlots[slotIdx]
+    if (!slot) return
+    const fixed = repairDeck(slot, ownedMainCards.map(c => c.id))
+    const next = [...deckSlots]
+    next[slotIdx] = fixed
+    setDeckSlots(next)
+    saveDecks(next)
+    setRepairedSlot(slotIdx)
+  }, [deckSlots, ownedMainCards])
+
   // === Slot overview (not editing) ===
   if (!editing) {
     // 只渲染「已有的卡组 + 一个新建位」——十个一模一样的空槽位没有任何信息量，
@@ -283,6 +298,8 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
         <div className="space-y-4">
           {visibleIdx.map((i) => deckSlots[i]).map((slot, vi) => {
           const i = visibleIdx[vi]
+          // 打开界面就体检。超限的卡组要**看得见**，而不是揣着一副违规的牌去打。
+          const issues = findDeckIssues(slot)
           return (
             <motion.div
               key={i}
@@ -332,7 +349,17 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                   >
                     {slot ? t('deck.edit') : t('deck.create')}
                   </button>
-                  {slot && slot.main.length === DECK_SIZE && (
+                  {/* 超限时把「出战」换成「修正」—— 一键修好后 25/25，出战自然回来。
+                      不这么做的话，孩子会揣着一副违规的牌去打，而屏幕上什么都没说。 */}
+                  {slot && issues && (
+                    <button
+                      className="text-xs px-3 py-1.5 bg-orange-600 hover:bg-orange-500 text-white rounded-lg font-bold"
+                      onClick={() => handleRepair(i)}
+                    >
+                      {t('deck.repair')}
+                    </button>
+                  )}
+                  {slot && !issues && slot.main.length === DECK_SIZE && (
                     <button
                       className="text-xs px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold"
                       onClick={() => handleSelectForBattle(i)}
@@ -342,6 +369,20 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
                   )}
                 </div>
               </div>
+              {/* 超限警告：说清是哪张卡、多了几张 —— 不说清就只是个吓人的红字 */}
+              {issues && (
+                <div className="mt-2 text-xs text-orange-300 bg-orange-950/40 border border-orange-700/60 rounded-lg px-2 py-1.5">
+                  ⚠️ {t('deck.overLimit', { n: issues.extra })}
+                  <span className="text-orange-200/80 ml-1">
+                    （{[...issues.overMain, ...issues.overSp]
+                      .map(o => `${cardName(allMainCards.find(c => c.id === o.id) || allSpCards.find(c => c.id === o.id) || { id: o.id })} ×${o.count}`)
+                      .join('、')}）
+                  </span>
+                </div>
+              )}
+              {!issues && repairedSlot === i && (
+                <div className="mt-2 text-xs text-green-300">✅ {t('deck.repaired')}</div>
+              )}
               {/* Faction distribution mini bar */}
               {slot && (
                 <div className="flex gap-1 mt-2 h-2 rounded-full overflow-hidden bg-gray-700">
