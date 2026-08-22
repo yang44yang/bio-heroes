@@ -1,14 +1,13 @@
 # Bio Heroes Session State
-> 更新: 2026-08-21（**首页重构已上生产**：10 个按钮 → 6 个 + 一个「⚙️ 更多」浮层。
-> 顺带修掉「自由对战 / 卡组」两个按钮指同一个界面的重复入口，以及 iPad 横屏首页必须滚动
-> （文档高 924 > 768，「存档管理」整个在屏幕外）。细节见 CHANGELOG。）
+> 更新: 2026-08-22（**卡组线两连击已上生产**：① 一键「推荐」会组出**同名 5 张**的非法卡组
+> —— 真 bug，实测复现，已修 + 抽成纯核心；② 新玩家第一次点进卡组界面是堵墙（10 个空槽 +
+> 12px 灰字），现在「⚡ 一键组卡，马上开打」两下进战斗；③ 已存下来的坏卡组会被**标出来 + 一键修好**。）
 >
-> 同日已在生产：**教学「不说谎」四修 + 指向箭头**（高亮打在空气上 / 死字段 targetCardIdx /
-> clear_field 可点主人绕过 / arrow 死字段实装成量出来的指向箭头）。
-> 07-31 已在生产：**4g host 自恢复**（host 刷新页面接着打，guest 无感）。
+> 08-21 已在生产：**首页重构**（10 个按钮 → 6 个 + ⚙️ 更多浮层，横屏不再滚动）·
+> **教学「不说谎」四修 + 指向箭头** · 07-31 **4g host 自恢复**。
 >
-> **等齐齐反馈**（已等三周）：教学五关能否顺畅打通 + 箭头指得清不清楚 + **新首页找不找得到东西** +
-> iPad 横屏 P1 A/B 观感 + 虎鲸数值。
+> **等齐齐反馈**（已等三周）：教学五关能否顺畅打通 + 箭头指得清不清楚 + 新首页找不找得到东西 +
+> **新卡组界面（一键组卡 / 一键修正）看不看得懂** + iPad 横屏观感 + 虎鲸数值。
 >
 > ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
 
@@ -19,18 +18,19 @@
 ---
 
 ## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = 生产 = `142d25a`**（首页重构），干净树。**测试 70/70 绿**，lint 干净，
+- **HEAD = origin/main = 生产 = `7baca27`**（卡组体检 + 一键修正），干净树。**测试 73/73 绿**，lint 干净，
   中继冒烟 10 条通过（⚠️ 冒烟必须在**没有本地中继占着 3002** 时跑，否则假红「等消息超时」）。
-- ✅ **生产 = HEAD（2026-08-21 部署 + 字节 + 功能级 + 生产 URL 端到端）**：`index-CqnlWdVG.js`、
-  `index-wzhSITdM.css`、`DeckBuilder-Cy_8nakY.js` 线上 md5 与本地逐字节一致；线上 entry 里
-  `⚙️ 更多` 1 / `menu.more` 4 / `家长专区` 1 / `menu.pvp` 3 / `fixed inset-0` 3，
-  DeckBuilder chunk 里 `deck.subtitle` 1；反向哨兵 `"menu.deck"` / `卡组管理` / `onOpenDeckBuilder`
-  线上全为 0。CSS 里 `grid-cols-2` / `max-h-[80vh]` 各 1。
-  最后直接在 `https://bio.socialcontract.capital` 上走查：横屏 1024×768 首页不滚动、
-  「⚙️ 更多」浮层内容正确、点背景可关、「⚔️ 自由对战」落到「🃏 我的卡组 · 选一套出战」、控制台无报错。
-  ☝️ **样式改了 CSS 文件名会变**：这次 `index-B8jq74ui.css` → `index-wzhSITdM.css`，
-  照抄旧名字 curl 会拿到 **SPA fallback 的 HTML**（`content-type: text/html`）而不是 404 ——
-  每次都要从线上 index.html 里重新取文件名。
+- ✅ **生产 = HEAD（2026-08-22 部署 + 字节 + 功能级 + 生产 URL 端到端）**：线上 index.html 引的
+  `index-CosSQkSQ.js`、`index-BK4h_asi.css`、`framer-*`、`react-vendor-*` 四个 + 承载功能的
+  lazy chunk `DeckBuilder-CdfOB94y.js`，md5 全部与本地逐字节一致。
+  线上 entry 里「一键组卡，马上开打」/「超出「同名最多 3 张」」/「一键修正」/「已经补回 25 张」各 1 处，
+  DeckBuilder chunk 里 `deck.overLimit` 1 / `deck.repair` 2 / `deck.quickStart` 2，
+  CSS 里 `bg-orange-950/40` 2 处。生产 URL 上种一副皮肤×5 的坏卡组走查：警告出现、出战被挡、
+  点「🔧 一键修正」后 25 张/皮肤 3 张/超限 0 条、出战回来、控制台无报错。
+  ☝️ **curl 解析不了域名不等于站点挂了**：本次 `curl` 报 `Could not resolve host`（status=000）
+  而 `dig` 解析正常 —— 本机 resolver 抽风。用
+  `curl --resolve bio.socialcontract.capital:443:67.230.186.254 …` 绕过去即可，
+  ⚠️ 这个参数要**直接写在命令里**，塞进 shell 变量再展开会被当成一个整体参数而报 unknown option。
   ☝️ 上一版（教学箭头 `1bbddf1`）的字节记录已归档 CHANGELOG，此处只留当前版。
   ☝️ **样式改动必须验 CSS 文件**（都编译进 `index-*.css`，JS 里搜是 0 处）；
   ☝️ **数据改动要按内容定位**：`playerEnergy:7` 这种字面量压缩后不存在（本地同样 0 处 → 按判据不是部署问题），
