@@ -403,6 +403,9 @@ export default function App() {
             }}
           />
         )}
+        {/* recommendedFactions = 这一关推荐的阵营，一键组卡照着它组。数据每关都有
+            （ch3 有 nature/tech），以前没人读 —— 一键组卡永远先试 body+tech，第三章就配不上。
+            ref 在 setScreen 之前就写好了，所以本次渲染读到的就是对的那一关。 */}
         {screen === 'deckBuilder' && (
           <DeckBuilder
             onBack={() => {
@@ -415,6 +418,7 @@ export default function App() {
               }
             }}
             onSelectDeck={handleSelectDeck}
+            recommendedFactions={pendingCampaignRef.current?.playerConfig?.recommendedFactions}
             collection={economy.collection}
             highlightCardIds={highlightCardIds}
             onHighlightExpire={() => setHighlightCardIds([])}

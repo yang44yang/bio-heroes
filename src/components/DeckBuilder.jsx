@@ -45,7 +45,7 @@ function getSkillIcon(skillName) {
   return '🎯' // 专属技能默认图标
 }
 
-export default function DeckBuilder({ onBack, onSelectDeck, collection, highlightCardIds = [], onHighlightExpire }) {
+export default function DeckBuilder({ onBack, onSelectDeck, collection, highlightCardIds = [], onHighlightExpire, recommendedFactions = null }) {
   const { t, cardName, lang, localName } = useLanguage()
   // 如果传入collection，只显示玩家拥有的卡牌；否则显示全部（向后兼容）
   const ownedMainCards = useMemo(() => {
@@ -227,7 +227,16 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
   // 做法：用**他自己拥有的卡**组一副合法卡组、存进第一个空槽、直接出战 —— 打完还留着一副能编辑的卡组。
   // ⚠️ 卡不够凑满 25 时**退回默认卡组**，绝不能让按钮点了没反应（宁可换套牌，不可卡住）。
   const handleQuickStart = useCallback(() => {
-    const combos = [['body', 'tech'], ['nature', 'pathogen']]
+    // 从闯关/今日挑战进来时，**先按这一关推荐的阵营组** —— 每关的
+    // playerConfig.recommendedFactions 早就写好了（ch3 有 nature/tech、body/nature，
+    // 还有几关只推荐 tech），以前没人读，一键组卡永远先试 body+tech，第三章就配不上。
+    // ⚠️ 后面两组兜底不能删：推荐阵营的卡凑不满 25 张时要能退回去，否则按钮点了没反应。
+    const combos = [
+      ...(recommendedFactions?.length
+        ? [[recommendedFactions[0], recommendedFactions[1] || recommendedFactions[0]]]
+        : []),
+      ['body', 'tech'], ['nature', 'pathogen'],
+    ]
     let rec = null
     for (const [a, b] of combos) {
       const r = generateRecommendedDeck(a, b, ownedMainCards, ownedSpCards)
@@ -242,7 +251,7 @@ export default function DeckBuilder({ onBack, onSelectDeck, collection, highligh
     const mainCards = rec.main.map(id => allMainCards.find(c => c.id === id)).filter(Boolean)
     const spResolved = rec.sp.map(id => allSpCards.find(c => c.id === id)).filter(Boolean)
     onSelectDeck({ mainCards, spCards: spResolved })
-  }, [ownedMainCards, ownedSpCards, deckSlots, onSelectDeck, t])
+  }, [ownedMainCards, ownedSpCards, deckSlots, onSelectDeck, t, recommendedFactions])
 
   // 一键修正一副超限的卡组。☠️ 必须落盘 —— 不落盘的话下次打开又是坏的，等于修了个寂寞。
   const handleRepair = useCallback((slotIdx) => {

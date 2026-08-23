@@ -1,15 +1,21 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { useLanguage } from '../i18n/LanguageContext'
+// ☠️ 这两个数字曾经写死在文案里（「60张卡牌」「17个关卡」），而真实是 157 张 / 29 关 ——
+//    孩子读到的第一屏就是错的。手写数字必然随内容漂移，所以一律**从真相源现算**
+//    （守卫 test-copy-truth ② 钉死：文案里不许再出现写死的数字）。
+import { TOTAL_DEX_CARDS } from '../data/dexSets'
+import { campaignData } from '../data/campaignData'
 
 export default function IntroModal({ onStartTutorial, onSkip }) {
   const { t } = useLanguage()
+  const stageCount = campaignData.chapters.reduce((n, ch) => n + ch.stages.length, 0)
 
   const FEATURES = [
     { icon: '⚔️', title: t('intro.feature.battle'), color: '#f1c40f', bg: '#1a3020', desc: t('intro.feature.battleDesc') },
     { icon: '🧠', title: t('intro.feature.quiz'), color: '#3498db', bg: '#1a2040', desc: t('intro.feature.quizDesc') },
-    { icon: '🃏', title: t('intro.feature.collect'), color: '#9b59b6', bg: '#2a1a30', desc: t('intro.feature.collectDesc') },
-    { icon: '🏆', title: t('intro.feature.campaign'), color: '#e67e22', bg: '#2a2010', desc: t('intro.feature.campaignDesc') },
+    { icon: '🃏', title: t('intro.feature.collect'), color: '#9b59b6', bg: '#2a1a30', desc: t('intro.feature.collectDesc', { n: TOTAL_DEX_CARDS }) },
+    { icon: '🏆', title: t('intro.feature.campaign'), color: '#e67e22', bg: '#2a2010', desc: t('intro.feature.campaignDesc', { n: stageCount }) },
   ]
 
   const FACTIONS = [
