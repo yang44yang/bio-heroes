@@ -208,7 +208,12 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
       <div data-cq="faction" className="text-center text-[8px] sm:text-[10px] text-white/50 hidden sm:block">{lang === 'en' ? (faction?.nameEn || faction?.name) : faction?.name}</div>
 
       {isEvent ? (
-        <div className="mt-1 mb-0.5 sm:mt-1.5 sm:mb-1 text-[7px] sm:text-[9px] text-emerald-200 text-center leading-tight px-0.5 sm:px-1 min-h-[16px] sm:min-h-[24px]">
+        /* data-cq="eventdesc"：和生物卡那几行同一套钩子。事件卡的 effectDescription 长度
+           从 6 字到 54 字不等，**没有行数封顶就是无界内容装进有界卡框** —— iPad 横屏实测
+           「基因突变」溢出 77px（文字压到卡外、盖住底部状态栏）。
+           字号与行数封顶都交给 index.css 的 [data-cq-card] 作用域（跟卡高走），
+           完整文案点 ⓘ 看详情。⚠️ 这里的 min-h 会被那边的 min-height:0 覆盖，别当它还管用。 */
+        <div data-cq="eventdesc" className="mt-1 mb-0.5 sm:mt-1.5 sm:mb-1 text-[7px] sm:text-[9px] text-emerald-200 text-center leading-tight px-0.5 sm:px-1 min-h-[16px] sm:min-h-[24px]">
           {card.effectDescription}
         </div>
       ) : (
@@ -252,7 +257,9 @@ const BattleCard = forwardRef(({ card, hp, maxHp, isPlayer, isActive, onClick },
 
       {/* SP召唤标记 */}
       {isEvent && card.spSummonRule && (
-        <div className="text-center text-[9px] text-yellow-300 mt-0.5">
+        /* 同样要钩子：它此前是「无钩子的固定 9px」，在 115px 的卡上白占 15.5px（实测），
+           正是事件卡最后那 2px 溢出的来源之一。 */
+        <div data-cq="sptrigger" className="text-center text-[9px] text-yellow-300 mt-0.5">
           {t('card.spTrigger')}
         </div>
       )}

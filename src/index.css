@@ -390,3 +390,65 @@ button[aria-disabled='true']:active,
     height: clamp(110px, 15vh, 168px) !important;
   }
 }
+
+/* === 事件卡统一到 cqh —— 2026-08-23 ===
+   P1 A 把**战场卡**卡内排版全改成 cqh（内容总高 = 常数 × 卡高 → 结构上不可能溢出），
+   P1 B 把**手牌卡的外框**锁成 5:7。但**卡内**一直没跟上：手牌卡字号仍是固定 px，
+   而事件卡的 effectDescription 从 6 字到 54 字不等、**没有行数封顶** ——
+   无界内容装进有界卡框，必然溢出。
+
+   实测 iPad 横屏 1024×768（手牌卡框仅 115px 高，齐齐主要玩这个姿势）：
+     生物卡「猎豹」内容离卡底还剩 11px；
+     事件卡「发烧反应」溢出 43px、「干细胞分化」54px、「基因突变」(54字) **77px**
+     —— 文字整片压到卡外、盖住底部状态栏。768×1024 竖屏「基因突变」也溢出 4px。
+   另：换卡弹窗里的卡此前**没有任何尺寸约束**，事件卡被文案撑成 251×105（比例 2.39 的横条），
+     而生物卡是 81×96 —— 每局开场第一屏就不统一。
+
+   做法与 P1 A 同源，只是作用域换成「手牌 + 换卡弹窗」共用的 data-cq-card：
+   1. 卡成为**命名 size 容器**（bh-card）→ 卡内 cqh 读本卡高度。
+      ☠️ 没有 size 容器祖先时 cqh 会**静默回退成视口单位**（本地看着对、真机全歪）——
+         P1 A 注释里记过这个坑，这里同样适用。
+   2. 每行 max(px, N cqh)：跟卡走 + 像素下限（卡再小字也不能小到看不清，儿童可读性底线）。
+   3. **事件卡描述行数封顶**（line-clamp）—— 这才是把"无界内容"变成常数的那一刀。
+      完整文案点卡上的 ⓘ 看详情，卡面只做摘要（和实体卡牌一样）。
+   ⚠️ 不动 [data-field-area] 那套战场规则：这里只加手牌/换卡作用域。 */
+[data-cq-card] {
+  container: bh-card / size;          /* 命名，供 @container bh-card 精确匹配 */
+}
+/* ☠️ px 下限不是随便填的：手牌卡在横屏只有 110~115px 高，纯按 cqh 算名称会变成 9.8px，
+   而改之前那里是 12px —— **为了统一把字改小是亏的**（齐齐 7 岁，可读性优先于一致性）。
+   所以下限按「不低于改之前那一档」定：名称/图标 12px、阵营名 8px、数值 10px。
+   竖屏卡更高时 cqh 一侧接管，字比原来更大。各档实测见本次提交说明。 */
+[data-cq-card] [data-cq="icon"]       { font-size: max(12px, 15cqh) !important; }
+[data-cq-card] [data-cq="name"]       { font-size: max(12px, 8.5cqh) !important; }
+[data-cq-card] [data-cq="faction"]    { font-size: max(8px, 6cqh) !important; }
+[data-cq-card] [data-cq="hpbar"]      { height: max(9px, 9cqh) !important; }
+[data-cq-card] [data-cq="hptext"]     { font-size: max(9px, 6.5cqh) !important; }
+[data-cq-card] [data-cq="stats"]      { font-size: max(10px, 8cqh) !important; }
+[data-cq-card] [data-cq="factionreq"] { font-size: max(7px, 6cqh) !important; }
+[data-cq-card] [data-cq="sptrigger"] {
+  font-size: max(7px, 6cqh) !important;
+  margin-top: 0 !important;
+}
+[data-cq-card] [data-cq="eventdesc"] {
+  font-size: max(8px, 8cqh) !important;
+  line-height: 1.25 !important;
+  /* 外边距也得跟卡走：写死的 mt-1.5/mb-1（6px+4px）在 115px 的卡上就是 8.7% 的高度，
+     和「内容总高 = 常数 × 卡高」这条原则相冲。 */
+  margin-top: max(2px, 2cqh) !important;
+  margin-bottom: max(2px, 2cqh) !important;
+  display: -webkit-box !important;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3 !important;   /* 行数封顶 = 内容高度封顶（系数和的算术由守卫 ⑤ 验） */
+  line-clamp: 3 !important;
+  overflow: hidden !important;
+  min-height: 0 !important;           /* 覆盖组件里的 min-h-[16px]/sm:min-h-[24px] */
+}
+/* 卡太矮 → 降级：藏阵营名、描述再收一行（和战场卡的降级同一思路）。
+   ☠️ 阈值 118px 是量出来的，不是拍的：横屏档卡高 110~115px，抬高 px 下限后 3 行描述的余量
+   压到 0（内容底边正好贴卡底）—— 余量 0 等于没余量，换个设备的中文字体回退就会翻车。
+   118 恰好覆盖 110/115 两档、又不误伤手机竖屏的 122px（那一档余量充足，没必要少显示一行）。 */
+@container bh-card (max-height: 118px) {
+  [data-cq="faction"] { display: none !important; }
+  [data-cq="eventdesc"] { -webkit-line-clamp: 2 !important; line-clamp: 2 !important; }
+}

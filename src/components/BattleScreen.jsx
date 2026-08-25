@@ -1233,6 +1233,7 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
               <div
                 key={card.uid}
                 data-hand-card="true"
+                data-cq-card="true"
                 className={`relative flex-none w-[22%] sm:w-[15%] lg:w-[13%] aspect-[5/7] max-h-[110px] cursor-pointer transition-transform snap-start ${
                   selectedHandIdx === i ? 'scale-105 ring-2 ring-green-400 rounded-lg sm:rounded-xl' : ''
                 } ${isMainPhase && canAfford && markerOk ? 'opacity-100' : 'opacity-50'}`}
@@ -1428,7 +1429,11 @@ export default function BattleScreen({ battle, playerHand, enemyHand, playerDeck
                 return (
                   <motion.div
                     key={card.uid}
-                    className={`relative cursor-pointer transition-all rounded-xl ${
+                    data-cq-card="true"
+                    /* ☠️ 这里原本**没有任何尺寸约束** —— 卡有多大全看内容，于是事件卡被长文案
+                       撑成 251×105（比例 2.39 的横条），而生物卡是 81×96。每局开场第一屏就不统一。
+                       现在和手牌卡同一个 5:7 定尺寸框 + 同一套 cqh 卡内排版。 */
+                    className={`relative cursor-pointer transition-all rounded-xl w-[84px] sm:w-[92px] aspect-[5/7] shrink-0 ${
                       isSelected
                         ? 'ring-3 ring-red-500 opacity-60 scale-95'
                         : 'ring-2 ring-transparent hover:ring-blue-400'
