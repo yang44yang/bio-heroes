@@ -920,6 +920,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
             <div className="h-3.5 sm:h-[18px] bg-[#1a1a2e] rounded-lg overflow-hidden">
               <motion.div
                 className="h-full bg-red-500 rounded-lg"
+                initial={false}
                 animate={{ width: `${Math.max(0, (enemyLeaderHp / (level?.enemyLeaderHp || 30000)) * 100)}%` }}
                 transition={{ duration: 0.3 }}
               />
@@ -1116,6 +1117,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
             <div className="h-3.5 sm:h-[18px] bg-[#1a1a2e] rounded-lg overflow-hidden">
               <motion.div
                 className="h-full bg-blue-500 rounded-lg"
+                initial={false}
                 animate={{ width: `${Math.max(0, (playerLeaderHp / (level?.playerLeaderHp || 30000)) * 100)}%` }}
                 transition={{ duration: 0.3 }}
               />

@@ -9,7 +9,9 @@ const regularCards = [...cards, ...eventCards]
 const gachaSpCards = spCards.filter(c => c.unlockMode === 'gacha')
 
 // 档位权重：R 68 / SR 25 / SSR 5 / SP 2（齐齐反馈"抽不到 SP"，给 2% 基础概率）
-const RARITY_WEIGHTS = { R: 68, SR: 25, SSR: 5, SP: 2 }
+// 导出给守卫读：`.claude/rules/gacha-cards.md` 的概率表必须和这里对得上
+//（曾经文档写 85/12/3、代码是 68/25/5/2，还漏了整个 SP 档 —— test-docs-truth 钉死）
+export const RARITY_WEIGHTS = { R: 68, SR: 25, SSR: 5, SP: 2 }
 
 function rollRarity(pityCounter, ssrPity = 50) {
   // SSR pity: guaranteed at ssrPity pulls（SP 不计入 pity，SSR 与 SP 走两套）

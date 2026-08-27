@@ -164,6 +164,10 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
             <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
               <motion.div
                 className="h-full bg-gradient-to-r from-cyan-500 to-purple-500"
+                /* ☠️ initial={false} 不能省：不写的话 framer 会从元素的**自然宽度**（进度条是 100%）
+                   动画到真实值 —— 9/157 的图鉴每次打开都先闪一下满格，孩子会以为"我图鉴满了"。
+                   Card.jsx 的血条、Collection 的四条进度条都写了，只有这里漏了。 */
+                initial={false}
                 animate={{ width: `${pct}%` }}
                 transition={{ duration: 0.5 }}
               />
