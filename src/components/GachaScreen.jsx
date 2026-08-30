@@ -34,7 +34,7 @@ const rarityBg = {
 
 export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
   const { t } = useLanguage()
-  const { pull } = useGacha()
+  const { pull, pullSp } = useGacha()
   const [pulled, setPulled] = useState([])
   const [pulling, setPulling] = useState(false)
   const [results, setResults] = useState([])
@@ -68,6 +68,29 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
 
     const { pulled: newCards } = pull(count, economy.pityCounter, economy.SSR_PITY)
     const enriched = economy.pullCards(newCards)
+    const newOwned = enriched.filter(c => c.isNew).length
+    const afterCount = beforeCount + newOwned
+    const crossed = MILESTONES.find(m => beforeCount < m && afterCount >= m)
+    setPendingMilestone(crossed || null)
+    setPulled(newCards)
+    setAnimatingCards(enriched)
+  }
+
+  // 钻石抽卡：必出 SP。除了「花钻石」和「抽 SP 池」，后面的动画/展示/图鉴/成就全部复用。
+  // ☠️ pullCards 必须传 advancePity: false —— SP 卡的 rarity 字段是 'SSR'，
+  //    默认路径会把金币池辛苦攒的保底**清零**（见 useEconomy.pullCards 的注释）。
+  const doSpPull = () => {
+    if (pulling) return
+    if (!economy.canAffordDiamonds(economy.SP_PULL_COST)) return
+
+    const beforeCount = ownedDexCount(economy.collection)
+    economy.spendDiamonds(economy.SP_PULL_COST)
+    setPulling(true)
+    setPulled([])
+    setResults([])
+
+    const newCards = pullSp()
+    const enriched = economy.pullCards(newCards, { advancePity: false })
     const newOwned = enriched.filter(c => c.isNew).length
     const afterCount = beforeCount + newOwned
     const crossed = MILESTONES.find(m => beforeCount < m && afterCount >= m)
@@ -221,6 +244,31 @@ export default function GachaScreen({ onBack, economy, onGotoDeckBuilder }) {
           <span className="text-lg">{t('gacha.multi')}</span>
           <span className="text-xs opacity-70">🪙 {economy.MULTI_COST} {t('gacha.multiGuarantee')}</span>
         </motion.button>
+      </div>
+
+      {/* 钻石抽卡 —— 另一条经济线，单独一行。
+          齐齐反馈过"抽不到 SP"（见 useGacha.js 注释），金币池给的是 2% 基础概率
+          ≈ 平均 50 抽才见一张；钻石是那条**确定的**路。 */}
+      <div className="mb-6 w-full max-w-md">
+        <motion.button
+          className={`w-full px-5 py-3 rounded-xl font-bold flex flex-col items-center gap-0.5 ${
+            economy.canAffordDiamonds(economy.SP_PULL_COST)
+              ? 'bg-gradient-to-r from-amber-500 to-yellow-400 text-black shadow-lg shadow-amber-500/25'
+              : 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700'
+          }`}
+          whileHover={economy.canAffordDiamonds(economy.SP_PULL_COST) ? { scale: 1.02 } : {}}
+          whileTap={economy.canAffordDiamonds(economy.SP_PULL_COST) ? { scale: 0.97 } : {}}
+          onClick={doSpPull}
+          disabled={pulling || !economy.canAffordDiamonds(economy.SP_PULL_COST)}
+        >
+          <span className="text-lg">{t('gacha.spPull')}</span>
+          <span className="text-xs opacity-80">💎 {economy.SP_PULL_COST} · {t('gacha.spPullHint')}</span>
+        </motion.button>
+        {!economy.canAffordDiamonds(economy.SP_PULL_COST) && (
+          <div className="text-[11px] text-gray-500 text-center mt-1.5">
+            {t('gacha.spPullLocked', { n: economy.SP_PULL_COST - economy.diamonds })}
+          </div>
+        )}
       </div>
 
       {/* Pull results */}

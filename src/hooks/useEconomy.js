@@ -78,6 +78,26 @@ export function useEconomy() {
     setState(prev => ({ ...prev, coins: prev.coins + amount }))
   }, [])
 
+  // ☠️ 钻石此前**只进不出**：有 addDiamonds、没有 spendDiamonds，canAfford 只看金币。
+  //    而首页和抽卡界面都常驻显示 💎N、闯关还专门奖励「+10💎」——
+  //    打通全部 29 关攒 90 颗、一颗花不掉。数字在涨但什么都不是，比没有更难受。
+  // ☠️ 必须和 spendCoins 用**同一套同步 stateRef 模式**（见下方 spendCoins 的注释）：
+  //    doSpPull 先 spendDiamonds 再同步调 pullCards，而 pullCards 读 stateRef.current
+  //    重建整份 state 后覆盖式 setState。只用函数式 setState 的话，updater 还没跑，
+  //    pullCards 就读到未扣款的旧 diamonds 并把扣款覆盖掉 → **抽卡不消耗钻石**。
+  //    第一版就是这么写的，浏览器实测抽完 40 钻纹丝不动（守卫当时没抓到，已补 ①-2）。
+  const spendDiamonds = useCallback((amount) => {
+    const prev = stateRef.current
+    if ((prev.diamonds || 0) < amount) return
+    const next = { ...prev, diamonds: prev.diamonds - amount }
+    stateRef.current = next
+    setState(next)
+  }, [])
+
+  const canAffordDiamonds = useCallback((amount) => {
+    return (state.diamonds || 0) >= amount
+  }, [state.diamonds])
+
   const addDiamonds = useCallback((amount) => {
     setState(prev => ({ ...prev, diamonds: (prev.diamonds || 0) + amount }))
   }, [])
@@ -127,10 +147,23 @@ export function useEconomy() {
   const SINGLE_COST = 100
   const MULTI_COST = 900  // 十连 = 9 次价格
   const SSR_PITY = 50
+  // 钻石抽卡定价。全游戏可得 90 钻（开局 10 + 闯关 80）→ 正好 4 次。
+  // 节奏：每打通一章都攒得出一次，最后一章还多一次。20 这个数 7 岁也算得清。
+  // ⚠️ 改这个数、或改闯关的钻石奖励，守卫 test-diamond-gacha ④ 会重新核对次数是否还在 2~6 次。
+  const SP_PULL_COST = 20
   const FRAGMENTS_PER_DUPE = 10
   const MAX_COPIES_PER_CARD = 3  // 与卡组同名上限一致
 
-  const pullCards = useCallback((pulledCards) => {
+  /**
+   * @param pulledCards 抽到的卡
+   * @param opts.advancePity 是否推进/结算**金币池**的保底计数。钻石抽卡必须传 false。
+   *
+   * ☠️ 为什么必须有这个开关：抽卡池 SP 卡的 `rarity` 字段是 **'SSR'**，
+   *    而下面那行 `card.rarity === 'SSR' → newPity = 0` 会把保底**清零**。
+   *    钻石抽卡若走默认路径，等于每抽一次就把玩家辛苦攒的金币池保底倒扣光 ——
+   *    不是"少加一点"，是负收益。守卫 test-diamond-gacha ③ 钉死。
+   */
+  const pullCards = useCallback((pulledCards, { advancePity = true } = {}) => {
     // 持有量未达 MAX_COPIES_PER_CARD → 入库 +1; 否则转碎片
     // 用 stateRef 读当前 state 同步算 results，再 setState 更新；保证返回值一定有效（不依赖 setState updater 的执行时机）
     const prev = stateRef.current
@@ -140,7 +173,7 @@ export function useEconomy() {
     const results = []
 
     for (const card of pulledCards) {
-      newPity++
+      if (advancePity) newPity++
       const currentCount = newCollection[card.id] || 0
 
       if (currentCount < MAX_COPIES_PER_CARD) {
@@ -164,7 +197,7 @@ export function useEconomy() {
         })
       }
 
-      if (card.rarity === 'SSR') {
+      if (advancePity && card.rarity === 'SSR') {
         newPity = 0
       }
     }
@@ -359,8 +392,10 @@ export function useEconomy() {
 
     addCoins,
     addDiamonds,
+    spendDiamonds,
     spendCoins,
     canAfford,
+    canAffordDiamonds,
     calculateBattleReward,
     claimBattleReward,
     pullCards,
@@ -377,6 +412,7 @@ export function useEconomy() {
 
     SINGLE_COST,
     MULTI_COST,
+    SP_PULL_COST,
     SSR_PITY,
     MAX_COPIES_PER_CARD,
     FRAGMENT_TO_COIN_RATE,

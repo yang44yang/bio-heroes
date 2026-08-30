@@ -32,6 +32,20 @@ function rollRarity(pityCounter, ssrPity = 50) {
 }
 
 /**
+ * 钻石抽卡的纯核心：从**抽卡池 SP**（unlockMode === 'gacha'）里必出一张。
+ *
+ * ☠️ 必须是导出的纯函数，不能只藏在 hook 里 —— `useCallback` 在 Node 里没有 renderer，
+ *    守卫一调就抛「Invalid hook call」，等于这条「必出 SP」的承诺没人验证。
+ * ☠️ 池子只能是 `gachaSpCards`：`campaign_only` 的 SP 是通关奖励，
+ *    绝不能从任何抽卡入口漏出来（既有规则，别因为新增入口被绕过）。
+ */
+export function rollSpCard(seq = 0) {
+  const card = gachaSpCards[Math.floor(Math.random() * gachaSpCards.length)]
+  // _gachaSlot 标记档位（UI 靠它放 SP 特效）；不污染卡牌本身的 rarity
+  return { ...card, instanceId: `${card.id}_${Date.now()}_${seq}`, _gachaSlot: 'SP' }
+}
+
+/**
  * useGacha — 抽卡逻辑
  * 需要配合 useEconomy 使用
  */
@@ -69,5 +83,8 @@ export function useGacha() {
     return { pulled, newPityCounter: pity }
   }, [])
 
-  return { pull }
+  // 钻石抽卡：必出 SP。薄薄包一层纯函数，真逻辑在 rollSpCard 里（守卫直接测那个）
+  const pullSp = useCallback(() => [rollSpCard()], [])
+
+  return { pull, pullSp }
 }
