@@ -93,15 +93,17 @@
 
 | 扩展包 | 代号 | 目标卡数 | 状态 |
 |--------|------|---------|------|
-| 基础包 | BASE | 124 | 🔄 进行中 |
-| 海洋深渊 | OCEAN | ~80 | ⏳ Phase 2 |
-| 微观战场 | MICRO | ~80 | ⏳ Phase 2 |
+| 基础包 | BASE | 104 | 🔄 进行中 |
+| 海洋深渊 | OCEAN | 11 / ~80 | 🔄 已开始（Phase 2） |
+| 微观战场 | MICRO | 9 / ~80 | 🔄 已开始（Phase 2） |
 | 人体奥秘 | BODY | ~80 | ⏳ Phase 3 |
 | 远古生命 | ANCIENT | ~80 | ⏳ Phase 3 |
 | 未来科技 | FUTURE | ~80 | ⏳ Phase 4 |
 | 生态危机 | ECO | ~80 | ⏳ Phase 4 |
 | 传说 | LEGEND | ~56 | ⏳ Phase 5 |
 | **总计** | | **~640** | |
+
+> 当前 cards.js 共 124 张 = BASE 104 + OCEAN 11 + MICRO 9（`scripts/test-docs-truth.mjs` 逐档对账，别只写「基础包 124」）。
 
 ---
 

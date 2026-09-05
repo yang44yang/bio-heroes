@@ -1,166 +1,60 @@
 # Bio Heroes Session State
-> 更新: 2026-08-30（**钻石终于有用了** —— 此前 `spendDiamonds` 根本不存在、`canAfford` 只看金币，
-> 而两处界面常驻显示 💎N、闯关还奖励「+10💎」，通关 29 关攒 90 颗一颗花不掉。
-> 现在：**💎20 = 觉醒抽卡·必出 SP**（全游戏 90 钻 = 4 次，每通一章攒得出一次）。）
+> 更新: 2026-09-05（**全仓审计 + 文档精简**）。审计报告 `outputs/code-health-report-2026-09-05.md`；
+> 验证/部署纪律已从本文件抽到 `docs/VERIFY.md`。本文件只留活的交接（≤100 行，替换不堆积）。
 >
-> 08-28 已在生产：开发文档对账 + 守卫。08-25：事件卡统一 cqh。08-23：闯关指路 + 按关卡推荐组卡。
-> 08-22：卡组线两连击。08-21：首页重构 · 教学四修 + 指向箭头。07-31：4g host 自恢复。
->
-> 🔴 **当前唯一瓶颈：齐齐的反馈（积压 3+ 周，一条没收）。**
-> 六层界面 + 经济线全部由我走查驱动改完，守卫防得住回归、**防不住方向错**。
-> 观察清单见 `docs/PLAYTEST.md`（已加入钻石那条 —— 「按钮灰着时那句提示会不会让他跑去打闯关」
-> 就是这条经济线接没接上的判据）。
->
-> ⚠️ **本文件只留「活的交接」**——已完成阶段归档在 `CHANGELOG.md`，逐 commit 细节靠 git。别让它膨胀。
+> 🔴 **当前唯一瓶颈：齐齐的反馈（积压 3+ 周，一条没收）。** 观察清单 `docs/PLAYTEST.md`。
+> 六层界面 + 经济线全部由 Claude 走查驱动改完，守卫防得住回归、防不住方向错。
 
 ## 项目位置
-- **路径**: `/Users/YangYANG/Projects/Bio-heroes/`（Mac mini）· **GitHub**: yang44yang/bio-heroes (main)
-- **CI**: push 自动跑 lint→test→build · **生产**: `bio.socialcontract.capital`（`npm run deploy`）⚠️ **齐齐玩这个**
+- 路径 `/Users/YangYANG/Projects/Bio-heroes/`（Mac mini）· GitHub yang44yang/bio-heroes (main)
+- CI：push 自动 lint → test → build · 生产 `bio.socialcontract.capital`（`npm run deploy`）⚠️ 齐齐玩这个
+- 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」
 
----
+## 当前 git / 生产状态
+- HEAD = origin/main = 生产（代码层面）。最近一次功能提交 `e9ab3b1` 钻石抽卡（2026-08-30），之后只有文档提交。
+- 2026-09-05 回验：本地 build 的 `index-BpkjeDN5.js` / `GachaScreen-WA2D2H_a.js` 与线上 md5 逐字节一致。
+- 测试 77/77 绿，lint 干净。`npm audit` 6 条（4 高）全在构建工具链（vite / postcss / nanoid），不进浏览器。
+- ⚠️ `PROTOCOL_VERSION = 4`：两台 iPad 只刷一台就「连不上 / 开不了局」且不弹错（旧版按版本拒收新快照，中继盲转不报错）。
+  要两台都 Cmd+Shift+R；想看新图标重新「加到主屏」。
+- ⚠️ Caddyfile 只在磁盘（`Personal website dev/spacev/deploy/Caddyfile`，无 git）。改 spacev 别覆盖 bio 的 `/api/*` handle。
 
-## ⚠️ 当前 git / 生产状态
-- **HEAD = origin/main = 生产 = `e9ab3b1`**（钻石抽卡），干净树。**测试 77/77 绿**，lint 干净。
-- ✅ **生产 = HEAD（2026-08-30 部署 + 字节 + 功能级 + 生产 URL 端到端）**：`index-BpkjeDN5.js` /
-  `index-L_ekeLmc.css` / framer / react-vendor，加上承载功能的 `GachaScreen-WA2D2H_a.js`，
-  md5 全部逐字节一致。线上 GachaScreen chunk 里 `gacha.spPull` 3 / `spendDiamonds` 1 /
-  `canAffordDiamonds` 6 / `advancePity:!1` 1；entry 里「必出 SP」「一定抽到一张 SP」各 1。
-  生产 URL 走查（40 钻 + 金币保底 37 的存档）：抽一次 → 钻石 20、抽到 `sp_trex`、
-  **金币保底仍是 37**（没被清零）、控制台无报错。
-  ☝️ **扣款函数必须用同步 stateRef 模式**：`pullCards` 是「读 stateRef → 重建整份 state →
-  覆盖式 setState」，任何在它之前的扣款若只用函数式 setState 会被整份覆盖 →「抽卡不花钱」。
-  `spendCoins` 早有注释记着，`spendDiamonds` 第一版原样又踩一次（守卫没抓到、浏览器抓到的）。
-  ☝️ **Card.jsx 的东西不在 entry 里**：它单独成 `Card-*.js` chunk —— 又一次印证「功能级回验要先
-  `grep -l 关键字 dist/assets/*.js` 找出承载它的 chunk」，别默认在 entry 里搜。
-  ☝️ **别拿「常量值」当哨兵**：`157` 是运行时从图鉴数据算出来的，entry 里数不到 —— 这类
-  「算出来的数」只能在**页面上**验，不能在 bundle 里 grep。
-  ☝️ **样式改动必须验 CSS 文件**（都编译进 `index-*.css`，JS 里搜是 0 处）；
-  ☝️ **数据改动要按内容定位**：`playerEnergy:7` 这种字面量压缩后不存在（本地同样 0 处 → 按判据不是部署问题），
-  改用「关卡名前后取段 + 正则」才验得到真值。
-- ☝️ **功能级回验（比对哈希更进一步，务必沿用）**：entry 的 md5 只证明"构建一致"，证明不了**某个功能**进了生产
-  ——教学/PvP 代码都在 lazy chunk 里，entry 里根本搜不到。做法：`grep -l 功能关键字 dist/assets/*.js`
-  找出承载它的 chunk → 到线上取同名文件 → 既比 md5 又数关键字。
-  ⚠️ **Tailwind 类名要去 `index-*.css` 里找,不在 JS 里**（判据：**本地 entry 里同样是 0** 就说明不是部署问题）。
-  另建议加**反向哨兵**：确认被替换掉的旧写法计数为 0。
-  ⚠️ **别照抄本文件记的旧 hash**——每次自己重新 build + curl 一次（上一版这里记的 `index-D42-gkmy.js` 就已过期）。
-- 🔴🔴 **PROTOCOL_VERSION 仍是 4；若哪台 iPad 还停在 v3，两台都得 Cmd+Shift+R 才能对战**。
-  中继盲转字节不崩，版本闸门在客户端：v3×v4 混用时新版快照被旧版**按版本拒收** →「连不上/开不了局」
-  （不是报错弹窗）。**别一台刷一台没刷就试**，会以为坏了。想看新图标重新「加到主屏」。
-  - ☠️ **部署要验字节**：`npm run deploy` 回执**不算数**（曾整晚没落地）。deploy 完拉 bundle 对 md5。
-  - 旧 chunk URL 仍返回 200 是 **SPA fallback 吐的 index.html**（`content-type: text/html`），不是残留。
-- ⚠️ **Caddyfile 改动只在磁盘**（`Personal website dev/spacev/deploy/Caddyfile`，那目录**无 git**）——
-  下次谁改 spacev 别覆盖掉 bio 的 `/api/*` handle。
-- relay 更新用 `npm run deploy:api`；前端用 `npm run deploy`（**两者必须分开跑**，DEPLOY.md §4.3）。
-- 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」。
-
----
-
-## 🎯 下一步（按价值排）
-
-### 1. 继续收真机反馈 —— 优先级最高，但**卡在齐齐**
-等反馈的三块：**教学五关能否顺畅打通**（硬卡死已修、四个「说谎」的洞已修、气泡装了指向箭头，
-机制看不看得懂 / 箭头指得清不清楚）、
-**iPad 横屏 P1 A+B 观感**（卡够不够大 / 竖屏没被弄坏）、**虎鲸新数值**。反馈到手再定后续排序。
-
-### 2. ✅ 4g host 韧性已完成（`ae6dad5`+`639e2bc`+`e994dfb`）—— 但**只覆盖「设备还在」**
-做的是 **host 自恢复**（凭证+棋盘落本机 localStorage，新页面走中继 reconnect 回原房间），
-**不是**原计划的「热备发给 guest 接管」。改方案的三条理由（调研得出，值得记住）：
-① 热备要把 host 手牌/双方牌序/SP 内容/**问答答案卡**持续发过网，而 wire.js 从第一行起就是为了让这些
-「在形状上不可表达」（四套测试钉死）；加密救不了 —— 钥匙必须在 guest 手上他才接管得了。
-② 中继侧**本来就支持 host 接回**（房间只在两槽全空时才进回收，token 原封保留），缺的只有「新页面记得自己是谁」。
-③ 热备最难的部分是 `usePvpHost` 的座位反转（~20 处写死 PLAYER/ENEMY），而那正是全项目**唯一没有
-side 棘轮保护**的 PvP 文件。自恢复零泄露、协议零改动、不用双刷，且是热备方案的真子集。
-- **救不了**：host 设备永久不可用（手机摔了/被拿走）· 双方同时离线超 60~120s 房间被回收
-  （已有 C1 兜底：开新房、棋盘不丢）· 清了站点数据 / 隐身模式。真要覆盖第一条才需要热备。
-
-### 3. 🟡 对手 / 自己的 SP **数**（guest 侧看不到）—— 攒着
-guest 自选 SP 已完成（`825545b`，零协议改动）。剩下的只是**数字**：`useGuestBattle` 两个 spDeck 恒 EMPTY。
-要显示得把**计数**提进**公开树** → **必须 bump PROTOCOL_VERSION**（同 handCount 先例）→ 两台强制双刷。
-为一个数字单独 bump 不划算 —— 等下次真要改协议时顺手带上。
-
-### 4. 🧹 小收尾（都独立、随时可做）
-- 横屏还想让卡更大：**先动纯装饰**（VS 分隔 44px + 底部日志 44px ≈ +11% 卡面），
-  别做侧栏重排 —— 要再长 67px 得腾 158px 竖向，等于把手牌区整个搬走，实测判断不值。
-
----
+## 下一步（按价值排）
+1. **收齐齐的真机反馈**（最高优先，卡在人不在代码）：教学五关能否顺畅打通（机制看不看得懂、箭头指得清不清楚）、
+   iPad 横屏观感（卡够不够大、竖屏没被弄坏）、虎鲸新数值、钻石按钮灰着时那句提示会不会让他去打闯关。
+2. **审计收尾**（都独立、随时可做，细节见审计报告）：
+   清 12 个陈旧 worktree（45MB，全停在 `152b680`，脏改动是 7-25 教学守卫的变异残骸，已被 main 取代）·
+   删死文件 `src/effects/battleAnimations.js`（全仓唯一的 WAAPI，无人 import）·
+   把 vite / tailwind / plugin-react 移到 devDependencies 并 `npm audit fix` ·
+   `git rm --cached .claude/worktrees/reverent-bhabha/.claude/launch.json`（另一台机器的路径，gitignore 之前就被跟踪了）·
+   移除仓库里与项目无关的 `.claude/skills/{idea-unblocker,yt-audio}`（全局已有同名 skill）·
+   ARCHITECTURE.md 对账（23 关→29、SP 16→17、49 套→77、useBattle ~2300→2650、「玩家/AI 两份都改」已过时、PvP/relay 整段缺失、SESSION 路径写错）。
+3. 🟡 guest 侧看不到 SP **数**：`useGuestBattle` 两个 spDeck 恒 EMPTY（wire 故意 strip `spDeck`，隐藏信息）。
+   要显示得把计数提进公开树 → 必须 bump `PROTOCOL_VERSION` → 两台强制双刷。为一个数字不值，等下次真要改协议时顺手带上。
+4. 🧹 横屏还想让卡更大：先动纯装饰（VS 分隔 44px + 底部日志 44px ≈ +11% 卡面），别做侧栏重排（实测不值）。
 
 ## 已知问题（未修）
-- ✅ **教学卡死已有自动化覆盖**（`test-tutorial-solvable` **94 条**，`a4df51f`→`1bbddf1`）：改教学的数据或推进逻辑后
-  跑 `npm test`，会直接告诉你哪一关哪一步、按什么点击顺序走不下去。两条使用纪律写在守卫文件头：
-  ① 它是**规则复刻**不是跑真组件 → 改 `TutorialScreen` 判定要同步改 `successors()`，否则守卫会说谎；
-  ② **别把兜底逃生阀加进模拟器**（守卫要求数据「不依赖兜底」也可解，加进去=自我阉割成永远绿）。
-- ✅ **教学四个「说谎」的洞已修并上生产**（`833e309`+`1bbddf1`，见 CHANGELOG）。留下三条纪律：
-  ① **新增 highlight 区域**必须同时给出**渲染分支**和 `data-tut-lit` 标记（守卫 ③-6/③-10 判红）——
-     漏前者=高亮打在空气上，漏后者=那一步的指向箭头凭空消失。
-  ② **箭头方向不许写回数据**（守卫 ③-11）：量出来的才不会和布局漂移。
-  ③ 教学的 hook（`bubbleRef`/`arrow`/`useLayoutEffect`）在**所有早期 return 之前** —— 放错位置是
-     React #310，grep 抓不到，只有 preview 走查能发现。
-- ☠️ **教学迷你卡不走 `Card.jsx`**（`TutorialScreen` 内联渲染，只画 名字/⚔️/❤️/阵营）：
-  主战场卡的一切视效（守护🛡️/中毒/护盾/技能名…）在教学里**默认都看不见**。`03f453f` 只补了守护；
-  以后教学要教哪个机制，**必须单独在迷你卡上补该机制的可见标识** —— 否则会重演「逻辑对了但看不见，
-  等于没教」（齐齐第三关：守卫兵和普通兵长得一模一样，提示却说"有一张守护卡"）。
-  判定一律用 `utils/guardSkill` 等**主战场真相源**，别在教学里另写一套。
-- 🟡 **虎鲸新数值待试玩校准**：三技能失效已修（`fe706f9` = onAttack 补 friendlyField + 蜜蜂 `_side`；
-  见 `test-onattack-friendly-field`）。虎鲸「协同猎杀」现活了 —— 满自然场(自己+5友方)觉醒 = 32000 ≥ 主人 30000 可秒。
-  用户裁定「+1500 现值先上、和齐齐试玩再调」。要调就动 `skillRegistry` 的 `Coordinated Hunt` amount（或封顶友方数）。
-- ✅ **事件卡已统一 cqh**（`e1a4b6d`，见 CHANGELOG）。手机横屏那 45px 溢出仍是**劝退到竖屏**（`a4df51f`），不再修。
-  ⚠️ 新纪律：**卡内新增任何一行都要挂 `data-cq` 钩子**，否则它就是「无钩子的固定 px」——
-  事件卡最后那 2px 溢出就是「🌟 可触发SP」那行造成的。守卫 `test-hand-card-cq` 钉死。
-  战场卡比例漂移已根治（P1 A `9a2f1c9`）、横屏黑边已取回（P1 B `55faae2`）。
-  守卫：`test-p1a-card-container`（cqh/inline-size 两坑）+ `test-p1b-wide-viewport`（17 条，钉死
-  「下界 <900 会卷进竖屏基线」「放宽了却忘抬 25vh」「flex 的 `min-width:auto` 悄悄顶掉 aspect-ratio」
-  「手牌定高下限 <110px 会让 660 档溢 5px」四个静默复发坑；7 个变异全变红后才提交）。
-- 🟡 **guest 看不到 SP 数**（自己+对手都空）：wire 故意 strip `spDeck`（隐藏信息，`wire.js:173`）→ 见「下一步 §3」。
-- 🟡 **续局只保 host 一侧**：guest 自己刷新仍要重输 4 位码（他那侧本来就能自愈，只是要重输）。
-  另：快照 6 小时过期、已分胜负的局不提示、写入节流 1.2s（低端 iPad 上 45KB stringify 会抖）。
-- 🟡 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）
-- 🟡 `derivePhase` 硬编码读 `state.player.phase` → guest 回合 1 派生为 `init`。已用等待横幅兜住表现
-- 🟡 打包遗留（非阻塞）：`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）·「精简模式」未实现
+- ☠️ **教学迷你卡不走 `Card.jsx`**（`TutorialScreen` 内联渲染，只画名字/⚔️/❤️/阵营）：主战场卡的视效（守护🛡️/中毒/护盾/技能名…）
+  在教学里默认看不见，目前只补了守护。以后教学要教哪个机制，必须单独在迷你卡上补可见标识；判定一律用 `utils/guardSkill` 等主战场真相源。
+- 🟡 虎鲸「协同猎杀」新数值待试玩校准（满自然场觉醒 32000 ≥ 主人 30000 可秒）。要调就动 `skillRegistry` 的 `Coordinated Hunt` amount。
+- 🟡 手机横屏 45px 溢出是劝退到竖屏，不再修。
+- 🟡 续局只保 host 一侧（guest 刷新要重输 4 位码）；快照 6 小时过期、已分胜负的局不提示、写入节流 1.2s。
+- 🟡 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）。
+- 🟡 `derivePhase` 硬编码读 `state.player.phase` → guest 回合 1 派生为 `init`，已用等待横幅兜住表现。
+- 🟡 「精简模式」从未实现（CLAUDE.md 只作目标保留）；`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）。
+- 🟡 17 张卡的 `evolutionTo` 指向不存在的卡名，纯装饰死数据（无任何读取方）；`QUIZ_CHANCE` / `AWAKEN_PARTIAL` 是死常量（见 rules）。
 
----
-
-## 关键文件
-- **引擎**：`src/hooks/useBattle.js`（`tryQuiz`/`answerQuiz`；能量公式 `startPlayerTurn:2265` =
-  `Math.min(newTurn, ENERGY_CAP)`，`beginEnemyTurn:2182` 同步）· `src/engine/{battleReducer,rules,sides,wire,quizGate,aiTarget}.js`
-  - `quizGate.js` = 问答纯核心：每侧节流 + 脱敏投影 + host 判卷。答案卡只活在 useBattle 的
-    `quizKeyRef`（每侧一份），永不上 wire。题面走 `state[side].quiz`（**定形槽**，v4 SHAPES）。
+## 关键文件（结构见 ARCHITECTURE.md；验证纪律见 docs/VERIFY.md）
+- **引擎**：`src/hooks/useBattle.js`（`tryQuiz` / `answerQuiz`；能量公式在 `startPlayerTurn` / `beginEnemyTurn` = `Math.min(newTurn, ENERGY_CAP)`）·
+  `src/engine/{battleReducer,rules,sides,wire,quizGate,aiTarget,matchSnapshot}.js`
+  - `quizGate.js` 问答纯核心：每侧节流 + 脱敏投影 + host 判卷。答案卡只活在 useBattle 的 `quizKeyRef`，永不上 wire。
+  - `matchSnapshot.js` 两张清单是「必须恢复什么」的单一真相源；`battleReducer` 的 `HYDRATE` 按初始形状收口（多一个键会让 guest 静默冻屏）；
+    `BattleScreen` 的 `skipInit` 是恢复路径的头号敌人（那个初始化 effect 会把刚恢复的一切清成新局）。
 - **PvP**：`src/net/{relayClient,lobbyProtocol}.js` · `src/hooks/{usePvpHost,useGuestBattle}.js` ·
-  `src/components/{PvpLobby,PvpDeckPicker,PvpHostBattleScreen,GuestBattleScreen,HostBattleScreen}.jsx` ·
-  `relay/`（server.js + lib/ 纯核心 + smoke + deploy/bio-relay.service）
-  - `usePvpHost.js` 的 `case 'endTurn'`：挂着未答的问答攻击 → 就地 ×1 结算 + `clearQuiz`（兜底，见注释）。
-- **UI/样式**：`src/components/{BattleScreen,QuizModal,TutorialScreen}.jsx` · `src/index.css`（紧凑模式 + 触控热区分档 + 按下反馈）
-  - QuizModal 是**由题目对象驱动的两阶段**（`rightIdx` 到达才揭晓）—— 脱敏后 guest 拿不到 correct，
-    旧的「本地即时揭晓」会让他恒显示答错、看不到知识卡。别改回去。
-- **续局（host 自恢复）**：`src/engine/matchSnapshot.js`（纯核心：**两张清单是「必须恢复什么」的
-  单一真相源** + Set/-Infinity/环境事件三个 JSON 陷阱 + 游标只往小里猜 + 四道拒收闸）·
-  `src/utils/matchStore.js`（localStorage + 节流，已登记 NON_SAVE_KEYS **绝不进存档**：装着中继 token
-  与双方手牌/答案卡）· `useBattle.snapshotEngine/hydrateEngine` · `useHand.hydrate` ·
-  `usePvpHost` 的 `adapterRef` · `battleReducer` 的 `HYDRATE`（**按初始形状收口**，多余键丢弃 ——
-  多一个键会让下一帧推送的 assertPublicShape 当场抛、guest 静默冻屏）· `BattleScreen` 的 `skipInit`
-  （那个初始化 effect 是恢复路径的头号敌人：会 initHand+startBattle 把刚恢复的一切清成新局）。
-  ☠️ **新增 useState/useRef 必须登记进 matchSnapshot 的清单**，否则 `test-match-snapshot` 当场红。
-- **测试**：`scripts/test-*.mjs`（**69 套**，`npm test`）。中继侧 control 29 / client 39 / rooms 71；
-  问答侧 `test-quiz-gate` 26（纯核心）+ `test-pvp-quiz`（端到端 sim）
-  - 教学：`test-tutorial-solvable` **94**（① 可解性 = **规则复刻 + DFS 对抗式穷举**，不是 grep；L4 靠
-    槽位无关化指纹避免状态爆炸，该合并只在无 `enemy_attack` 时成立、由 `canonical()` 逐关判定。
-    ③ 是代码侧 grep 锚点，**一律跑在去掉注释的源码 `tutCode` 上** —— 注释里提到一个名字 ≠ 代码在用它，
-    本项目已被自己写的注释骗出过一次假绿、一次假红。例外：③-5 靠「兜底逃生阀」这条中文注释定位代码段）
-  - ⚠️ `src/data/tutorialData.js` 的相对 import 已补 `.js` —— 漏了它就 import 不进 Node，守卫直接失效
-  - 能量公式：`test-onturnstart-skills` 加 **source-grep 守卫**（公式活在 hook 回调、Node 无 renderer 测不了运行时）
-  - SW 剪枝：`test-sw-api-bypass`（Map 支撑的真 caches mock 跑剪枝，双向变异）
-  - eslint 已覆盖 `src/components`（`6631d65`）
-  - ☠️ **假绿铁律**：fixture 从真模块改绝不手搓 · **新守卫必须配变异测试**（先在未修代码上变红）· 相对 import 带 `.js`
-  - `cd relay && npm run smoke`（10 条，不进主 CI）——**动过 control.js/rooms.js/server.js 必须跑**
-- **⚠️ 浏览器验证铁律**：`vite preview`(4174)。**先 resize 视口**。家长门 prompt 答 56。
-  React 状态是异步的 → 点击和读状态**必须分两次调用**。
-  ☠️ 无头 tab 是 `hidden` 的：rAF 不触发、Framer 动画冻在半途，截图会拍到假 bug（先查 `visibilityState`）
-  - ✅ **解法**（P1 B 实测好用）：注入 `*{opacity:1 !important}` 破掉 framer 冻在 `initial:{opacity:0}` 的
-    元素（否则 `read_page` 只看得见 1 个按钮、以为界面没渲染），再用 JS `.click()` 驱动（React 合成事件收得到）。
-    量布局别信截图，读 `getBoundingClientRect()`：一次 JS 调用就能把 容器/卡槽/比例/溢出/滚动条 全测完。
-  - ✅ **要自动走查教学/战斗**：靠 class 猜可点元素会一直落空（教学迷你卡是内联渲染的）。
-    正解是读 React fiber：`Object.keys(el).find(k=>k.startsWith('__reactProps$'))` 拿到 props，
-    筛 `typeof props.onClick==='function'` —— 教学的 onClick 是**按可点性条件挂上去的**，
-    有它就等于"游戏此刻接受这次点击"。驱动器循环跑 >30s 会超时，要挂 `window.__L` 轮询而不是 await。
-- **⚠️ 通道纪律**（血账）：工具输出可疑 → 用 `git status`/`md5`/`lsof` 独立回验，绝不信「成功」回执。
-  起服务前先查端口（`EADDRINUSE` 会让你对着**旧代码**测，误判成回归）
-- 部署 `DEPLOY.md`（§4 PvP 权威 + §4.6 服务器权威备查）· 历史 `CHANGELOG.md`
+  `src/components/{PvpLobby,PvpDeckPicker,PvpHostBattleScreen,GuestBattleScreen,HostBattleScreen}.jsx` · `relay/`
+  - `usePvpHost` 的 `case 'endTurn'`：挂着未答的问答攻击 → 就地 ×1 结算 + `clearQuiz`（兜底）。
+- **UI**：`src/components/{BattleScreen,QuizModal,TutorialScreen}.jsx` · `src/index.css`。
+  QuizModal 是由题目对象驱动的两阶段（`rightIdx` 到达才揭晓），guest 拿不到 correct，别改回本地即时揭晓。
+- **经济**：`useEconomy` 里扣款函数必须用同步 `stateRef` 模式。`pullCards` 是覆盖式 setState，函数式 updater 会被整份覆盖 →「抽卡不花钱」，已踩两次。
+- **存档**：`utils/saveManager.js`（`SAVE_KEYS` 单一真相源）· `utils/matchStore.js`（PvP 快照在 `NON_SAVE_KEYS`，绝不进存档）。
+- **测试**：`scripts/test-*.mjs` 77 套（60 套 import 真模块驱动，17 套 source-grep）· relay smoke `cd relay && npm run smoke`。
+- **文档**：`DEPLOY.md`（§4 PvP 权威 + §5 排障）· `CHANGELOG.md`（历史）· `docs/PLAYTEST.md`（试玩观察清单）· `docs/sp-combos.md`。

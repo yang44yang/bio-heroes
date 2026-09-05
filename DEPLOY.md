@@ -181,3 +181,5 @@ ssh root@67.230.186.254 "caddy validate --config /etc/caddy/Caddyfile && systemc
 | 部署了但页面没变 | PWA 缓存:强刷 / 等 5 分钟;确认 rsync 无报错 |
 | rsync 报 Permission denied | root 密码错或没配 ssh-copy-id |
 | 以后 /api/* 502 | 对战服务没起:`systemctl status <服务名>`。⚠️ **在 Caddy 的 bio block 重构成 `handle` 块之前,这个 502 不可能出现** —— 现在 `/api/*` 会被 `try_files` 兜成 index.html + 200,症状是客户端 JSON 解析报错。详见 §4.4 |
+| PvP 两台「连不上 / 开不了局」,不弹错 | 一台刷了一台没刷:客户端按 `PROTOCOL_VERSION`(`src/engine/wire.js`)拒收对端快照,中继盲转不报错。两台都 Cmd+Shift+R;想看新图标重新「加到主屏」 |
+| deploy 回执成功但线上没变 | 回执不算数:本地 build 后 `grep -l 关键字 dist/assets/*.js` 找承载功能的 chunk,curl 线上同名文件比 md5(`docs/VERIFY.md` §3) |

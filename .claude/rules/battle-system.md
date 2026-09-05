@@ -94,7 +94,7 @@
 
 ### 触发条件（第 8 回合"开闸" + 软条件任一）
 > ⚠️ 曾写「满足任一（连对2题 / 半血 / 第8回合）」——**代码从来不是三条独立**。
-> 实际是 `useBattle.js:2426` / :2285：**第 8 回合起才"开闸"（`SP_TURN_TRIGGER=8`，硬门槛），
+> 实际是 `useBattle.js` 的 `answerQuiz` 与 `startPlayerTurn` / `beginEnemyTurn`：**第 8 回合起才"开闸"（`SP_TURN_TRIGGER=8`，硬门槛），
 > 此后满足以下任一软条件即触发**：
 - 连续答对 2 道问答题（`SP_QUIZ_STREAK`）
 - 己方主人 HP 降至 50% 以下（`SP_LEADER_HP_RATIO`）

@@ -12,6 +12,9 @@
 //   · CLAUDE.md 写闯关 **23 关**，实际 **29 关**
 //   · `.claude/rules/gacha-cards.md` 抽卡概率写 **85/12/3**，代码是 **R68/SR25/SSR5/SP2**
 //     （还整个漏了 SP 档）。⚠️ 游戏内给玩家看的概率公示是**对的**，错的只有开发文档。
+//   · 2026-09-05 审计又撞到一条**守卫自己在背书的错**：rules 写「基础包 BASE 124 张」，而 cards.js 的
+//     `set` 字段是 BASE **104** + OCEAN 11 + MICRO 9 —— 旧守卫拿「基础包」那格和 cards.length 对账，
+//     等于把「全部 = 基础包」当真理钉死。现在按 set 逐档对账。
 //
 // ☠️ 判据是「文档里的数字 == 代码真值」，不是措辞。每条都必须**先匹配到**才算数 ——
 //    正则匹配不到时如果算通过，这个守卫就是纯摆设（下面每条都带这个自检）。
@@ -33,20 +36,27 @@ const ok = (name, cond) => { if (cond) pass++; else { fail++; console.error(`❌
 const read = (p) => readFileSync(join(ROOT, p), 'utf8')
 
 const stageCount = campaignData.chapters.reduce((n, ch) => n + ch.stages.length, 0)
+const bySet = (set) => cards.filter((c) => c.set === set).length
 
 // ============ ① 逐条对账：文档里的数字必须等于代码真值 ============
 const CHECKS = [
   ['CLAUDE.md', 'cards.js 生物卡数', /cards\.js\s+#\s*卡牌数据库\s*—\s*(\d+)\s*张/, cards.length],
+  ['CLAUDE.md', 'BASE 卡数', /BASE\s*(\d+)\s*\+\s*OCEAN/, bySet('BASE')],
+  ['CLAUDE.md', 'OCEAN 卡数', /OCEAN\s*(\d+)\s*\+\s*MICRO/, bySet('OCEAN')],
+  ['CLAUDE.md', 'MICRO 卡数', /\+\s*MICRO\s*(\d+)/, bySet('MICRO')],
   ['CLAUDE.md', 'eventCards.js 事件卡数', /eventCards\.js\s+#\s*事件卡数据\s*—\s*(\d+)\s*张/, eventCards.length],
   ['CLAUDE.md', 'spCards.js SP 卡数', /spCards\.js\s+#\s*SP觉醒卡数据\s*—\s*(\d+)\s*张/, spCards.length],
   ['CLAUDE.md', 'DECK_SIZE', /DECK_SIZE\s*=\s*(\d+)/, DECK_SIZE],
   ['CLAUDE.md', 'MAX_FIELD_SLOTS', /MAX_FIELD_SLOTS\s*=\s*(\d+)/, MAX_FIELD_SLOTS],
   ['CLAUDE.md', '闯关章数', /campaignData\.js[^\n]*?（\s*(\d+)\s*章/, campaignData.chapters.length],
   ['CLAUDE.md', '闯关关卡数', /campaignData\.js[^\n]*?(\d+)\s*关）/, stageCount],
-  ['.claude/rules/card-system.md', '基础包卡数', /\|\s*基础包\s*\|\s*BASE\s*\|\s*(\d+)\s*\|/, cards.length],
+  ['.claude/rules/card-system.md', '基础包 BASE 卡数（按 set 字段，不是 cards.length）', /\|\s*基础包\s*\|\s*BASE\s*\|\s*(\d+)\s*\|/, bySet('BASE')],
+  ['.claude/rules/card-system.md', 'OCEAN 已有卡数', /\|\s*海洋深渊\s*\|\s*OCEAN\s*\|\s*(\d+)\s*\//, bySet('OCEAN')],
+  ['.claude/rules/card-system.md', 'MICRO 已有卡数', /\|\s*微观战场\s*\|\s*MICRO\s*\|\s*(\d+)\s*\//, bySet('MICRO')],
+  ['.claude/rules/card-system.md', 'cards.js 总数', /cards\.js 共\s*(\d+)\s*张/, cards.length],
   ['.claude/rules/card-system.md', '战场位（当前 N）', /MAX_FIELD_SLOTS，当前\s*(\d+)/, MAX_FIELD_SLOTS],
   ['.claude/rules/factions-events.md', '战场位（当前 N）', /MAX_FIELD_SLOTS，当前\s*(\d+)/, MAX_FIELD_SLOTS],
-  ['.claude/rules/gacha-cards.md', '基础包生物卡数', /当前基础包共\s*(\d+)\s*张生物卡/, cards.length],
+  ['.claude/rules/gacha-cards.md', '卡池生物卡数', /当前卡池共\s*(\d+)\s*张生物卡/, cards.length],
   ['.claude/rules/battle-system.md', '主人 HP', /\*\*(\d+)\s*HP\*\*/, LEADER_HP],
   ['.claude/rules/battle-system.md', '实际主卡组张数', /主卡组\s*(\d+)\s*张、SP 卡组/, DECK_SIZE],
   ['.claude/rules/battle-system.md', '实际 SP 卡组张数', /SP 卡组\s*(\d+)\s*张、战场位/, SP_DECK_SIZE],
