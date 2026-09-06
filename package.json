@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -13,16 +16,16 @@
     "deploy:api": "rsync -az --exclude node_modules relay/ root@67.230.186.254:/opt/bio-relay/ && ssh root@67.230.186.254 'cd /opt/bio-relay && npm ci --omit=dev && systemctl restart bio-relay'"
   },
   "dependencies": {
-    "@tailwindcss/vite": "^4.2.1",
-    "@vitejs/plugin-react": "^5.1.4",
     "framer-motion": "^12.35.2",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "tailwindcss": "^4.2.1",
-    "vite": "^7.3.1"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@vitejs/plugin-react": "^5.1.4",
     "eslint": "^10.6.0",
-    "globals": "^17.7.0"
+    "globals": "^17.7.0",
+    "tailwindcss": "^4.2.1",
+    "vite": "^7.3.1"
   }
 }
