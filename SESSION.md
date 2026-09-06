@@ -23,10 +23,6 @@
    iPad 横屏观感（卡够不够大、竖屏没被弄坏）、虎鲸新数值、钻石按钮灰着时那句提示会不会让他去打闯关。
 2. **审计收尾**（都独立、随时可做，细节见审计报告）：
    清 12 个陈旧 worktree（45MB，全停在 `152b680`，脏改动是 7-25 教学守卫的变异残骸，已被 main 取代）·
-   删死文件 `src/effects/battleAnimations.js`（全仓唯一的 WAAPI，无人 import）·
-   把 vite / tailwind / plugin-react 移到 devDependencies 并 `npm audit fix` ·
-   `git rm --cached .claude/worktrees/reverent-bhabha/.claude/launch.json`（另一台机器的路径，gitignore 之前就被跟踪了）·
-   移除仓库里与项目无关的 `.claude/skills/{idea-unblocker,yt-audio}`（全局已有同名 skill）·
    ARCHITECTURE.md 对账（23 关→29、SP 16→17、49 套→77、useBattle ~2300→2650、「玩家/AI 两份都改」已过时、PvP/relay 整段缺失、SESSION 路径写错）。
 3. 🟡 guest 侧看不到 SP **数**：`useGuestBattle` 两个 spDeck 恒 EMPTY（wire 故意 strip `spDeck`，隐藏信息）。
    要显示得把计数提进公开树 → 必须 bump `PROTOCOL_VERSION` → 两台强制双刷。为一个数字不值，等下次真要改协议时顺手带上。
