@@ -1,9 +1,10 @@
 # Bio Heroes Session State
-> 更新: 2026-09-05（**全仓审计 + 文档精简**）。审计报告 `outputs/code-health-report-2026-09-05.md`；
-> 验证/部署纪律已从本文件抽到 `docs/VERIFY.md`。本文件只留活的交接（≤100 行，替换不堆积）。
+> 更新: 2026-09-10（**齐齐反馈第一条到了并已修上线**：竖屏教学气泡指错 → 贴目标定位，`5c02dfd`，线上 md5 回验一致）。
+> 上一轮 2026-09-05 全仓审计见 `outputs/code-health-report-2026-09-05.md`；验证/部署纪律在 `docs/VERIFY.md`。
+> 本文件只留活的交接（≤100 行，替换不堆积）。
 >
-> 🔴 **当前唯一瓶颈：齐齐的反馈（积压 3+ 周，一条没收）。** 观察清单 `docs/PLAYTEST.md`。
-> 六层界面 + 经济线全部由 Claude 走查驱动改完，守卫防得住回归、防不住方向错。
+> 🔴 **当前瓶颈仍是齐齐的反馈**：积压三周后只来了一条（教学箭头），其余（教学能否打通、横屏观感、虎鲸、钻石提示）一条没收。
+> 观察清单 `docs/PLAYTEST.md`。守卫防得住回归、防不住方向错。
 
 ## 项目位置
 - 路径 `/Users/YangYANG/Projects/Bio-heroes/`（Mac mini）· GitHub yang44yang/bio-heroes (main)
@@ -11,19 +12,19 @@
 - 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」
 
 ## 当前 git / 生产状态
-- HEAD = origin/main = 生产（代码层面）。最近一次功能提交 `e9ab3b1` 钻石抽卡（2026-08-30），之后只有文档提交。
-- 2026-09-05 回验：本地 build 的 `index-BpkjeDN5.js` / `GachaScreen-WA2D2H_a.js` 与线上 md5 逐字节一致。
-- 测试 77/77 绿，lint 干净。`npm audit` 6 条（4 高）全在构建工具链（vite / postcss / nanoid），不进浏览器。
+- HEAD = origin/main = 生产 = `5c02dfd`（2026-09-10）。功能提交：`5c02dfd` 教学气泡贴目标定位 ← `e9ab3b1` 钻石抽卡（08-30）。
+- 2026-09-10 回验（VERIFY §3）：`TutorialScreen-Dh8-vuWT.js` / `index-7BxVIa0z.js` 线上 md5 与本地一致，线上 chunk 数得到 `orientationchange`×2。
+- 测试 77/77 绿，lint 干净（`no-undef` 覆盖 src 全部 .js/.jsx + relay）。`npm audit` 6 条（4 高）全在构建工具链（vite / postcss / nanoid），不进浏览器。
 - ⚠️ `PROTOCOL_VERSION = 4`：两台 iPad 只刷一台就「连不上 / 开不了局」且不弹错（旧版按版本拒收新快照，中继盲转不报错）。
   要两台都 Cmd+Shift+R；想看新图标重新「加到主屏」。
 - ⚠️ Caddyfile 只在磁盘（`Personal website dev/spacev/deploy/Caddyfile`，无 git）。改 spacev 别覆盖 bio 的 `/api/*` handle。
 
 ## 下一步（按价值排）
-1. **收齐齐的真机反馈**（最高优先，卡在人不在代码）：教学五关能否顺畅打通（机制看不看得懂、箭头指得清不清楚）、
-   iPad 横屏观感（卡够不够大、竖屏没被弄坏）、虎鲸新数值、钻石按钮灰着时那句提示会不会让他去打闯关。
-2. **审计收尾**（都独立、随时可做，细节见审计报告）：
-   清 12 个陈旧 worktree（45MB，全停在 `152b680`，脏改动是 7-25 教学守卫的变异残骸，已被 main 取代）·
-   ARCHITECTURE.md 对账（23 关→29、SP 16→17、49 套→77、useBattle ~2300→2650、「玩家/AI 两份都改」已过时、PvP/relay 整段缺失、SESSION 路径写错）。
+1. **收齐齐的真机反馈**（最高优先，卡在人不在代码）。教学箭头那条已修上线，请他：竖屏再走 L1（气泡应贴在手牌上方、▼ 落在蚂蚁上）
+   + **中途转一下屏**（旋转重量只能真机验：Browser 面板的 CDP 模拟不派发 resize，见 VERIFY §2）。
+   其余照旧：教学五关能否打通（机制看不看得懂）、iPad 横屏观感（卡够不够大、竖屏没被弄坏）、虎鲸新数值、钻石按钮灰着时那句提示会不会让他去打闯关。
+2. **清陈旧 worktree**（独立、随时可做）：`.claude/worktrees/` 下 12 个 `wf_3a752b10-*` 全停在 `152b680`（7-25 教学守卫变异残骸，已被 main 取代）
+   + 2 个 `charming-*`（9-05 审计子代理，已并入 `59110a2` / `c456e8f`）。`git worktree remove --force` 逐个删。
 3. 🟡 guest 侧看不到 SP **数**：`useGuestBattle` 两个 spDeck 恒 EMPTY（wire 故意 strip `spDeck`，隐藏信息）。
    要显示得把计数提进公开树 → 必须 bump `PROTOCOL_VERSION` → 两台强制双刷。为一个数字不值，等下次真要改协议时顺手带上。
 4. 🧹 横屏还想让卡更大：先动纯装饰（VS 分隔 44px + 底部日志 44px ≈ +11% 卡面），别做侧栏重排（实测不值）。
@@ -50,6 +51,8 @@
   - `usePvpHost` 的 `case 'endTurn'`：挂着未答的问答攻击 → 就地 ×1 结算 + `clearQuiz`（兜底）。
 - **UI**：`src/components/{BattleScreen,QuizModal,TutorialScreen}.jsx` · `src/index.css`。
   QuizModal 是由题目对象驱动的两阶段（`rightIdx` 到达才揭晓），guest 拿不到 correct，别改回本地即时揭晓。
+  `TutorialScreen` 提示气泡：**方向和纵向位置都是量出来的**（`useLayoutEffect` 取 `data-tut-lit` 高亮并集 → `arrow` / `bubblePos`），
+  别写回关卡数据、别改回固定 top/bottom（守卫 ③-11 / ③-12）；每处 `ring-yellow-400` 高亮必须同时摊开 `litAttr`。
 - **经济**：`useEconomy` 里扣款函数必须用同步 `stateRef` 模式。`pullCards` 是覆盖式 setState，函数式 updater 会被整份覆盖 →「抽卡不花钱」，已踩两次。
 - **存档**：`utils/saveManager.js`（`SAVE_KEYS` 单一真相源）· `utils/matchStore.js`（PvP 快照在 `NON_SAVE_KEYS`，绝不进存档）。
 - **测试**：`scripts/test-*.mjs` 77 套（60 套 import 真模块驱动，17 套 source-grep）· relay smoke `cd relay && npm run smoke`。

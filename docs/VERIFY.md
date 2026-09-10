@@ -31,6 +31,9 @@
   `Object.keys(el).find(k => k.startsWith('__reactProps$'))`，筛 `typeof props.onClick === 'function'`。
   教学的 onClick 是按可点性条件挂的，有它就等于游戏此刻接受这次点击。循环 >30s 会超时，挂 `window.__L` 轮询而不是 await。
 - 教学的 hook（`bubbleRef`/`arrow`/`useLayoutEffect`）必须在所有早期 return 之前，放错是 React #310，只有 preview 走查能发现。
+- 验「随视口重排」的东西（教学气泡跟着高亮目标走）：Browser 面板的 `resize_window` 改视口**不派发 `resize` / `orientationchange`**，
+  靠它们重量的逻辑会看起来"没动"（气泡改横屏后压住手牌就是这样，不是接线错）。先 `window.dispatchEvent(new Event('resize'))` 再量；
+  真机旋转必派发，最终以真机为准。
 
 ## 3. 部署回验（`npm run deploy` 的回执不算数，曾整晚没落地）
 
