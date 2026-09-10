@@ -587,5 +587,27 @@ ok('③-11 ★ 箭头沿气泡边对齐到目标中心（ARROW_ALIGN + 夹在 12
 ok('③-11 ★ ARROW_POS 的 transform 与 ARROW_BOUNCE 的 x/y 不在同一个元素上',
   !/style=\{\{[^}]*ARROW_POS[^}]*\}\}[^\n]*animate=\{ARROW_BOUNCE/.test(tutCode))
 
+// ③-12 ★ 气泡的**纵向位置**也必须是量出来的（贴着被高亮的目标放），不能只靠固定 top 8% / bottom 8rem。
+//      历史（2026-09 真机截图）：那套二元定位只在横屏 iPad 上"够近"。竖屏手机屏很高，
+//      L1「点击这张蚂蚁卡」气泡钉在顶部、手牌在最底，中间隔着整个战场 —— 朝下的箭头视觉上
+//      正落在敌方训练假人身上（箭头方向没错，气泡离目标太远）。上部目标步反过来会落到玩家场上。
+//      修法：量高亮并集，目标在下半屏 → 气泡放它上方；上半屏 → 放它下方；放不下换边、再钳进可视区。
+ok('③-12 ★ 气泡 top 由高亮目标实测得出（bubblePos），固定 top/bottom 只剩兜底',
+  /const \[bubblePos, setBubblePos\] = useState\(null\)/.test(tutCode)
+  && /style=\{bubblePos \? \{ top: bubblePos\.top, bottom: 'auto' \} : fallback\}/.test(tutCode))
+ok('③-12 ★ 上/下半屏分流：下半屏目标放上方（u.t − 高度 − GAP）、上半屏放下方（u.b + GAP）',
+  /targetMidY > vh \/ 2 \? u\.t - b0\.height - GAP : u\.b \+ GAP/.test(tutCode))
+ok('③-12 ★ 放不下就换边 + 钳进可视区（否则高气泡会压住目标或出屏）',
+  /if \(top < 8\) top = u\.b \+ GAP/.test(tutCode)
+  && /Math\.max\(8, Math\.min\(top, vh - b0\.height - 8\)\)/.test(tutCode))
+ok('③-12 ★ 视口坐标换算到定位父元素（wrapper 是 absolute，直接写视口 top 会偏）',
+  /offsetParent\?\.getBoundingClientRect\(\)\.top/.test(tutCode))
+ok('③-12 ★ 箭头按「搬过去之后」的气泡矩形算（预测 rect: bottom = top + 高度），否则指向按旧位置算会偏',
+  /bottom: top \+ b0\.height/.test(tutCode))
+// 旋转 / 改窗口后目标位置全变：不重量，竖屏量好的位置横过来就错。
+ok('③-12 ★ resize + orientationchange 触发重量（resizeTick 进 useLayoutEffect 依赖）',
+  /addEventListener\('orientationchange', onResize\)/.test(tutCode)
+  && /playerDiscard\.length, resizeTick\]\)/.test(tutCode))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} test-tutorial-solvable: 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

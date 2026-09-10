@@ -89,17 +89,46 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
   //    energy/SP 那一行和底部气泡在竖直方向是**重叠**的，只比 dy 会得到一个指向自己身上的箭头。
   const bubbleRef = useRef(null)
   const [arrow, setArrow] = useState(null)      // { dir, offset } —— offset = 沿气泡边的百分比位置
+  // 气泡的纵向位置也是量出来的（相对定位父元素的 top，px）；null = 没量到目标，退回二元 top/bottom。
+  // ☠️ 别改回固定 top 8% / bottom 8rem：那套只在横屏 iPad 上"够近"。竖屏手机屏很高，
+  //    手牌步的气泡在顶、目标在底，中间隔着整个战场，朝下的箭头视觉上就落在正下方的敌方卡上
+  //    （真机截图：L1「点击这张蚂蚁卡」箭头指着敌方训练假人）。贴着目标放，任何屏高都指对。
+  const [bubblePos, setBubblePos] = useState(null)
+  // 旋转 / 改窗口尺寸后目标位置全变 —— 竖屏量好的 top 横过来就错，所以要重量一次。
+  const [resizeTick, setResizeTick] = useState(0)
+  useLayoutEffect(() => {
+    const onResize = () => setResizeTick(t => t + 1)
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
+  }, [])
   useLayoutEffect(() => {
     const bubble = bubbleRef.current
     const lit = bubble ? [...document.querySelectorAll('[data-tut-lit="true"]')]
       .map(el => el.getBoundingClientRect()).filter(r => r.width > 0 && r.height > 0) : []
-    if (!bubble || lit.length === 0) { setArrow(null); return }
-    const b = bubble.getBoundingClientRect()
+    if (!bubble || lit.length === 0) { setArrow(null); setBubblePos(null); return }
+    const b0 = bubble.getBoundingClientRect()
     // 多个元素（如整只手牌被高亮）取并集
     const u = lit.reduce((a, r) => ({
       l: Math.min(a.l, r.left), t: Math.min(a.t, r.top),
       r: Math.max(a.r, r.right), b: Math.max(a.b, r.bottom),
     }), { l: Infinity, t: Infinity, r: -Infinity, b: -Infinity })
+    // —— 纵向位置：目标在下半屏 → 气泡放目标上方；上半屏 → 放目标下方；放不下就换边，再钳进可视区 ——
+    const vh = window.innerHeight
+    const GAP = 14
+    const targetMidY = (u.t + u.b) / 2
+    let top = targetMidY > vh / 2 ? u.t - b0.height - GAP : u.b + GAP
+    if (top < 8) top = u.b + GAP
+    if (top + b0.height > vh - 8) top = u.t - b0.height - GAP
+    top = Math.max(8, Math.min(top, vh - b0.height - 8))
+    // 气泡 wrapper 是 absolute，top 要换算到它定位父元素的坐标系（两者都用视口坐标相减即可）
+    const parentTop = bubble.parentElement?.offsetParent?.getBoundingClientRect().top ?? 0
+    setBubblePos({ top: top - parentTop })
+    // 箭头按「搬过去之后」的气泡矩形算（同一帧的 layout effect 会把它搬到 top，横向不变）
+    const b = { left: b0.left, right: b0.right, width: b0.width, height: b0.height, top, bottom: top + b0.height }
     const dy = (u.t + u.b) / 2 - (b.top + b.bottom) / 2
     const dx = (u.l + u.r) / 2 - (b.left + b.right) / 2
     // 两个轴上「不重叠」的间距：谁更大就沿谁指（都为 0 = 目标压在气泡上，退回比中心差）
@@ -115,7 +144,7 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
       : clamp(((u.t + u.b) / 2 - b.top) / b.height * 100)
     setArrow({ dir, offset: `${offset.toFixed(1)}%` })
   }, [currentStep, phase, playerHand.length, playerField, enemyField, playerSpDeck.length,
-    powerBank.intact, powerBank.stored, playerDiscard.length])
+    powerBank.intact, powerBank.stored, playerDiscard.length, resizeTick])
 
 
   // === 初始化关卡 ===
@@ -1277,15 +1306,15 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
               - 其它情况(none, hand, energy, end_turn_btn) → 顶部 top 8%
               */}
           {(() => {
+            // 量到高亮目标时气泡贴着目标放（bubblePos，见上方 useLayoutEffect）。
+            // 下面这套二元 top/bottom 只剩「兜底」用：highlight:'none' 或目标还没渲染出来。
             const lowerHandledAreas = ['enemy_leader', 'enemy_field', 'enemy_slot', 'player_field', 'sp_area']
             const useBottom = lowerHandledAreas.some(a => currentStep.highlight?.startsWith(a))
+            const fallback = useBottom ? { bottom: '8rem', top: 'auto' } : { top: '8%', bottom: 'auto' }
             return (
               <motion.div
                 className="absolute left-1/2 -translate-x-1/2 z-50 max-w-xs"
-                style={useBottom
-                  ? { bottom: '8rem', top: 'auto' }
-                  : { top: '8%', bottom: 'auto' }
-                }
+                style={bubblePos ? { top: bubblePos.top, bottom: 'auto' } : fallback}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 key={currentStep.id}
