@@ -5,6 +5,18 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 给小学老师的课纲依据说明（2026-09-10）✅ `22b2180`
+> 老师问「到底用的是什么课纲」。交付 `outputs/curriculum-basis-for-teachers.pdf`（5 页）+ 可重生成脚本 `outputs/build-curriculum-doc.py`。
+
+主对标《义务教育科学课程标准（2022 年版）》小学段生命科学四个核心概念 + 四个跨学科概念；第二参照 NGSS K–5 生命科学（LS1–LS4）。
+**诚实边界写死在文档里**：内容、题型、难度是按核心概念设计的，但**没有逐卡逐题标注课标条目编号**（KP_ID / NGSS / 课标三标签至今不存在），
+也没按年级做分层验证。统计（157 卡 / 805 题 / 机制 358）是 09-10 从 `src/data` 直接数的，改卡或题库后要重跑脚本。
+
+☠️ reportlab 内置字体没有汉字，会渲成黑方块 → 注册 macOS 自带 `Arial Unicode.ttf`。提交的 PDF 由提交的脚本现场生成，
+再用 pypdf 抽回文字校验（5 页、0 缺字形）。
+
+---
+
 ## 教学气泡贴着目标放：竖屏「箭头指到敌方假人」（2026-09-10）✅ `5c02dfd`
 > 齐齐积压三周的反馈终于来了第一条 —— 一张 iPhone 竖屏截图：L1「点击这张蚂蚁卡，把它放上战场！」
 > 气泡钉在屏幕顶部，▼ 正落在敌方「训练假人」身上，而蚂蚁在最底部手牌里（手牌本身亮着黄框，高亮没错）。
@@ -29,6 +41,32 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 offsetParent 换算 · 预测矩形 · resizeTick 进依赖；退回固定定位当场红。lint 干净 + 77/77 + build 绿。
 部署按 `VERIFY.md` §3 回验：`TutorialScreen-Dh8-vuWT.js` / `index-7BxVIa0z.js` 线上 md5 与本地一致，
 线上 chunk 里数得到 `orientationchange`×2。反向哨兵本次不适用（旧定位被降级成兜底、没删）。
+
+---
+
+## 全仓审计收尾：文档失真 + 死文件 + 依赖 + 仓库卫生（2026-09-05 → 09-06）✅ `89d6a9f`…`59110a2`
+> 单人全仓审计（`outputs/code-health-report-2026-09-05.md`）：代码本体健康 —— 77/77、lint 干净、技能表零缺口、生产 md5 = HEAD，
+> 7 月报告的引擎 P0/P1 全部确认已修。**问题集中在代码之外**：开发文档对技术栈和数字的描述多处失真，外加仓库卫生。
+
+- `89d6a9f` CLAUDE.md 190 → 118 行，技术栈改为真值（React 19；WAAPI / tsParticles / Supabase / Vercel 在仓库里都不存在）。
+  SESSION.md 166 → 60 行，「怎么验证」整块抽到新建的 `docs/VERIFY.md`。rules 的「基础包 124」实为 BASE 104 + OCEAN 11 + MICRO 9，
+  旧 `test-docs-truth` 一直在为这条错背书 → 改为按 set 逐档对账（51 条，7 个变异先红后绿）。
+- `53a5f84` 删死文件 `src/effects/battleAnimations.js`（import 图里唯一不可达的文件，也是全仓唯一的 WAAPI）。
+  ☠️ 删一个没人 import 的文件，`index-*.css` 却少了 180 字节：**Tailwind 4 扫的是全仓源码文件，不是 import 图**，
+  死文件里的字符串 `'ease-out'` 一直在凭空生成一条无人使用的 `.ease-out`。连带 Rollup 的 hash 级联把 chunk 名全换了 ——
+  回验要比「归一化 hash 引用后的内容」，不能比原始 md5（chunk 集合不变，19 个 JS chunk 归一化后逐字节一致）。
+- `3de97ea` 四个构建期包（vite / plugin-react / tailwindcss / @tailwindcss/vite）移到 devDependencies，运行时依赖只剩 react / react-dom / framer-motion；
+  声明 `engines` node>=20。`e9e92b6` `npm audit fix` 清零 7 条构建期漏洞（5 高 2 低），全是范围内补丁，`npm ci` 全新安装后产物归一化逐字节一致。
+- `820aa80` 停止跟踪另一台机器绝对路径的 `launch.json`（只动索引）· `30082fd` 移除与项目无关的 `.claude/skills/{idea-unblocker,yt-audio}`。
+- `59110a2` ARCHITECTURE.md 按代码对账：闯关 29 关、SP 17、77 套、useBattle ~2650 行；补 PvP 地图（relay / wire / quizGate / matchSnapshot）；
+  删掉与 de-fork 自相矛盾的「玩家/AI 两份都改」；生产是 VPS，Vercel 只是海外镜像；从 SESSION 搬入「教学迷你卡不走 Card.jsx」。
+
+☠️ **审计自己也数错了两处**，都是事后按代码复核抓到的：
+① `evolutionTo`「17 张悬空、还在涨，建议置 null」—— 17 个值自 03-20 首个提交起一字未变，是 3 个已实现 + 14 个决策2 计划目标，
+  `test-evolution-integrity` 早在 06-29 就用白名单守着；照报告置 null 会把守卫打红。这条更正当时没同步进文档，
+  SESSION 与 ARCHITECTURE §5 又带着旧说法过了九天，09-15 交接时才一起改掉。
+② 测试「60 套 import / 17 套 grep」在任何单一口径下都复现不出来 → ARCHITECTURE §6 改用「是否加载项目代码」= 64 / 13，口径写在数字旁边。
+未做：12 个陈旧 worktree（见 SESSION）。
 
 ---
 

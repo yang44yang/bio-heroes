@@ -1,9 +1,9 @@
 # Bio Heroes Session State
-> 更新: 2026-09-10（**齐齐反馈第一条到了并已修上线**：竖屏教学气泡指错 → 贴目标定位，`5c02dfd`，线上 md5 回验一致）。
-> 上一轮 2026-09-05 全仓审计见 `outputs/code-health-report-2026-09-05.md`；验证/部署纪律在 `docs/VERIFY.md`。
+> 更新: 2026-09-15（交接对账，**无代码改动**）：生产字节回验仍 = `5c02dfd`；更正 `npm audit` 与 `evolutionTo` 两条过期说法；
+> 09-05 审计收尾 + 09-10 课纲说明归档进 `CHANGELOG.md`。验证/部署纪律在 `docs/VERIFY.md`，结构与约束在 `ARCHITECTURE.md`。
 > 本文件只留活的交接（≤100 行，替换不堆积）。
 >
-> 🔴 **当前瓶颈仍是齐齐的反馈**：积压三周后只来了一条（教学箭头），其余（教学能否打通、横屏观感、虎鲸、钻石提示）一条没收。
+> 🔴 **当前瓶颈仍是齐齐的反馈**：积压三周后只来过一条（竖屏教学箭头，09-10 已修上线），其余（教学能否打通、横屏观感、虎鲸、钻石提示）一条没收。
 > 观察清单 `docs/PLAYTEST.md`。守卫防得住回归、防不住方向错。
 
 ## 项目位置
@@ -12,9 +12,11 @@
 - 本地试玩：`cd relay && npm start`（3002）+ `npm run dev`（或 preview 4174）→ 主菜单「🔗 联机对战」
 
 ## 当前 git / 生产状态
-- HEAD = origin/main = 生产 = `5c02dfd`（2026-09-10）。功能提交：`5c02dfd` 教学气泡贴目标定位 ← `e9ab3b1` 钻石抽卡（08-30）。
-- 2026-09-10 回验（VERIFY §3）：`TutorialScreen-Dh8-vuWT.js` / `index-7BxVIa0z.js` 线上 md5 与本地一致，线上 chunk 数得到 `orientationchange`×2。
-- 测试 77/77 绿，lint 干净（`no-undef` 覆盖 src 全部 .js/.jsx + relay）。`npm audit` 6 条（4 高）全在构建工具链（vite / postcss / nanoid），不进浏览器。
+- HEAD = origin/main。最后一个改动构建产物的提交是 `5c02dfd`（09-10 教学气泡）；之后 `1ff2cd8` / `22b2180` / 本次交接只动文档与 `outputs/`。
+- **生产 = `5c02dfd` 的构建产物**。2026-09-15 按 VERIFY §3 重新 build + curl：`index.html` 资源引用与线上逐条相同，
+  `index-7BxVIa0z.js` + index css + TutorialScreen / HostBattleScreen / GachaScreen / PvpLobby 六个文件 md5 一致，`sw.js` 一致。
+- `relay/` 代码自 `83421c5`（07-22 host 断线重连）起未变。
+- 测试 77/77 绿 · lint 干净（`no-undef` 覆盖 src + relay）· `npm audit` **0 条**（09-06 `e9e92b6` 清零；vite / tailwind / plugin-react 已移到 devDependencies，`engines` node>=20）。
 - ⚠️ `PROTOCOL_VERSION = 4`：两台 iPad 只刷一台就「连不上 / 开不了局」且不弹错（旧版按版本拒收新快照，中继盲转不报错）。
   要两台都 Cmd+Shift+R；想看新图标重新「加到主屏」。
 - ⚠️ Caddyfile 只在磁盘（`Personal website dev/spacev/deploy/Caddyfile`，无 git）。改 spacev 别覆盖 bio 的 `/api/*` handle。
@@ -23,24 +25,28 @@
 1. **收齐齐的真机反馈**（最高优先，卡在人不在代码）。教学箭头那条已修上线，请他：竖屏再走 L1（气泡应贴在手牌上方、▼ 落在蚂蚁上）
    + **中途转一下屏**（旋转重量只能真机验：Browser 面板的 CDP 模拟不派发 resize，见 VERIFY §2）。
    其余照旧：教学五关能否打通（机制看不看得懂）、iPad 横屏观感（卡够不够大、竖屏没被弄坏）、虎鲸新数值、钻石按钮灰着时那句提示会不会让他去打闯关。
-2. **清陈旧 worktree**（独立、随时可做）：`.claude/worktrees/` 下 12 个 `wf_3a752b10-*` 全停在 `152b680`（7-25 教学守卫变异残骸，已被 main 取代）
-   + 2 个 `charming-*`（9-05 审计子代理，已并入 `59110a2` / `c456e8f`）。`git worktree remove --force` 逐个删。
+2. **清陈旧 worktree**（独立、随时可做，commit 都已并入 main）：12 个 `wf_3a752b10-*` 停在 `152b680`，各带 1–8 个未提交改动
+   （7-25 教学守卫的变异残骸，main 上已有完成版）→ 逐个先 `git worktree remove --force <路径>` 再 `git branch -d <分支>`；
+   `charming-napier`（`c456e8f`，干净）可直接删；`charming-kilby` 是本次会话所在，会话结束后再删。
 3. 🟡 guest 侧看不到 SP **数**：`useGuestBattle` 两个 spDeck 恒 EMPTY（wire 故意 strip `spDeck`，隐藏信息）。
    要显示得把计数提进公开树 → 必须 bump `PROTOCOL_VERSION` → 两台强制双刷。为一个数字不值，等下次真要改协议时顺手带上。
 4. 🧹 横屏还想让卡更大：先动纯装饰（VS 分隔 44px + 底部日志 44px ≈ +11% 卡面），别做侧栏重排（实测不值）。
+5. 📄 给老师的课纲说明 `outputs/curriculum-basis-for-teachers.pdf`（09-10）等回音。里面的统计（157 卡 / 805 题…）是写死的，
+   改卡或题库后要跑 `outputs/build-curriculum-doc.py` 重生成；逐卡逐题标课标编号（KP_ID / NGSS / 课标三标签）仍未做。
 
 ## 已知问题（未修）
-- ☠️ **教学迷你卡不走 `Card.jsx`**（`TutorialScreen` 内联渲染，只画名字/⚔️/❤️/阵营）：主战场卡的视效（守护🛡️/中毒/护盾/技能名…）
-  在教学里默认看不见，目前只补了守护。以后教学要教哪个机制，必须单独在迷你卡上补可见标识；判定一律用 `utils/guardSkill` 等主战场真相源。
 - 🟡 虎鲸「协同猎杀」新数值待试玩校准（满自然场觉醒 32000 ≥ 主人 30000 可秒）。要调就动 `skillRegistry` 的 `Coordinated Hunt` amount。
 - 🟡 手机横屏 45px 溢出是劝退到竖屏，不再修。
 - 🟡 续局只保 host 一侧（guest 刷新要重输 4 位码）；快照 6 小时过期、已分胜负的局不提示、写入节流 1.2s。
 - 🟡 预设卡组平衡待和齐齐手挑微调（自然系 raw ATK 偏强、科技系诊断卡偏多）。
 - 🟡 `derivePhase` 硬编码读 `state.player.phase` → guest 回合 1 派生为 `init`，已用等待横幅兜住表现。
 - 🟡 「精简模式」从未实现（CLAUDE.md 只作目标保留）；`react-vendor` chunk 仅 3.6KB（React 实际在 framer 块）。
-- 🟡 17 张卡的 `evolutionTo` 指向不存在的卡名，纯装饰死数据（无任何读取方）；`QUIZ_CHANCE` / `AWAKEN_PARTIAL` 是死常量（见 rules）。
+- 🟡 `QUIZ_CHANCE` / `AWAKEN_PARTIAL` 是死常量（见 rules）。
+- ℹ️ **不是 bug，别动**：17 张卡的 `evolutionTo` = 3 个已实现（接进 `EVOLUTION_CHAINS`）+ 14 个决策2「逐季补全」的计划目标，
+  `test-evolution-integrity` 的 `PLANNED_EVOLUTIONS` 白名单自 06-29 起守着。09-05 审计报告的「悬空还在涨、建议置 null」是数错了，
+  照做会把守卫的「无僵尸条目」检查打红。
 
-## 关键文件（结构见 ARCHITECTURE.md；验证纪律见 docs/VERIFY.md）
+## 关键文件（结构与约束见 ARCHITECTURE.md；验证纪律见 docs/VERIFY.md）
 - **引擎**：`src/hooks/useBattle.js`（`tryQuiz` / `answerQuiz`；能量公式在 `startPlayerTurn` / `beginEnemyTurn` = `Math.min(newTurn, ENERGY_CAP)`）·
   `src/engine/{battleReducer,rules,sides,wire,quizGate,aiTarget,matchSnapshot}.js`
   - `quizGate.js` 问答纯核心：每侧节流 + 脱敏投影 + host 判卷。答案卡只活在 useBattle 的 `quizKeyRef`，永不上 wire。
@@ -53,7 +59,8 @@
   QuizModal 是由题目对象驱动的两阶段（`rightIdx` 到达才揭晓），guest 拿不到 correct，别改回本地即时揭晓。
   `TutorialScreen` 提示气泡：**方向和纵向位置都是量出来的**（`useLayoutEffect` 取 `data-tut-lit` 高亮并集 → `arrow` / `bubblePos`），
   别写回关卡数据、别改回固定 top/bottom（守卫 ③-11 / ③-12）；每处 `ring-yellow-400` 高亮必须同时摊开 `litAttr`。
+  教学迷你卡内联渲染、不走 `Card.jsx`（主战场视效在教学里默认看不见）—— 约束与做法见 ARCHITECTURE §2。
 - **经济**：`useEconomy` 里扣款函数必须用同步 `stateRef` 模式。`pullCards` 是覆盖式 setState，函数式 updater 会被整份覆盖 →「抽卡不花钱」，已踩两次。
 - **存档**：`utils/saveManager.js`（`SAVE_KEYS` 单一真相源）· `utils/matchStore.js`（PvP 快照在 `NON_SAVE_KEYS`，绝不进存档）。
-- **测试**：`scripts/test-*.mjs` 77 套（60 套 import 真模块驱动，17 套 source-grep）· relay smoke `cd relay && npm run smoke`。
+- **测试**：`scripts/test-*.mjs` 77 套（64 套跑真代码 / 13 套纯 source-grep，口径见 ARCHITECTURE §6）· relay smoke `cd relay && npm run smoke`。
 - **文档**：`DEPLOY.md`（§4 PvP 权威 + §5 排障）· `CHANGELOG.md`（历史）· `docs/PLAYTEST.md`（试玩观察清单）· `docs/sp-combos.md`。

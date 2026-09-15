@@ -125,7 +125,7 @@ hooks/useBattle.js  applySkillEvents(events, friendlySetter, enemySetter, side)
 |---|---|
 | `cards.js` | 124 张生物卡 = `set` BASE 104 + OCEAN 11 + MICRO 9（卡名/技能文本**中文硬编码**，未走 i18n；`subType` / `tags` 见 rules） |
 | `eventCards.js` / `spCards.js` | 16 事件卡（四阵营各 4）/ 17 SP 觉醒卡 |
-| `evolutions.js` | 进化链 `EVOLUTION_CHAINS`：真实现只 2 链 5 卡（含羞草 R→SR、创可贴 R→SR→SSR）。卡上的 `evolutionTo` 字段是**装饰性死数据**：17 张卡带它、全仓零读取方，其中 14 张指向根本不存在的中文卡名 |
+| `evolutions.js` | 进化链 `EVOLUTION_CHAINS` + `getEvolutionTarget`（进化的运行时真相源，`Collection` / `useEconomy` 读它）：真实现只 2 链 5 卡（含羞草 R→SR、创可贴 R→SR→SSR）。卡上的 `evolutionTo` 是元数据、运行时不读：17 张卡带它 = 3 个已实现 + 14 个决策2「逐季补全」的**计划目标**（卡还没造；17 个值自 2026-03 首个提交起没变），由 `scripts/test-evolution-integrity.mjs` 的 `PLANNED_EVOLUTIONS` 白名单守着 —— 不是断头 bug，别置 null（会打红守卫） |
 | `deckRules.js` | 常量权威：`DECK_SIZE`(25) · `SP_DECK_SIZE`(5) · `MAX_FIELD_SLOTS`(6) · `LEADER_HP`(30000) · `POWER_CURVE`（ATK+HP 按 cost 的预算）· `RARITIES` · `FACTION_ADVANTAGE` + `FACTION_ADVANTAGE_BONUS`(0.20) · SP 开闸 `SP_TURN_TRIGGER`(8) 等。⚠️ `QUIZ_CHANCE` / `AWAKEN_PARTIAL` 是**死常量**（引擎从不读/从不产生，rules 已注明） |
 | `campaignData.js` / `tutorialData.js` | 闯关 4 章 29 关（5+8+8+8）/ 教学 5 关（`BASIC_LEVELS` 3 + `ADVANCED_LEVELS` 2） |
 | `quizzes.js` + `quizzesGeneral.js` | 805 道卡题（含 Leitner 复习）+ 242 道通用题（答题觉醒/教育核心） |
