@@ -594,7 +594,7 @@ ok('③-11 ★ ARROW_POS 的 transform 与 ARROW_BOUNCE 的 x/y 不在同一个�
 //      修法：量高亮并集，目标在下半屏 → 气泡放它上方；上半屏 → 放它下方；放不下换边、再钳进可视区。
 ok('③-12 ★ 气泡 top 由高亮目标实测得出（bubblePos），固定 top/bottom 只剩兜底',
   /const \[bubblePos, setBubblePos\] = useState\(null\)/.test(tutCode)
-  && /style=\{bubblePos \? \{ top: bubblePos\.top, bottom: 'auto' \} : fallback\}/.test(tutCode))
+  && /style=\{bubblePos\s*\?\s*\{ top: bubblePos\.top, left: bubblePos\.left, bottom: 'auto'/.test(tutCode))
 ok('③-12 ★ 上/下半屏分流：下半屏目标放上方（u.t − 高度 − GAP）、上半屏放下方（u.b + GAP）',
   /targetMidY > vh \/ 2 \? u\.t - b0\.height - GAP : u\.b \+ GAP/.test(tutCode))
 ok('③-12 ★ 放不下就换边 + 钳进可视区（否则高气泡会压住目标或出屏）',
@@ -608,6 +608,21 @@ ok('③-12 ★ 箭头按「搬过去之后」的气泡矩形算（预测 rect: b
 ok('③-12 ★ resize + orientationchange 触发重量（resizeTick 进 useLayoutEffect 依赖）',
   /addEventListener\('orientationchange', onResize\)/.test(tutCode)
   && /playerDiscard\.length, resizeTick\]\)/.test(tutCode))
+
+// ③-13 ★ 横向也要跟着目标。箭头沿气泡边夹在 12%~88%，气泡钉死在屏幕正中时，窄屏上偏在一侧的目标够不着：
+//      2026-09-26 在 375×812 逐步量过全 5 关 54 步，L4「先出一张低费蚂蚁」（五张手牌最左那张）和
+//      L5「看到 SP 区域」（左下角徽章）的 ▼ 都落在右边邻居身上 —— 和 09-10 那张截图同一类病（数据没错、位置错）。
+ok('③-13 ★ 气泡 left 跟随目标中心（u 中点 − 宽/2），并钳进可视区',
+  /let left = \(u\.l \+ u\.r\) \/ 2 - b0\.width \/ 2/.test(tutCode)
+  && /Math\.max\(8, Math\.min\(left, vw - b0\.width - 8\)\)/.test(tutCode))
+ok('③-13 ★ left 也换算到定位父元素（offsetParent.left）',
+  /offsetParent\?\.getBoundingClientRect\(\)\.left/.test(tutCode))
+ok('③-13 ★ 箭头按搬过去之后的横向矩形算（预测 rect: right = left + 宽）',
+  /right: left \+ b0\.width/.test(tutCode))
+ok('③-13 ★ 量到位置后不再 left-1/2 居中（inline left 与 translate(-50%) 叠加会偏半个气泡）',
+  /bubblePos \? '' : 'left-1\/2 -translate-x-1\/2'/.test(tutCode))
+ok('③-13 ★ 气泡宽度与 left 解耦（max-content + min(20rem, 50vw)），贴边时不被挤窄、预测矩形不失真',
+  /width: 'max-content'/.test(tutCode) && /maxWidth: 'min\(20rem, 50vw\)'/.test(tutCode))
 
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} test-tutorial-solvable: 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

@@ -124,11 +124,18 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
     if (top < 8) top = u.b + GAP
     if (top + b0.height > vh - 8) top = u.t - b0.height - GAP
     top = Math.max(8, Math.min(top, vh - b0.height - 8))
-    // 气泡 wrapper 是 absolute，top 要换算到它定位父元素的坐标系（两者都用视口坐标相减即可）
+    // —— 横向位置：气泡跟着目标横移，再钳进可视区。箭头沿气泡边只能夹在 12%~88%，气泡钉死在屏幕正中时，
+    //    窄屏上偏在一侧的目标够不着（375px 竖屏实测：L4「先出一张低费蚂蚁」五张手牌最左那张、
+    //    L5「看到 SP 区域」左下角的徽章，▼ 都落在右边邻居身上）。
+    const vw = window.innerWidth
+    let left = (u.l + u.r) / 2 - b0.width / 2
+    left = Math.max(8, Math.min(left, vw - b0.width - 8))
+    // 气泡 wrapper 是 absolute，top/left 要换算到它定位父元素的坐标系（两者都用视口坐标相减即可）
     const parentTop = bubble.parentElement?.offsetParent?.getBoundingClientRect().top ?? 0
-    setBubblePos({ top: top - parentTop })
-    // 箭头按「搬过去之后」的气泡矩形算（同一帧的 layout effect 会把它搬到 top，横向不变）
-    const b = { left: b0.left, right: b0.right, width: b0.width, height: b0.height, top, bottom: top + b0.height }
+    const parentLeft = bubble.parentElement?.offsetParent?.getBoundingClientRect().left ?? 0
+    setBubblePos({ top: top - parentTop, left: left - parentLeft })
+    // 箭头按「搬过去之后」的气泡矩形算（同一帧的 layout effect 会把它搬到 top/left）
+    const b = { left, right: left + b0.width, width: b0.width, height: b0.height, top, bottom: top + b0.height }
     const dy = (u.t + u.b) / 2 - (b.top + b.bottom) / 2
     const dx = (u.l + u.r) / 2 - (b.left + b.right) / 2
     // 两个轴上「不重叠」的间距：谁更大就沿谁指（都为 0 = 目标压在气泡上，退回比中心差）
@@ -1313,8 +1320,13 @@ export default function TutorialScreen({ onExit, onExitToCampaign, onGraduate, e
             const fallback = useBottom ? { bottom: '8rem', top: 'auto' } : { top: '8%', bottom: 'auto' }
             return (
               <motion.div
-                className="absolute left-1/2 -translate-x-1/2 z-50 max-w-xs"
-                style={bubblePos ? { top: bubblePos.top, bottom: 'auto' } : fallback}
+                // 量到位置后不再用 left-1/2 居中（inline left 会和 translate(-50%) 叠加、偏掉半个气泡）。
+                // 宽度与 left 解耦（max-content + 上限）：贴右边时 shrink-to-fit 会把气泡挤窄，预测矩形就失真；
+                // 上限取 min(20rem, 50vw) = 居中时代的可用宽度，视觉宽度不变。
+                className={`absolute z-50 max-w-xs ${bubblePos ? '' : 'left-1/2 -translate-x-1/2'}`}
+                style={bubblePos
+                  ? { top: bubblePos.top, left: bubblePos.left, bottom: 'auto', width: 'max-content', maxWidth: 'min(20rem, 50vw)' }
+                  : { ...fallback, width: 'max-content', maxWidth: 'min(20rem, 50vw)' }}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 key={currentStep.id}
