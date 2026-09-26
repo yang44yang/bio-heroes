@@ -128,5 +128,25 @@ const biofilm = spCards.find(s => s.spCost === 6 && s.faction === 'pathogen') //
 ok('收口：基因突变(2费) 在任何回合都召不出 cost-6 生物膜（越级被堵）',
   [4, 5, 6, 7, 8].every(t => gate(geneMut.spSummonRule, [biofilm], t, ample).length === 0))
 
+// ===== spend_all_energy 口径（全球大流行）：上限 = 出牌前能量（含本卡费），本回合能量全清 =====
+// playEventCard 用 dispatch 前的快照 energyBefore —— useReducer dispatch 不 eager，dispatch 后读 ref
+// 仍是扣费前的旧值（2026-09-26 压测：5 能量打 5 费全球大流行，日志报「消耗所有剩余能量 5 点」）。
+// 口径定为「投入总量」：5 费卡在 5 能量时可召 5 费 SP；若按扣完本卡后的剩余算，要攒 ≥10 能量
+// 才召得出最小的 5 费 SP → 死规则。
+const pandemic = eventCards.find(c => c.id === 'event_global_pandemic')
+ok('spend_all_energy：全球大流行是唯一一张 spend_all_energy 事件卡',
+  pandemic?.spSummonRule?.type === 'spend_all_energy' && eventCards.filter(c => c.spSummonRule?.type === 'spend_all_energy').length === 1)
+ok('spend_all_energy：投入 5 能量（= 本卡 5 费）第 5 回合可召 cost-5 SP',
+  pandemic.cost === 5 && gate(pandemic.spSummonRule, [cost5p], 5, { remainingEnergy: 5 }).length === 1)
+ok('spend_all_energy：投入 4 能量召不出 cost-5 SP', gate(pandemic.spSummonRule, [cost5p], 5, { remainingEnergy: 4 }).length === 0)
+const useBattleSrc = readFileSync(join(ROOT, 'src/hooks/useBattle.js'), 'utf8')
+const pecStart = useBattleSrc.indexOf('const playEventCard = useCallback(')
+const pec = useBattleSrc.slice(pecStart, pecStart + 5000)
+ok('接线：playEventCard 在 ENERGY_SPEND 之前快照 energyBefore',
+  pecStart !== -1 && pec.includes('const energyBefore = battleStateRef.current[side].energy') &&
+  pec.indexOf('const energyBefore') < pec.indexOf("type: 'ENERGY_SPEND'"))
+ok('接线：spend_all_energy 用快照 energyBefore，不在 dispatch 后读 battleStateRef 的能量（stale）',
+  pec.includes('remainEnergy = energyBefore') && !/spend_all_energy'\)\s*\{\s*remainEnergy = battleStateRef/.test(pec))
+
 console.log(`\n${fail === 0 ? '✅' : '⚠️'} 通过 ${pass} / ${pass + fail}`)
 process.exit(fail === 0 ? 0 : 1)

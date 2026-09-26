@@ -134,6 +134,20 @@ for (const type of ['deep_pressure', 'herd_immunity', 'marked']) {
 }
 
 // ============ removeNegativeStatuses：三 filter + 守卫 ============
+// ============ poison 致死：事件带 lethal 标记 + 日志说「毒发倒下」（死卡由提交后 effect 静默清场，日志得自己说）============
+{
+  const c = mk([{ type: 'poison', damage: 3000, turnsLeft: 2 }])
+  const e = processStatuses(c)
+  const tick = e.find(x => x.type === 'POISON_TICK')
+  ok('poison 致死 → lethal=true', c.currentHp <= 0 && tick?.lethal === true)
+  ok('poison 致死 → 日志含「毒发倒下」', /毒发倒下/.test(tick?.message || ''))
+}
+{
+  const c = mk([{ type: 'poison', damage: 500, turnsLeft: 2 }])
+  const tick = processStatuses(c).find(x => x.type === 'POISON_TICK')
+  ok('poison 未致死 → lethal=false、日志不说倒下', tick?.lethal === false && !/毒发倒下/.test(tick.message))
+}
+
 ok('removeNeg null card → []', removeNegativeStatuses(null, 'poison').length === 0)
 ok('removeNeg 空 statuses → []', removeNegativeStatuses(mk([]), 'all_negative').length === 0)
 {

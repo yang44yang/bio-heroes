@@ -21,11 +21,14 @@ export function processStatuses(card) {
     switch (status.type) {
       case 'poison': {
         card.currentHp -= status.damage
+        // 毒发致死也要说出来：死卡由提交后 effect 静默清场，没这半句玩家只看到卡凭空消失
+        const lethal = card.currentHp <= 0
         events.push({
           type: 'POISON_TICK',
           target: card.name,
           damage: status.damage,
-          message: `🟢 ${card.name} 中毒！损失 ${status.damage} HP`,
+          lethal,
+          message: `🟢 ${card.name} 中毒！损失 ${status.damage} HP${lethal ? ' → 毒发倒下！' : ''}`,
         })
         if (status.turnsLeft > 1) {
           remaining.push({ ...status, turnsLeft: status.turnsLeft - 1 })

@@ -1220,7 +1220,7 @@ export function useBattle({ remoteEnemy = false } = {}) {
         candidates = spDeck.filter(sp => sp.spCost <= summonRule.maxCost)
         break
       case 'spend_all_energy':
-        // After spending all remaining energy, match spCost <= that amount
+        // remainingEnergy = 出牌前能量（含本卡费用；playEventCard 传 energyBefore）：投入多少召多大
         candidates = spDeck.filter(sp => sp.spCost <= remainingEnergy)
         break
       case 'faction_only': {
@@ -1489,6 +1489,11 @@ export function useBattle({ remoteEnemy = false } = {}) {
       return { ok: false, reason: 'energy', msg: `能量不足（需要 ${card.cost}）` }
     }
 
+    // 出牌前能量快照：下面 spend_all_energy 要用它。⚠️ 不能在 dispatch 之后再读 battleStateRef ——
+    //   useReducer dispatch 不 eager，同一次同步调用里 ref 仍是扣费前的旧值（曾就这么读：
+    //   5 能量打 5 费的全球大流行，日志报「消耗所有剩余能量 5 点」，实际扣完本卡已是 0）。
+    const energyBefore = battleStateRef.current[side].energy
+
     // 1. Deduct energy
     dispatch({ type: 'ENERGY_SPEND', side, cost: card.cost })
 
@@ -1503,11 +1508,15 @@ export function useBattle({ remoteEnemy = false } = {}) {
     // 4. Check SP summon
     let spCandidates = []
     if (card.spSummonRule) {
-      let remainEnergy = battleStateRef.current[side].energy
+      // spend_all_energy（全球大流行）：本回合**全部**能量都投进去 —— 本卡费用 + 剩余一并清零，
+      //   能召的 SP 以「投入总量」（= 出牌前能量 energyBefore）为上限。这是设计口径，不是漏扣：
+      //   若只按扣完本卡后的剩余算，5 费卡要攒到 ≥10 能量才召得出最小的 5 费 SP → 规则形同虚设
+      //   （docs/sp-combos.md「出牌时能量 ≥ 该 SP 费用」即此口径；守卫 test-sp-chain「spend_all_energy 口径」）。
+      let remainEnergy = energyBefore - card.cost
       if (card.spSummonRule.type === 'spend_all_energy') {
-        remainEnergy = battleStateRef.current[side].energy
+        remainEnergy = energyBefore
         dispatch({ type: 'ENERGY_SET', side, value: 0 })
-        addLog(`${prefix}⚡ 消耗所有剩余能量 ${remainEnergy} 点！`)
+        addLog(`${prefix}⚡ 全部能量 ${energyBefore} 点都投了进去！（本卡 ${card.cost} 费 + 剩余 ${energyBefore - card.cost} 点）`)
       }
       // ★ 两侧都走 getSpSummonOutcome —— 敌方此前用 getEligibleSpCards，丢掉了 reason。
       const outcome = getSpSummonOutcome(card.spSummonRule, side, remainEnergy)
