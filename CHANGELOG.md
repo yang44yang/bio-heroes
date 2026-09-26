@@ -5,6 +5,30 @@ Bio Heroes 历史 Sprint 完成记录，最新在最上。
 
 ---
 
+## 战斗引擎压测收尾：反击 / AOE 群杀 / 状态 tick，顺手修两处（2026-09-26）✅ `ec5f975`
+> 07 月起一直挂着「未压测」的三条路径，在 🧪 测试场（家长门 56，preview 4174）逐回合读 DOM + 战斗记录对账：
+> 反击路由（`onHitCounter` → `ctx.attackerField`）、AOE 溅射双杀（同批死卡清场、AI 回合正常）、
+> 中毒/护盾 tick（双侧各在己方回合末 tick、`turnsLeft 3` 恰 3 次到期、致死进弃牌堆 `弃牌(1):🌱1`），
+> 主人血量逐回合能用日志逐条算平（绦虫吸血 / 病毒爆发 −500×2 / 回血封顶 30000）。三条都与引擎一致，0 console 报错。
+
+两处顺手修的，都是「日志把假话说得很自然」：
+- **全球大流行 `spend_all_energy` 读到扣费前的能量**：`playEventCard` 在 `dispatch(ENERGY_SPEND)` 之后读 `battleStateRef` 当「剩余能量」，
+  而 useReducer 的 dispatch 不 eager，同一次同步调用里 ref 仍是旧值 —— AI 用 5 能量打 5 费全球大流行，日志报「消耗所有剩余能量 5 点」
+  并召出 5 费 SP·超级细菌。改为 dispatch 前快照 `energyBefore`；**行为按原样定为口径**：投入总量（含本卡费）= 能召 SP 的费用上限
+  （若按扣完本卡后的剩余算，5 费卡要 ≥10 能量才召得出最小 SP → 死规则），日志改如实「全部能量 N 点都投了进去！（本卡 5 费 + 剩余 M 点）」。
+- **毒发致死无日志**：`processStatuses` 只记「损失 500 HP」，卡随即被提交后 effect 静默清场 → 玩家看到卡凭空消失。
+  POISON_TICK 事件加 `lethal`，日志补「→ 毒发倒下！」。
+
+守卫：`test-sp-chain` +5（口径 + 接线：快照在 ENERGY_SPEND 之前、不再 dispatch 后读 ref），`test-status-effects` +3；两组对修前源码跑过会红。
+`docs/sp-combos.md` 全球大流行一行改成如实口径。部署按 VERIFY §3 回验：`BattleScreen-BYNXOUSX.js` / `index-D8vIYsvg.js` / css / sw.js
+线上 md5 与本地一致，线上 chunk 里 `毒发倒下`×1、`都投了进去`×1、反向哨兵 `消耗所有剩余能量`×0。relay 未动。
+
+☠️ **压测方法的坑**：测试场也发手牌，按卡名抓 HP 会同时抓到场上和手里的同名卡（变化的那张才是场上的）；
+`browser_batch` 上限 25 个动作，「结束出牌」「结束回合」必须分两次 JS 调用；「击杀 = 一回合内死了」曾误判成双 tick，其实是 AI 攻击的互扣（看日志）。
+设计观察（未改）：中毒绕过护盾直接扣 HP，护盾只挡攻击 —— 与主流卡牌游戏一致，7 岁是否困惑待齐齐。
+
+---
+
 ## 给小学老师的课纲依据说明（2026-09-10）✅ `22b2180`
 > 老师问「到底用的是什么课纲」。交付 `outputs/curriculum-basis-for-teachers.pdf`（5 页）+ 可重生成脚本 `outputs/build-curriculum-doc.py`。
 
