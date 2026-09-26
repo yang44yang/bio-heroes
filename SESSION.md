@@ -13,7 +13,7 @@
 - 压测用 🧪 测试场：主菜单「⚙️ 更多」→「测试场」，家长门 **56**；两侧摆卡，点已放的卡可挂 护盾/标记/中毒/沉睡/隐身/守护
 
 ## 当前 git / 生产状态
-- HEAD = origin/main = `ec5f975`（09-26 引擎修复，改了构建产物）。
+- HEAD = origin/main。最后一个改动构建产物的提交是 `ec5f975`（09-26 引擎修复）；之后的「更新状态」提交只动文档。
 - **生产 = `ec5f975` 的构建产物**。09-26 按 VERIFY §3 回验：`index.html` 资源引用与线上逐条相同，
   `index-D8vIYsvg.js` + `index-L_ekeLmc.css` + `BattleScreen-BYNXOUSX.js`（承载修复的 lazy chunk）+ `sw.js` md5 一致；
   线上 chunk 里 `毒发倒下`×1、`都投了进去`×1、反向哨兵 `消耗所有剩余能量`×0。
